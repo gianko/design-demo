@@ -45,7 +45,7 @@ Domain for the generated screens: **contractor payroll / invoicing** (I live it 
 - **DECIDED** Generative UI in-product (adaptive runtime interfaces) is **out of scope**. Deliberately. Mention in the case study as the obvious next step.
 - **DECIDED** Repo conventions: written domain model, ADRs, spec-first, TypeScript strict, Vitest, Playwright, ESLint. Same as my other repos.
 - **DECIDED** Deliverables: public GitHub repo, deployed Storybook, 3-minute Loom (design brief → Storybook → screen brief → generated screen → failing gate → repair → passing → screen appears in Figma), case study doc in the repo (`docs/case-study.md`) with a section titled "What a designer should change".
-- **DECIDED** Anthropic's `frontend-design` skill is loaded for every session where Claude Code builds or modifies a component. It is the only third-party design skill in the loop. Its default bans (Inter/Roboto/Arial/Space Grotesk, no aesthetic commitment before code) are restated in the design brief so the brief stands on its own.
+- **DECIDED** Anthropic's `frontend-design` skill is loaded for every session where Claude Code builds or modifies a component. It is the only third-party design skill in the loop. Its current bans are restated in the design brief so the brief stands on its own. Since its 2026-09-03 rewrite the skill bans typographic tells and default clusters rather than named fonts, so the design brief names the banned fonts (Inter, Geist, Roboto, Arial, Space Grotesk) itself.
 - **DECIDED** No impeccable dependency. Its 61 detector rules are used as a **reference list only**: read them, pick the ones that apply to a dense B2B product UI, reimplement that subset in our own taste lint (gate 7), credit the source in the rule file. Rules we skip are listed with a one-line reason. Our rule set is small enough to read in one sitting and goes beyond impeccable in at least one direction the brief cares about (density, motion or type).
 
 ## 4. Components (initial list — trim, don't grow)
@@ -89,16 +89,16 @@ Order matters: variables first, then component frames, then screen captures, so 
 ## 8. Scope and timebox
 
 - Target: **3 weekends** of focused work, plus evenings for the design brief, case study and Loom.
-- Order: design brief (evening, before anything else) → vertical slice: tokens + 4 components + one screen brief + gates 1–4 + one Figma push → then widen.
+- Order: design brief (evening, before anything else) → vertical slice: tokens + 4 components + one screen brief + gates 1–4 + taste lint (first 5 rules) + one Figma push → then widen.
 - Fallback if time runs out (cut from the end): drop component frames → drop brief-conformance gate → ship as "AI-built design system + Design System Guardian" (token lint + a11y + evals on generated screens) and still have a coherent story.
 
 Priority:
 
-| P   | Deliverable                                                                                                                                       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0  | Design brief; tokens pipeline; component library + Storybook (AI-built, gated); spec→code agent; gates 1–4; repair loop; 5 screen briefs in evals |
-| P1  | Motion in generated screens; full brief set; eval comparison across versions; Figma: variables with modes + screen captures                       |
-| P2  | Brief-conformance gate; Figma: component frames; case study; Loom; deployed Storybook; README eval table auto-generated                           |
+| P   | Deliverable                                                                                                                                                                   |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0  | Design brief; tokens pipeline; component library + Storybook (AI-built, gated); spec→code agent; gates 1–4; repair loop; 5 screen briefs in evals; taste lint (first 5 rules) |
+| P1  | Motion in generated screens; full brief set; eval comparison across versions; Figma: variables with modes + screen captures; taste lint complete                              |
+| P2  | Brief-conformance gate; Figma: component frames; case study; Loom; deployed Storybook; README eval table auto-generated                                                       |
 
 ## 9. Open questions (investigation tickets)
 
