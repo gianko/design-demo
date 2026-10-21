@@ -16,6 +16,10 @@ _Avoid_: UI kit, theme
 A named design value (colour, spacing, radius, type, elevation, motion, z-index) that is the only legal source of that value in code and Figma.
 _Avoid_: Variable (except when naming the Figma object), constant
 
+**Build loop**:
+The unattended Claude Code loop that builds the design system, one issue per iteration.
+_Avoid_: Ralph, agent loop
+
 **Density set**:
 The row heights, container padding and target sizes for one audience: working density for the admin, full room for the contractor.
 _Avoid_: Compact mode, size variant
@@ -31,6 +35,10 @@ The person who submits invoices and gets paid, a few times a month; the secondar
 _Avoid_: Freelancer, vendor, payee, user (unqualified)
 
 ## Generation
+
+**Generator**:
+The two-step workflow that turns a screen brief into a UI spec, then the UI spec into a generated screen; a fixed sequence of model calls, not an agent.
+_Avoid_: Agent (for this), pipeline (unqualified)
 
 **Screen brief**:
 A plain-language request for one product screen, e.g. "invoice list with filters, overdue state, bulk-pay action".
@@ -55,7 +63,7 @@ A single pass/fail check applied to a UI spec, a generated screen, or the design
 _Avoid_: Check, validator, test (when meaning a gate)
 
 **Repair loop**:
-Feeding gate failures back to the agent, with the original screen brief, for another attempt.
+Feeding gate failures back to the generator, with the original screen brief, for another attempt.
 _Avoid_: Retry, fix loop
 
 **Eval run**:
