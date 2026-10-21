@@ -1,0 +1,22 @@
+@import "../../src/styles.css";
+@source "./";
+
+/* Shared-element name, set by class so the style ban holds (ADR 0002). */
+@utility vt-invoice { view-transition-name: invoice; }
+@utility vt-scrim { view-transition-name: scrim; }
+
+/* Motion tokens: slow 320ms / exit 224ms, ease-standard / ease-exit. */
+::view-transition-group(invoice) { animation-duration: 320ms; animation-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+::view-transition-old(invoice), ::view-transition-new(invoice) { animation-duration: 320ms; height: 100%; object-fit: none; object-position: left top; }
+::view-transition-group(scrim) { animation-duration: 320ms; }
+html[data-vt="close"]::view-transition-group(invoice) { animation-duration: 224ms; animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+html[data-vt="close"]::view-transition-old(invoice), html[data-vt="close"]::view-transition-new(invoice) { animation-duration: 224ms; }
+::view-transition-group(root) { animation-duration: 120ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) { animation-duration: 120ms !important; }
+  ::view-transition-group(invoice) { animation-name: none !important; }
+}
+
+/* Gap found by this spike: the closed theme has no 0 step and no sheet width. */
+@theme inline { --spacing-0: 0px; --width-sheet: 420px; --background-color-scrim: var(--ds-color-scrim); }
