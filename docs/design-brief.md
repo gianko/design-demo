@@ -14,6 +14,7 @@ Two people use the screens, and density follows who's looking.
 |---|---|---|
 | Row height | 46px | 60px |
 | Body text | 14px | 16px |
+| Label text | 14px | 16px |
 | Page padding | 28px | 36px |
 | Minimum target | 24px | 44px |
 
@@ -43,6 +44,7 @@ One quiet family; hierarchy comes from size and weight, not from a second face.
 Colour is assigned by role; components never name a hue.
 
 - **Roles**: `page`, `surface`, `surface-raised`, `ink`, `ink-muted`, `line`, `accent`, `on-accent`, `selected`, and status pairs for `awaiting`, `overdue`, `paid`, `scheduled`, `failed`.
+- **State roles**: `accent-hover` and `accent-pressed` deepen the accent; `surface-hover` and `surface-pressed` deepen a neutral control; `control` is the 3:1 edge of an input or secondary button (`line` stays a hairline between surfaces); `disabled` and its text are a flat, quiet neutral; `scrim` sits behind overlays. Each has its own value in dark mode.
 - **One accent, heather** (about `#80527A` light, `#D8B4D2` dark): a dusty berry for primary actions, selection and focus only. _Why: one accent keeps "what can I do here" obvious._
 - **The focus ring shows on keyboard focus only** (`:focus-visible`), never on click. _Why: a ring on a clicked button reads as "selected"._
 - **Status colours are their own set** and never borrow the accent:
@@ -74,8 +76,9 @@ Motion confirms what the user just did. It is the system's signature, so it is p
 
 - **Durations**: `fast` 120ms (press, hover colour), `base` 240ms (state change, selection), `slow` 320ms (sheet, modal, toast entering). Exits run at about 70% of the enter duration.
 - **Easings**: `standard` (ease-out) by default; `exit` (ease-in) for leaving; `settle`, a single overshoot of about 4% with no second swing, only for confirming something the user did (a status flipping after pay, a toast arriving). Never on exits, never on anything the system starts.
-- **Expected**: selection, the bulk-action bar entering and handing off to its toast, status changes staggered across rows, sheets opening from their trigger.
+- **Expected**: selection, the bulk-action bar entering and handing off to its toast, status changes staggered across rows, sheets opening from their trigger, a pending action's progress edge.
 - **Banned**: bounce or elastic easing (more than one swing), entrance animations on page load, hover lift on cards or rows, anything that loops.
+- **The one loop**: a pending action shows a progress edge along its button's bottom that fills once over `slow`. If the operation is still running, the edge sweeps until the result arrives, then stops. _Why: the wait has no known length, and a still button reads as frozen._ Reduced motion: a static edge.
 - **Signature transitions**: (1) pay → the bar shows pending → once the payment is confirmed, statuses flip in a stagger and the bar becomes the toast; (2) a row expands into the invoice-detail sheet.
 - **Never show success before it's confirmed.** The stagger is the confirmation, not a guess. _Why: assured means the screen never claims money moved when it hasn't._
 - **Reduced motion**: no movement, overshoot or stagger; changes become a `fast` crossfade. Everything works without animation.

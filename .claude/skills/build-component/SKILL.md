@@ -29,7 +29,7 @@ Write `proto/src/components/$ARGUMENTS/PLAN.md`, under a page:
 
 - **Use**: the one-line registry `use` description: when a screen reaches for this component, and when it reaches for a sibling instead.
 - **Anatomy**: the slots, and the Radix primitive and parts, if any.
-- **Variants, sizes, states**: each with its reason in the brief. Fewer is better; every variant is a choice a generated screen can get wrong.
+- **Variants, sizes, states**: each with its reason in the brief. Fewer is better; every variant is a choice a generated screen can get wrong. An interactive component plans every state it can be in: rest, hover, pressed, focus-visible, disabled, and pending where it starts an operation. Each state is visibly distinct from rest.
 - **Token map**: per slot and state, the exact token classes. Existing tokens only.
 - **A11y contract**: role, accessible name, keyboard behaviour, focus (`:focus-visible` only), disabled and busy semantics, target size per density.
 - **Motion**: which user action fires which `duration-*` / `ease-*`, and what reduced motion does instead.
@@ -56,7 +56,7 @@ The loop is done when `pnpm gate $ARGUMENTS` prints PASS for every gate. After 5
 
 ## 6. Critique the screenshots
 
-Open every PNG in `proto/gates-out/shots/` for this component with the Read tool. Judge them against the brief's personality (warm, assured, plain-spoken), the density table, the radius table and the banned list, and against `frontend-design`'s default clusters. Then apply its mirror rule: remove one accessory.
+Open every PNG in `proto/gates-out/shots/` for this component with the Read tool: each story at rest, plus `--hover`, `--pressed` and `--focus` shots of its first interactive element. Judge them against the brief's personality (warm, assured, plain-spoken), the density table, the radius table and the banned list, and against `frontend-design`'s default clusters. Then apply its mirror rule: remove one accessory.
 
 If you change anything, go back to step 5. The critique is done when a full pass over the screenshots produces no change.
 

@@ -6,7 +6,8 @@ const preview: Preview = {
     theme: { toolbar: { title: "Theme", items: ["light", "dark"] } },
     density: { toolbar: { title: "Density", items: ["admin", "contractor"] } },
   },
-  initialGlobals: { theme: "light", density: "admin" },
+  // a11y runs manually: the gate runs axe itself, and two concurrent runs collide.
+  initialGlobals: { theme: "light", density: "admin", a11y: { manual: true } },
   decorators: [
     (Story, { globals }) => {
       document.documentElement.dataset.theme = globals.theme;

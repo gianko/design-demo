@@ -45,13 +45,30 @@ for (const story of stories) {
       failures.push(...(await tasteRules(page, m.target)));
 
       // Focus ring must not show on click (design brief: :focus-visible only).
-      const clickable = page.locator("#storybook-root button:not([disabled]), #storybook-root a[href]").first();
+      const clickable = page.locator("#storybook-root button:not([disabled]):not([aria-disabled=true]):not([aria-busy=true]), #storybook-root a[href]").first();
       if (await clickable.count()) {
         await clickable.click();
         const outline = await clickable.evaluate((el) => getComputedStyle(el).outlineStyle);
         if (outline !== "none") failures.push(`[gate7 taste] focus-on-click: outline "${outline}" shows after a mouse click; use focus-visible only`);
         await page.mouse.click(1, 1);
         await page.keyboard.press("Tab");
+      }
+
+      // Interaction shots for the critique (not baselines): hover, pressed, keyboard focus.
+      const target = page.locator("#storybook-root button, #storybook-root a[href]").first();
+      if (await target.count()) {
+        await target.hover();
+        await page.waitForTimeout(400);
+        await root.screenshot({ path: `gates-out/shots/${name}--hover.png` });
+        await page.mouse.down();
+        await page.waitForTimeout(400);
+        await root.screenshot({ path: `gates-out/shots/${name}--pressed.png` });
+        await page.mouse.up();
+        await page.mouse.move(0, 0);
+        await page.mouse.click(1, 1);
+        await page.keyboard.press("Tab");
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: `gates-out/shots/${name}--focus.png`, clip: (await root.boundingBox())! });
       }
 
       expect(failures, failures.join("\n")).toEqual([]);

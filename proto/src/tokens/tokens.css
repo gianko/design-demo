@@ -18,7 +18,14 @@
   --ds-color-text-on-accent: oklch(1 0 330);
   --ds-color-text-accent: oklch(0.48 0.085 330);
   --ds-color-border-line: oklch(0.9 0.012 330);
+  --ds-color-border-control: oklch(0.62 0.02 330);
   --ds-color-ring-focus: oklch(0.48 0.085 330);
+  --ds-color-bg-accent-hover: oklch(0.43 0.085 330);
+  --ds-color-bg-accent-pressed: oklch(0.39 0.08 330);
+  --ds-color-bg-surface-hover: oklch(0.97 0.006 330);
+  --ds-color-bg-surface-pressed: oklch(0.94 0.01 330);
+  --ds-color-bg-disabled: oklch(0.95 0.006 330);
+  --ds-color-text-disabled: oklch(0.6 0.015 330);
 
   --ds-color-bg-awaiting: oklch(0.95 0.06 85);
   --ds-color-text-awaiting: oklch(0.45 0.09 70);
@@ -48,7 +55,14 @@
   --ds-color-text-on-accent: oklch(0.22 0.03 330);
   --ds-color-text-accent: oklch(0.82 0.06 330);
   --ds-color-border-line: oklch(0.36 0.02 330);
+  --ds-color-border-control: oklch(0.56 0.02 330);
   --ds-color-ring-focus: oklch(0.82 0.06 330);
+  --ds-color-bg-accent-hover: oklch(0.86 0.055 330);
+  --ds-color-bg-accent-pressed: oklch(0.77 0.06 330);
+  --ds-color-bg-surface-hover: oklch(0.27 0.022 330);
+  --ds-color-bg-surface-pressed: oklch(0.31 0.024 330);
+  --ds-color-bg-disabled: oklch(0.27 0.015 330);
+  --ds-color-text-disabled: oklch(0.55 0.015 330);
 
   --ds-color-bg-awaiting: oklch(0.32 0.05 75);
   --ds-color-text-awaiting: oklch(0.86 0.1 85);
@@ -76,6 +90,8 @@
   --ds-density-radius-surface: 8px;
   --ds-density-body-size: 14px;
   --ds-density-body-line-height: 20px;
+  --ds-density-label-size: 14px;
+  --ds-density-label-line-height: 20px;
 }
 
 /* ---------- Density: contractor ---------- */
@@ -87,6 +103,8 @@
   --ds-density-radius-surface: 12px;
   --ds-density-body-size: 16px;
   --ds-density-body-line-height: 24px;
+  --ds-density-label-size: 16px;
+  --ds-density-label-line-height: 24px;
 }
 
 /* ---------- Closed theme: only these classes compile ---------- */
@@ -107,6 +125,14 @@
   --background-color-paid: var(--ds-color-bg-paid);
   --background-color-scheduled: var(--ds-color-bg-scheduled);
   --background-color-failed: var(--ds-color-bg-failed);
+  --background-color-accent-hover: var(--ds-color-bg-accent-hover);
+  --background-color-accent-pressed: var(--ds-color-bg-accent-pressed);
+  --background-color-surface-hover: var(--ds-color-bg-surface-hover);
+  --background-color-surface-pressed: var(--ds-color-bg-surface-pressed);
+  --background-color-disabled: var(--ds-color-bg-disabled);
+  --background-color-on-accent: var(--ds-color-text-on-accent);
+  --background-color-scrim: var(--ds-color-scrim);
+  --text-color-disabled: var(--ds-color-text-disabled);
   --text-color-ink: var(--ds-color-text-ink);
   --text-color-ink-muted: var(--ds-color-text-ink-muted);
   --text-color-on-accent: var(--ds-color-text-on-accent);
@@ -117,10 +143,12 @@
   --text-color-scheduled: var(--ds-color-text-scheduled);
   --text-color-failed: var(--ds-color-text-failed);
   --border-color-line: var(--ds-color-border-line);
+  --border-color-control: var(--ds-color-border-control);
   --ring-color-focus: var(--ds-color-ring-focus);
   --outline-color-focus: var(--ds-color-ring-focus);
 
-  /* Spacing, t-shirt steps on a 4px base */
+  /* Spacing, t-shirt steps on a 4px base; 0 for edge pinning (inset-0, top-0) */
+  --spacing-0: 0px;
   --spacing-3xs: 4px;
   --spacing-2xs: 8px;
   --spacing-xs: 12px;
@@ -139,6 +167,8 @@
   --min-width-target: var(--ds-density-target);
   --size-icon: var(--ds-density-icon);
   --size-target: var(--ds-density-target);
+  --width-sheet: 420px;
+  --height-edge: 2px;
 
   /* Radius by role */
   --radius-control: 6px;
@@ -154,8 +184,8 @@
   --text-caption: 12px;
   --text-caption--line-height: 16px;
   --text-caption--font-weight: 400;
-  --text-label: 14px;
-  --text-label--line-height: 20px;
+  --text-label: var(--ds-density-label-size);
+  --text-label--line-height: var(--ds-density-label-line-height);
   --text-label--font-weight: 600;
   --text-body: var(--ds-density-body-size);
   --text-body--line-height: var(--ds-density-body-line-height);
@@ -176,6 +206,13 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --ease-settle: cubic-bezier(0.3, 1.18, 0.6, 1);
+
+  /* Progress edge: fills once over slow; if still pending, sweeps until the
+     result arrives. The brief's one allowed loop. */
+  --animate-progress-fill: progress-fill 320ms cubic-bezier(0.2, 0, 0, 1) both;
+  --animate-progress-sweep: progress-sweep 1280ms cubic-bezier(0.2, 0, 0, 1) 320ms infinite;
+  @keyframes progress-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes progress-sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
   /* Z-index */
   --z-index-raised: 10;
