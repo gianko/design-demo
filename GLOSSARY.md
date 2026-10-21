@@ -16,6 +16,20 @@ _Avoid_: UI kit, theme
 A named design value (colour, spacing, radius, type, elevation, motion, z-index) that is the only legal source of that value in code and Figma.
 _Avoid_: Variable (except when naming the Figma object), constant
 
+**Density set**:
+The row heights, container padding and target sizes for one audience: working density for the admin, full room for the contractor.
+_Avoid_: Compact mode, size variant
+
+## People
+
+**Admin**:
+The finance or ops person who reviews, approves and pays contractor invoices, often many a day; the primary user of generated screens.
+_Avoid_: Operator, customer, user (unqualified)
+
+**Contractor**:
+The person who submits invoices and gets paid, a few times a month; the secondary user of generated screens.
+_Avoid_: Freelancer, vendor, payee, user (unqualified)
+
 ## Generation
 
 **Screen brief**:
