@@ -4,7 +4,7 @@ The source of taste for the design system. Every token, component and generated 
 
 ## Personality: warm, assured, plain-spoken
 
-The product moves other people's money, so it has to feel trustworthy without feeling cold. Warmth lives in type, radius, colour and copy; assurance lives in precision; motion is the one loud thing. When a case isn't covered here, pick whatever is most warm, assured and plain-spoken.
+The product moves other people's money, so it has to feel trustworthy without feeling cold. Warmth lives in colour, copy and softened corners; assurance lives in precise, quiet type; motion is the one loud thing. When a case isn't covered here, pick whatever is most warm, assured and plain-spoken.
 
 ## Who it's for
 
@@ -30,10 +30,10 @@ Two people use the screens, and density follows who's looking.
 
 ## Type
 
-A soft serif for moments, a friendly sans for work.
+One quiet family; hierarchy comes from size and weight, not from a second face.
 
-- **Fraunces** (`SOFT` 100, `WONK` off, optical size auto, weight 500) for page titles, card titles and a single large figure. Never body, labels or tables. _Why: warmth without the high-contrast editorial serif look._
-- **Figtree** for everything else, weights 400 and 600 only. _Why: open, friendly shapes; two weights keep hierarchy honest._
+- **Instrument Sans** for everything, titles and amounts included, weights 400 and 600 only. _Why: neutral and precise, so colour, copy and motion carry the warmth; two weights keep hierarchy honest._
+- Titles (24px and up) and a single large figure use 600 with slightly tightened tracking (about −0.015em, −0.02em for the figure). There is no display face.
 - Scale on a 14px base, ratio about 1.2: 12, 14, 16, 20, 24, 32. Nothing off the scale.
 - Sentence case everywhere. No ALL-CAPS labels or table headers; headers are 12px, 600, `ink-muted`.
 - **Amounts** always use tabular figures, show cents, and right-align in tables. In tables: `4,800.00 USD`. On a single-currency card: `$4,800.00`. _Why: multi-currency lists must be impossible to misread, and digits must line up._
@@ -43,22 +43,29 @@ A soft serif for moments, a friendly sans for work.
 Colour is assigned by role; components never name a hue.
 
 - **Roles**: `bg`, `surface`, `surface-raised`, `ink`, `ink-muted`, `line`, `accent`, `accent-ink`, `selected`, and status pairs for `awaiting`, `overdue`, `paid`, `scheduled`, `failed`.
-- **One accent, berry** (about `#7B3F73` light, `#D9A2CE` dark): primary actions, selection and focus only. _Why: one accent keeps "what can I do here" obvious._
+- **One accent, heather** (about `#80527A` light, `#D8B4D2` dark): a dusty berry for primary actions, selection and focus only. _Why: one accent keeps "what can I do here" obvious._
+- **The focus ring shows on keyboard focus only** (`:focus-visible`), never on click. _Why: a ring on a clicked button reads as "selected"._
 - **Status colours are their own set** and never borrow the accent:
 
   | Awaiting | Overdue | Paid | Scheduled | Failed |
   |---|---|---|---|---|
   | Amber | Red | Green | Blue | Solid red |
 
-- **Colour alone never communicates state.** Every status pill carries its word. _Why: a colour-blind admin must still tell overdue from paid._
-- **Every neutral is tinted toward plum.** No pure grey. Text is a plum-tinted ink (about `#2B2230`), never `#000`. _This deliberately opts into tinted ink for text, which `frontend-design` lists as a default._
+- **Colour alone never communicates state.** Every status tag carries its word. _Why: a colour-blind admin must still tell overdue from paid._
+- **Every neutral is tinted toward plum.** No pure grey. Text is a plum-tinted ink (about `#2C2430`), never `#000`. _This deliberately opts into tinted ink for text, which `frontend-design` lists as a default._
 - **Light is primary.** Dark gives every role its own value; it is not an inversion. Dark `bg` is a deep plum-tinted dark, not black; surfaces get lighter as they rise; the accent lightens until it passes AA.
 - WCAG AA in both themes: body text 4.5:1, large text 3:1, focus rings and the edges that identify a control 3:1.
 
 ## Space, radius, elevation
 
 - **Spacing** on a 4px base, named steps only: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64. Off-scale values fail lint.
-- **Radius by role**: pills for anything you press or that shows status (buttons, chips, status pills); 8px for anything you type into (inputs, selects); 4px for checkboxes, which stay square at 16px; 10px (admin) or 14px (contractor) for surfaces; round avatars. Nested corners stay concentric (inner = outer − padding). _Why: one radius everywhere is a default, not a choice._
+- **Radius by role, subtle, never a pill**:
+
+  | Buttons, segmented filters | Inputs, selects | Status tags, checkboxes | Surfaces, admin | Surfaces, contractor | Avatars |
+  |---|---|---|---|---|---|
+  | 6px | 6px | 4px | 8px | 12px | Round |
+
+  Nothing is fully rounded except avatars. Nested corners stay concentric (inner = outer − padding). _Why: softened corners keep some warmth without the friendly-app look; one radius everywhere is a default, not a choice._
 - **Elevation, three levels**: flat (page and cards, separated by a `line` hairline), raised (sticky and floating bars, toasts: one soft plum-tinted shadow), overlay (modal, sheet, menu: a deeper shadow and a scrim). A shadow means "this floats", never "this is a box". In dark mode, levels are lighter surfaces.
 
 ## Motion
@@ -84,7 +91,7 @@ Named here so the brief stands on its own.
 
 - **Fonts**: Inter, Geist, Roboto, Arial, Space Grotesk.
 - **Palette**: Tailwind palette names or values as the palette; purple or indigo gradients; terracotta or clay; cream backgrounds (~`#F4F1EA`); high-contrast display serifs.
-- **Silhouettes**: shadcn defaults; one radius everywhere; the 8px-grid indigo button.
+- **Silhouettes**: shadcn defaults; one radius everywhere; pill-shaped buttons, tags or chips; the 8px-grid indigo button.
 - **From `frontend-design`**, restated:
   1. Accenting one word in a headline with italic, bold or colour.
   2. All caps for labels.
@@ -103,7 +110,7 @@ Named here so the brief stands on its own.
 
 I made these and would want a designer's eye on them first:
 
-- The exact berry accent and its dark-mode partner.
-- Fraunces with `SOFT` at 100: warm, or tipping into cute?
+- The heather accent: does it carry primary actions on a busy screen?
+- Instrument Sans alone, with no display face: is there enough hierarchy and warmth?
 - Two densities instead of one.
 - The plum tint on every neutral.
