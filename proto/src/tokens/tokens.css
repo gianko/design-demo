@@ -107,11 +107,58 @@
   --ds-density-label-line-height: 24px;
 }
 
+/* ---------- Single-mode scales (spike #15: every theme value is a --ds-* variable, as tokens/build.ts will emit) ---------- */
+:root {
+  --ds-space-3xs: 4px;
+  --ds-space-2xs: 8px;
+  --ds-space-xs: 12px;
+  --ds-space-sm: 16px;
+  --ds-space-md: 20px;
+  --ds-space-lg: 24px;
+  --ds-space-xl: 32px;
+  --ds-space-2xl: 40px;
+  --ds-space-3xl: 48px;
+  --ds-space-4xl: 64px;
+
+  --ds-radius-control: 6px;
+  --ds-radius-tag: 4px;
+  --ds-radius-avatar: 9999px;
+
+  --ds-type-family: "Instrument Sans";
+  --ds-type-caption-size: 12px;
+  --ds-type-caption-line-height: 16px;
+  --ds-type-caption-weight: 400;
+  --ds-type-label-weight: 600;
+  --ds-type-body-weight: 400;
+  --ds-type-heading-size: 20px;
+  --ds-type-heading-line-height: 28px;
+  --ds-type-heading-weight: 600;
+  --ds-type-title-size: 24px;
+  --ds-type-title-line-height: 32px;
+  --ds-type-title-tracking: -0.015em;
+  --ds-type-title-weight: 600;
+  --ds-type-figure-size: 32px;
+  --ds-type-figure-line-height: 40px;
+  --ds-type-figure-tracking: -0.02em;
+  --ds-type-figure-weight: 600;
+
+  --ds-motion-duration-fast: 120ms;
+  --ds-motion-duration-base: 240ms;
+  --ds-motion-duration-slow: 320ms;
+  --ds-motion-duration-fast-exit: 84ms;
+  --ds-motion-duration-base-exit: 168ms;
+  --ds-motion-duration-slow-exit: 224ms;
+  --ds-motion-duration-stagger: 40ms;
+  --ds-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ds-motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ds-motion-ease-settle: cubic-bezier(0.3, 1.18, 0.6, 1);
+}
+
 /* ---------- Closed theme: only these classes compile ---------- */
 @theme inline {
   --*: initial;
 
-  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--ds-type-family), ui-sans-serif, system-ui, sans-serif;
   --default-font-family: var(--font-sans);
 
   /* Colour roles, per property namespace (bg-ink does not exist) */
@@ -149,16 +196,16 @@
 
   /* Spacing, t-shirt steps on a 4px base; 0 for edge pinning (inset-0, top-0) */
   --spacing-0: 0px;
-  --spacing-3xs: 4px;
-  --spacing-2xs: 8px;
-  --spacing-xs: 12px;
-  --spacing-sm: 16px;
-  --spacing-md: 20px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 40px;
-  --spacing-3xl: 48px;
-  --spacing-4xl: 64px;
+  --spacing-3xs: var(--ds-space-3xs);
+  --spacing-2xs: var(--ds-space-2xs);
+  --spacing-xs: var(--ds-space-xs);
+  --spacing-sm: var(--ds-space-sm);
+  --spacing-md: var(--ds-space-md);
+  --spacing-lg: var(--ds-space-lg);
+  --spacing-xl: var(--ds-space-xl);
+  --spacing-2xl: var(--ds-space-2xl);
+  --spacing-3xl: var(--ds-space-3xl);
+  --spacing-4xl: var(--ds-space-4xl);
 
   /* Density roles */
   --spacing-page: var(--ds-density-page);
@@ -171,41 +218,41 @@
   --height-edge: 2px;
 
   /* Radius by role */
-  --radius-control: 6px;
-  --radius-tag: 4px;
+  --radius-control: var(--ds-radius-control);
+  --radius-tag: var(--ds-radius-tag);
   --radius-surface: var(--ds-density-radius-surface);
-  --radius-avatar: 9999px;
+  --radius-avatar: var(--ds-radius-avatar);
 
   /* Elevation */
   --shadow-raised: var(--ds-shadow-raised);
   --shadow-overlay: var(--ds-shadow-overlay);
 
   /* Type: composite roles, one class sets size, line-height, tracking, weight */
-  --text-caption: 12px;
-  --text-caption--line-height: 16px;
-  --text-caption--font-weight: 400;
+  --text-caption: var(--ds-type-caption-size);
+  --text-caption--line-height: var(--ds-type-caption-line-height);
+  --text-caption--font-weight: var(--ds-type-caption-weight);
   --text-label: var(--ds-density-label-size);
   --text-label--line-height: var(--ds-density-label-line-height);
-  --text-label--font-weight: 600;
+  --text-label--font-weight: var(--ds-type-label-weight);
   --text-body: var(--ds-density-body-size);
   --text-body--line-height: var(--ds-density-body-line-height);
-  --text-body--font-weight: 400;
-  --text-heading: 20px;
-  --text-heading--line-height: 28px;
-  --text-heading--font-weight: 600;
-  --text-title: 24px;
-  --text-title--line-height: 32px;
-  --text-title--letter-spacing: -0.015em;
-  --text-title--font-weight: 600;
-  --text-figure: 32px;
-  --text-figure--line-height: 40px;
-  --text-figure--letter-spacing: -0.02em;
-  --text-figure--font-weight: 600;
+  --text-body--font-weight: var(--ds-type-body-weight);
+  --text-heading: var(--ds-type-heading-size);
+  --text-heading--line-height: var(--ds-type-heading-line-height);
+  --text-heading--font-weight: var(--ds-type-heading-weight);
+  --text-title: var(--ds-type-title-size);
+  --text-title--line-height: var(--ds-type-title-line-height);
+  --text-title--letter-spacing: var(--ds-type-title-tracking);
+  --text-title--font-weight: var(--ds-type-title-weight);
+  --text-figure: var(--ds-type-figure-size);
+  --text-figure--line-height: var(--ds-type-figure-line-height);
+  --text-figure--letter-spacing: var(--ds-type-figure-tracking);
+  --text-figure--font-weight: var(--ds-type-figure-weight);
 
   /* Motion */
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
-  --ease-settle: cubic-bezier(0.3, 1.18, 0.6, 1);
+  --ease-standard: var(--ds-motion-ease-standard);
+  --ease-exit: var(--ds-motion-ease-exit);
+  --ease-settle: var(--ds-motion-ease-settle);
 
   /* Progress edge: fills once over slow; if still pending, sweeps until the
      result arrives. The brief's one allowed loop. */
@@ -221,13 +268,13 @@
 }
 
 /* Named utilities for bare-value families (ADR 0002) */
-@utility duration-fast { transition-duration: 120ms; animation-duration: 120ms; }
-@utility duration-base { transition-duration: 240ms; animation-duration: 240ms; }
-@utility duration-slow { transition-duration: 320ms; animation-duration: 320ms; }
-@utility duration-fast-exit { transition-duration: 84ms; animation-duration: 84ms; }
-@utility duration-base-exit { transition-duration: 168ms; animation-duration: 168ms; }
-@utility duration-slow-exit { transition-duration: 224ms; animation-duration: 224ms; }
-@utility delay-stagger { transition-delay: 40ms; animation-delay: 40ms; }
+@utility duration-fast { transition-duration: var(--ds-motion-duration-fast); animation-duration: var(--ds-motion-duration-fast); }
+@utility duration-base { transition-duration: var(--ds-motion-duration-base); animation-duration: var(--ds-motion-duration-base); }
+@utility duration-slow { transition-duration: var(--ds-motion-duration-slow); animation-duration: var(--ds-motion-duration-slow); }
+@utility duration-fast-exit { transition-duration: var(--ds-motion-duration-fast-exit); animation-duration: var(--ds-motion-duration-fast-exit); }
+@utility duration-base-exit { transition-duration: var(--ds-motion-duration-base-exit); animation-duration: var(--ds-motion-duration-base-exit); }
+@utility duration-slow-exit { transition-duration: var(--ds-motion-duration-slow-exit); animation-duration: var(--ds-motion-duration-slow-exit); }
+@utility delay-stagger { transition-delay: var(--ds-motion-duration-stagger); animation-delay: var(--ds-motion-duration-stagger); }
 @utility focus-ring { outline: 2px solid var(--ds-color-ring-focus); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {

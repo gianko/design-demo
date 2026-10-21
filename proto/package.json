@@ -8,7 +8,9 @@
     "build-storybook": "storybook build -o storybook-static --quiet",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "gate": "node scripts/gate.mjs"
+    "gate": "node scripts/gate.mjs",
+    "figma:payload": "node spikes/figma/payload.mjs > spikes/figma/out/payload.json",
+    "figma:sync": "node spikes/figma/sync.mjs"
   },
   "dependencies": {
     "@fontsource/instrument-sans": "^5.3.0",

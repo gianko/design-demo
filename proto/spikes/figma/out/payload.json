@@ -1,0 +1,2007 @@
+{
+  "collections": [
+    {
+      "name": "Primitives",
+      "modes": [
+        "Value"
+      ],
+      "hidden": true,
+      "variables": [
+        {
+          "name": "plum/99",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.987,
+              "g": 0.9768,
+              "b": 0.9856,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/19",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.0961,
+              "g": 0.0663,
+              "b": 0.0927,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "neutral/100",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/23",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.135,
+              "g": 0.1003,
+              "b": 0.131,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/97",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.9706,
+              "g": 0.9555,
+              "b": 0.9685,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/27-c22",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.1756,
+              "g": 0.1358,
+              "b": 0.171,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/95-c25",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.9754,
+              "g": 0.9129,
+              "b": 0.9671,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/30",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.2247,
+              "g": 0.1506,
+              "b": 0.2172,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/48",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.4723,
+              "g": 0.2948,
+              "b": 0.4564,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/82",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.8596,
+              "g": 0.7162,
+              "b": 0.8427,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/27-c25",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.1788,
+              "g": 0.1336,
+              "b": 0.1737,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/94-c12",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.9413,
+              "g": 0.9113,
+              "b": 0.9372,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/50",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.4228,
+              "g": 0.3698,
+              "b": 0.4162,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/74",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.6999,
+              "g": 0.6529,
+              "b": 0.6936,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/22",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.1354,
+              "g": 0.084,
+              "b": 0.1303,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/90",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.8894,
+              "g": 0.8597,
+              "b": 0.8853,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/36",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.2643,
+              "g": 0.2253,
+              "b": 0.2595,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/62",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.5547,
+              "g": 0.5098,
+              "b": 0.5488,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/56",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.4846,
+              "g": 0.4408,
+              "b": 0.4789,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/43",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.4141,
+              "g": 0.2409,
+              "b": 0.3995,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/86",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.904,
+              "g": 0.7709,
+              "b": 0.888,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/39",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.3632,
+              "g": 0.204,
+              "b": 0.35,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/77",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.7956,
+              "g": 0.6545,
+              "b": 0.7791,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/94-c10",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.938,
+              "g": 0.913,
+              "b": 0.9346,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/31",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.2176,
+              "g": 0.1727,
+              "b": 0.2124,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/95-c6",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.9445,
+              "g": 0.9294,
+              "b": 0.9424,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/27-c15",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.1679,
+              "g": 0.1406,
+              "b": 0.1645,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/60",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.524,
+              "g": 0.4906,
+              "b": 0.5196,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "plum/55",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.4661,
+              "g": 0.4334,
+              "b": 0.4618,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "amber/95",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 1,
+              "g": 0.9276,
+              "b": 0.7795,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "amber/32",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.2577,
+              "g": 0.1839,
+              "b": 0.0748,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "amber/45",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.4574,
+              "g": 0.2944,
+              "b": 0.0611,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "amber/86",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.9379,
+              "g": 0.8013,
+              "b": 0.5135,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "red/95",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 1,
+              "g": 0.9119,
+              "b": 0.9024,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "red/32",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.3172,
+              "g": 0.1359,
+              "b": 0.1259,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "red/48",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.6467,
+              "g": 0.1623,
+              "b": 0.1685,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "red/82",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.9983,
+              "g": 0.6697,
+              "b": 0.6408,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "green/95",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.8566,
+              "g": 0.9686,
+              "b": 0.8901,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "green/32",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.1098,
+              "g": 0.2289,
+              "b": 0.1547,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "green/45",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.0914,
+              "g": 0.3963,
+              "b": 0.2343,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "green/84",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.5827,
+              "g": 0.8716,
+              "b": 0.6827,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "blue/95",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.8882,
+              "g": 0.9421,
+              "b": 1,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "blue/32",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.118,
+              "g": 0.2062,
+              "b": 0.2957,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "blue/47",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.0884,
+              "g": 0.3654,
+              "b": 0.607,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "blue/84",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.6397,
+              "g": 0.8125,
+              "b": 0.9936,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "red/52",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.7451,
+              "g": 0.1339,
+              "b": 0.1637,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "red/62",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.8692,
+              "g": 0.306,
+              "b": 0.2953,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "red/18",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.1142,
+              "g": 0.0472,
+              "b": 0.0421,
+              "a": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Color",
+      "modes": [
+        "Light",
+        "Dark"
+      ],
+      "hidden": false,
+      "variables": [
+        {
+          "name": "color/bg/page",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-page)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/99"
+            },
+            "Dark": {
+              "alias": "plum/19"
+            }
+          }
+        },
+        {
+          "name": "color/bg/surface",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-surface)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "neutral/100"
+            },
+            "Dark": {
+              "alias": "plum/23"
+            }
+          }
+        },
+        {
+          "name": "color/bg/surface-raised",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-surface-raised)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/97"
+            },
+            "Dark": {
+              "alias": "plum/27-c22"
+            }
+          }
+        },
+        {
+          "name": "color/bg/selected",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-selected)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/95-c25"
+            },
+            "Dark": {
+              "alias": "plum/30"
+            }
+          }
+        },
+        {
+          "name": "color/bg/accent",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-accent)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/48"
+            },
+            "Dark": {
+              "alias": "plum/82"
+            }
+          }
+        },
+        {
+          "name": "color/text/ink",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-ink)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/27-c25"
+            },
+            "Dark": {
+              "alias": "plum/94-c12"
+            }
+          }
+        },
+        {
+          "name": "color/text/ink-muted",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-ink-muted)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/50"
+            },
+            "Dark": {
+              "alias": "plum/74"
+            }
+          }
+        },
+        {
+          "name": "color/text/on-accent",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-on-accent)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "neutral/100"
+            },
+            "Dark": {
+              "alias": "plum/22"
+            }
+          }
+        },
+        {
+          "name": "color/text/accent",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-accent)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/48"
+            },
+            "Dark": {
+              "alias": "plum/82"
+            }
+          }
+        },
+        {
+          "name": "color/border/line",
+          "type": "COLOR",
+          "scopes": [
+            "STROKE_COLOR"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-border-line)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/90"
+            },
+            "Dark": {
+              "alias": "plum/36"
+            }
+          }
+        },
+        {
+          "name": "color/border/control",
+          "type": "COLOR",
+          "scopes": [
+            "STROKE_COLOR"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-border-control)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/62"
+            },
+            "Dark": {
+              "alias": "plum/56"
+            }
+          }
+        },
+        {
+          "name": "color/ring/focus",
+          "type": "COLOR",
+          "scopes": [
+            "STROKE_COLOR"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-ring-focus)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/48"
+            },
+            "Dark": {
+              "alias": "plum/82"
+            }
+          }
+        },
+        {
+          "name": "color/bg/accent-hover",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-accent-hover)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/43"
+            },
+            "Dark": {
+              "alias": "plum/86"
+            }
+          }
+        },
+        {
+          "name": "color/bg/accent-pressed",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-accent-pressed)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/39"
+            },
+            "Dark": {
+              "alias": "plum/77"
+            }
+          }
+        },
+        {
+          "name": "color/bg/surface-hover",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-surface-hover)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/97"
+            },
+            "Dark": {
+              "alias": "plum/27-c22"
+            }
+          }
+        },
+        {
+          "name": "color/bg/surface-pressed",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-surface-pressed)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/94-c10"
+            },
+            "Dark": {
+              "alias": "plum/31"
+            }
+          }
+        },
+        {
+          "name": "color/bg/disabled",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-disabled)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/95-c6"
+            },
+            "Dark": {
+              "alias": "plum/27-c15"
+            }
+          }
+        },
+        {
+          "name": "color/text/disabled",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-disabled)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "plum/60"
+            },
+            "Dark": {
+              "alias": "plum/55"
+            }
+          }
+        },
+        {
+          "name": "color/bg/awaiting",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-awaiting)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "amber/95"
+            },
+            "Dark": {
+              "alias": "amber/32"
+            }
+          }
+        },
+        {
+          "name": "color/text/awaiting",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-awaiting)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "amber/45"
+            },
+            "Dark": {
+              "alias": "amber/86"
+            }
+          }
+        },
+        {
+          "name": "color/bg/overdue",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-overdue)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "red/95"
+            },
+            "Dark": {
+              "alias": "red/32"
+            }
+          }
+        },
+        {
+          "name": "color/text/overdue",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-overdue)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "red/48"
+            },
+            "Dark": {
+              "alias": "red/82"
+            }
+          }
+        },
+        {
+          "name": "color/bg/paid",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-paid)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "green/95"
+            },
+            "Dark": {
+              "alias": "green/32"
+            }
+          }
+        },
+        {
+          "name": "color/text/paid",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-paid)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "green/45"
+            },
+            "Dark": {
+              "alias": "green/84"
+            }
+          }
+        },
+        {
+          "name": "color/bg/scheduled",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-scheduled)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "blue/95"
+            },
+            "Dark": {
+              "alias": "blue/32"
+            }
+          }
+        },
+        {
+          "name": "color/text/scheduled",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-scheduled)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "blue/47"
+            },
+            "Dark": {
+              "alias": "blue/84"
+            }
+          }
+        },
+        {
+          "name": "color/bg/failed",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-bg-failed)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "red/52"
+            },
+            "Dark": {
+              "alias": "red/62"
+            }
+          }
+        },
+        {
+          "name": "color/text/failed",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-text-failed)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "alias": "neutral/100"
+            },
+            "Dark": {
+              "alias": "red/18"
+            }
+          }
+        },
+        {
+          "name": "color/scrim",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-color-scrim)"
+          },
+          "valuesByMode": {
+            "Light": {
+              "r": 0.1788,
+              "g": 0.1336,
+              "b": 0.1737,
+              "a": 0.4
+            },
+            "Dark": {
+              "r": 0.0234,
+              "g": 0.0076,
+              "b": 0.0216,
+              "a": 0.6
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Density",
+      "modes": [
+        "Admin",
+        "Contractor"
+      ],
+      "hidden": false,
+      "variables": [
+        {
+          "name": "density/row",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-row)"
+          },
+          "valuesByMode": {
+            "Admin": 46,
+            "Contractor": 60
+          }
+        },
+        {
+          "name": "density/page",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-page)"
+          },
+          "valuesByMode": {
+            "Admin": 28,
+            "Contractor": 36
+          }
+        },
+        {
+          "name": "density/target",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-target)"
+          },
+          "valuesByMode": {
+            "Admin": 24,
+            "Contractor": 44
+          }
+        },
+        {
+          "name": "density/icon",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-icon)"
+          },
+          "valuesByMode": {
+            "Admin": 16,
+            "Contractor": 20
+          }
+        },
+        {
+          "name": "density/radius-surface",
+          "type": "FLOAT",
+          "scopes": [
+            "CORNER_RADIUS"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-radius-surface)"
+          },
+          "valuesByMode": {
+            "Admin": 8,
+            "Contractor": 12
+          }
+        },
+        {
+          "name": "density/body-size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-body-size)"
+          },
+          "valuesByMode": {
+            "Admin": 14,
+            "Contractor": 16
+          }
+        },
+        {
+          "name": "density/body-line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-body-line-height)"
+          },
+          "valuesByMode": {
+            "Admin": 20,
+            "Contractor": 24
+          }
+        },
+        {
+          "name": "density/label-size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-label-size)"
+          },
+          "valuesByMode": {
+            "Admin": 14,
+            "Contractor": 16
+          }
+        },
+        {
+          "name": "density/label-line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-density-label-line-height)"
+          },
+          "valuesByMode": {
+            "Admin": 20,
+            "Contractor": 24
+          }
+        }
+      ]
+    },
+    {
+      "name": "Space",
+      "modes": [
+        "Value"
+      ],
+      "hidden": false,
+      "variables": [
+        {
+          "name": "space/3xs",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-3xs)"
+          },
+          "valuesByMode": {
+            "Value": 4
+          }
+        },
+        {
+          "name": "space/2xs",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-2xs)"
+          },
+          "valuesByMode": {
+            "Value": 8
+          }
+        },
+        {
+          "name": "space/xs",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-xs)"
+          },
+          "valuesByMode": {
+            "Value": 12
+          }
+        },
+        {
+          "name": "space/sm",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-sm)"
+          },
+          "valuesByMode": {
+            "Value": 16
+          }
+        },
+        {
+          "name": "space/md",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-md)"
+          },
+          "valuesByMode": {
+            "Value": 20
+          }
+        },
+        {
+          "name": "space/lg",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-lg)"
+          },
+          "valuesByMode": {
+            "Value": 24
+          }
+        },
+        {
+          "name": "space/xl",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-xl)"
+          },
+          "valuesByMode": {
+            "Value": 32
+          }
+        },
+        {
+          "name": "space/2xl",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-2xl)"
+          },
+          "valuesByMode": {
+            "Value": 40
+          }
+        },
+        {
+          "name": "space/3xl",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-3xl)"
+          },
+          "valuesByMode": {
+            "Value": 48
+          }
+        },
+        {
+          "name": "space/4xl",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-space-4xl)"
+          },
+          "valuesByMode": {
+            "Value": 64
+          }
+        }
+      ]
+    },
+    {
+      "name": "Radius",
+      "modes": [
+        "Value"
+      ],
+      "hidden": false,
+      "variables": [
+        {
+          "name": "radius/control",
+          "type": "FLOAT",
+          "scopes": [
+            "CORNER_RADIUS"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-radius-control)"
+          },
+          "valuesByMode": {
+            "Value": 6
+          }
+        },
+        {
+          "name": "radius/tag",
+          "type": "FLOAT",
+          "scopes": [
+            "CORNER_RADIUS"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-radius-tag)"
+          },
+          "valuesByMode": {
+            "Value": 4
+          }
+        },
+        {
+          "name": "radius/avatar",
+          "type": "FLOAT",
+          "scopes": [
+            "CORNER_RADIUS"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-radius-avatar)"
+          },
+          "valuesByMode": {
+            "Value": 9999
+          }
+        }
+      ]
+    },
+    {
+      "name": "Type",
+      "modes": [
+        "Value"
+      ],
+      "hidden": false,
+      "variables": [
+        {
+          "name": "type/family",
+          "type": "STRING",
+          "scopes": [
+            "FONT_FAMILY"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-family)"
+          },
+          "valuesByMode": {
+            "Value": "Instrument Sans"
+          }
+        },
+        {
+          "name": "type/caption/size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-caption-size)"
+          },
+          "valuesByMode": {
+            "Value": 12
+          }
+        },
+        {
+          "name": "type/caption/line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-caption-line-height)"
+          },
+          "valuesByMode": {
+            "Value": 16
+          }
+        },
+        {
+          "name": "type/caption/weight",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_WEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-caption-weight)"
+          },
+          "valuesByMode": {
+            "Value": 400
+          }
+        },
+        {
+          "name": "type/label/weight",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_WEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-label-weight)"
+          },
+          "valuesByMode": {
+            "Value": 600
+          }
+        },
+        {
+          "name": "type/body/weight",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_WEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-body-weight)"
+          },
+          "valuesByMode": {
+            "Value": 400
+          }
+        },
+        {
+          "name": "type/heading/size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-heading-size)"
+          },
+          "valuesByMode": {
+            "Value": 20
+          }
+        },
+        {
+          "name": "type/heading/line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-heading-line-height)"
+          },
+          "valuesByMode": {
+            "Value": 28
+          }
+        },
+        {
+          "name": "type/heading/weight",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_WEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-heading-weight)"
+          },
+          "valuesByMode": {
+            "Value": 600
+          }
+        },
+        {
+          "name": "type/title/size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-title-size)"
+          },
+          "valuesByMode": {
+            "Value": 24
+          }
+        },
+        {
+          "name": "type/title/line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-title-line-height)"
+          },
+          "valuesByMode": {
+            "Value": 32
+          }
+        },
+        {
+          "name": "type/title/tracking",
+          "type": "FLOAT",
+          "scopes": [
+            "LETTER_SPACING"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-title-tracking)"
+          },
+          "valuesByMode": {
+            "Value": -0.36
+          }
+        },
+        {
+          "name": "type/title/weight",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_WEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-title-weight)"
+          },
+          "valuesByMode": {
+            "Value": 600
+          }
+        },
+        {
+          "name": "type/figure/size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-figure-size)"
+          },
+          "valuesByMode": {
+            "Value": 32
+          }
+        },
+        {
+          "name": "type/figure/line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-figure-line-height)"
+          },
+          "valuesByMode": {
+            "Value": 40
+          }
+        },
+        {
+          "name": "type/figure/tracking",
+          "type": "FLOAT",
+          "scopes": [
+            "LETTER_SPACING"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-figure-tracking)"
+          },
+          "valuesByMode": {
+            "Value": -0.64
+          }
+        },
+        {
+          "name": "type/figure/weight",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_WEIGHT"
+          ],
+          "codeSyntax": {
+            "WEB": "var(--ds-type-figure-weight)"
+          },
+          "valuesByMode": {
+            "Value": 600
+          }
+        }
+      ]
+    },
+    {
+      "name": "Motion",
+      "modes": [
+        "Value"
+      ],
+      "hidden": false,
+      "variables": [
+        {
+          "name": "motion/duration/fast",
+          "type": "TIMING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-duration-fast)"
+          },
+          "valuesByMode": {
+            "Value": 120
+          }
+        },
+        {
+          "name": "motion/duration/base",
+          "type": "TIMING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-duration-base)"
+          },
+          "valuesByMode": {
+            "Value": 240
+          }
+        },
+        {
+          "name": "motion/duration/slow",
+          "type": "TIMING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-duration-slow)"
+          },
+          "valuesByMode": {
+            "Value": 320
+          }
+        },
+        {
+          "name": "motion/duration/fast-exit",
+          "type": "TIMING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-duration-fast-exit)"
+          },
+          "valuesByMode": {
+            "Value": 84
+          }
+        },
+        {
+          "name": "motion/duration/base-exit",
+          "type": "TIMING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-duration-base-exit)"
+          },
+          "valuesByMode": {
+            "Value": 168
+          }
+        },
+        {
+          "name": "motion/duration/slow-exit",
+          "type": "TIMING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-duration-slow-exit)"
+          },
+          "valuesByMode": {
+            "Value": 224
+          }
+        },
+        {
+          "name": "motion/duration/stagger",
+          "type": "TIMING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-duration-stagger)"
+          },
+          "valuesByMode": {
+            "Value": 40
+          }
+        },
+        {
+          "name": "motion/ease/standard",
+          "type": "EASING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-ease-standard)"
+          },
+          "valuesByMode": {
+            "Value": {
+              "type": "CUSTOM_CUBIC_BEZIER",
+              "easingFunctionCubicBezier": {
+                "x1": 0.2,
+                "y1": 0,
+                "x2": 0,
+                "y2": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "motion/ease/exit",
+          "type": "EASING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-ease-exit)"
+          },
+          "valuesByMode": {
+            "Value": {
+              "type": "CUSTOM_CUBIC_BEZIER",
+              "easingFunctionCubicBezier": {
+                "x1": 0.4,
+                "y1": 0,
+                "x2": 1,
+                "y2": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "motion/ease/settle",
+          "type": "EASING",
+          "codeSyntax": {
+            "WEB": "var(--ds-motion-ease-settle)"
+          },
+          "valuesByMode": {
+            "Value": {
+              "type": "CUSTOM_CUBIC_BEZIER",
+              "easingFunctionCubicBezier": {
+                "x1": 0.3,
+                "y1": 1.18,
+                "x2": 0.6,
+                "y2": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "textStyles": [
+    {
+      "name": "caption",
+      "bind": {
+        "fontFamily": "type/family",
+        "fontSize": "type/caption/size",
+        "lineHeight": "type/caption/line-height",
+        "fontWeight": "type/caption/weight"
+      }
+    },
+    {
+      "name": "label",
+      "bind": {
+        "fontFamily": "type/family",
+        "fontSize": "density/label-size",
+        "lineHeight": "density/label-line-height",
+        "fontWeight": "type/label/weight"
+      }
+    },
+    {
+      "name": "body",
+      "bind": {
+        "fontFamily": "type/family",
+        "fontSize": "density/body-size",
+        "lineHeight": "density/body-line-height",
+        "fontWeight": "type/body/weight"
+      }
+    },
+    {
+      "name": "heading",
+      "bind": {
+        "fontFamily": "type/family",
+        "fontSize": "type/heading/size",
+        "lineHeight": "type/heading/line-height",
+        "fontWeight": "type/heading/weight"
+      }
+    },
+    {
+      "name": "title",
+      "bind": {
+        "fontFamily": "type/family",
+        "fontSize": "type/title/size",
+        "lineHeight": "type/title/line-height",
+        "fontWeight": "type/title/weight",
+        "letterSpacing": "type/title/tracking"
+      }
+    },
+    {
+      "name": "figure",
+      "bind": {
+        "fontFamily": "type/family",
+        "fontSize": "type/figure/size",
+        "lineHeight": "type/figure/line-height",
+        "fontWeight": "type/figure/weight",
+        "letterSpacing": "type/figure/tracking"
+      }
+    }
+  ],
+  "effectStyles": [
+    {
+      "name": "shadow/raised",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 2,
+          "spread": 0,
+          "color": {
+            "r": 0.1788,
+            "g": 0.1336,
+            "b": 0.1737,
+            "a": 0.06
+          }
+        },
+        {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 12,
+          "spread": 0,
+          "color": {
+            "r": 0.1788,
+            "g": 0.1336,
+            "b": 0.1737,
+            "a": 0.08
+          }
+        }
+      ]
+    },
+    {
+      "name": "shadow/overlay",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 24,
+          "spread": 0,
+          "color": {
+            "r": 0.1788,
+            "g": 0.1336,
+            "b": 0.1737,
+            "a": 0.12
+          }
+        },
+        {
+          "type": "DROP_SHADOW",
+          "offset": {
+            "x": 0,
+            "y": 24
+          },
+          "radius": 48,
+          "spread": 0,
+          "color": {
+            "r": 0.1788,
+            "g": 0.1336,
+            "b": 0.1737,
+            "a": 0.14
+          }
+        }
+      ]
+    }
+  ]
+}
