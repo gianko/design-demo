@@ -16,6 +16,10 @@ _Avoid_: UI kit, theme
 A named design value (colour, spacing, radius, type, elevation, motion, z-index) that is the only legal source of that value in code and Figma.
 _Avoid_: Variable (except when naming the Figma object), constant
 
+**Theme**:
+The light or dark set of colour values; every colour role has a value in each. Independent of the density set.
+_Avoid_: Mode (except when naming the Figma object), colour scheme
+
 **Build loop**:
 The unattended Claude Code loop that builds the design system, one issue per iteration.
 _Avoid_: Ralph, agent loop

@@ -1,0 +1,28 @@
+# Tokens are DTCG JSON, built by our own script into CSS, TypeScript and a Figma payload
+
+Tokens are written in W3C DTCG 2025.10 JSON, one file per collection and mode (`primitives`, `color.light`, `color.dark`, `density.admin`, `density.contractor`, `space`, `radius`, `type`, `motion`), and checked by a Zod schema. The build fails if two modes of one collection differ in paths or `$type`. A hand-written `tokens/build.ts` turns them into three committed outputs: `tokens.css`, `tokens.ts` and a Figma payload. One naming function produces every name, so a token path, its CSS variable, its Tailwind class and its Figma variable can't drift apart:
+
+`color.text.ink-muted` → Figma `color/text/ink-muted` → `--ds-color-text-ink-muted` → `codeSyntax.WEB = var(--ds-color-text-ink-muted)` → theme key `--text-color-ink-muted` → class `text-ink-muted`.
+
+Code syntax names the `--ds-*` variable, not Tailwind's theme key, because `@theme inline` ([ADR 0002](0002-token-only-tailwind-and-eslint-token-lint.md)) puts the referenced variable straight into each utility. So `--ds-*` is the name a Figma capture sees on the element. Findings are in [Research Figma MCP write and capture details](https://github.com/gianko/design-demo/issues/8).
+
+## Decisions that come with it
+
+- **Colours are authored in OKLCH, and the build fails any colour outside the sRGB gamut.** CSS gets `oklch()`, Figma gets sRGB 0–1. The design brief's plum-tinted neutrals are one hue at low chroma with stepped lightness, and its dark accent "lightens until AA" by raising L. The gamut gate keeps code and Figma showing the same colour, because Figma variables are sRGB. `culori` does the conversion and is the build's only dependency. The overlay scrim is the one alpha token; Figma never binds colour variables with alpha, so captures won't bind it.
+- **AA is checked at build time.** Role pairs are declared in token metadata (ink on page, ink-muted on surface, each status pair, on-accent on accent, the focus ring against page), and the build fails if any pair misses AA in either theme.
+- **Colour roles sit in Tailwind's per-property namespaces**: `--background-color-*`, `--text-color-*`, `--border-color-*`, `--ring-color-*`, not `--color-*`. `text-ink` compiles but `bg-ink` doesn't, and each namespace maps to a Figma scope (`FRAME_FILL`/`SHAPE_FILL`, `TEXT_FILL`, `STROKE_COLOR`). These namespaces are in Tailwind 4.3's source but not in its docs, so the token-lint fixture plants one case per namespace, and an upgrade that drops them fails loudly. The fallback is `--color-*`. A role name can exist in several namespaces: `bg-overdue text-overdue`.
+- **Spacing steps have t-shirt names** (`3xs` 4px … `4xl` 64px). With pixel names, a habitual `p-4` would compile as 4px when the model meant 16px, and no gate would notice; with t-shirt names it's an unknown class that the repair loop fixes. Radius and density tokens are named by role: `rounded-control`, `rounded-tag`, `rounded-surface`, `rounded-avatar`, `p-page`, `h-row`, `min-h-target`, `size-icon`.
+- **Type is composite.** Each role (`caption`, `label`, `body`, `heading`, `title`, `figure`) is one `--text-<role>` with line-height, letter-spacing and font-weight sub-variables, so one class sets the whole style. There are no standalone `font-*` weight utilities. `body` is a density token: 14px for admin, 16px for contractor.
+- **`tokens.ts` holds names only**: `as const` arrays and unions per family, which the registry wraps in `z.enum()` ([ADR 0004](0004-flat-library-only-ui-spec-and-zod-first-registry.md)). No code reads a token value.
+- **Figma collections mirror the mode axes**: `Primitives` (one mode, hidden with empty scopes; colour roles alias it), `Color` (Light/Dark), `Density` (Admin/Contractor), and single-mode `Space`, `Radius`, `Type`, `Motion`. Theme and density are independent collections, as they are independent attributes in code. Z-index stays in code.
+- **Some Figma outputs are best effort**: shadows become effect styles; type becomes text styles bound to variables; motion becomes `TIMING`/`EASING` variables. Each falls back to plain values or code-only if [the Figma spike](https://github.com/gianko/design-demo/issues/15) finds the API won't carry it. Effect styles are the first cut. The spike owns the sync and may reshape the payload; the token source doesn't change.
+- **Outputs are committed.** CI runs the build and fails on `git diff --exit-code`, and a Vitest snapshot covers all three outputs. Token changes show up in review, and `figma:sync-tokens` reads a checked-in file.
+
+## Considered options
+
+- **Style Dictionary**: recognised, with solid alias resolution, but every output here (mode scopes, `@theme inline`, `@utility` blocks, Zod name unions, the Figma payload, the contrast check) would be a custom format or hook. That's the same code behind another API, plus multi-mode handled by multiple runs and a merge.
+- **Custom JSON or TypeScript token files**: no conversion step, but less legible to anyone who knows design tokens, and the demo brief promises JSON.
+- **Per-mode values under `$extensions` in one file**: fewer files, but not valid DTCG on its own and unlike Figma's own variable export.
+- **Hex colours**: no conversion, but ramps and dark-mode tuning are guesswork in sRGB.
+- **Tailwind's `--color-*` namespace**: documented, but `bg-ink` and `text-surface` compile.
+- **Pixel or numeric spacing names**: readable, but they collide silently with Tailwind habits.

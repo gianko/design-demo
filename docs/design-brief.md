@@ -13,7 +13,7 @@ Two people use the screens, and density follows who's looking.
 | | Admin: working density | Contractor: full room |
 |---|---|---|
 | Row height | 46px | 60px |
-| Body text | 14px | 15px |
+| Body text | 14px | 16px |
 | Page padding | 28px | 36px |
 | Minimum target | 24px | 44px |
 
@@ -42,7 +42,7 @@ One quiet family; hierarchy comes from size and weight, not from a second face.
 
 Colour is assigned by role; components never name a hue.
 
-- **Roles**: `bg`, `surface`, `surface-raised`, `ink`, `ink-muted`, `line`, `accent`, `accent-ink`, `selected`, and status pairs for `awaiting`, `overdue`, `paid`, `scheduled`, `failed`.
+- **Roles**: `page`, `surface`, `surface-raised`, `ink`, `ink-muted`, `line`, `accent`, `on-accent`, `selected`, and status pairs for `awaiting`, `overdue`, `paid`, `scheduled`, `failed`.
 - **One accent, heather** (about `#80527A` light, `#D8B4D2` dark): a dusty berry for primary actions, selection and focus only. _Why: one accent keeps "what can I do here" obvious._
 - **The focus ring shows on keyboard focus only** (`:focus-visible`), never on click. _Why: a ring on a clicked button reads as "selected"._
 - **Status colours are their own set** and never borrow the accent:
@@ -53,7 +53,7 @@ Colour is assigned by role; components never name a hue.
 
 - **Colour alone never communicates state.** Every status tag carries its word. _Why: a colour-blind admin must still tell overdue from paid._
 - **Every neutral is tinted toward plum.** No pure grey. Text is a plum-tinted ink (about `#2C2430`), never `#000`. _This deliberately opts into tinted ink for text, which `frontend-design` lists as a default._
-- **Light is primary.** Dark gives every role its own value; it is not an inversion. Dark `bg` is a deep plum-tinted dark, not black; surfaces get lighter as they rise; the accent lightens until it passes AA.
+- **Light is primary.** Dark gives every role its own value; it is not an inversion. Dark `page` is a deep plum-tinted dark, not black; surfaces get lighter as they rise; the accent lightens until it passes AA.
 - WCAG AA in both themes: body text 4.5:1, large text 3:1, focus rings and the edges that identify a control 3:1.
 
 ## Space, radius, elevation
