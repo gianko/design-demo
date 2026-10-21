@@ -52,3 +52,14 @@ Figma nodes: Button set `8:6`, modes frame `8:7`, captures `11:14` (Primary, Lig
 ## "One verification read after a Figma write" (§3, §7)
 
 Not needed. Every write script returns its own evidence (created/updated/unchanged counts, orphans, binding flags, resolved values per mode), and a failed write rolls back. A capture can be checked with a read-only `use_figma` walk of `boundVariables` (the `pins`/`bindings` returns above). Whether that walk counts against the read budget is unknown, but it's optional.
+
+## Follow-up probe: moded effect styles
+
+Finding 8 assumed shadows can't follow the theme. They can. Every field of a drop shadow (`color`, `offsetX`, `offsetY`, `radius`, `spread`) binds to a variable through `setBoundVariableForEffect`, and variables have modes. One effect style per elevation, its fields bound to Light/Dark variables, resolves per frame mode:
+
+| Style | Light (resolved) | Dark (resolved) |
+| --- | --- | --- |
+| `shadow/raised` | y1 blur2 a.06 + y4 blur12 a.08 | 1px ring (spread 1, opaque line colour) + an empty layer (all 0, a 0) |
+| `shadow/overlay` | y8 blur24 a.12 + y24 blur48 a.14 | 1px ring + y24 blur48 black a.40 |
+
+All five fields stayed bound on both layers of both styles, alpha colours resolved correctly (in-file binding has no alpha restriction; only captures do), and the render matches the CSS (`moded-effects-probe.png`). Constraints for the build: both themes need the same layer count per elevation (pad with an empty layer), and it costs 5 variables per layer (20 for two two-layer elevations), scoped `EFFECT_FLOAT`/`EFFECT_COLOR`, with no code syntax since CSS keeps the composite. Captures still won't apply effect styles.
