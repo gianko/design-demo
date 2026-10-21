@@ -68,7 +68,8 @@ for (const story of stories) {
         await page.mouse.click(1, 1);
         await page.keyboard.press("Tab");
         await page.waitForTimeout(400);
-        await page.screenshot({ path: `gates-out/shots/${name}--focus.png`, clip: (await root.boundingBox())! });
+        const box = (await root.boundingBox())!;
+        await page.screenshot({ path: `gates-out/shots/${name}--focus.png`, clip: { x: Math.max(0, box.x - 8), y: Math.max(0, box.y - 8), width: box.width + 16, height: box.height + 16 } });
       }
 
       expect(failures, failures.join("\n")).toEqual([]);
