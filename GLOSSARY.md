@@ -41,7 +41,7 @@ The two-step workflow that turns a screen brief into a UI spec, then the UI spec
 _Avoid_: Agent (for this), pipeline (unqualified)
 
 **Screen brief**:
-A plain-language request for one product screen, e.g. "invoice list with filters, overdue state, bulk-pay action".
+A plain-language request for one product screen for one audience (admin or contractor), e.g. "invoice list with filters, overdue state, bulk-pay action".
 _Avoid_: Prompt, brief (unqualified), task
 
 **UI spec**:
@@ -49,8 +49,16 @@ The typed JSON description of a screen, produced from a screen brief before any 
 _Avoid_: Spec (unqualified), schema, layout JSON
 
 **Registry**:
-The machine-readable list of library components and their props that a UI spec is validated against.
+The machine-readable list of library components, their props, slots and usage, that a UI spec is validated against; each component's props are defined by its registry entry.
 _Avoid_: Catalog, manifest
+
+**Fixtures**:
+The one fixed, typed set of sample contractors, invoices and payments that every generated screen renders, including the variants its screen states use.
+_Avoid_: Mock data, seed data, sample data
+
+**Screen state**:
+A named condition of one generated screen (empty, loading, error, rows selected) that the UI spec declares and each eval run renders; distinct from an invoice's status, which comes from the data.
+_Avoid_: View, mode, variant
 
 **Generated screen**:
 The React/TSX code produced from a UI spec.

@@ -51,7 +51,7 @@ Domain for the generated screens: **contractor payroll / invoicing** (I live it 
 
 ## 4. Components (initial list — trim, don't grow)
 
-Button, IconButton, Input, Select, Checkbox, Badge/StatusTag, Card, DataTable (sortable, selectable rows), Pagination, Tabs, Modal/Sheet, Toast, EmptyState, PageHeader, Stack/Grid layout primitives.
+Button, IconButton, Input, Select, Checkbox, Badge/StatusTag, Card, DataTable (sortable, selectable rows), Pagination, Tabs, Modal/Sheet, Toast, EmptyState, PageHeader, Stack/Grid layout primitives, Heading, Text, Amount (typography; generated screens use library components only, see [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
 
 Tokens: colour (semantic, light + dark modes), spacing, radius, type scale + pairing, elevation, motion (durations, easings), z-index.
 
@@ -112,7 +112,7 @@ Priority:
    d. Decide the shape of `figma:sync-tokens`: a Claude Code skill that drives `use_figma`, vs a generated Plugin API script the agent executes verbatim. Prefer whichever makes re-runs deterministic.
 4. **DECIDED** ([ADR 0002](adr/0002-token-only-tailwind-and-eslint-token-lint.md)): Radix + Tailwind v4. **Radix+Tailwind v4 vs CSS modules** for the library. Criteria: how legibly the token constraints can be linted; how the agent's generated code reads; bundle/setup cost.
 5. **DECIDED** ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md)): Messages API, two calls, no agent loop. **Agent runtime:** Claude Agent SDK vs hand-rolled tool-calling loop vs reusing the agent-quiz-app Ralph loop as-is. Criteria: least code, structured output support for the spec step, ability to inject gate failures as follow-up turns.
-6. **Spec schema design** — shape of the typed UI spec (tree of registered components + props + slots + data bindings?). How much layout does the spec carry vs the code step? How does the registry get generated from the component library (from TS types? from Storybook metadata?) so it can't drift?
+6. **DECIDED** ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)): a flat, library-only node list with layout, copy, bindings, screen states and actions; a Zod-first registry derived into the library's props. **Spec schema design** — shape of the typed UI spec (tree of registered components + props + slots + data bindings?). How much layout does the spec carry vs the code step? How does the registry get generated from the component library (from TS types? from Storybook metadata?) so it can't drift?
 7. **Brief-conformance gate** — vision-model judge with a rubric derived from the brief vs structural heuristics (spacing values on the rhythm, type sizes on the scale, motion present). Which gives a useful, repeatable signal? Cost per run?
 8. **DECIDED** ([ADR 0002](adr/0002-token-only-tailwind-and-eslint-token-lint.md)): ESLint only. **Token lint implementation** — custom ESLint rules vs Stylelint vs a Tailwind-class allowlist plugin. Must catch raw values in TSX, CSS, and Tailwind arbitrary values.
 9. **Taste lint rule selection** — read impeccable's 61 detector rules (github.com/pbakaus/impeccable, Apache 2.0). For each: keep / adapt / skip, with a reason. Target 10–15 rules. Decide what's checkable statically (ESLint on TSX/CSS) vs needs a render (Playwright: computed styles, bounding boxes, heading order). Add 2–3 rules impeccable doesn't have that the brief demands. Output: `lint/taste/RULES.md` with the kept/skipped table, then the implementations.
