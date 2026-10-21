@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "@fontsource/instrument-sans/400.css";
+@import "@fontsource/instrument-sans/600.css";
+@import "./tokens/tokens.css";
+
+@source "./components";
+
+html {
+  background-color: var(--ds-color-bg-page);
+  color: var(--ds-color-text-ink);
+  font-variant-numeric: tabular-nums;
+}

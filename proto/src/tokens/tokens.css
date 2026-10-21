@@ -1,0 +1,202 @@
+/*
+ * PROTOTYPE stand-in for the output of tokens/build.ts (ADR 0005). Hand-written,
+ * shaped like the real build output: mode-scoped --ds-* variables, then a closed
+ * `@theme inline` that maps them into Tailwind's per-property namespaces.
+ * Values are tuned against docs/design-brief.md; roles are exactly the brief's.
+ */
+
+/* ---------- Theme: light (default) ---------- */
+:root,
+[data-theme="light"] {
+  --ds-color-bg-page: oklch(0.985 0.004 330);
+  --ds-color-bg-surface: oklch(1 0 330);
+  --ds-color-bg-surface-raised: oklch(0.97 0.006 330);
+  --ds-color-bg-selected: oklch(0.95 0.025 330);
+  --ds-color-bg-accent: oklch(0.48 0.085 330);
+  --ds-color-text-ink: oklch(0.27 0.025 330);
+  --ds-color-text-ink-muted: oklch(0.5 0.025 330);
+  --ds-color-text-on-accent: oklch(1 0 330);
+  --ds-color-text-accent: oklch(0.48 0.085 330);
+  --ds-color-border-line: oklch(0.9 0.012 330);
+  --ds-color-ring-focus: oklch(0.48 0.085 330);
+
+  --ds-color-bg-awaiting: oklch(0.95 0.06 85);
+  --ds-color-text-awaiting: oklch(0.45 0.09 70);
+  --ds-color-bg-overdue: oklch(0.95 0.035 25);
+  --ds-color-text-overdue: oklch(0.48 0.16 25);
+  --ds-color-bg-paid: oklch(0.95 0.04 155);
+  --ds-color-text-paid: oklch(0.45 0.1 155);
+  --ds-color-bg-scheduled: oklch(0.95 0.03 250);
+  --ds-color-text-scheduled: oklch(0.47 0.12 250);
+  --ds-color-bg-failed: oklch(0.52 0.19 25);
+  --ds-color-text-failed: oklch(1 0 25);
+
+  --ds-shadow-raised: 0 1px 2px oklch(0.27 0.025 330 / 0.06), 0 4px 12px oklch(0.27 0.025 330 / 0.08);
+  --ds-shadow-overlay: 0 8px 24px oklch(0.27 0.025 330 / 0.12), 0 24px 48px oklch(0.27 0.025 330 / 0.14);
+  --ds-color-scrim: oklch(0.27 0.025 330 / 0.4);
+}
+
+/* ---------- Theme: dark ---------- */
+[data-theme="dark"] {
+  --ds-color-bg-page: oklch(0.19 0.018 330);
+  --ds-color-bg-surface: oklch(0.23 0.02 330);
+  --ds-color-bg-surface-raised: oklch(0.27 0.022 330);
+  --ds-color-bg-selected: oklch(0.3 0.04 330);
+  --ds-color-bg-accent: oklch(0.82 0.06 330);
+  --ds-color-text-ink: oklch(0.94 0.012 330);
+  --ds-color-text-ink-muted: oklch(0.74 0.02 330);
+  --ds-color-text-on-accent: oklch(0.22 0.03 330);
+  --ds-color-text-accent: oklch(0.82 0.06 330);
+  --ds-color-border-line: oklch(0.36 0.02 330);
+  --ds-color-ring-focus: oklch(0.82 0.06 330);
+
+  --ds-color-bg-awaiting: oklch(0.32 0.05 75);
+  --ds-color-text-awaiting: oklch(0.86 0.1 85);
+  --ds-color-bg-overdue: oklch(0.32 0.07 25);
+  --ds-color-text-overdue: oklch(0.82 0.1 25);
+  --ds-color-bg-paid: oklch(0.32 0.05 155);
+  --ds-color-text-paid: oklch(0.84 0.1 155);
+  --ds-color-bg-scheduled: oklch(0.32 0.05 250);
+  --ds-color-text-scheduled: oklch(0.84 0.08 250);
+  --ds-color-bg-failed: oklch(0.62 0.18 25);
+  --ds-color-text-failed: oklch(0.18 0.03 25);
+
+  --ds-shadow-raised: 0 0 0 1px oklch(0.36 0.02 330);
+  --ds-shadow-overlay: 0 0 0 1px oklch(0.4 0.02 330), 0 24px 48px oklch(0 0 0 / 0.4);
+  --ds-color-scrim: oklch(0.1 0.02 330 / 0.6);
+}
+
+/* ---------- Density: admin (default) ---------- */
+:root,
+[data-density="admin"] {
+  --ds-density-row: 46px;
+  --ds-density-page: 28px;
+  --ds-density-target: 24px;
+  --ds-density-icon: 16px;
+  --ds-density-radius-surface: 8px;
+  --ds-density-body-size: 14px;
+  --ds-density-body-line-height: 20px;
+}
+
+/* ---------- Density: contractor ---------- */
+[data-density="contractor"] {
+  --ds-density-row: 60px;
+  --ds-density-page: 36px;
+  --ds-density-target: 44px;
+  --ds-density-icon: 20px;
+  --ds-density-radius-surface: 12px;
+  --ds-density-body-size: 16px;
+  --ds-density-body-line-height: 24px;
+}
+
+/* ---------- Closed theme: only these classes compile ---------- */
+@theme inline {
+  --*: initial;
+
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --default-font-family: var(--font-sans);
+
+  /* Colour roles, per property namespace (bg-ink does not exist) */
+  --background-color-page: var(--ds-color-bg-page);
+  --background-color-surface: var(--ds-color-bg-surface);
+  --background-color-surface-raised: var(--ds-color-bg-surface-raised);
+  --background-color-selected: var(--ds-color-bg-selected);
+  --background-color-accent: var(--ds-color-bg-accent);
+  --background-color-awaiting: var(--ds-color-bg-awaiting);
+  --background-color-overdue: var(--ds-color-bg-overdue);
+  --background-color-paid: var(--ds-color-bg-paid);
+  --background-color-scheduled: var(--ds-color-bg-scheduled);
+  --background-color-failed: var(--ds-color-bg-failed);
+  --text-color-ink: var(--ds-color-text-ink);
+  --text-color-ink-muted: var(--ds-color-text-ink-muted);
+  --text-color-on-accent: var(--ds-color-text-on-accent);
+  --text-color-accent: var(--ds-color-text-accent);
+  --text-color-awaiting: var(--ds-color-text-awaiting);
+  --text-color-overdue: var(--ds-color-text-overdue);
+  --text-color-paid: var(--ds-color-text-paid);
+  --text-color-scheduled: var(--ds-color-text-scheduled);
+  --text-color-failed: var(--ds-color-text-failed);
+  --border-color-line: var(--ds-color-border-line);
+  --ring-color-focus: var(--ds-color-ring-focus);
+  --outline-color-focus: var(--ds-color-ring-focus);
+
+  /* Spacing, t-shirt steps on a 4px base */
+  --spacing-3xs: 4px;
+  --spacing-2xs: 8px;
+  --spacing-xs: 12px;
+  --spacing-sm: 16px;
+  --spacing-md: 20px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 40px;
+  --spacing-3xl: 48px;
+  --spacing-4xl: 64px;
+
+  /* Density roles */
+  --spacing-page: var(--ds-density-page);
+  --height-row: var(--ds-density-row);
+  --min-height-target: var(--ds-density-target);
+  --min-width-target: var(--ds-density-target);
+  --size-icon: var(--ds-density-icon);
+  --size-target: var(--ds-density-target);
+
+  /* Radius by role */
+  --radius-control: 6px;
+  --radius-tag: 4px;
+  --radius-surface: var(--ds-density-radius-surface);
+  --radius-avatar: 9999px;
+
+  /* Elevation */
+  --shadow-raised: var(--ds-shadow-raised);
+  --shadow-overlay: var(--ds-shadow-overlay);
+
+  /* Type: composite roles, one class sets size, line-height, tracking, weight */
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption--font-weight: 400;
+  --text-label: 14px;
+  --text-label--line-height: 20px;
+  --text-label--font-weight: 600;
+  --text-body: var(--ds-density-body-size);
+  --text-body--line-height: var(--ds-density-body-line-height);
+  --text-body--font-weight: 400;
+  --text-heading: 20px;
+  --text-heading--line-height: 28px;
+  --text-heading--font-weight: 600;
+  --text-title: 24px;
+  --text-title--line-height: 32px;
+  --text-title--letter-spacing: -0.015em;
+  --text-title--font-weight: 600;
+  --text-figure: 32px;
+  --text-figure--line-height: 40px;
+  --text-figure--letter-spacing: -0.02em;
+  --text-figure--font-weight: 600;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-settle: cubic-bezier(0.3, 1.18, 0.6, 1);
+
+  /* Z-index */
+  --z-index-raised: 10;
+  --z-index-overlay: 100;
+  --z-index-toast: 200;
+}
+
+/* Named utilities for bare-value families (ADR 0002) */
+@utility duration-fast { transition-duration: 120ms; animation-duration: 120ms; }
+@utility duration-base { transition-duration: 240ms; animation-duration: 240ms; }
+@utility duration-slow { transition-duration: 320ms; animation-duration: 320ms; }
+@utility duration-fast-exit { transition-duration: 84ms; animation-duration: 84ms; }
+@utility duration-base-exit { transition-duration: 168ms; animation-duration: 168ms; }
+@utility duration-slow-exit { transition-duration: 224ms; animation-duration: 224ms; }
+@utility delay-stagger { transition-delay: 40ms; animation-delay: 40ms; }
+@utility focus-ring { outline: 2px solid var(--ds-color-ring-focus); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-property: opacity, color, background-color, border-color !important;
+    transition-duration: 120ms !important;
+    animation: none !important;
+  }
+}
