@@ -187,4 +187,4 @@ The widening, each already decided:
 - The shared Phosphor icon map, with the first component that needs an icon, probably IconButton.
 - A Date component, once a screen brief needs relative dates or sorting by date.
 - The remaining ten taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)).
-- What's still open on the map: the brief-conformance gate, the eval screen-brief set, motion from UI spec to generated screen, and the case study outline.
+- Still open on the map: [Choose the eval screen briefs and their pass criteria](https://github.com/gianko/design-demo/issues/21) and [Decide how motion attaches to the UI spec and reaches the generated screen](https://github.com/gianko/design-demo/issues/22).
