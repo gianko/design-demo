@@ -12,7 +12,7 @@ A UI spec is one flat list of nodes (`id`, `component`, `parent`, `slot`, `props
 - **Actions are declared, not improvised.** `actions: [{ name, operation, pending, to }]`, where `operation` is one of the fixtures module's mock async operations, each with a deterministic success and failure. The code step implements the wiring.
 - **Slots** are named per registry entry, with an allow-list where nonsense is likely (`PageHeader.actions` takes Button and IconButton). Siblings are ordered by position in the node list.
 - **Gate 1 checks**, each failure naming the node id and the rule: the wire shape parses; ids are unique, there's one root, parents exist and there are no cycles; components are registered, slots exist and allow-lists hold; props parse against the entry; bindings resolve with type fit and row scope; states and actions are consistent; `audience` matches the screen brief; heading levels don't skip and there's one level 1.
-- **The registry version is a content hash.** The registry serializes once (names, `use` lines, `z.toJSONSchema` props, slots) into the spec step's cached system prefix; its hash is the version recorded on every eval attempt. The wire schema's `component` enum is generated from the same registry.
+- **The registry version is a content hash.** The registry serializes once (names, `use` lines, `z.toJSONSchema` props, slots) into the spec step's cached system prefix; its hash is the registry version in every eval results file's version tuple ([ADR 0008](0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)). The wire schema's `component` enum is generated from the same registry.
 
 ## Considered options
 

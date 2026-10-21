@@ -65,7 +65,7 @@ Tokens: colour (semantic, light + dark modes), spacing, radius, type scale + pai
 6. **Visual regression** — Playwright screenshots of library stories and kept screens, CI-gated. Fresh generated screens have no baseline, so a generated screen enters gate 6 only once it is kept ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 7. **Taste lint** — our own deterministic rules, `lint/taste/*.ts`, run via ESLint + a Playwright pass over rendered stories. Subset reimplemented from impeccable's detector (credited), plus brief-specific rules. Starting candidates: nested cards, pure black / pure gray text, gray text on coloured backgrounds, bounce/elastic easing, touch targets under 44px, skipped heading levels, gradient-as-decoration, shadow-as-border, more than two type weights on screen, off-scale spacing values, transitions without motion tokens. Hard fail on the design system; hard fail on generated screens once the system passes clean.
 
-Repair loop: failures (gate name + message) go back to the agent with the original screen brief; max N attempts; log every attempt.
+Repair loop: failures (gate name + message) go back to the agent with the original screen brief; max N attempts; log every attempt. **DECIDED** ([ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)): each step repairs only itself, 3 attempts each, with normalised, deduplicated failures from every gate that could run.
 
 The same gates 2, 4, 6 and 7 run on the **design system itself** during its AI-assisted build, so the system is held to its own standard from day one.
 

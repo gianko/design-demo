@@ -95,8 +95,12 @@ The approved screenshot of one story in one theme and density that visual regres
 _Avoid_: Snapshot, golden
 
 **Repair loop**:
-Feeding gate failures back to the generator, with the original screen brief, for another attempt.
+Feeding a generator step's hard-gate failures back to that same step, with the original screen brief, for another attempt; a step never sends work back to an earlier one.
 _Avoid_: Retry, fix loop
+
+**Repair turn**:
+The message appended after a failing attempt that lists its hard-gate failures and asks for the whole output again, corrected.
+_Avoid_: Retry prompt, feedback message
 
 **Eval run**:
 One execution of the fixed set of screen briefs, K times each, recording per-gate results, attempts, cost and time.
