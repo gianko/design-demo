@@ -68,6 +68,10 @@ _Avoid_: View, mode, variant
 The React/TSX code produced from a UI spec.
 _Avoid_: Output, page
 
+**Kept screen**:
+A generated screen committed to the repo with a story per screen state, held to the same gates as a library component from then on.
+_Avoid_: Promoted screen, reference screen, saved screen
+
 ## Quality
 
 **Gate**:
@@ -85,6 +89,10 @@ _Avoid_: Slop detector, design lint
 **Taste rule**:
 One named, deterministic check in the taste lint, run on source code or on a rendered story or screen.
 _Avoid_: Detector, heuristic
+
+**Baseline**:
+The approved screenshot of one story in one theme and density that visual regression compares against; only the human changes one.
+_Avoid_: Snapshot, golden
 
 **Repair loop**:
 Feeding gate failures back to the generator, with the original screen brief, for another attempt.

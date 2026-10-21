@@ -62,7 +62,7 @@ Tokens: colour (semantic, light + dark modes), spacing, radius, type scale + pai
 3. **TypeScript + build** — hard fail.
 4. **a11y** — axe-core via Playwright; serious/critical = hard fail.
 5. **Brief conformance** — rendered screenshot judged against `docs/design-brief.md` (density, hierarchy, spacing rhythm, motion used where the brief says). Approach is an open question (vision-model judge with a rubric vs structural heuristics). Report, soft fail initially; promote to hard once the signal is trusted.
-6. **Visual regression** — Playwright screenshots of library stories and generated screens, CI-gated.
+6. **Visual regression** — Playwright screenshots of library stories and kept screens, CI-gated. Fresh generated screens have no baseline, so a generated screen enters gate 6 only once it is kept ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 7. **Taste lint** — our own deterministic rules, `lint/taste/*.ts`, run via ESLint + a Playwright pass over rendered stories. Subset reimplemented from impeccable's detector (credited), plus brief-specific rules. Starting candidates: nested cards, pure black / pure gray text, gray text on coloured backgrounds, bounce/elastic easing, touch targets under 44px, skipped heading levels, gradient-as-decoration, shadow-as-border, more than two type weights on screen, off-scale spacing values, transitions without motion tokens. Hard fail on the design system; hard fail on generated screens once the system passes clean.
 
 Repair loop: failures (gate name + message) go back to the agent with the original screen brief; max N attempts; log every attempt.
@@ -118,7 +118,7 @@ Priority:
 9. **DECIDED** ([`lint/taste/RULES.md`](../lint/taste/RULES.md)): 15 taste rules (5 kept from impeccable, 5 adapted, 5 new), the first 5 in P0; token-level checks move to the token build. **Taste lint rule selection** — read impeccable's 61 detector rules (github.com/pbakaus/impeccable, Apache 2.0). For each: keep / adapt / skip, with a reason. Target 10–15 rules. Decide what's checkable statically (ESLint on TSX/CSS) vs needs a render (Playwright: computed styles, bounding boxes, heading order). Add 2–3 rules impeccable doesn't have that the brief demands. Output: `lint/taste/RULES.md` with the kept/skipped table, then the implementations.
 10. **DECIDED** ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)): a standalone `pnpm eval` script with a dollar budget, compared after the fact from committed results files in an HTML report. **Eval runner shape** — reuse Vitest as the runner (each brief = a test, K reps) vs standalone script. Cost control: cap total runs per eval invocation.
 11. **Case study outline** — what goes in, the eval table, which failures to show honestly, and the "What a designer should change" section.
-12. **CI** — GitHub Actions: lint + typecheck + unit + Storybook build + Playwright visual regression. Evals run manually (cost), results committed.
+12. **DECIDED** ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)): one GitHub Actions job on an arm64 runner runs the token build, Vitest and `pnpm gate`, with every screenshot rendered in one pinned Playwright image locally and in CI; Storybook and the newest eval report deploy to GitHub Pages; no secrets in CI. **CI** — GitHub Actions: lint + typecheck + unit + Storybook build + Playwright visual regression. Evals run manually (cost), results committed.
 
 ## 10. Non-goals
 
