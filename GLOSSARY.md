@@ -74,6 +74,18 @@ _Avoid_: Output, page
 A single pass/fail check applied to a UI spec, a generated screen, or the design system itself.
 _Avoid_: Check, validator, test (when meaning a gate)
 
+**Token lint**:
+The gate that rejects any styling value not drawn from a token.
+_Avoid_: Style lint, design lint
+
+**Taste lint**:
+The gate that holds code and rendered output to the design brief's taste beyond what tokens can enforce; made of taste rules.
+_Avoid_: Slop detector, design lint
+
+**Taste rule**:
+One named, deterministic check in the taste lint, run on source code or on a rendered story or screen.
+_Avoid_: Detector, heuristic
+
 **Repair loop**:
 Feeding gate failures back to the generator, with the original screen brief, for another attempt.
 _Avoid_: Retry, fix loop
