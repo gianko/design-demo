@@ -73,7 +73,7 @@ The same gates 2, 4, 6 and 7 run on the **design system itself** during its AI-a
 
 - 15–20 screen briefs, fixed, in `evals/briefs/*.md`, with per-brief pass criteria (required components, required states, a11y, motion where expected).
 - Runner executes each brief K times, records per-gate pass/fail, attempts-to-pass, tokens/cost, wall time.
-- Output: `evals/results/<date>.json` + a markdown table rendered into the README.
+- Output: `evals/results/<date>-<label>.json` (committed) + a self-contained HTML report, and a markdown table rendered into the README. Runner shape, budget and comparison: [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md).
 - Must be able to compare two prompt/registry versions side by side. This is the proof it's a repeatable system.
 
 ## 7. Figma sync (write only)
@@ -116,7 +116,7 @@ Priority:
 7. **Brief-conformance gate** — vision-model judge with a rubric derived from the brief vs structural heuristics (spacing values on the rhythm, type sizes on the scale, motion present). Which gives a useful, repeatable signal? Cost per run?
 8. **DECIDED** ([ADR 0002](adr/0002-token-only-tailwind-and-eslint-token-lint.md)): ESLint only. **Token lint implementation** — custom ESLint rules vs Stylelint vs a Tailwind-class allowlist plugin. Must catch raw values in TSX, CSS, and Tailwind arbitrary values.
 9. **DECIDED** ([`lint/taste/RULES.md`](../lint/taste/RULES.md)): 15 taste rules (5 kept from impeccable, 5 adapted, 5 new), the first 5 in P0; token-level checks move to the token build. **Taste lint rule selection** — read impeccable's 61 detector rules (github.com/pbakaus/impeccable, Apache 2.0). For each: keep / adapt / skip, with a reason. Target 10–15 rules. Decide what's checkable statically (ESLint on TSX/CSS) vs needs a render (Playwright: computed styles, bounding boxes, heading order). Add 2–3 rules impeccable doesn't have that the brief demands. Output: `lint/taste/RULES.md` with the kept/skipped table, then the implementations.
-10. **Eval runner shape** — reuse Vitest as the runner (each brief = a test, K reps) vs standalone script. Cost control: cap total runs per eval invocation.
+10. **DECIDED** ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)): a standalone `pnpm eval` script with a dollar budget, compared after the fact from committed results files in an HTML report. **Eval runner shape** — reuse Vitest as the runner (each brief = a test, K reps) vs standalone script. Cost control: cap total runs per eval invocation.
 11. **Case study outline** — what goes in, the eval table, which failures to show honestly, and the "What a designer should change" section.
 12. **CI** — GitHub Actions: lint + typecheck + unit + Storybook build + Playwright visual regression. Evals run manually (cost), results committed.
 

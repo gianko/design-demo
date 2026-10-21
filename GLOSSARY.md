@@ -93,3 +93,15 @@ _Avoid_: Retry, fix loop
 **Eval run**:
 One execution of the fixed set of screen briefs, K times each, recording per-gate results, attempts, cost and time.
 _Avoid_: Benchmark, test run
+
+**Rep**:
+One generator run of one screen brief inside an eval run, ending as pass, fail, error (infrastructure broke) or skipped (the budget ran out first).
+_Avoid_: Trial, iteration, run (unqualified)
+
+**Attempt**:
+One model call of a generator step together with the gate results on what it produced; a repair turn starts the next attempt.
+_Avoid_: Try, retry
+
+**Pass criteria**:
+A screen brief's own requirements (components, screen states, actions) that the final UI spec of a rep must meet, on top of the gates.
+_Avoid_: Acceptance criteria, assertions
