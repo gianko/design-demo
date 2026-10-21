@@ -50,7 +50,7 @@ Domain for the generated screens: **contractor payroll / invoicing** (I live it 
 
 ## 4. Components (initial list — trim, don't grow)
 
-Button, IconButton, Input, Select, Checkbox, Badge/StatusPill, Card, DataTable (sortable, selectable rows), Pagination, Tabs, Modal/Sheet, Toast, EmptyState, PageHeader, Stack/Grid layout primitives.
+Button, IconButton, Input, Select, Checkbox, Badge/StatusTag, Card, DataTable (sortable, selectable rows), Pagination, Tabs, Modal/Sheet, Toast, EmptyState, PageHeader, Stack/Grid layout primitives.
 
 Tokens: colour (semantic, light + dark modes), spacing, radius, type scale + pairing, elevation, motion (durations, easings), z-index.
 
