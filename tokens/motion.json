@@ -5,59 +5,29 @@
       "$description": "Exits run at 70% of the enter duration.",
       "fast": {
         "$description": "Press, hover colour.",
-        "$value": {
-          "value": 120,
-          "unit": "ms"
-        }
+        "$value": { "value": 120, "unit": "ms" }
       },
       "base": {
         "$description": "State change, selection.",
-        "$value": {
-          "value": 240,
-          "unit": "ms"
-        }
+        "$value": { "value": 240, "unit": "ms" }
       },
       "slow": {
         "$description": "Sheet, modal, toast entering.",
-        "$value": {
-          "value": 320,
-          "unit": "ms"
-        }
+        "$value": { "value": 320, "unit": "ms" }
       },
-      "fast-exit": {
-        "$value": {
-          "value": 84,
-          "unit": "ms"
-        }
-      },
-      "base-exit": {
-        "$value": {
-          "value": 168,
-          "unit": "ms"
-        }
-      },
-      "slow-exit": {
-        "$value": {
-          "value": 224,
-          "unit": "ms"
-        }
-      },
+      "fast-exit": { "$value": { "value": 84, "unit": "ms" } },
+      "base-exit": { "$value": { "value": 168, "unit": "ms" } },
+      "slow-exit": { "$value": { "value": 224, "unit": "ms" } },
       "loop": {
         "$description": "One pass of the progress sweep, the one loop.",
-        "$value": {
-          "value": 1280,
-          "unit": "ms"
-        }
+        "$value": { "value": 1280, "unit": "ms" }
       }
     },
     "delay": {
       "$type": "duration",
       "stagger": {
         "$description": "Between rows whose status changed.",
-        "$value": {
-          "value": 40,
-          "unit": "ms"
-        }
+        "$value": { "value": 40, "unit": "ms" }
       }
     },
     "ease": {
@@ -86,18 +56,11 @@
         "$description": "A pending action fills its progress edge once.",
         "$value": {
           "duration": "{motion.duration.slow}",
-          "delay": {
-            "value": 0,
-            "unit": "ms"
-          },
+          "delay": { "value": 0, "unit": "ms" },
           "timingFunction": "{motion.ease.standard}"
         },
         "$extensions": {
-          "design-demo": {
-            "animation": {
-              "fillMode": "both"
-            }
-          }
+          "design-demo": { "animation": { "fillMode": "both" } }
         }
       },
       "progress-sweep": {
@@ -108,11 +71,7 @@
           "timingFunction": "{motion.ease.linear}"
         },
         "$extensions": {
-          "design-demo": {
-            "animation": {
-              "iterations": "infinite"
-            }
-          }
+          "design-demo": { "animation": { "iterations": "infinite" } }
         }
       }
     }

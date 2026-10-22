@@ -2,14 +2,8 @@
   "z": {
     "$type": "number",
     "$description": "Code only: z-index never goes to Figma.",
-    "raised": {
-      "$value": 10
-    },
-    "overlay": {
-      "$value": 100
-    },
-    "toast": {
-      "$value": 200
-    }
+    "raised": { "$value": 10 },
+    "overlay": { "$value": 100 },
+    "toast": { "$value": 200 }
   }
 }

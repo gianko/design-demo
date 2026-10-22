@@ -2,4 +2,6 @@
 .claude/worktrees/
 node_modules/
 storybook-static/
+# rtk's vitest wrapper writes its JSON report here.
+.vitest/
 .env

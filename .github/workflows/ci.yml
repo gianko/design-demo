@@ -26,9 +26,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # A committed token output that a fresh build would change is stale (ADR 0005).
+      # A committed token output that a fresh build would change, or one never
+      # committed at all, is stale (ADR 0005). git diff alone misses the second.
       - run: pnpm tokens
-      - run: git diff --exit-code
+      - run: test -z "$(git status --porcelain)" || { git status --short; exit 1; }
       - run: pnpm format:check
       - run: pnpm lint:md
       - run: pnpm lint

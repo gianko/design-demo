@@ -59,7 +59,7 @@ The DTCG source files, `tokens/build.ts`, `tokens/keyframes.css` and the three c
 
 **Done when:**
 
-- `pnpm tokens` writes `tokens.css`, `tokens.ts` and the Figma payload; a second run leaves `git diff --exit-code` clean.
+- `pnpm tokens` writes `tokens.css`, `tokens.ts` and the Figma payload; a second run leaves `git status --porcelain` empty.
 - A Vitest snapshot covers all three outputs.
 - One failing fixture per validation makes the build exit non-zero with an error naming the token path and the check.
 - The naming chain in ADR 0005 holds for one token per family, asserted in a test.
@@ -90,7 +90,7 @@ Gate 2, all three ESLint layers of [ADR 0002](adr/0002-token-only-tailwind-and-e
 
 ### CI gate job
 
-The single job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md) on `ubuntu-24.04-arm`: frozen install, token build + `git diff --exit-code`, Vitest, `pnpm gate`. It is the required status check on main, and the Playwright report and contact sheet upload as artifacts. The repo goes public when this lands. The Pages deploy is not in the slice.
+The single job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md) on `ubuntu-24.04-arm`: frozen install, token build + a clean `git status --porcelain`, Vitest, `pnpm gate`. It is the required status check on main, and the Playwright report and contact sheet upload as artifacts. The repo goes public when this lands. The Pages deploy is not in the slice.
 
 **Done when:** a PR that breaks a token output, a test or a baseline goes red, and a clean PR goes green.
 
