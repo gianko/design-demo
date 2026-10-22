@@ -1,3 +1,7 @@
+if [ "$(git branch --show-current)" = "main" ]; then
+  echo "Start a branch off main: changes reach main through a pull request (ADR 0009)."
+  exit 1
+fi
 pnpm exec lint-staged --concurrent false
 pnpm typecheck
 pnpm test

@@ -1,7 +1,3 @@
-## Changes
-
-Every change reaches `main` through a pull request (`docs/adr/0009-gates-render-in-one-pinned-linux-arm64-image.md`): start each piece of work on a fresh branch off `main`, before its first commit.
-
 ## Agent skills
 
 ### Issue tracker
