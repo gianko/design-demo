@@ -21,7 +21,8 @@
   "dependencies": {
     "@fontsource/instrument-sans": "5.3.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "tailwind-variants": "^3.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
