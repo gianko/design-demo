@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
+import { tasteConfigs } from "./lint/taste/plugin.ts";
 import { generatorOutput, tokenLint } from "./lint/token/config.ts";
 
 export default defineConfig([
@@ -20,4 +21,6 @@ export default defineConfig([
   },
   // Gate 2.
   tokenLint,
+  // Taste lint's static rules (gate 7).
+  tasteConfigs,
 ]);

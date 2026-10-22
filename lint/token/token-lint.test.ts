@@ -27,7 +27,12 @@ async function lint(fixture: string, plantedAt: string): Promise<Finding[]> {
     filePath: join(repo, plantedAt),
   });
   const lines = code.split("\n");
-  return result!.messages.map((message) => [
+  // Taste lint (gate 7) may flag the same planted lines; its own tests pin
+  // those findings.
+  const gate2 = result!.messages.filter(
+    (message) => !message.ruleId?.startsWith("taste/")
+  );
+  return gate2.map((message) => [
     message.ruleId,
     message.endLine === message.line
       ? lines[message.line - 1]!.slice(

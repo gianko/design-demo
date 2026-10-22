@@ -1,0 +1,12 @@
+/* Radius by role, from the tokens. */
+.tag {
+  @apply rounded-tag;
+}
+
+.surface {
+  border-radius: var(--ds-density-radius-surface);
+}
+
+.control {
+  border-top-left-radius: var(--ds-radius-control);
+}

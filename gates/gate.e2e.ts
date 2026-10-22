@@ -178,6 +178,71 @@ describe("in CI", () => {
     });
   });
 
+  // The P0 render-time taste rules (lint/taste/RULES.md): each failing
+  // fixture fails gate 7 under the rule's id, with the finding.
+  it.each([
+    [
+      "no-pill",
+      "nopill--fail",
+      /"Paid" has a \d+px corner radius on a \d+px-high box/,
+    ],
+    ["type-on-scale", "typeonscale--fail", /"Contractor" is set in weight 700/],
+    [
+      "type-on-scale",
+      "typeonscale--fail",
+      /"yesterday" is set at \d+(\.\d+)?px/,
+    ],
+    [
+      "tabular-numerals",
+      "tabularnumerals--fail",
+      /"4,800\.00" lacks tabular-nums/,
+    ],
+    [
+      "tabular-numerals",
+      "tabularnumerals--fail",
+      /"1,250\.00 EUR" is not end-aligned in its cell/,
+    ],
+    [
+      "text-overflow",
+      "textoverflow--spill",
+      /"DE89370400440532013000" spills out of its box/,
+    ],
+    [
+      "text-overflow",
+      "textoverflow--spill",
+      /"Approve and pay all overdue invoices" spills out of its box/,
+    ],
+    [
+      "text-overflow",
+      "textoverflow--clip",
+      /"Northwind Logistics GmbH" is clipped without an ellipsis/,
+    ],
+    [
+      "text-overflow",
+      "textoverflow--collide",
+      /"Awaiting" collides with "Paid"/,
+    ],
+  ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
+    // The report prints each finding as a JSON string, quotes escaped.
+    const printed = finding.source.replaceAll('"', '\\\\?"');
+    for (const render of rendersOf(`gatefixtures-${story}`)) {
+      expectFailed(
+        run,
+        render,
+        new RegExp(`gate 7: ${rule}\\b[\\s\\S]*${printed}`)
+      );
+    }
+  });
+
+  it.each(["nopill", "typeonscale", "tabularnumerals", "textoverflow"])(
+    "passes the %s fixture that follows its taste rule",
+    (fixture) => {
+      for (const render of rendersOf(`gatefixtures-${fixture}--pass`)) {
+        expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+      }
+    }
+  );
+
   it("fails a missing baseline instead of writing it", () => {
     expectFailed(
       run,
@@ -185,6 +250,41 @@ describe("in CI", () => {
       /gate 6: baseline[\s\S]*A snapshot doesn't exist/
     );
     expect(existsSync(baseline(missing!))).toBe(false);
+  });
+});
+
+// The static taste rules run in the gate's ESLint step, which stops the gate
+// before the Playwright pass. Their planted violations are linted only when
+// GATE_LINT_FIXTURES asks.
+describe("static taste rules", () => {
+  let output: string;
+  let status: number | null;
+
+  beforeAll(() => {
+    ({ status, stdout: output } = spawnSync("pnpm", ["gate"], {
+      cwd: repo,
+      encoding: "utf8",
+      env: { ...process.env, GATE_LINT_FIXTURES: "1" },
+    }));
+  });
+
+  it.each([
+    ["no-pill", "no-pill.fail.tsx"],
+    ["no-pill", "no-pill.fail.css"],
+    ["motion-tokens", "motion-tokens.fail.tsx"],
+    ["motion-tokens", "motion-tokens.fail.css"],
+  ])("fails taste/%s on %s", (rule, file) => {
+    expect(status).not.toBe(0);
+    const report = output
+      .split(/\n(?=\/)/)
+      .find((block) =>
+        block.startsWith(join(repo, "lint/taste/fixtures", file))
+      );
+    expect(report).toMatch(new RegExp(`error .* taste/${rule}\\n`));
+  });
+
+  it("passes the fixtures that follow them", () => {
+    expect(output).not.toMatch(/\.pass\.(tsx|css)|Avatar\.tsx/);
   });
 });
 
