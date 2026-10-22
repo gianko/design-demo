@@ -84,6 +84,7 @@ Motion confirms what the user just did. It is the system's signature, so it is p
 - **The one loop**: a pending action shows a progress edge along its button's bottom that fills once over `slow`. If the operation is still running, the edge sweeps until the result arrives, then stops. The sweep wraps around: the full edge slides out to the right and back in from the left, one `loop` (1280ms) per pass, linear, so it never jumps. _Why: the wait has no known length, and a still button reads as frozen._ Reduced motion: a static edge.
 - **Pending and disabled**: a pending button keeps its label as written, is marked busy and unavailable to assistive tech, and stays focusable so focus doesn't drop mid-operation; whatever confirms the result (the toast) announces it. A disabled control is natively disabled and leaves the tab order.
 - **Signature transitions**: (1) pay → the bar shows pending → once the payment is confirmed, statuses flip in a stagger and the bar becomes the toast; (2) a row expands into the invoice-detail sheet.
+- **Stagger**: only the rows whose status changed, in row order, 40ms apart; from the 8th row on they flip together. _Why: paying thirty invoices should still read as one confirmation._
 - **Never show success before it's confirmed.** The stagger is the confirmation, not a guess. _Why: assured means the screen never claims money moved when it hasn't._
 - **Reduced motion**: no movement, overshoot or stagger; changes become a `fast` crossfade. Everything works without animation.
 

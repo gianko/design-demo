@@ -176,7 +176,7 @@ A natural first-attempt failure for the Loom is collected from whichever real ru
 
 ## Out of scope
 
-Everything in the [map's Out of scope](https://github.com/gianko/design-demo/issues/1), plus, for the slice: Toast, DataTable (it joins [after the slice](#library-widening)) and every other component in demo brief §4 not listed above; gate 5; the signature transitions (P1); component frames in Figma (P2); example UI specs in prompts.
+Everything in the [map's Out of scope](https://github.com/gianko/design-demo/issues/1), plus, for the slice: Toast, DataTable (it joins [after the slice](#library-widening)) and every other component in demo brief §4 not listed above; gate 5; the signature transitions (P1, [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)); component frames in Figma (P2); example UI specs in prompts.
 
 ## After the slice
 
@@ -187,8 +187,8 @@ The widening, each already decided:
 - The GitHub Pages deploy of Storybook and the newest eval report ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 - The shared Phosphor icon map, with the first component that needs an icon, probably IconButton.
 - A Date component, once a screen brief needs relative dates or sorting by date.
-- The remaining ten taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)).
-- Still open on the map: [Decide how motion attaches to the UI spec and reaches the generated screen](https://github.com/gianko/design-demo/issues/22).
+- The remaining eleven taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)).
+- The signature transitions, ActionBar, Toast and Sheet, and the `bulk-pay` brief, as [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) sets them out.
 
 ## Eval screen briefs
 

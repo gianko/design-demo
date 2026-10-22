@@ -1,12 +1,12 @@
 # Taste rules
 
-Taste lint is gate 7: the gate that holds code and rendered output to the [design brief](../../docs/design-brief.md)'s taste beyond what tokens can enforce. It is made of 15 taste rules. Static rules run in ESLint as `taste/<rule>` on TSX and CSS. Render rules run in the Playwright pass over every story in light/dark × admin/contractor, and over every generated screen ([ADR 0006](../../docs/adr/0006-one-gated-build-component-session-per-component.md)). Every rule is an error. Taste lint hard-fails the design system from its first component, and it hard-fails generated screens once the design system passes clean.
+Taste lint is gate 7: the gate that holds code and rendered output to the [design brief](../../docs/design-brief.md)'s taste beyond what tokens can enforce. It is made of 16 taste rules. Static rules run in ESLint as `taste/<rule>` on TSX and CSS. Render rules run in the Playwright pass over every story in light/dark × admin/contractor, and over every generated screen ([ADR 0006](../../docs/adr/0006-one-gated-build-component-session-per-component.md)). Every rule is an error. Taste lint hard-fails the design system from its first component, and it hard-fails generated screens once the design system passes clean.
 
 Library components take no `className` ([ADR 0002](../../docs/adr/0002-token-only-tailwind-and-eslint-token-lint.md)), so static rules mainly guard the library. On generated screens, composition failures surface through the render rules.
 
-Five rules are reimplemented from [impeccable](https://github.com/pbakaus/impeccable)'s detector (Apache 2.0, read at commit `dad8dbb`). Five more adapt or merge impeccable rules. The other five are new, written for what the design brief demands in density, type and motion. No code is copied, and impeccable is not a dependency. See [the full triage of impeccable's 61 rules](#impeccables-61-rules) below.
+Five rules are reimplemented from [impeccable](https://github.com/pbakaus/impeccable)'s detector (Apache 2.0, read at commit `dad8dbb`). Five more adapt or merge impeccable rules. The other six are new, written for what the design brief demands in density, type and motion. No code is copied, and impeccable is not a dependency. See [the full triage of impeccable's 61 rules](#impeccables-61-rules) below.
 
-## The 15 rules
+## The 16 rules
 
 **P0** marks the five that ship in the P0 vertical slice. Between them they prove both harnesses, and none depends on which four components the slice builds.
 
@@ -23,6 +23,7 @@ Five rules are reimplemented from [impeccable](https://github.com/pbakaus/impecc
 | `gradient-as-decoration` | | impeccable, 5 rules merged | static | Any `bg-linear-*`, `bg-radial-*`, `bg-conic-*`, `from-*`/`via-*`/`to-*`, `bg-clip-text`, `*-gradient(` or `background-clip: text`. | Banned: gradient washes; purple or indigo gradients. |
 | `edge-treatment` | | impeccable, adapted (`gpt-thin-border-wide-shadow`, `side-tab`) | static | One slot carries both a border and a shadow. A shadow stands in for a border. A one-sided border is wider than the hairline. | Flat surfaces are separated by a `line` hairline; a shadow means "this floats". |
 | `motion-reduced` | | new | render | Under `reducedMotion: 'reduce'`, a running animation or transition moves anything other than opacity, or runs longer than `fast`. | Reduced motion: no movement, overshoot or stagger; changes become a `fast` crossfade. |
+| `action-transitions` | | new | render | On a generated or kept screen, clicking a declared action's Button under its success or failure fixture variant doesn't enter `to.success` or `to.failure` through a View Transition of type `confirm` or `fail` ([ADR 0011](../../docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)). | Motion confirms what the user just did. Never show success before it's confirmed. |
 | `content-hidden-at-rest` | | impeccable, kept | render | After animations settle, text that isn't `aria-hidden` stays at opacity 0, `visibility: hidden` or a zero-size clip. | Everything works without animation. |
 | `skipped-heading` | | impeccable, kept | render | A heading's level is more than one deeper than the heading before it. axe `heading-order` is only Moderate, so gate 4 won't catch this. | Assured, precise type; hierarchy from size and weight. |
 | `no-all-caps` | | brief; adapts `all-caps-body` | static + render | Static: `uppercase` or `text-transform: uppercase`. Render: computed `text-transform: uppercase`, or a visible word of 3+ letters in all caps that isn't on the allowlist. | Sentence case everywhere. No ALL-CAPS labels or table headers. |
