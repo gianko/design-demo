@@ -31,22 +31,19 @@ requires:
 
 Pending is not a screen state: it is the Button's own state while `send-reminder` runs ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
 
+## The smoke brief
+
+A throwaway contractor brief that only Screen and Text can satisfy: literal copy, no bindings, states or actions. The thin path generates, keeps and captures it before the rest of the library exists. It lives with the test fixtures, not in `evals/briefs/`, so `pnpm eval` never runs it, and it stays afterwards as a manual smoke test of the generator. Its kept screen, baselines and Figma frames are removed once payment-status is kept.
+
 ## Build order
 
-Two tracks. **Infrastructure** pieces are tickets labelled `ready-for-agent`, built with `/implement-spec`. **Component** pieces are tickets labelled `build-loop`, each built by one headless `/build-component` session the build-loop driver starts ([ADR 0006](adr/0006-one-gated-build-component-session-per-component.md)), merged by PR with baselines the human approves ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
+Tracer bullets, cut in [P0 vertical slice](https://github.com/gianko/design-demo/issues/23). A thin path goes first: tokens to a generated screen that is kept and captured in Figma, using only Screen and Text and [the smoke brief](#the-smoke-brief). The rest widens it until payment-status passes. The tickets are its sub-issues and hold the blocking edges; the sections below describe the pieces they are cut from, and a ticket may take only part of a piece.
 
-```
-Scaffold
-├─ Token build ──────────┬─ Token lint ───────┐
-│                        ├─ Gate harness ─────┼─ P0 taste rules ─ CI gate job ─ Build-loop driver ─ Components (8, in order)
-│                        └─ figma:sync-tokens │                                                          │
-├─ Registry core ────────────────────────────────────────────────────────────────────────────────────────┤
-└─ Fixtures + screen brief ─ Gate 1 + spec step ─ Code step + repair ─ Generate CLI ─ Keep ─ Capture ─ Slice done
-                                                  (also needs Token lint, Gate harness, P0 taste rules;  (needs all
-                                                   built against stubs, so it runs beside the components)  components)
-```
+1. **Thin path:** Scaffold the package with a CI job → Tokens reach a story → Gate a story in the pinned image → Raw values fail the gate; Registry core; Screen through the build loop; P0 taste rules; Build component: Text → Generate a toy screen → Render and keep a generated screen → Repair loop.
+2. **Figma:** Sync tokens to Figma → Capture the kept screen in Figma.
+3. **Widening:** Build-loop driver; Stack → Heading → Amount → StatusTag → Button → Card; payment-status data and gate 1's remaining checks → Actions change screen state through the library → payment-status passes end to end.
 
-The generator track is built and tested against a stub registry and a stubbed model, so it doesn't wait for the components. Only **Keep** onwards needs all eight merged.
+Three labels. `ready-for-agent` tickets are built with `/implement-spec` or `/implement`. `ready-for-human` tickets need the human: the required status check, the Figma login, the first hand-started session, and the finish line. `build-loop` tickets are components, each built by one headless `/build-component` session ([ADR 0006](adr/0006-one-gated-build-component-session-per-component.md)) and merged by PR with baselines the human approves ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)): Screen and Text are started by hand, Stack onwards by the build-loop driver. Only the driver or the human takes a `build-loop` ticket.
 
 ## Infrastructure pieces
 
@@ -125,6 +122,12 @@ The code step: the UI spec and screen brief in, a whole TSX file out, written in
 
 **Done when:** Vitest with a stubbed model shows a failing TSX, then one repair turn (deduplicated, collapsed across theme × state, capped per gate), then a pass; a failing build records the render gates as `not-run`; a refusal and a `max_tokens` stop each end the rep as error with no repair turn; cost is computed from logged `usage`.
 
+### Action wiring
+
+The library hooks `useScreenState` and `useAction` and the gate 2 rule `screen-state-via-library`, as [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) sets them out. The code step wires every declared action through them.
+
+**Done when:** a test story wiring `sendReminder` through `useAction` enters `reminder-sent` through a `confirm` View Transition and `reminder-failed` through a `fail` one, and a planted generated screen that uses `useState` or calls `sendReminder` directly fails gate 2 with the rule id.
+
 ### Generate CLI
 
 `pnpm generate <screen brief>`: one `generate()` run that prints each attempt's gate results as they happen, writes the attempt folders to `.generated/<timestamp>-<slug>/` ([ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)), and checks the screen brief's `requires.*` against the final UI spec.
@@ -171,6 +174,7 @@ The slice is done when all of these hold:
 3. The stubbed Vitest tests show fail → repair turn → pass for each generator step.
 4. `figma:sync-tokens` dry-run reports zero changes after a sync.
 5. Dill Demo holds the bound captures from **Capture**.
+6. The smoke brief's kept screen, baselines and Figma frames are gone; the smoke brief remains.
 
 A natural first-attempt failure for the Loom is collected from whichever real run produces one. It isn't a criterion.
 
