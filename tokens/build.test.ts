@@ -42,6 +42,7 @@ describe("the naming chain", () => {
     ["density.text.body", '[data-density="contractor"]'],
     ["size.width.sheet", ":root"],
     ["type.title", ":root"],
+    ["type.family.sans", ":root"],
     ["motion.duration.base", ":root"],
     ["motion.delay.stagger", ":root"],
     ["motion.ease.settle", ":root"],
@@ -62,14 +63,21 @@ describe("the naming chain", () => {
     const names = tokenNames(path);
     // Typography is one token with a --ds-* variable per sub-value.
     const cssVar =
-      path.startsWith("type.") || path.startsWith("density.text.")
-        ? `${names.cssVar}-font-size`
-        : names.cssVar;
+      names.family === "text" ? `${names.cssVar}-font-size` : names.cssVar;
 
     expect(blockOf(built.css, mode)).toContain(`${cssVar}:`);
     expect(utilities(names.className!)).toContain(`var(${cssVar})`);
     expect(built.ts).toMatch(
       new RegExp(`export const ${names.family} = \\[[^\\]]*"${names.role}"`)
+    );
+  });
+
+  it("keeps font weight as one of two shared variables (ADR 0007)", () => {
+    expect(blockOf(built.css, ":root")).toContain(
+      "--ds-type-title-font-weight: var(--ds-type-weight-semibold);"
+    );
+    expect(blockOf(built.css, '[data-density="contractor"]')).toContain(
+      "--ds-density-text-body-font-weight: var(--ds-type-weight-regular);"
     );
   });
 

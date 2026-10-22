@@ -27,19 +27,19 @@ exports[`builds tokens.css and tokens.ts from the committed sources 1`] = `
   --ds-type-caption-font-size: 12px;
   --ds-type-caption-line-height: 16px;
   --ds-type-caption-letter-spacing: 0px;
-  --ds-type-caption-font-weight: 400;
+  --ds-type-caption-font-weight: var(--ds-type-weight-regular);
   --ds-type-heading-font-size: 20px;
   --ds-type-heading-line-height: 28px;
   --ds-type-heading-letter-spacing: 0px;
-  --ds-type-heading-font-weight: 600;
+  --ds-type-heading-font-weight: var(--ds-type-weight-semibold);
   --ds-type-title-font-size: 24px;
   --ds-type-title-line-height: 32px;
   --ds-type-title-letter-spacing: -0.36px;
-  --ds-type-title-font-weight: 600;
+  --ds-type-title-font-weight: var(--ds-type-weight-semibold);
   --ds-type-figure-font-size: 32px;
   --ds-type-figure-line-height: 40px;
   --ds-type-figure-letter-spacing: -0.64px;
-  --ds-type-figure-font-weight: 600;
+  --ds-type-figure-font-weight: var(--ds-type-weight-semibold);
   --ds-motion-duration-fast: 120ms;
   --ds-motion-duration-base: 240ms;
   --ds-motion-duration-slow: 320ms;
@@ -127,7 +127,7 @@ exports[`builds tokens.css and tokens.ts from the committed sources 1`] = `
   --ds-color-border-control: oklch(0.56 0.02 330);
   --ds-color-ring-focus: oklch(0.82 0.06 330);
   --ds-shadow-raised: 0px 0px 0px 1px oklch(0.36 0.02 330);
-  --ds-shadow-overlay: 0px 0px 0px 1px oklch(0.4 0.02 330), 0px 24px 48px 0px oklch(0 0 0 / 0.4);
+  --ds-shadow-overlay: 0px 0px 0px 1px oklch(0.4 0.02 330), 0px 24px 48px 0px oklch(0.1 0.02 330 / 0.4);
 }
 
 :root,
@@ -142,11 +142,11 @@ exports[`builds tokens.css and tokens.ts from the committed sources 1`] = `
   --ds-density-text-body-font-size: 14px;
   --ds-density-text-body-line-height: 20px;
   --ds-density-text-body-letter-spacing: 0px;
-  --ds-density-text-body-font-weight: 400;
+  --ds-density-text-body-font-weight: var(--ds-type-weight-regular);
   --ds-density-text-label-font-size: 14px;
   --ds-density-text-label-line-height: 20px;
   --ds-density-text-label-letter-spacing: 0px;
-  --ds-density-text-label-font-weight: 600;
+  --ds-density-text-label-font-weight: var(--ds-type-weight-semibold);
 }
 
 [data-density="contractor"] {
@@ -160,11 +160,11 @@ exports[`builds tokens.css and tokens.ts from the committed sources 1`] = `
   --ds-density-text-body-font-size: 16px;
   --ds-density-text-body-line-height: 24px;
   --ds-density-text-body-letter-spacing: 0px;
-  --ds-density-text-body-font-weight: 400;
+  --ds-density-text-body-font-weight: var(--ds-type-weight-regular);
   --ds-density-text-label-font-size: 16px;
   --ds-density-text-label-line-height: 24px;
   --ds-density-text-label-letter-spacing: 0px;
-  --ds-density-text-label-font-weight: 600;
+  --ds-density-text-label-font-weight: var(--ds-type-weight-semibold);
 }
 
 /* The closed theme: Tailwind's defaults are gone, and only these classes compile

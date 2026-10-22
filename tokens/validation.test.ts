@@ -130,6 +130,13 @@ const fixtures: [
     },
   ],
   [
+    "neutral-tint",
+    "shadow.overlay",
+    (files) => {
+      files["color.dark"].shadow.overlay.$value[1].color.components = [0, 0, 0];
+    },
+  ],
+  [
     "settle",
     "motion.ease.settle",
     (files) => {
