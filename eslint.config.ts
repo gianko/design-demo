@@ -3,7 +3,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
-  globalIgnores(["storybook-static/", ".agents/", ".claude/"]),
+  globalIgnores(["storybook-static/", "gates/out/", ".agents/", ".claude/"]),
   js.configs.recommended,
   tseslint.configs.recommended,
 ]);

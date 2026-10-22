@@ -2,6 +2,7 @@
 .claude/
 node_modules/
 storybook-static/
+gates/out/
 pnpm-lock.yaml
 skills-lock.json
 # Written by tokens/build.ts; CI fails if they differ from a fresh build.

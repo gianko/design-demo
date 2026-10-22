@@ -11,6 +11,7 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       "storybook-static/**",
+      "gates/out/**",
       ".agents/**",
       ".claude/**",
     ],
