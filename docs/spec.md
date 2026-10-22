@@ -58,6 +58,7 @@ A single pnpm package: TypeScript strict, Vitest, ESLint flat config, Tailwind v
 The DTCG source files, `tokens/build.ts`, `tokens/keyframes.css` and the three committed outputs, exactly as [ADR 0005](adr/0005-dtcg-tokens-hand-built-into-css-ts-and-figma.md) and [ADR 0007](adr/0007-figma-sync-is-a-generated-one-call-script.md) shape them. Values come from the design brief, including the state roles, control pair, `0` step, `size` collection and progress sweep from [Decide the state and control tokens the build loop needs](https://github.com/gianko/design-demo/issues/20). The build validates: schema, matching paths and `$type` across modes, sRGB gamut, AA on every declared role pair in both themes, and the four checks from [`lint/taste/RULES.md`](../lint/taste/RULES.md#placed-elsewhere) (neutral chroma > 0, one `settle` overshoot of at most ~5%, neutral elevation, no banned font).
 
 **Done when:**
+
 - `pnpm tokens` writes `tokens.css`, `tokens.ts` and the Figma payload; a second run leaves `git diff --exit-code` clean.
 - A Vitest snapshot covers all three outputs.
 - One failing fixture per validation makes the build exit non-zero with an error naming the token path and the check.
@@ -102,6 +103,7 @@ The build loop from `gianko/agent-quiz-app`, ported. It takes the first open, un
 ### Fixtures and the screen brief
 
 The typed fixtures module ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)) for one contractor:
+
 - Default: invoice `INV-0142`, client "Northwind Logistics & Freight Holdings Ltd." (long on purpose, for `text-overflow`), 4,800.00 USD, status overdue, `dueDate: "2026-10-08"` with `dueLabel: "Oct 8"`.
 - Variants for `empty`, `reminder-sent` and `reminder-failed`.
 - One mock operation, `sendReminder(invoiceId)`: it resolves after a fixed 1,800ms, long enough for the progress edge to fill and sweep once, and fails only when the active fixture variant says so.

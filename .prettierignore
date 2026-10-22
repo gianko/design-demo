@@ -1,0 +1,8 @@
+.agents/
+.claude/
+node_modules/
+storybook-static/
+pnpm-lock.yaml
+skills-lock.json
+# markdownlint checks Markdown; Prettier would re-pad every table on each edit.
+*.md
