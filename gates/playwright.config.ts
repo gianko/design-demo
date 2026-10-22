@@ -21,9 +21,12 @@ export default defineConfig({
     ["json", { outputFile: "out/results.json" }],
   ],
   expect: {
-    // One renderer makes every baseline, so no pixel may differ.
+    // One renderer makes every baseline, so no pixel may differ, by any
+    // amount: Playwright's default per-pixel threshold lets a faint colour
+    // change through.
     toHaveScreenshot: {
       maxDiffPixels: 0,
+      threshold: 0,
       animations: "disabled",
       caret: "hide",
       scale: "css",

@@ -48,6 +48,3 @@ jobs:
           name: contact-sheet
           path: gates/out/contact-sheet/
           if-no-files-found: ignore
-      # The gate's own end-to-end tests. They rewrite gates/out, so they run
-      # after its artifacts are uploaded.
-      - run: pnpm test:gate

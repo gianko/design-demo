@@ -76,16 +76,19 @@ function expectFailed(run: Run, render: Render, errors: RegExp) {
 }
 
 // Starts from the committed baselines, lets a local run write the fixtures'
-// missing ones (as a build session would), then makes OnePixel/After's
-// baselines one pixel off its render by replacing them with Before's.
+// missing ones (as a build session would), then makes OnePixel/After's and
+// OnePixel/Faint's baselines one pixel off their renders by replacing them
+// with Before's.
 function seed(args: string[]) {
   rmSync(baselines, { recursive: true, force: true });
   cpSync(join(repo, "gates/baselines"), baselines, { recursive: true });
   gate(args, { ci: false });
-  const after = rendersOf("gatefixtures-onepixel--after");
-  rendersOf("gatefixtures-onepixel--before").forEach((before, i) =>
-    cpSync(baseline(before), baseline(after[i]!))
-  );
+  const before = rendersOf("gatefixtures-onepixel--before");
+  for (const story of ["after", "faint"]) {
+    rendersOf(`gatefixtures-onepixel--${story}`).forEach((render, i) =>
+      cpSync(baseline(before[i]!), baseline(render))
+    );
+  }
 }
 
 describe("in CI", () => {
@@ -114,6 +117,12 @@ describe("in CI", () => {
 
   it("fails a one-pixel change, naming the story, theme and density", () => {
     for (const render of rendersOf("gatefixtures-onepixel--after")) {
+      expectFailed(run, render, /gate 6: baseline[\s\S]*\b1 pixels\b/);
+    }
+  });
+
+  it("fails a one-pixel change in the faintest colour", () => {
+    for (const render of rendersOf("gatefixtures-onepixel--faint")) {
       expectFailed(run, render, /gate 6: baseline[\s\S]*\b1 pixels\b/);
     }
   });

@@ -1,0 +1,45 @@
+name: Gate e2e
+
+# The gate's own end-to-end tests (ADR 0009): fixture stories through the
+# real `pnpm gate`, against scratch baselines. They run only when a change
+# could alter how the gate behaves, so the required CI check stays fast.
+on:
+  pull_request:
+    paths:
+      - "gates/**"
+      - ".storybook/**"
+      - "tokens/**"
+      - "src/styles.css"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/gate-e2e.yml"
+  push:
+    branches: [main]
+    paths:
+      - "gates/**"
+      - ".storybook/**"
+      - "tokens/**"
+      - "src/styles.css"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/gate-e2e.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gate-e2e:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:gate
