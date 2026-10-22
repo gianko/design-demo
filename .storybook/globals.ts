@@ -4,3 +4,4 @@ export const densities = ["admin", "contractor"] as const;
 
 export type Theme = (typeof themes)[number];
 export type Density = (typeof densities)[number];
+export const broken: number = "x";
