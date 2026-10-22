@@ -13,7 +13,10 @@ const preview: Preview = {
       toolbar: { title: "Density", items: [...densities], dynamicTitle: true },
     },
   },
-  initialGlobals: { theme: "light" satisfies Theme, density: "admin" satisfies Density },
+  initialGlobals: {
+    theme: "light" satisfies Theme,
+    density: "admin" satisfies Density,
+  },
   // Theme and density are CSS scopes, so a story only needs the two attributes.
   decorators: [
     (Story, { globals }) => (
