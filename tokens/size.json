@@ -1,0 +1,17 @@
+{
+  "size": {
+    "$type": "dimension",
+    "height": {
+      "edge": {
+        "$description": "The progress edge, and the focus ring width and offset.",
+        "$value": { "value": 2, "unit": "px" }
+      }
+    },
+    "width": {
+      "sheet": {
+        "$description": "With max-w-full on a phone.",
+        "$value": { "value": 420, "unit": "px" }
+      }
+    }
+  }
+}

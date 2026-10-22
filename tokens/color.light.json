@@ -1,0 +1,236 @@
+{
+  "color": {
+    "$type": "color",
+    "bg": {
+      "page": { "$value": "{primitive.neutral.985}" },
+      "surface": { "$value": "{primitive.neutral.995}" },
+      "surface-raised": { "$value": "{primitive.neutral.970}" },
+      "surface-hover": { "$value": "{primitive.neutral.975}" },
+      "surface-pressed": { "$value": "{primitive.neutral.940}" },
+      "selected": { "$value": "{primitive.heather.950}" },
+      "accent": { "$value": "{primitive.heather.480}" },
+      "accent-hover": { "$value": "{primitive.heather.430}" },
+      "accent-pressed": { "$value": "{primitive.heather.390}" },
+      "on-accent": {
+        "$description": "The progress edge on a primary button.",
+        "$value": "{primitive.neutral.995}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 3, "against": ["{color.bg.accent}"] }
+          }
+        }
+      },
+      "disabled": { "$value": "{primitive.neutral.950}" },
+      "scrim": {
+        "$description": "The one alpha token, behind overlays.",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.27, 0.025, 330],
+          "alpha": 0.4
+        }
+      },
+      "awaiting": { "$value": "{primitive.amber.950}" },
+      "overdue": { "$value": "{primitive.red.940}" },
+      "paid": { "$value": "{primitive.green.950}" },
+      "scheduled": { "$value": "{primitive.blue.940}" },
+      "failed": { "$value": "{primitive.red.520}" }
+    },
+    "text": {
+      "ink": {
+        "$value": "{primitive.neutral.270}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 4.5,
+              "against": [
+                "{color.bg.page}",
+                "{color.bg.surface}",
+                "{color.bg.surface-raised}",
+                "{color.bg.surface-hover}",
+                "{color.bg.surface-pressed}",
+                "{color.bg.selected}"
+              ]
+            }
+          }
+        }
+      },
+      "ink-muted": {
+        "$value": "{primitive.neutral.500}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 4.5,
+              "against": [
+                "{color.bg.page}",
+                "{color.bg.surface}",
+                "{color.bg.surface-raised}"
+              ]
+            }
+          }
+        }
+      },
+      "accent": {
+        "$value": "{primitive.heather.480}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 4.5,
+              "against": ["{color.bg.page}", "{color.bg.surface}"]
+            }
+          }
+        }
+      },
+      "on-accent": {
+        "$value": "{primitive.neutral.995}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 4.5,
+              "against": [
+                "{color.bg.accent}",
+                "{color.bg.accent-hover}",
+                "{color.bg.accent-pressed}"
+              ]
+            }
+          }
+        }
+      },
+      "disabled": {
+        "$description": "Disabled controls are exempt from WCAG contrast.",
+        "$value": "{primitive.neutral.600}"
+      },
+      "awaiting": {
+        "$value": "{primitive.amber.450}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.awaiting}"] }
+          }
+        }
+      },
+      "overdue": {
+        "$value": "{primitive.red.480}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.overdue}"] }
+          }
+        }
+      },
+      "paid": {
+        "$value": "{primitive.green.450}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.paid}"] }
+          }
+        }
+      },
+      "scheduled": {
+        "$value": "{primitive.blue.470}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.scheduled}"] }
+          }
+        }
+      },
+      "failed": {
+        "$value": "{primitive.neutral.995}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.failed}"] }
+          }
+        }
+      }
+    },
+    "border": {
+      "line": {
+        "$description": "A hairline between surfaces; not a control edge.",
+        "$value": "{primitive.neutral.900}"
+      },
+      "control": {
+        "$description": "The 3:1 edge that identifies an input or secondary button.",
+        "$value": "{primitive.neutral.620}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 3,
+              "against": [
+                "{color.bg.page}",
+                "{color.bg.surface}",
+                "{color.bg.surface-raised}"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "ring": {
+      "focus": {
+        "$value": "{primitive.heather.480}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 3,
+              "against": ["{color.bg.page}", "{color.bg.surface}"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "shadow": {
+    "$type": "shadow",
+    "raised": {
+      "$description": "Sticky and floating bars, toasts.",
+      "$value": [
+        {
+          "color": {
+            "colorSpace": "oklch",
+            "components": [0.27, 0.025, 330],
+            "alpha": 0.06
+          },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 1, "unit": "px" },
+          "blur": { "value": 2, "unit": "px" },
+          "spread": { "value": 0, "unit": "px" }
+        },
+        {
+          "color": {
+            "colorSpace": "oklch",
+            "components": [0.27, 0.025, 330],
+            "alpha": 0.08
+          },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 4, "unit": "px" },
+          "blur": { "value": 12, "unit": "px" },
+          "spread": { "value": 0, "unit": "px" }
+        }
+      ]
+    },
+    "overlay": {
+      "$description": "Modal, sheet and menu, over a scrim.",
+      "$value": [
+        {
+          "color": {
+            "colorSpace": "oklch",
+            "components": [0.27, 0.025, 330],
+            "alpha": 0.12
+          },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 8, "unit": "px" },
+          "blur": { "value": 24, "unit": "px" },
+          "spread": { "value": 0, "unit": "px" }
+        },
+        {
+          "color": {
+            "colorSpace": "oklch",
+            "components": [0.27, 0.025, 330],
+            "alpha": 0.14
+          },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 24, "unit": "px" },
+          "blur": { "value": 48, "unit": "px" },
+          "spread": { "value": 0, "unit": "px" }
+        }
+      ]
+    }
+  }
+}

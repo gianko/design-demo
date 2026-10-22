@@ -1,0 +1,30 @@
+/* Hand-written keyframes (ADR 0005). DTCG has no keyframe type and Figma can't
+   carry one, so tokens/build.ts appends this file to tokens.css verbatim. Build
+   sessions never edit it. */
+
+/* The progress edge ends full, */
+@keyframes progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* and the sweep starts full and wraps around: the edge slides out to the
+   right and back in from the left, so nothing jumps. */
+@keyframes progress-sweep {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  50.01% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}

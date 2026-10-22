@@ -1,0 +1,217 @@
+{
+  "color": {
+    "$type": "color",
+    "bg": {
+      "page": { "$value": "{primitive.neutral.190}" },
+      "surface": { "$value": "{primitive.neutral.230}" },
+      "surface-raised": { "$value": "{primitive.neutral.270}" },
+      "surface-hover": { "$value": "{primitive.neutral.270}" },
+      "surface-pressed": { "$value": "{primitive.neutral.310}" },
+      "selected": { "$value": "{primitive.heather.300}" },
+      "accent": { "$value": "{primitive.heather.820}" },
+      "accent-hover": { "$value": "{primitive.heather.790}" },
+      "accent-pressed": { "$value": "{primitive.heather.750}" },
+      "on-accent": {
+        "$description": "The progress edge on a primary button.",
+        "$value": "{primitive.neutral.220}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 3, "against": ["{color.bg.accent}"] }
+          }
+        }
+      },
+      "disabled": { "$value": "{primitive.neutral.270}" },
+      "scrim": {
+        "$description": "The one alpha token, behind overlays.",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.1, 0.02, 330],
+          "alpha": 0.6
+        }
+      },
+      "awaiting": { "$value": "{primitive.amber.320}" },
+      "overdue": { "$value": "{primitive.red.320}" },
+      "paid": { "$value": "{primitive.green.320}" },
+      "scheduled": { "$value": "{primitive.blue.320}" },
+      "failed": { "$value": "{primitive.red.620}" }
+    },
+    "text": {
+      "ink": {
+        "$value": "{primitive.neutral.940}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 4.5,
+              "against": [
+                "{color.bg.page}",
+                "{color.bg.surface}",
+                "{color.bg.surface-raised}",
+                "{color.bg.surface-hover}",
+                "{color.bg.surface-pressed}",
+                "{color.bg.selected}"
+              ]
+            }
+          }
+        }
+      },
+      "ink-muted": {
+        "$value": "{primitive.neutral.740}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 4.5,
+              "against": [
+                "{color.bg.page}",
+                "{color.bg.surface}",
+                "{color.bg.surface-raised}"
+              ]
+            }
+          }
+        }
+      },
+      "accent": {
+        "$value": "{primitive.heather.820}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 4.5,
+              "against": ["{color.bg.page}", "{color.bg.surface}"]
+            }
+          }
+        }
+      },
+      "on-accent": {
+        "$value": "{primitive.neutral.220}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 4.5,
+              "against": [
+                "{color.bg.accent}",
+                "{color.bg.accent-hover}",
+                "{color.bg.accent-pressed}"
+              ]
+            }
+          }
+        }
+      },
+      "disabled": {
+        "$description": "Disabled controls are exempt from WCAG contrast.",
+        "$value": "{primitive.neutral.550}"
+      },
+      "awaiting": {
+        "$value": "{primitive.amber.860}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.awaiting}"] }
+          }
+        }
+      },
+      "overdue": {
+        "$value": "{primitive.red.820}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.overdue}"] }
+          }
+        }
+      },
+      "paid": {
+        "$value": "{primitive.green.840}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.paid}"] }
+          }
+        }
+      },
+      "scheduled": {
+        "$value": "{primitive.blue.840}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.scheduled}"] }
+          }
+        }
+      },
+      "failed": {
+        "$value": "{primitive.red.180}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.failed}"] }
+          }
+        }
+      }
+    },
+    "border": {
+      "line": {
+        "$description": "A hairline between surfaces; not a control edge.",
+        "$value": "{primitive.neutral.360}"
+      },
+      "control": {
+        "$description": "The 3:1 edge that identifies an input or secondary button.",
+        "$value": "{primitive.neutral.560}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 3,
+              "against": [
+                "{color.bg.page}",
+                "{color.bg.surface}",
+                "{color.bg.surface-raised}"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "ring": {
+      "focus": {
+        "$value": "{primitive.heather.820}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": {
+              "min": 3,
+              "against": ["{color.bg.page}", "{color.bg.surface}"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "shadow": {
+    "$type": "shadow",
+    "raised": {
+      "$description": "In dark mode a level is a lighter edge, not a drop shadow.",
+      "$value": [
+        {
+          "color": "{primitive.neutral.360}",
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 0, "unit": "px" },
+          "blur": { "value": 0, "unit": "px" },
+          "spread": { "value": 1, "unit": "px" }
+        }
+      ]
+    },
+    "overlay": {
+      "$description": "Modal, sheet and menu, over a scrim.",
+      "$value": [
+        {
+          "color": "{primitive.neutral.400}",
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 0, "unit": "px" },
+          "blur": { "value": 0, "unit": "px" },
+          "spread": { "value": 1, "unit": "px" }
+        },
+        {
+          "color": {
+            "colorSpace": "oklch",
+            "components": [0.1, 0.02, 330],
+            "alpha": 0.4
+          },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 24, "unit": "px" },
+          "blur": { "value": 48, "unit": "px" },
+          "spread": { "value": 0, "unit": "px" }
+        }
+      ]
+    }
+  }
+}

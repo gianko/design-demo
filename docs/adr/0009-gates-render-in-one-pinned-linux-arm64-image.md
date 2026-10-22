@@ -4,7 +4,7 @@ Gate 6 compares screenshots against baselines, and screenshots only compare when
 
 ## Decisions that come with it
 
-- **CI is one job running the local commands.** On every PR and every push to main: frozen install; the token build, then `git diff --exit-code` ([ADR 0005](0005-dtcg-tokens-hand-built-into-css-ts-and-figma.md)); Vitest; then `pnpm gate` with no argument, which gates every component and kept screen as [ADR 0006](0006-one-gated-build-component-session-per-component.md) describes. It is the one required status check on main, with no review required. The Playwright report and contact sheet are uploaded as artifacts on every run.
+- **CI is one job running the local commands.** On every PR and every push to main: frozen install; the token build, then a clean `git status --porcelain` ([ADR 0005](0005-dtcg-tokens-hand-built-into-css-ts-and-figma.md)); Vitest; then `pnpm gate` with no argument, which gates every component and kept screen as [ADR 0006](0006-one-gated-build-component-session-per-component.md) describes. It is the one required status check on main, with no review required. The Playwright report and contact sheet are uploaded as artifacts on every run.
 - **Missing baselines fail in CI.** CI runs Playwright with `--update-snapshots=none`. A build-component session may still write missing baselines; CI is the line that catches a story nobody approved.
 - **Chromium only.** Every story already renders in light/dark × admin/contractor; WebKit isn't gated.
 - **Every change goes through a PR**, each build-component run included. The human approves new baselines on the component's PR, from the contact sheet artifact, and merges.
