@@ -176,15 +176,69 @@ A natural first-attempt failure for the Loom is collected from whichever real ru
 
 ## Out of scope
 
-Everything in the [map's Out of scope](https://github.com/gianko/design-demo/issues/1), plus, for the slice: Toast, DataTable and every other component in demo brief §4 not listed above; gate 5; the signature transitions (P1); component frames in Figma (P2); example UI specs in prompts.
+Everything in the [map's Out of scope](https://github.com/gianko/design-demo/issues/1), plus, for the slice: Toast, DataTable (it joins [after the slice](#library-widening)) and every other component in demo brief §4 not listed above; gate 5; the signature transitions (P1); component frames in Figma (P2); example UI specs in prompts.
 
 ## After the slice
 
 The widening, each already decided:
 
-- `pnpm eval` and `pnpm eval:report`, and the other four P0 screen briefs ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)). The payment-status brief joins unchanged.
+- `pnpm eval` and `pnpm eval:report`, and the other four P0 screen briefs ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)), as [Eval screen briefs](#eval-screen-briefs) sets them out. The payment-status brief joins unchanged.
+- Three more `build-loop` issues, after Card, each blocked by the one before: **PageHeader**, **Checkbox**, **DataTable** ([below](#library-widening)).
 - The GitHub Pages deploy of Storybook and the newest eval report ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 - The shared Phosphor icon map, with the first component that needs an icon, probably IconButton.
 - A Date component, once a screen brief needs relative dates or sorting by date.
 - The remaining ten taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)).
-- Still open on the map: [Choose the eval screen briefs and their pass criteria](https://github.com/gianko/design-demo/issues/21) and [Decide how motion attaches to the UI spec and reaches the generated screen](https://github.com/gianko/design-demo/issues/22).
+- Still open on the map: [Decide how motion attaches to the UI spec and reaches the generated screen](https://github.com/gianko/design-demo/issues/22).
+
+## Eval screen briefs
+
+Decided in [Choose the eval screen briefs and their pass criteria](https://github.com/gianko/design-demo/issues/21).
+
+### The P0 five
+
+Three admin, two contractor. Each is `evals/briefs/<slug>.md`.
+
+| Slug | Audience | What it asks for |
+|---|---|---|
+| `payment-status` | contractor | As [above](#the-screen-brief), unchanged. |
+| `payment-overview` | contractor | Three Cards, each bound to a named fixture path: **next payment** (scheduled, amount, "Arrives Oct 24"), **last payment** (paid), **paid this year** (a total). Read-only. |
+| `invoice-queue` | admin | About 8 invoices across 5 contractors in a selectable DataTable. An **Approve and pay** Button sits in the PageHeader's `actions` slot, shown only `when: [rows-selected]`. Success moves the selected rows to scheduled, with a live Text: "3 invoices scheduled for the Oct 24 run." Failure leaves them as they were, with a live Text saying what happened and what to do next. The stretch brief: a first-attempt failure is likely, and its pass bar is the same as the others'. |
+| `invoice-review` | admin | One awaiting invoice in a Card under a PageHeader: amount, contractor, invoice number, due date, line count. **Approve and pay** is the only action, with the same action id and states as `invoice-queue`. The same shape as payment-status at admin density. |
+| `payment-run` | admin | The next payment run: the run date in the PageHeader, then Cards with `display: card` Amounts, a StatusTag and a count each for **due in this run** (scheduled), **overdue** and **awaiting approval**. Read-only. |
+
+Pass criteria:
+
+| Slug | `requires.components` | `requires.states` | `requires.actions` |
+|---|---|---|---|
+| `payment-status` | Screen, Card, StatusTag, Amount, Button | empty, reminder-sent, reminder-failed | send-reminder |
+| `payment-overview` | Screen, Heading, Card, Amount, StatusTag | empty | — |
+| `invoice-queue` | Screen, PageHeader, DataTable, StatusTag, Amount, Button | empty, rows-selected, payment-scheduled, payment-failed | approve-and-pay |
+| `invoice-review` | Screen, PageHeader, Card, Amount, StatusTag, Button | payment-scheduled, payment-failed | approve-and-pay |
+| `payment-run` | Screen, PageHeader, Card, Amount, StatusTag | empty | — |
+
+Checkbox is never listed: DataTable renders it for selection, so the UI spec never names it.
+
+### Rules every brief follows
+
+- **Shape.** A short plain-language paragraph plus a screen-state table naming each state's id and fixture variant, as payment-status does. Every id a `requires.*` key checks appears verbatim in the brief.
+- **Pass criteria are presence only.** The listed components, states and actions must appear in the final UI spec; extras are allowed, and count, order and placement aren't checked. Layout quality is left to gate 4, taste lint and, later, gate 5.
+- **No repeats outside DataTable.** The flat UI spec repeats a node only in a DataTable's `cell` slot ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)), so a brief never asks for a list drawn any other way; a fixed set of named cards is fine.
+- **Not in P0:** form screens (Input, Select, Checkbox as a field) and the `loading` state, which joins once a component can show it. Pending stays the Button's own state.
+
+### Fixtures
+
+One dataset serves both audiences: 5 contractors and about 8 invoices, with INV-0142 for Northwind unchanged. The contractor briefs view one contractor ("you") inside it. Each brief's state variants are named `<brief>/<state>`, e.g. `invoice-queue/payment-failed`. The mock operations are `sendReminder(invoiceId)` and a shared `payInvoices(invoiceIds)`, both resolving after the fixed 1,800ms and failing only when the active variant says so. Every date is a pre-formatted label beside its ISO value, so no Date component is needed.
+
+### Library widening
+
+The P0 set adds three components, built in this order after Card, each blocked by the one before:
+
+1. **PageHeader**: title and an `actions` slot that allows only Button (IconButton isn't in the library yet).
+2. **Checkbox**: the row selector DataTable renders.
+3. **DataTable**: selectable rows only, with a `cell` slot per column. No sorting, filters or pagination in P0.
+
+Toast, EmptyState, IconButton and the rest of demo brief §4 wait for P1. Empty states use Heading and Text, and a live Text confirms an action's result.
+
+### The P1 set
+
+15–20 briefs, written as build work after the P0 widening, under one coverage rule: every library component appears in at least 2 briefs, each audience gets at least a third of them, and every action has a failure state.
