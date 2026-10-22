@@ -8,4 +8,5 @@ Judgement calls for the reviewer. Anything a linter, type or test can catch belo
 
 ## Tests
 
+- **Every acceptance criterion has a test that goes red without the change.** Check the originating issue's criteria one by one against the diff's tests. A criterion checked by hand, by planting a change and reverting it, is unverified until a test plants it.
 - **A failing fixture plants the least obvious case the check applies to.** A fixture is evidence of a check's scope, so put the violation where a narrow check would miss it, not only in the first place anyone would look: a literal shadow colour or a density-mode token for a token validation, two duplicate registry names that sit apart in the input.

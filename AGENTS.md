@@ -1,3 +1,7 @@
+## Working copy
+
+Each session works in its own git worktree (Claude Code: `EnterWorktree`). The main checkout is shared, and other sessions edit it concurrently.
+
 ## Agent skills
 
 ### Issue tracker
