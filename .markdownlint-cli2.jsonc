@@ -1,0 +1,18 @@
+{
+  "config": {
+    // Paragraphs are one line each.
+    "MD013": false,
+    // Tables stay compact; aligning them re-pads every row on each edit.
+    "MD060": false,
+    // GitHub links bare URLs.
+    "MD034": false,
+    // AGENTS.md and similar fragments don't open with a title.
+    "MD041": false,
+  },
+  "ignores": [
+    ".agents/**",
+    ".claude/**",
+    "node_modules/**",
+    "storybook-static/**",
+  ],
+}

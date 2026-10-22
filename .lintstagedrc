@@ -1,4 +1,5 @@
 {
   "*.{ts,tsx,js}": "eslint --fix --no-warn-ignored",
+  "*.md": "markdownlint-cli2 --fix",
   "*": "prettier --ignore-unknown --write"
 }

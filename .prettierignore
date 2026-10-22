@@ -4,5 +4,5 @@ node_modules/
 storybook-static/
 pnpm-lock.yaml
 skills-lock.json
-# Hand-written prose; Prettier would re-pad every table on each edit.
+# markdownlint checks Markdown; Prettier would re-pad every table on each edit.
 *.md
