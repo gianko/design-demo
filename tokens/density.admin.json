@@ -1,0 +1,57 @@
+{
+  "density": {
+    "$description": "Working density: the admin clears dozens of invoices a day on a desktop.",
+    "padding": {
+      "$type": "dimension",
+      "page": { "$value": { "value": 28, "unit": "px" } },
+      "control": {
+        "$description": "A control's side padding.",
+        "$value": { "value": 12, "unit": "px" }
+      }
+    },
+    "height": {
+      "$type": "dimension",
+      "row": { "$value": { "value": 46, "unit": "px" } },
+      "control": {
+        "$description": "Buttons, icon buttons, inputs, selects and segmented filters share it.",
+        "$value": { "value": 32, "unit": "px" }
+      }
+    },
+    "min-height": {
+      "$type": "dimension",
+      "target": {
+        "$description": "The floor for anything else a pointer hits.",
+        "$value": { "value": 24, "unit": "px" }
+      }
+    },
+    "size": {
+      "$type": "dimension",
+      "icon": { "$value": { "value": 16, "unit": "px" } }
+    },
+    "radius": {
+      "$type": "dimension",
+      "surface": { "$value": { "value": 8, "unit": "px" } }
+    },
+    "text": {
+      "$type": "typography",
+      "body": {
+        "$value": {
+          "fontFamily": "{type.family.sans}",
+          "fontSize": { "value": 14, "unit": "px" },
+          "fontWeight": "{type.weight.regular}",
+          "letterSpacing": { "value": 0, "unit": "px" },
+          "lineHeight": 1.4286
+        }
+      },
+      "label": {
+        "$value": {
+          "fontFamily": "{type.family.sans}",
+          "fontSize": { "value": 14, "unit": "px" },
+          "fontWeight": "{type.weight.semibold}",
+          "letterSpacing": { "value": 0, "unit": "px" },
+          "lineHeight": 1.4286
+        }
+      }
+    }
+  }
+}

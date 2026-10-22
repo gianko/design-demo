@@ -1,3 +1,4 @@
-/* Tailwind's default theme stands in until the token build replaces it with
-   `@theme inline { --*: initial; … }` (ADR 0002, ADR 0005). */
+/* The token build's closed theme replaces Tailwind's defaults, so only token
+   classes compile (ADR 0002, ADR 0005). */
 @import "tailwindcss";
+@import "../tokens/tokens.css";

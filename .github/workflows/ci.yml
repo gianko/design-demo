@@ -26,6 +26,9 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # A committed token output that a fresh build would change is stale (ADR 0005).
+      - run: pnpm tokens
+      - run: git diff --exit-code
       - run: pnpm format:check
       - run: pnpm lint:md
       - run: pnpm lint

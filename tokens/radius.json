@@ -1,0 +1,27 @@
+{
+  "radius": {
+    "$type": "dimension",
+    "$description": "By role, subtle, never a pill. Surface radius is a density token.",
+    "control": {
+      "$description": "Buttons, segmented filters, inputs, selects.",
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      }
+    },
+    "tag": {
+      "$description": "Status tags, checkboxes.",
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "avatar": {
+      "$description": "The only round thing.",
+      "$value": {
+        "value": 9999,
+        "unit": "px"
+      }
+    }
+  }
+}

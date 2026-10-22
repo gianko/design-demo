@@ -1,0 +1,57 @@
+{
+  "density": {
+    "$description": "Full room: the contractor visits a few times a month, often on a phone.",
+    "padding": {
+      "$type": "dimension",
+      "page": { "$value": { "value": 36, "unit": "px" } },
+      "control": {
+        "$description": "A control's side padding.",
+        "$value": { "value": 16, "unit": "px" }
+      }
+    },
+    "height": {
+      "$type": "dimension",
+      "row": { "$value": { "value": 60, "unit": "px" } },
+      "control": {
+        "$description": "Buttons, icon buttons, inputs, selects and segmented filters share it.",
+        "$value": { "value": 44, "unit": "px" }
+      }
+    },
+    "min-height": {
+      "$type": "dimension",
+      "target": {
+        "$description": "The floor for anything else a pointer hits.",
+        "$value": { "value": 44, "unit": "px" }
+      }
+    },
+    "size": {
+      "$type": "dimension",
+      "icon": { "$value": { "value": 20, "unit": "px" } }
+    },
+    "radius": {
+      "$type": "dimension",
+      "surface": { "$value": { "value": 12, "unit": "px" } }
+    },
+    "text": {
+      "$type": "typography",
+      "body": {
+        "$value": {
+          "fontFamily": "{type.family.sans}",
+          "fontSize": { "value": 16, "unit": "px" },
+          "fontWeight": "{type.weight.regular}",
+          "letterSpacing": { "value": 0, "unit": "px" },
+          "lineHeight": 1.5
+        }
+      },
+      "label": {
+        "$value": {
+          "fontFamily": "{type.family.sans}",
+          "fontSize": { "value": 16, "unit": "px" },
+          "fontWeight": "{type.weight.semibold}",
+          "letterSpacing": { "value": 0, "unit": "px" },
+          "lineHeight": 1.5
+        }
+      }
+    }
+  }
+}

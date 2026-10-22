@@ -1,0 +1,302 @@
+{
+  "primitive": {
+    "$type": "color",
+    "$description": "Raw OKLCH values, named by lightness. Colour roles alias these; nothing else uses them.",
+    "neutral": {
+      "190": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.19, 0.018, 330]
+        }
+      },
+      "220": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.22, 0.03, 330]
+        }
+      },
+      "230": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.23, 0.02, 330]
+        }
+      },
+      "270": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.27, 0.025, 330]
+        }
+      },
+      "310": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.31, 0.024, 330]
+        }
+      },
+      "360": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.36, 0.02, 330]
+        }
+      },
+      "400": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.4, 0.02, 330]
+        }
+      },
+      "500": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.5, 0.025, 330]
+        }
+      },
+      "550": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.55, 0.015, 330]
+        }
+      },
+      "560": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.56, 0.02, 330]
+        }
+      },
+      "600": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.6, 0.015, 330]
+        }
+      },
+      "620": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.62, 0.02, 330]
+        }
+      },
+      "740": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.74, 0.02, 330]
+        }
+      },
+      "900": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.9, 0.012, 330]
+        }
+      },
+      "940": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.94, 0.01, 330]
+        }
+      },
+      "950": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.95, 0.006, 330]
+        }
+      },
+      "970": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.97, 0.006, 330]
+        }
+      },
+      "975": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.975, 0.006, 330]
+        }
+      },
+      "985": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.985, 0.004, 330]
+        }
+      },
+      "995": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.995, 0.003, 330]
+        }
+      },
+      "$description": "Every neutral is one plum hue at low chroma, never a pure grey."
+    },
+    "heather": {
+      "300": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.3, 0.04, 330]
+        }
+      },
+      "390": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.39, 0.08, 330]
+        }
+      },
+      "430": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.43, 0.085, 330]
+        }
+      },
+      "480": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.48, 0.085, 330]
+        }
+      },
+      "750": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.75, 0.06, 330]
+        }
+      },
+      "790": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.79, 0.06, 330]
+        }
+      },
+      "820": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.82, 0.06, 330]
+        }
+      },
+      "950": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.95, 0.025, 330]
+        }
+      },
+      "$description": "The one accent, a dusty berry: primary actions, selection and focus only."
+    },
+    "amber": {
+      "320": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.32, 0.05, 75]
+        }
+      },
+      "450": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.45, 0.09, 70]
+        }
+      },
+      "860": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.86, 0.1, 85]
+        }
+      },
+      "950": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.95, 0.05, 85]
+        }
+      }
+    },
+    "red": {
+      "180": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.18, 0.03, 25]
+        }
+      },
+      "320": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.32, 0.07, 25]
+        }
+      },
+      "480": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.48, 0.16, 25]
+        }
+      },
+      "520": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.52, 0.19, 25]
+        }
+      },
+      "620": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.62, 0.18, 25]
+        }
+      },
+      "820": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.82, 0.1, 25]
+        }
+      },
+      "940": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.94, 0.03, 25]
+        }
+      }
+    },
+    "green": {
+      "320": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.32, 0.05, 155]
+        }
+      },
+      "450": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.45, 0.1, 155]
+        }
+      },
+      "840": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.84, 0.1, 155]
+        }
+      },
+      "950": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.95, 0.04, 155]
+        }
+      }
+    },
+    "blue": {
+      "320": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.32, 0.05, 250]
+        }
+      },
+      "470": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.47, 0.12, 250]
+        }
+      },
+      "840": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.84, 0.08, 250]
+        }
+      },
+      "940": {
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.94, 0.025, 250]
+        }
+      }
+    }
+  }
+}

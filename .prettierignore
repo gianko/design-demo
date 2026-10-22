@@ -4,5 +4,8 @@ node_modules/
 storybook-static/
 pnpm-lock.yaml
 skills-lock.json
+# Written by tokens/build.ts; CI fails if they differ from a fresh build.
+tokens/tokens.css
+tokens/tokens.ts
 # markdownlint checks Markdown; Prettier would re-pad every table on each edit.
 *.md
