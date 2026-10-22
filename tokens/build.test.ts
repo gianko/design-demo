@@ -81,6 +81,16 @@ describe("the naming chain", () => {
     );
   });
 
+  it("draws the keyboard focus ring from the edge and focus tokens", () => {
+    const css = utilities("focus-visible:focus-ring");
+
+    expect(css).toContain(":focus-visible");
+    expect(css).toContain(
+      "outline: var(--ds-size-height-edge) solid var(--ds-color-ring-focus)"
+    );
+    expect(css).toContain("outline-offset: var(--ds-size-height-edge)");
+  });
+
   it("compiles nothing outside the tokens", () => {
     for (const className of [
       "bg-ink",

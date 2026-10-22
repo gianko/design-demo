@@ -395,6 +395,16 @@ export function build({ files, keyframes }: Sources): BuildResult {
   checkElevation(all, failures);
   checkFonts(all, failures);
   checkKeyframes(all, keyframes, failures);
+  for (const [part, path] of Object.entries(focusRing)) {
+    if (!all.some((token) => token.path === path)) {
+      failures.add(
+        "schema",
+        path,
+        "",
+        `is missing; it is the focus ring's ${part}`
+      );
+    }
+  }
   if (failures.list.length) return { ok: false, failures: failures.list };
 
   return {
@@ -804,6 +814,20 @@ function utility(token: Token): string | undefined {
   ].join("\n");
 }
 
+// The keyboard focus ring is one class: Tailwind's outline and ring widths
+// take bare numbers, which token lint bans. Use it as `focus-visible:focus-ring`.
+const focusRing = { width: "size.height.edge", color: "color.ring.focus" };
+
+function focusRingUtility(): string {
+  const width = tokenNames(focusRing.width).codeSyntax;
+  return [
+    "@utility focus-ring {",
+    `  outline: ${width} solid ${tokenNames(focusRing.color).codeSyntax};`,
+    `  outline-offset: ${width};`,
+    "}",
+  ].join("\n");
+}
+
 function block(selector: string, tokens: Resolved[]): string {
   const lines = tokens
     .flatMap(declarations)
@@ -847,6 +871,7 @@ function emitCss(files: Map<string, Resolved[]>, keyframes: string): string {
     "",
     "/* Bare-value families get named utilities. */",
     ...themed.flatMap((token) => utility(token) ?? []),
+    focusRingUtility(),
     "",
     "/* tokens/keyframes.css, verbatim. */",
     "",

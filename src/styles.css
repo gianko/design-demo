@@ -2,3 +2,8 @@
    classes compile (ADR 0002, ADR 0005). */
 @import "tailwindcss";
 @import "../tokens/tokens.css";
+
+/* Instrument Sans is self-hosted, so renders don't depend on the network. The
+   brief uses two weights only. */
+@import "@fontsource/instrument-sans/400.css";
+@import "@fontsource/instrument-sans/600.css";

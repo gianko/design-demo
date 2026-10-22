@@ -293,6 +293,10 @@
   transition-delay: var(--ds-motion-delay-stagger);
   animation-delay: var(--ds-motion-delay-stagger);
 }
+@utility focus-ring {
+  outline: var(--ds-size-height-edge) solid var(--ds-color-ring-focus);
+  outline-offset: var(--ds-size-height-edge);
+}
 
 /* tokens/keyframes.css, verbatim. */
 
