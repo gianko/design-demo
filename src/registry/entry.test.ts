@@ -22,6 +22,12 @@ it("reads a variant's options from the component's tv() config", () => {
   >();
 });
 
+it("refuses a boolean variant, which a z.boolean() prop describes", () => {
+  expect(() => variantEnum(button, "pending")).toThrow(
+    /"pending" is a boolean variant/
+  );
+});
+
 it("types a component's props as z.infer of its entry", () => {
   const entry = defineEntry({
     name: "Button",

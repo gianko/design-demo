@@ -18,75 +18,86 @@ const stubTag = defineEntry({
 const stubPanel = defineEntry({
   name: "Panel",
   use: "Groups related content on a surface.",
-  props: z.object({ title: z.string().optional() }),
+  props: z.object({
+    title: z.string().optional(),
+    padded: z.boolean().default(true),
+  }),
   slots: { body: {}, actions: { allow: ["Tag"] } },
 });
 
+const baseline = defineRegistry([stubTag, stubPanel]);
+
 it("serializes names, use lines, JSON Schema props and slots", () => {
-  expect(defineRegistry([stubTag, stubPanel]).serialized)
-    .toMatchInlineSnapshot(`
-    "[
-      {
-        "name": "Panel",
-        "use": "Groups related content on a surface.",
-        "props": {
-          "type": "object",
-          "properties": {
-            "title": {
-              "type": "string"
-            }
-          }
-        },
-        "slots": {
-          "body": {},
-          "actions": {
-            "allow": [
-              "Tag"
-            ]
-          }
-        }
-      },
-      {
-        "name": "Tag",
-        "use": "A short status word.",
-        "props": {
-          "type": "object",
-          "properties": {
-            "status": {
-              "type": "string",
-              "enum": [
-                "paid",
-                "overdue"
-              ]
+  expect(baseline.serialized).toMatchInlineSnapshot(`
+      "[
+        {
+          "name": "Panel",
+          "use": "Groups related content on a surface.",
+          "props": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "padded": {
+                "default": true,
+                "type": "boolean"
+              }
             },
-            "label": {
-              "type": "string",
-              "description": "The status word."
-            }
+            "required": [
+              "padded"
+            ],
+            "additionalProperties": false
           },
-          "required": [
-            "status",
-            "label"
-          ]
+          "slots": {
+            "body": {},
+            "actions": {
+              "allow": [
+                "Tag"
+              ]
+            }
+          }
         },
-        "slots": {}
-      }
-    ]"
-  `);
+        {
+          "name": "Tag",
+          "use": "A short status word.",
+          "props": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "paid",
+                  "overdue"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "description": "The status word."
+              }
+            },
+            "required": [
+              "status",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "slots": {}
+        }
+      ]"
+    `);
 });
 
 it("serializes the same entries the same way in any order", () => {
   expect(defineRegistry([stubPanel, stubTag]).serialized).toBe(
-    defineRegistry([stubTag, stubPanel]).serialized
+    baseline.serialized
   );
 });
 
 it("keeps its hash while the entries stay the same", () => {
   const again = defineEntry({ ...stubTag, props: stubTag.props.clone() });
 
-  expect(defineRegistry([again, stubPanel]).hash).toBe(
-    defineRegistry([stubPanel, stubTag]).hash
-  );
+  expect(defineRegistry([stubPanel, again]).hash).toBe(baseline.hash);
 });
 
 const wider = tv({
@@ -125,13 +136,11 @@ it.each([
   ],
   ["a name", [{ ...stubTag, name: "StatusTag" }, stubPanel]],
 ])("changes its hash when %s changes", (_, changed) => {
-  expect(defineRegistry(changed).hash).not.toBe(
-    defineRegistry([stubTag, stubPanel]).hash
-  );
+  expect(defineRegistry(changed).hash).not.toBe(baseline.hash);
 });
 
 it("generates the wire schema's component enum from the registered names", () => {
-  const { component } = defineRegistry([stubTag, stubPanel]);
+  const { component } = baseline;
 
   expect(component.options).toEqual(["Panel", "Tag"]);
   expect(component.safeParse("Tag").success).toBe(true);
@@ -140,6 +149,6 @@ it("generates the wire schema's component enum from the registered names", () =>
 
 it("refuses two entries with the same name", () => {
   expect(() =>
-    defineRegistry([stubTag, { ...stubPanel, name: "Tag" }])
+    defineRegistry([stubTag, stubPanel, { ...stubPanel, name: "Tag" }])
   ).toThrow(/"Tag" is registered twice/);
 });

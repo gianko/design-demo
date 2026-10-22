@@ -10,30 +10,32 @@ export function defineRegistry<const E extends readonly RegistryEntry[]>(
   // Code-point order, so the hash doesn't depend on the machine's locale.
   const sorted = [...entries].sort((a, b) => (a.name < b.name ? -1 : 1));
   const names = sorted.map((entry) => entry.name);
-  const twice = names.find((name, i) => names[i + 1] === name);
-  if (twice !== undefined) {
-    throw new Error(`"${twice}" is registered twice`);
+  const duplicate = names.find((name, i) => names[i + 1] === name);
+  if (duplicate !== undefined) {
+    throw new Error(`"${duplicate}" is registered twice`);
   }
   const serialized = JSON.stringify(
     sorted.map((entry) => ({
       name: entry.name,
       use: entry.use,
-      props: propsSchema(entry),
+      props: propsSchema(entry.props),
       slots: entry.slots ?? {},
     })),
     null,
     2
   );
-  // The registry version in every eval results file's version tuple.
+  // The registry version in every eval results file's version tuple. Zod
+  // refinements don't serialize, so changing one leaves the hash as it was.
   const hash = createHash("sha256").update(serialized).digest("hex");
   // The wire schema's `component` field: only registered names parse.
   const component = z.enum(names as [E[number]["name"]]);
-  return { entries: sorted, serialized, hash, component };
+  return { serialized, hash, component };
 }
 
-// Props as the spec step writes them, so a defaulted prop reads as optional.
-function propsSchema(entry: RegistryEntry) {
-  const schema = z.toJSONSchema(entry.props, { io: "input" });
+// The output schema, the one PropsOf infers, so a defaulted prop is required
+// in the prompt as it is in the component's props type.
+function propsSchema(props: z.ZodObject) {
+  const schema = z.toJSONSchema(props);
   // The same dialect line in every entry is only noise in the prompt.
   delete schema.$schema;
   return schema;
