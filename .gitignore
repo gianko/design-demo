@@ -5,3 +5,5 @@ storybook-static/
 # rtk's vitest wrapper writes its JSON report here.
 .vitest/
 .env
+# Written by the Playwright pass of `pnpm gate`.
+gates/out/

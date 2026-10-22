@@ -16,5 +16,11 @@
     "allowImportingTsExtensions": true
   },
   "include": ["**/*", ".storybook/**/*"],
-  "exclude": ["node_modules", "storybook-static", ".agents", ".claude"]
+  "exclude": [
+    "node_modules",
+    "storybook-static",
+    "gates/out",
+    ".agents",
+    ".claude"
+  ]
 }
