@@ -10,10 +10,13 @@ import { join, resolve, sep } from "node:path";
 import { renderRules } from "./render-rules.ts";
 import {
   animatesWhileIdle,
+  annotation,
+  renderTitle,
   renders,
   selectStories,
   shotName,
   type Render,
+  type Shot,
 } from "./stories.ts";
 
 const storybookStatic = resolve(import.meta.dirname, "../storybook-static");
@@ -43,9 +46,23 @@ for (const story of stories) {
   test.describe(story.id, () => {
     for (const render of renders([story])) {
       test(
-        `${render.theme} · ${render.density}`,
-        { annotation: { type: "shot", description: shotName(render) } },
+        renderTitle(render),
+        {
+          annotation: { type: annotation.shot, description: shotName(render) },
+        },
         async ({ page }, testInfo) => {
+          // script-error (lint/taste/RULES.md): a render throws nothing and
+          // logs no console error, from load to the last shot.
+          const scriptErrors: string[] = [];
+          page.on("pageerror", (error) =>
+            scriptErrors.push(`pageerror: ${error.message}`)
+          );
+          page.on("console", (message) => {
+            if (message.type() === "error") {
+              scriptErrors.push(`console error: ${message.text()}`);
+            }
+          });
+
           await open(page, render);
 
           // Gate 4. A story is a fragment, not a page, so axe's rule that
@@ -84,14 +101,18 @@ for (const story of stories) {
             .soft(page.locator(root), "gate 6: baseline")
             .toHaveScreenshot(`${name}.png`);
           if (isNew && existsSync(baseline)) {
-            testInfo.annotations.push({ type: "new baseline" });
+            testInfo.annotations.push({ type: annotation.newBaseline });
           }
 
           await shoot(page, "rest");
-          await shootStates(page);
+          // Before the state shots, whose hover-out and release transitions
+          // would otherwise still be running.
           if (render.tags.includes(animatesWhileIdle)) {
             await shootMidAnimation(page);
           }
+          await shootStates(page);
+
+          expect.soft(scriptErrors, "script-error").toEqual([]);
         }
       );
     }
@@ -132,7 +153,7 @@ async function open(page: Page, { id, theme, density }: Render) {
 
 async function shoot(
   page: Page,
-  name: string,
+  name: Shot,
   animations: "allow" | "disabled" = "disabled"
 ) {
   await test
@@ -163,16 +184,22 @@ async function shootStates(page: Page) {
 }
 
 // The rest shot disables animations, so an idle animation (a pending sweep)
-// is invisible in it (ADR 0006, Consequences). This shot pauses every
-// animation halfway through its first iteration, so it is the same each run.
+// is invisible in it (ADR 0006, Consequences). This shot pauses each CSS
+// animation a quarter into its first iteration, so it is the same each run.
+// Not halfway: a loop can wrap there, and the sweep is out of view at 50%.
+// Transitions are left alone; they belong to the state shots.
 async function shootMidAnimation(page: Page) {
   await page.evaluate(() => {
     for (const animation of document.getAnimations()) {
-      const timing = animation.effect?.getComputedTiming();
+      if (!(animation instanceof CSSAnimation)) continue;
+      const timing = animation.effect!.getComputedTiming();
       animation.pause();
       animation.currentTime =
-        Number(timing?.delay ?? 0) + Number(timing?.duration ?? 0) / 2;
+        Number(timing.delay) + Number(timing.duration) / 4;
     }
   });
   await shoot(page, "mid-animation", "allow");
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) animation.play();
+  });
 }

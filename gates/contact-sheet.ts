@@ -10,8 +10,9 @@ import type {
   TestCase,
   TestResult,
 } from "@playwright/test/reporter";
+import { annotation, shots, type Shot } from "./stories.ts";
 
-type Shot = { name: string; file: string; path?: string; body?: Buffer };
+type ShotFile = { name: Shot; file: string; path?: string; body?: Buffer };
 
 type Row = {
   story: string;
@@ -19,11 +20,12 @@ type Row = {
   name: string;
   status: TestResult["status"];
   isNew: boolean;
-  shots: Shot[];
+  shots: ShotFile[];
 };
 
-// The shots the spec attaches; Playwright's own -actual/-diff images aren't.
-const shotNames = ["rest", "focus", "hover", "pressed", "mid-animation"];
+// The pass's own shots; Playwright's -actual and -diff images aren't one.
+const isShot = (name: string): name is Shot =>
+  (shots as readonly string[]).includes(name);
 
 export default class ContactSheet implements Reporter {
   #folder: string;
@@ -38,22 +40,21 @@ export default class ContactSheet implements Reporter {
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
-    const name = test.annotations.find((a) => a.type === "shot")?.description;
+    const name = test.annotations.find(
+      (a) => a.type === annotation.shot
+    )?.description;
     if (!name) return;
     this.#rows.push({
       story: test.parent.title,
       render: test.title,
       name,
       status: result.status,
-      isNew: result.annotations.some((a) => a.type === "new baseline"),
-      shots: result.attachments
-        .filter((a) => shotNames.includes(a.name))
-        .map((a) => ({
-          name: a.name,
-          file: `${name}--${a.name}.png`,
-          path: a.path,
-          body: a.body,
-        })),
+      isNew: result.annotations.some((a) => a.type === annotation.newBaseline),
+      shots: result.attachments.flatMap(({ name: shot, path, body }) =>
+        isShot(shot)
+          ? [{ name: shot, file: `${name}--${shot}.png`, path, body }]
+          : []
+      ),
     });
   }
 

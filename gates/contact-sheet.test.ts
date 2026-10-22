@@ -7,7 +7,9 @@ import type {
   TestResult,
 } from "@playwright/test/reporter";
 import { afterEach, beforeEach, expect, it } from "vitest";
+import type { Theme } from "../.storybook/globals.ts";
 import ContactSheet from "./contact-sheet.ts";
+import { annotation, renderTitle, renders, shotName } from "./stories.ts";
 
 let folder: string;
 
@@ -25,18 +27,21 @@ const png = (name: string) => ({
   body: Buffer.from(name),
 });
 
-// One render as Playwright reports it to the reporter.
+// One admin-density render as Playwright reports it to the reporter.
 function render(
   story: string,
-  theme: string,
+  theme: Theme,
   status: TestResult["status"],
   attachments: ReturnType<typeof png>[],
   annotations: { type: string }[] = []
 ) {
+  const shot = renders([{ id: story, tags: [] }]).find(
+    (r) => r.theme === theme && r.density === "admin"
+  )!;
   const test = {
-    title: `${theme} · admin`,
+    title: renderTitle(shot),
     parent: { title: story },
-    annotations: [{ type: "shot", description: `${story}--${theme}-admin` }],
+    annotations: [{ type: annotation.shot, description: shotName(shot) }],
   } as unknown as TestCase;
   const result = { status, attachments, annotations } as unknown as TestResult;
   return [test, result] as const;
@@ -63,7 +68,7 @@ it("marks a render whose baseline is new, for the human to approve", async () =>
       "light",
       "passed",
       [png("rest")],
-      [{ type: "new baseline" }]
+      [{ type: annotation.newBaseline }]
     ),
     render("button--primary", "dark", "passed", [png("rest")])
   );

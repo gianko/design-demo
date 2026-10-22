@@ -8,7 +8,7 @@ import {
   type Theme,
 } from "../.storybook/globals.ts";
 
-export type Story = { id: string; title: string; tags: string[] };
+export type Story = { id: string; tags: string[] };
 
 export type Render = Story & { theme: Theme; density: Density };
 
@@ -29,7 +29,7 @@ export function selectStories(
   const stories = Object.values(index.entries)
     .filter((entry) => entry.type === "story")
     .filter((entry) => !target || entry.title.split("/").at(-1) === target)
-    .map(({ id, title, tags = [] }) => ({ id, title, tags }));
+    .map(({ id, tags = [] }) => ({ id, tags }));
   if (stories.length === 0) {
     throw new Error(
       target
@@ -48,7 +48,31 @@ export function renders(stories: Story[]): Render[] {
   );
 }
 
+// The test title of a render, under its story's id, so every failure names
+// the story, theme and density.
+export function renderTitle({ theme, density }: Render): string {
+  return `${theme} · ${density}`;
+}
+
 // The baseline's name, as ADR 0009 fixes it: <story-id>--<theme>-<density>.
 export function shotName({ id, theme, density }: Render): string {
   return `${id}--${theme}-${density}`;
 }
+
+// The shots the pass attaches to each render, which the contact sheet shows.
+export const shots = [
+  "rest",
+  "focus",
+  "hover",
+  "pressed",
+  "mid-animation",
+] as const;
+
+export type Shot = (typeof shots)[number];
+
+// What the pass tells the contact sheet about a render: its shot name, and
+// that its baseline was written this run.
+export const annotation = {
+  shot: "shot",
+  newBaseline: "new baseline",
+} as const;
