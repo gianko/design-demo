@@ -3,9 +3,16 @@
 // directory, so the committed ones are never touched.
 
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { renderTitle, renders, shotName, type Render } from "./stories.ts";
 
 const repo = resolve(import.meta.dirname, "..");
@@ -90,6 +97,32 @@ function seed(args: string[]) {
     );
   }
 }
+
+describe("token lint", () => {
+  // Planted in src/ for this test only, and removed after it.
+  const story = join(repo, "src/gate-raw-value.stories.tsx");
+
+  afterAll(() => rmSync(story, { force: true }));
+
+  it("fails a story that uses a raw value, naming the rule", () => {
+    writeFileSync(
+      story,
+      `export default { title: "GateFixtures/RawValue" };
+export const RawValue = { render: () => <p className="bg-[#fff]">Raw</p> };
+`
+    );
+
+    const { status, stdout, stderr } = spawnSync("pnpm", ["gate"], {
+      cwd: repo,
+      encoding: "utf8",
+    });
+
+    expect(status).not.toBe(0);
+    expect(stdout + stderr).toMatch(
+      /gate-raw-value\.stories\.tsx[\s\S]*'\[#fff\]'[\s\S]*better-tailwindcss\/no-restricted-classes/
+    );
+  });
+});
 
 describe("in CI", () => {
   // A story nobody approved.

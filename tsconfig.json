@@ -21,6 +21,8 @@
     "storybook-static",
     "gates/out",
     ".agents",
-    ".claude"
+    ".claude",
+    // Planted violations import modules that don't exist on purpose.
+    "lint/token/fixtures"
   ]
 }

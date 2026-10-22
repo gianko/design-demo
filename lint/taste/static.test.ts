@@ -16,11 +16,13 @@ const fixtures = resolve(import.meta.dirname, "fixtures");
 // test lints them on purpose.
 const eslint = new ESLint({ cwd: repo, ignore: false });
 
+// The taste findings, and anything that isn't a rule's (a parse error). The
+// fixtures plant raw values too, which are token lint's to report (gate 2).
 async function findings(file: string) {
   const [result] = await eslint.lintFiles([resolve(fixtures, file)]);
-  return result!.messages.map(
-    (message) => `${message.line} ${message.ruleId ?? message.message}`
-  );
+  return result!.messages
+    .filter((message) => !message.ruleId?.startsWith("token/"))
+    .map((message) => `${message.line} ${message.ruleId ?? message.message}`);
 }
 
 function expected(file: string) {
