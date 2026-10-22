@@ -19,6 +19,6 @@ it.each(combinations)("renders a story under %s × %s", (theme, density) => {
   render(<Placeholder />);
 
   const story = screen.getByText("Placeholder");
-  expect(story.closest("[data-theme]")?.getAttribute("data-theme")).toBe(theme);
+  expect(story.closest("[data-theme]")?.getAttribute("data-theme")).toBe("not-a-theme");
   expect(story.closest("[data-density]")?.getAttribute("data-density")).toBe(density);
 });
