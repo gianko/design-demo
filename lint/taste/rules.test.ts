@@ -6,6 +6,7 @@ import { ESLint } from "eslint";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { renderRules } from "../../gates/render-rules.ts";
 
 const repo = resolve(import.meta.dirname, "../..");
 const rulesMd = readFileSync(resolve(import.meta.dirname, "RULES.md"), "utf8");
@@ -37,6 +38,30 @@ describe.each(staticRules)("taste/%s's ESLint message", (rule) => {
   });
 });
 
+const renderRuleIds = [
+  "no-pill",
+  "type-on-scale",
+  "tabular-numerals",
+  "text-overflow",
+];
+
+it("gives gate 7 the render rules, each once", () => {
+  expect(renderRules.map((rule) => rule.name).sort()).toEqual(
+    [...renderRuleIds].sort()
+  );
+});
+
+describe.each(renderRuleIds)("gate 7's %s", (rule) => {
+  it("carries its RULES.md line", () => {
+    const [, , , , failsWhen, briefLine] = row(`\`${rule}\``);
+    const { help } = renderRules.find((r) => r.name === rule)!;
+    expect(help).toContain(failsWhen);
+    expect(help).toContain(briefLine);
+  });
+});
+
+const p0Rules = [...new Set([...staticRules, ...renderRuleIds])];
+
 // Impeccable's rules, by id, with the registry link RULES.md gives each.
 const impeccable = new Map(
   [
@@ -50,7 +75,7 @@ it("reads all 61 of impeccable's rules from RULES.md", () => {
   expect(impeccable.size).toBe(61);
 });
 
-describe.each(staticRules)("lint/taste/rules/%s.ts", (rule) => {
+describe.each(p0Rules)("lint/taste/rules/%s.ts", (rule) => {
   const [, , origin] = row(`\`${rule}\``);
   const named = [...origin!.matchAll(/`([a-z0-9-]+)`/g)]
     .map(([, id]) => id!)

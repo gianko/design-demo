@@ -5,7 +5,10 @@
 // token radius on a short element is as much a pill as `rounded-full`).
 
 import type { Rule } from "eslint";
+import type { RenderRule } from "../../../gates/render-rules.ts";
 import { classTokens } from "../classes.ts";
+import { config } from "../config.ts";
+import { inPage } from "../render.ts";
 import { help } from "../rules-md.ts";
 import { sourceVisitors } from "../source.ts";
 
@@ -63,3 +66,55 @@ export const lint: Rule.RuleModule = {
     });
   },
 };
+
+export const render: RenderRule = {
+  name: id,
+  help: help(id),
+  check: (page, root) =>
+    inPage(page, root, findPills, config["no-pill"].exempt),
+};
+
+// In the page: every visible box whose corner radius reaches half its height
+// (or half its width, for a box taller than wide), outside the exempt
+// components.
+function findPills(root: Element, exempt: readonly string[]): string[] {
+  const failures: string[] = [];
+  const corners = [
+    "borderTopLeftRadius",
+    "borderTopRightRadius",
+    "borderBottomRightRadius",
+    "borderBottomLeftRadius",
+  ] as const;
+  for (const element of root.querySelectorAll("*")) {
+    if (exempt.some((name) => element.closest(`[data-component="${name}"]`))) {
+      continue;
+    }
+    const { width, height } = element.getBoundingClientRect();
+    if (width === 0 || height === 0 || !element.checkVisibility()) continue;
+    const style = getComputedStyle(element);
+    // A computed corner is "12px", "50%" or "12px 6px" (horizontal,
+    // vertical); each radius is measured against the half side it runs along.
+    const px = (value: string, side: number) =>
+      value.endsWith("%")
+        ? (parseFloat(value) / 100) * side
+        : parseFloat(value);
+    const share = Math.max(
+      ...corners.map((corner) => {
+        const [x = "0", y = x] = style[corner].split(" ");
+        return Math.max(
+          px(x, width) / (width / 2),
+          px(y, height) / (height / 2)
+        );
+      })
+    );
+    if (share < 1) continue;
+    const text = element.textContent!.replace(/\s+/g, " ").trim();
+    const radius = Math.max(
+      ...corners.map((corner) => px(style[corner].split(" ")[0]!, width))
+    );
+    failures.push(
+      `${text ? taste.quote(text) : `<${element.tagName.toLowerCase()}>`} has a ${Math.round(radius)}px corner radius on a ${Math.round(Math.min(width, height))}px-high box.`
+    );
+  }
+  return failures;
+}
