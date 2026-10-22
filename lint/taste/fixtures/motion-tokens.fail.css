@@ -1,0 +1,52 @@
+/* Motion off the tokens in CSS: raw durations and curves in shorthands and
+   longhands, one of several transitions missing its easing, `all`, settle
+   under a closed state, an @apply missing its easing, and a keyframe whose
+   transform swings back twice while its opacity rises steadily. */
+.row {
+  transition: background-color 120ms ease-out; /* ✗ taste/motion-tokens */
+}
+
+.sheet {
+  transition-duration: var(--ds-motion-duration-base);
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1); /* ✗ taste/motion-tokens */
+}
+
+.bar {
+  transition: /* ✗ taste/motion-tokens */
+    opacity var(--ds-motion-duration-fast) var(--ds-motion-ease-standard),
+    transform var(--ds-motion-duration-base);
+}
+
+.panel {
+  transition: all var(--ds-motion-duration-fast) var(--ds-motion-ease-standard); /* ✗ taste/motion-tokens */
+}
+
+.panel[data-state="closed"] {
+  animation-timing-function: var(--ds-motion-ease-settle); /* ✗ taste/motion-tokens */
+}
+
+.toast {
+  @apply transition-opacity duration-fast; /* ✗ taste/motion-tokens */
+}
+
+.spinner {
+  animation: spin 1s linear infinite; /* ✗ taste/motion-tokens */
+}
+
+@keyframes arrive { /* ✗ taste/motion-tokens */
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  60% {
+    opacity: 0.8;
+    transform: translateY(-2px);
+  }
+  80% {
+    transform: translateY(1px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

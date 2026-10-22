@@ -1,0 +1,17 @@
+/* Fully rounded corners in CSS: through @apply under a variant, and as a
+   declared radius on one corner, as a percentage and as a huge length. */
+.tag {
+  @apply rounded-tag focus-visible:rounded-full; /* ✗ taste/no-pill */
+}
+
+.dot {
+  border-start-start-radius: calc(infinity * 1px); /* ✗ taste/no-pill */
+}
+
+.chip {
+  border-radius: var(--ds-radius-tag) 50%; /* ✗ taste/no-pill */
+}
+
+.badge {
+  border-radius: 9999px; /* ✗ taste/no-pill */
+}
