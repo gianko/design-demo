@@ -12,16 +12,12 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
-import type { Build, Builder } from "./driver.ts";
+import { type Build, type Builder, gapsPath, type Log } from "./driver.ts";
 import { sessionArgs, summarise, transcriptPath } from "./session.ts";
 
 export type Session = Build & { status: number };
 
-export function launch(
-  component: string,
-  repo: string,
-  log: (line: string) => void
-): Session {
+export function launch(component: string, repo: string, log: Log): Session {
   if (spawnSync("docker", ["info"], { stdio: "ignore" }).status !== 0) {
     throw new Error(
       "Docker isn't running. `pnpm gate` renders in it (ADR 0009), so no gate run in the session could pass."
@@ -53,7 +49,7 @@ export function launch(
   closeSync(out);
   if (session.error) throw new Error(`claude: ${session.error.message}`);
 
-  const gaps = resolve(worktree, "src/components", component, "GAPS.md");
+  const gaps = resolve(worktree, gapsPath(component));
   const status = session.status ?? 1;
   return {
     branch,
@@ -67,10 +63,7 @@ export function launch(
 
 // The build loop's Builder: a launched session, then its work committed and
 // its branch pushed for the PR.
-export function sessionBuilder(
-  repo: string,
-  log: (line: string) => void
-): Builder {
+export function sessionBuilder(repo: string, log: Log): Builder {
   return {
     build: (component) => launch(component, repo, log),
     push({ worktree, branch }, message) {

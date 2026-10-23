@@ -121,7 +121,7 @@ function toIssue(issue: RestIssue): Issue {
   return {
     number: issue.number,
     title: issue.title,
-    blockedBy: summary.blocked_by,
+    openBlockers: summary.blocked_by,
     assignees: issue.assignees.map((assignee) => assignee.login),
   };
 }

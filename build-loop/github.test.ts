@@ -47,13 +47,13 @@ describe("githubTracker", () => {
       {
         number: 54,
         title: "Build component: Text",
-        blockedBy: 0,
+        openBlockers: 0,
         assignees: [],
       },
       {
         number: 61,
         title: "Build component: Stack",
-        blockedBy: 1,
+        openBlockers: 1,
         assignees: ["gianko"],
       },
     ]);
@@ -140,6 +140,41 @@ describe("githubTracker", () => {
         "Closes #54",
       ],
     ]);
+  });
+
+  // Reading a missing summary as zero would take a blocked issue.
+  test("refuses an issue GitHub reports without a dependencies summary", () => {
+    const pages = [
+      [
+        {
+          number: 54,
+          title: "Build component: Text",
+          assignees: [],
+          issue_dependencies_summary: { blocked_by: 0, total_blocked_by: 0 },
+        },
+        { number: 61, title: "Build component: Stack", assignees: [] },
+      ],
+    ];
+    const { gh } = fakeGh([["api", JSON.stringify(pages)]]);
+
+    expect(() =>
+      githubTracker(gh, "gianko/design-demo").buildLoopIssues()
+    ).toThrow(
+      "GitHub reported no dependencies for #61, so whether it's blocked is unknown."
+    );
+  });
+
+  test("refuses gh output that ends in no issue or PR URL", () => {
+    // `gh pr create` can print a warning instead of the URL.
+    const { gh } = fakeGh([["pr create", "Warning: 1 uncommitted change\n"]]);
+
+    expect(() =>
+      githubTracker(gh, "gianko/design-demo").openPullRequest({
+        branch: "build-component-text",
+        title: "Build component: Text",
+        body: "Closes #54",
+      })
+    ).toThrow("gh printed no issue or PR URL: Warning: 1 uncommitted change");
   });
 
   // GitHub's dependencies API takes the blocker's database id, not its number.

@@ -4,7 +4,7 @@ import { type Build, drive, type Issue, type Ports } from "./driver.ts";
 describe("drive --dry-run", () => {
   test("prints the first open, unblocked build-loop issue and writes nothing", () => {
     const world = fakeWorld([
-      issue(61, "Build component: Stack", { blockedBy: 1 }),
+      issue(61, "Build component: Stack", { openBlockers: 1 }),
       issue(54, "Build component: Text"),
       issue(62, "Build component: Heading"),
     ]);
@@ -21,7 +21,7 @@ describe("drive --dry-run", () => {
 describe("drive", () => {
   test("stops without building when every build-loop issue is blocked or taken", () => {
     const world = fakeWorld([
-      issue(61, "Build component: Stack", { blockedBy: 1 }),
+      issue(61, "Build component: Stack", { openBlockers: 1 }),
       issue(54, "Build component: Text", { assignees: ["gianko"] }),
     ]);
 
@@ -34,7 +34,7 @@ describe("drive", () => {
   test("claims the issue, builds its component, and opens a PR that closes it", () => {
     const world = fakeWorld([
       issue(54, "Build component: Text"),
-      issue(61, "Build component: Stack", { blockedBy: 1 }),
+      issue(61, "Build component: Stack", { openBlockers: 1 }),
     ]);
 
     drive(world.ports, { dryRun: false });
@@ -51,7 +51,7 @@ describe("drive", () => {
     expect(pr!.body).toContain(
       "[contact sheet](https://github.com/gianko/design-demo/actions/workflows/ci.yml?query=branch%3Abuild-component-text)"
     );
-    // Text is now taken and Stack is still blocked, so the next pass stops.
+    // Text is now taken and Stack is still blocked, so the next iteration stops.
     expect(world.log.at(-1)).toBe("No build-loop issue is unblocked.");
   });
 
@@ -60,8 +60,8 @@ describe("drive", () => {
     const world = fakeWorld(
       [
         issue(54, "Build component: Text"),
-        issue(62, "Build component: Heading", { blockedBy: 1 }),
-        issue(61, "Build component: Stack", { blockedBy: 1 }),
+        issue(62, "Build component: Heading", { openBlockers: 1 }),
+        issue(61, "Build component: Stack", { openBlockers: 1 }),
       ],
       { Text: { gaps: textGaps } }
     );
@@ -90,7 +90,7 @@ describe("drive", () => {
   });
 });
 
-describe("drive, over several passes", () => {
+describe("drive, over several iterations", () => {
   test("builds each unblocked issue in turn, and blocks only an issue not yet taken", () => {
     // Text's PR hasn't merged, so #54 is still open when Stack's gaps are
     // filed.
@@ -98,7 +98,7 @@ describe("drive, over several passes", () => {
       [
         issue(54, "Build component: Text"),
         issue(61, "Build component: Stack"),
-        issue(62, "Build component: Heading", { blockedBy: 1 }),
+        issue(62, "Build component: Heading", { openBlockers: 1 }),
       ],
       { Stack: { gaps: textGaps } }
     );
@@ -130,11 +130,34 @@ describe("drive, when a session fails", () => {
     expect(world.writes).toEqual(["claim #54", "build Text"]);
   });
 
+  test("stops before pushing, filing or opening when GAPS.md has content but no `## ` entries", () => {
+    // Gaps written one heading level too deep: a narrow parse finds none and
+    // reports the session as gap-free.
+    const world = fakeWorld([issue(54, "Build component: Text")], {
+      Text: { gaps: textGaps.replaceAll(/^## /gm, "### ") },
+    });
+
+    expect(() => drive(world.ports, { dryRun: false })).toThrow(
+      "src/components/Text/GAPS.md for #54 has content but no `## ` gap entries; its work is left in /repo/.claude/worktrees/build-component-text."
+    );
+    expect(world.writes).toEqual(["claim #54", "build Text"]);
+  });
+
   test("refuses an issue whose title names no component", () => {
     const world = fakeWorld([issue(54, "Build Text")]);
 
     expect(() => drive(world.ports, { dryRun: true })).toThrow(
       '#54 "Build Text" doesn\'t name a component as "Build component: <Name>".'
+    );
+  });
+
+  // `/build-component text` would make a `text` folder no gate or lint
+  // treats as a component.
+  test("refuses a component name that isn't PascalCase", () => {
+    const world = fakeWorld([issue(54, "Build component: text")]);
+
+    expect(() => drive(world.ports, { dryRun: true })).toThrow(
+      '#54 "Build component: text" doesn\'t name a component as "Build component: <Name>".'
     );
   });
 });
@@ -162,11 +185,11 @@ function issue(
   number: number,
   title: string,
   {
-    blockedBy = 0,
+    openBlockers = 0,
     assignees = [],
-  }: { blockedBy?: number; assignees?: string[] } = {}
+  }: { openBlockers?: number; assignees?: string[] } = {}
 ): Issue {
-  return { number, title, blockedBy, assignees };
+  return { number, title, openBlockers, assignees };
 }
 
 // An in-memory GitHub and session that keep the state the real ones would: a
@@ -201,7 +224,7 @@ function fakeWorld(
       },
       block(number, by) {
         writes.push(`block #${number} by #${by}`);
-        find(number).blockedBy += 1;
+        find(number).openBlockers += 1;
       },
       openPullRequest(pr) {
         writes.push(`pr ${pr.branch}: ${pr.title}`);

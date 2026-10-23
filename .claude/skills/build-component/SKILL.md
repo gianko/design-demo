@@ -8,7 +8,7 @@ You are building **one** library component, `$ARGUMENTS`, for a design system wh
 
 **Precedence**, wherever sources disagree: `docs/design-brief.md` > `docs/adr/*` > `frontend-design`.
 
-**Working copy.** You start in a working copy of your own, on this component's own branch (`pnpm build-loop` or `pnpm build-component` makes one from `origin/main`): it already meets `AGENTS.md` § Working copy, so build in it as it stands. Leave the work uncommitted; whoever started the session commits it, files your gaps and opens the PR.
+**Working copy.** You start in a working copy of your own, on this component's own branch: it already meets `AGENTS.md` § Working copy, so build in it as it stands. Leave the work uncommitted; whoever started the session commits it and opens the PR.
 
 ## 1. Load `frontend-design`
 
@@ -64,6 +64,6 @@ If you change anything, go back to step 5. The critique is done when a full pass
 
 ## 7. Report
 
-Write `src/components/$ARGUMENTS/GAPS.md`: every place the brief, ADRs or tokens didn't decide something you needed (a missing token, an unstated state, a conflict between sources), the call you made, and the alternative a human might prefer. Each gap becomes a `needs-triage` issue that blocks the next component, so write each as one self-contained entry. A gap is resolved by the human, in tokens or the brief, after this session.
+Write `src/components/$ARGUMENTS/GAPS.md`: every place the brief, ADRs or tokens didn't decide something you needed (a missing token, an unstated state, a conflict between sources), the call you made, and the alternative a human might prefer. Each gap becomes a `needs-triage` issue that blocks the next component, so write each as one self-contained entry under its own `## <Title>` heading, which becomes the issue's title. When nothing was left open, write no GAPS.md. A gap is resolved by the human, in tokens or the brief, after this session.
 
 End with a short summary: gate results, number of gate runs, what the critique changed, and the gaps.

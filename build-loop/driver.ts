@@ -7,7 +7,7 @@ export type Issue = {
   number: number;
   title: string;
   // Open issues blocking this one.
-  blockedBy: number;
+  openBlockers: number;
   assignees: string[];
 };
 
@@ -18,7 +18,7 @@ export interface Tracker {
   readonly repo: string;
   // Every open issue labelled `build-loop`.
   buildLoopIssues(): Issue[];
-  // Assigns the issue, so the next pass of the loop skips it.
+  // Assigns the issue, so the next iteration of the loop skips it.
   claim(issue: number): void;
   // Files an issue labelled `needs-triage`; returns its number.
   fileTriageIssue(issue: { title: string; body: string }): number;
@@ -45,11 +45,10 @@ export interface Builder {
   push(build: Build, message: string): void;
 }
 
-export type Ports = {
-  tracker: Tracker;
-  builder: Builder;
-  log: (line: string) => void;
-};
+// Prints one line of the loop's progress.
+export type Log = (line: string) => void;
+
+export type Ports = { tracker: Tracker; builder: Builder; log: Log };
 
 export function drive(
   { tracker, builder, log }: Ports,
@@ -57,7 +56,9 @@ export function drive(
 ) {
   for (;;) {
     const issues = tracker.buildLoopIssues();
-    const issue = nextIssue(issues);
+    const issue = firstUntaken(
+      issues.filter((each) => each.openBlockers === 0)
+    );
     if (!issue) {
       log("No build-loop issue is unblocked.");
       return;
@@ -81,22 +82,26 @@ export function drive(
         `The /build-component ${component} session for #${issue.number} failed; its work is left in ${build.worktree}.`
       );
     }
+    const gaps = parseGaps(build.gaps ?? "");
+    if (gaps.length === 0 && build.gaps?.trim()) {
+      throw new Error(
+        `${gapsPath(component)} for #${issue.number} has content but no \`## \` gap entries; its work is left in ${build.worktree}.`
+      );
+    }
     builder.push(
       build,
       `${component} built by a headless /build-component session\n\nFor #${issue.number}.`
     );
 
     // Each gap holds the next component until the human triages it. An issue
-    // taken on an earlier pass is still open until its PR merges.
-    const next = issues
-      .filter(
-        (each) => each.number !== issue.number && each.assignees.length === 0
-      )
-      .sort((a, b) => a.number - b.number)[0];
-    const filed = gaps(build.gaps ?? "").map((gap) => {
+    // taken on an earlier iteration is still open until its PR merges.
+    const next = firstUntaken(
+      issues.filter((each) => each.number !== issue.number)
+    );
+    const filed = gaps.map((gap) => {
       const number = tracker.fileTriageIssue({
         title: `${component} gap: ${gap.title}`,
-        body: `${gap.body}\n\nFrom \`src/components/${component}/GAPS.md\`, written by the \`/build-component ${component}\` session for #${issue.number}.`,
+        body: `${gap.body}\n\nFrom \`${gapsPath(component)}\`, written by the \`/build-component ${component}\` session for #${issue.number}.`,
       });
       if (next) tracker.block(next.number, number);
       return number;
@@ -116,9 +121,9 @@ export function drive(
 
 // Lowest number first, as the issues were filed in build order. An assigned
 // issue is already taken.
-function nextIssue(issues: Issue[]): Issue | undefined {
+function firstUntaken(issues: Issue[]): Issue | undefined {
   return issues
-    .filter((issue) => issue.blockedBy === 0 && issue.assignees.length === 0)
+    .filter((issue) => issue.assignees.length === 0)
     .sort((a, b) => a.number - b.number)[0];
 }
 
@@ -161,9 +166,14 @@ function pullRequestBody(
   ].join("\n");
 }
 
+// Where a session writes its gaps, relative to its worktree.
+export function gapsPath(component: string): string {
+  return `src/components/${component}/GAPS.md`;
+}
+
 // The entries of a GAPS.md: one per `## ` heading, its number dropped. A
 // deeper heading stays inside its entry.
-function gaps(markdown: string): { title: string; body: string }[] {
+function parseGaps(markdown: string): { title: string; body: string }[] {
   return markdown
     .split(/^## /m)
     .slice(1)
