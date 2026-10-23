@@ -1,14 +1,10 @@
 // `pnpm build-component <Component>`: one isolated, headless
-// `/build-component` session (ADR 0006). It runs in a fresh worktree of
-// origin/main on its own branch, since other sessions share the main
-// checkout, and leaves the work there uncommitted for the PR.
+// `/build-component` session (ADR 0006), launched by hand. `pnpm build-loop`
+// launches the same session for each `build-loop` issue.
 
-import { spawnSync } from "node:child_process";
-import { closeSync, mkdirSync, openSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { sessionArgs, summarise, transcriptPath } from "./session.ts";
+import { launch } from "./launch.ts";
 
 const repo = resolve(import.meta.dirname, "..");
 
@@ -24,50 +20,15 @@ if (
   );
 }
 
-if (spawnSync("docker", ["info"], { stdio: "ignore" }).status !== 0) {
-  fail(
-    "Docker isn't running. `pnpm gate` renders in it (ADR 0009), so no gate run in the session could pass."
+try {
+  const session = launch(component, repo, console.log);
+  console.log(`\n${session.summary}`);
+  console.log(
+    `\nContact sheet: ${resolve(session.worktree, "gates/out/contact-sheet/index.html")}`
   );
-}
-
-const branch = `build-component-${component.toLowerCase()}`;
-const worktree = resolve(repo, ".claude/worktrees", branch);
-run("git", ["fetch", "origin", "main"], repo);
-run("git", ["worktree", "add", "-b", branch, worktree, "origin/main"], repo);
-run("pnpm", ["install", "--frozen-lockfile"], worktree);
-
-const transcript = transcriptPath(component, {
-  worktree,
-  stateHome: process.env.XDG_STATE_HOME || resolve(homedir(), ".local/state"),
-  now: new Date(),
-});
-mkdirSync(dirname(transcript), { recursive: true });
-
-console.log(`Session: /build-component ${component}`);
-console.log(`Worktree: ${worktree} (branch ${branch})`);
-console.log(`Transcript: ${transcript}`);
-
-const out = openSync(transcript, "w");
-const session = spawnSync("claude", sessionArgs(component), {
-  cwd: worktree,
-  stdio: ["ignore", out, "inherit"],
-});
-closeSync(out);
-if (session.error) fail(`claude: ${session.error.message}`);
-
-console.log(`\n${summarise(readFileSync(transcript, "utf8"))}`);
-console.log(
-  `\nContact sheet: ${resolve(worktree, "gates/out/contact-sheet/index.html")}`
-);
-process.exit(session.status ?? 1);
-
-function run(command: string, args: string[], cwd: string) {
-  const { status, error } = spawnSync(command, args, {
-    cwd,
-    stdio: ["ignore", "inherit", "inherit"],
-  });
-  if (error) fail(`${command}: ${error.message}`);
-  if (status !== 0) process.exit(status ?? 1);
+  process.exit(session.status);
+} catch (error) {
+  fail((error as Error).message);
 }
 
 function fail(message: string): never {

@@ -11,6 +11,7 @@
     "tokens": "node tokens/build.ts",
     "gate": "node gates/run.ts",
     "build-component": "node build-loop/build-component.ts",
+    "build-loop": "node build-loop/build-loop.ts",
     "test": "vitest run",
     "test:gate": "vitest run --config gates/e2e.config.ts",
     "lint": "eslint .",
