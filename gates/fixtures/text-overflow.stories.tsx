@@ -5,7 +5,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 // wraps out of the bottom of a fixed-height control. Clip: a long name cut
 // off by `overflow: hidden` with no ellipsis. Collide: two labels painted
 // over each other. Pass: the same content truncated with an ellipsis, broken
-// anywhere, or given room.
+// anywhere, or given room, and a visually hidden status region, as Screen
+// renders one, whose copy runs past its 1px box because no one sees it.
 const meta = {
   title: "GateFixtures/TextOverflow",
   args: { variant: "pass" },
@@ -40,6 +41,9 @@ const meta = {
           <div className="flex gap-2xs">
             <span>Awaiting</span>
             <span>Paid</span>
+          </div>
+          <div role="status" className="sr-only">
+            <p>Reminder sent to Northwind. We'll tell you when they pay.</p>
           </div>
         </>
       )}
