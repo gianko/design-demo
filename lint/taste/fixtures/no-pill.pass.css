@@ -1,0 +1,19 @@
+/* Radius by role, from the tokens. */
+.tag {
+  @apply rounded-tag;
+}
+
+.surface {
+  border-radius: var(--ds-density-radius-surface);
+}
+
+.control {
+  border-top-left-radius: var(--ds-radius-control);
+}
+
+/* Static no-pill is `rounded-full` and the value it compiles to. Whether a
+   percentage rounds a box fully depends on the box, which is the render
+   rule's to judge. */
+.thumb {
+  border-radius: 50%;
+}

@@ -1,0 +1,19 @@
+/* Planted as library CSS. Every value is a token, a keyword or a proportion,
+   so token lint finds nothing. */
+.fixture {
+  --gutter: var(--ds-space-sm);
+  padding: var(--gutter);
+  margin: 0;
+  color: var(--ds-color-text-ink);
+  background-color: transparent;
+  border: var(--ds-size-height-edge) solid var(--ds-color-border-line);
+  outline-color: currentColor;
+  font: inherit;
+  width: 100%;
+  flex: 1;
+  grid-template-columns: repeat(2, 1fr);
+  transform: translateX(-100%);
+  transition: color var(--ds-motion-duration-fast)
+    var(--ds-motion-ease-standard);
+  @apply rounded-control bg-surface p-sm text-ink;
+}

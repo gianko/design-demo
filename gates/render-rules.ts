@@ -1,12 +1,9 @@
-// The gate 7 slot: the render-time taste rules of lint/taste/RULES.md. Each
-// rule inspects one rendered story and returns its failures, one line each,
-// worded so the story, theme and density in the test title complete them.
+// The gate 7 slot: the render halves of the taste rules in
+// lint/taste/rules/index.ts, run on every rendered story.
 
-import type { Page } from "@playwright/test";
+import type { RenderRule } from "../lint/taste/render.ts";
+import { tasteRules } from "../lint/taste/rules/index.ts";
 
-export type RenderRule = {
-  name: string;
-  check: (page: Page, root: string) => Promise<string[]>;
-};
-
-export const renderRules: RenderRule[] = [];
+export const renderRules: RenderRule[] = tasteRules.flatMap((rule) =>
+  "render" in rule ? [rule.render] : []
+);

@@ -86,7 +86,10 @@ for (const story of stories) {
           // Gate 7.
           for (const rule of renderRules) {
             expect
-              .soft(await rule.check(page, root), `gate 7: ${rule.name}`)
+              .soft(
+                await rule.check(page, root),
+                `gate 7: ${rule.name}. ${rule.help}`
+              )
               .toEqual([]);
           }
 
