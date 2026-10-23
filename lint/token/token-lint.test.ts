@@ -116,7 +116,7 @@ describe("token lint", () => {
         ],
         [
           "no-restricted-imports",
-          `import { Amount } from "../../amount/Amount.tsx";`,
+          `import { Amount } from "../../components/Amount/Amount.tsx";`,
         ],
         ["no-restricted-syntax", "<span>"],
         ["no-restricted-syntax", `createElement("hr")`],

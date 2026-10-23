@@ -4,8 +4,8 @@
 
 export const config = {
   // Library components that may be fully rounded, by name: in source, the
-  // files under `src/<name>/` (lower case, as in `src/amount/Amount.tsx`);
-  // rendered, the element a component marks `data-component="<Name>"` and
-  // everything inside it.
+  // files under `src/components/<Name>/`; rendered, the element marked
+  // `data-component="<Name>"` and everything inside it. Both are where every
+  // component lives and what it marks (docs/spec.md § Component pieces).
   "no-pill": { exempt: ["Avatar"] },
 } as const;

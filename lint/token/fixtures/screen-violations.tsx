@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { Dialog } from "radix-ui";
 import * as Popover from "@radix-ui/react-popover";
 import { Card, Screen, Text } from "../../index.ts";
-import { Amount } from "../../amount/Amount.tsx";
+import { Amount } from "../../components/Amount/Amount.tsx";
 
 export function Fixture() {
   return (

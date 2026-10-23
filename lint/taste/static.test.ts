@@ -65,8 +65,8 @@ describe("exemptions", () => {
     }
   );
 
-  // A library component lives in `src/<name>/` (as `src/amount/Amount.tsx`
-  // does in token lint's screen fixture), so the fixture is linted there.
+  // A library component lives in `src/components/<Name>/` (docs/spec.md
+  // § Component pieces), so the fixture is linted there.
   const plantedAt = async (path: string) => {
     const code = readFileSync(resolve(fixtures, "Avatar.tsx"), "utf8");
     const [result] = await eslint.lintText(code, {
@@ -78,10 +78,12 @@ describe("exemptions", () => {
   };
 
   it("lets a component the config exempts from no-pill be fully rounded", async () => {
-    expect(await plantedAt("src/avatar/Avatar.tsx")).toEqual([]);
+    expect(await plantedAt("src/components/Avatar/Avatar.tsx")).toEqual([]);
   });
 
   it("holds any other component to no-pill", async () => {
-    expect(await plantedAt("src/tag/Avatar.tsx")).toEqual(["taste/no-pill"]);
+    expect(await plantedAt("src/components/StatusTag/Avatar.tsx")).toEqual([
+      "taste/no-pill",
+    ]);
   });
 });

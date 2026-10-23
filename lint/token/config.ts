@@ -68,7 +68,7 @@ const radix = {
 };
 
 // A relative import that isn't the barrel: `../../index.ts` passes, and
-// `../../amount/Amount.tsx` or `./Local.tsx` fails.
+// `../../components/Amount/Amount.tsx` or `./Local.tsx` fails.
 const pastTheBarrel = {
   regex: String.raw`^\.{1,2}/(?!(?:\.\./)*(?:index(?:\.ts)?)?$)`,
   message:

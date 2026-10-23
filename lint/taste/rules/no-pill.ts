@@ -39,9 +39,10 @@ export const lint: Rule.RuleModule = {
   },
   create(context) {
     const { exempt = [] } = (context.options[0] ?? {}) as Partial<Options>;
-    // A library component's files live in `src/<name>/`, e.g. `src/amount/`.
+    // A library component's files live in `src/components/<Name>/` (docs/spec.md
+    // § Component pieces).
     const path = relative(context.cwd, context.filename).split(sep).join("/");
-    if (exempt.some((name) => path.startsWith(`src/${name.toLowerCase()}/`))) {
+    if (exempt.some((name) => path.startsWith(`src/components/${name}/`))) {
       return {};
     }
 
