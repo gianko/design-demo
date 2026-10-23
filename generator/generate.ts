@@ -3,9 +3,12 @@
 // checks it; the code step turns the UI spec into a TSX file and gates 2 and
 // 3 and the static taste rules check that, then, if it builds, gate 4 and the
 // render-time taste rules over every theme × screen state (render-gates.ts).
-// A render pass that can't run ends the rep as `error:render`. One attempt
-// per step for now: the repair loop joins later. Every attempt writes its
-// folder under workDir.
+// Each step repairs only itself: a failing attempt's hard-gate failures go
+// back to the same step as one repair turn (repair.ts), appended to its
+// conversation, until it passes or runs out of attempts. A refusal, a
+// max_tokens stop, an API error or a render pass that can't run ends the rep
+// as an error, with no repair turn. Every attempt writes its folder under
+// workDir.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
@@ -13,8 +16,8 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { generatorOutput } from "../lint/token/config.ts";
 import { codeGates, type GateResult } from "./code-gates.ts";
-import { type StepConfig, stepConfig } from "./config.ts";
-import { type Failure, failureLine } from "./failure.ts";
+import { cost, type StepConfig, stepConfig } from "./config.ts";
+import type { Failure } from "./failure.ts";
 import {
   fixtureVariant,
   operationNames,
@@ -25,6 +28,7 @@ import type { Model } from "./model.ts";
 import { codePrompt, specPrompt } from "./prompts.ts";
 import { type LibraryRegistry, loadRegistry } from "./registry.ts";
 import { type Render, renderGates } from "./render-gates.ts";
+import { repairTurn } from "./repair.ts";
 import { pascalCase } from "./screen-stories.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
 import { type UiSpec, wireSchema } from "./ui-spec.ts";
@@ -41,18 +45,24 @@ const fixtures: Gate1Fixtures = {
 
 export type Step = "spec" | "code";
 
+export type Usage = {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+};
+
 export type Attempt = {
   step: Step;
+  // Counted within the step, from 1.
   attempt: number;
   gates: Record<string, GateResult>;
-  // As a repair turn would send them (ADR 0010).
+  // As a repair turn sends them (ADR 0010): normalised, `+N more` counts
+  // included.
   failures: string[];
-  usage: {
-    input: number;
-    output: number;
-    cacheRead: number;
-    cacheWrite: number;
-  };
+  usage: Usage;
+  // USD, from `usage` at the step's model's prices.
+  cost: number;
   stopReason: Anthropic.Message["stop_reason"];
   requestId: string | null;
   wallMs: { model: number; gates: number };
@@ -62,7 +72,9 @@ export type Attempt = {
   renders?: Render[];
 };
 
-export type Outcome =
+// How a rep ends (glossary: Rep), and why (ADR 0010).
+export type Outcome = "pass" | "fail" | "error";
+export type EndReason =
   | "passed"
   | "spec-attempts-exhausted"
   | "code-attempts-exhausted"
@@ -80,9 +92,10 @@ export type RepTrace = {
   };
   attempts: Attempt[];
   outcome: Outcome;
-  // The last UI spec that passed gate 1, which pass criteria are checked on.
+  endReason: EndReason;
+  // The UI spec that passed gate 1, which pass criteria are checked on.
   uiSpec?: UiSpec;
-  // The final TSX's path, relative to workDir.
+  // The last code attempt's TSX, relative to workDir.
   screen?: string;
 };
 
@@ -132,149 +145,122 @@ export async function generate(
       code: stepConfig.code,
     },
     attempts: [],
-    outcome: "passed",
+    outcome: "pass",
+    endReason: "passed",
   };
-  const finish = (outcome: Outcome) => {
-    trace.outcome = outcome;
+  const finish = (endReason: EndReason) => {
+    trace.endReason = endReason;
+    trace.outcome =
+      endReason === "passed"
+        ? "pass"
+        : endReason.startsWith("error:")
+          ? "error"
+          : "fail";
     writeJson(join(dir, "rep.json"), trace);
     return trace;
   };
-  const record = (
-    attempt: Attempt,
-    attemptDir: string,
-    files: Record<string, string>
-  ) => {
-    trace.attempts.push(attempt);
-    for (const [name, content] of Object.entries(files)) {
-      writeFileSync(join(attemptDir, name), content);
-    }
-    writeFileSync(
-      join(attemptDir, "failures.txt"),
-      attempt.failures.join("\n") + "\n"
-    );
-    writeJson(join(attemptDir, "attempt.json"), attempt);
-    onAttempt?.(attempt);
-  };
+  const run = { model, dir, trace, onAttempt };
 
   // The spec step. The request carries the wire schema as converted by
   // zodOutputFormat(), and gate 1 validates the reply against the same Zod
   // schema: that is messages.parse() in two halves, so a reply that doesn't
   // parse fails gate 1 by name instead of throwing.
-  const specDir = join(dir, "attempt-1-spec");
-  mkdirSync(specDir, { recursive: true });
-  const specCall = await call(model, {
-    ...request(stepConfig.spec, spec.system, spec.user(brief)),
-    output_config: { effort: stepConfig.spec.effort, format: { type, schema } },
+  const specStep = await runStep(run, {
+    step: "spec",
+    config: stepConfig.spec,
+    system: spec.system,
+    user: spec.user(brief),
+    promptHash: spec.hash,
+    outputConfig: { effort: stepConfig.spec.effort, format: { type, schema } },
+    notRun: { "gate 1": "not-run" },
+    gate: async (reply) => {
+      const failures = gate1(reply, {
+        entries: registry.entries,
+        audience: brief.audience,
+        fixtures,
+      });
+      return {
+        gates: { "gate 1": failures.length ? "fail" : "pass" },
+        failures,
+        files: {
+          "ui-spec.json": pretty(reply),
+          "gates.json": JSON.stringify({ "gate 1": failures }, null, 2) + "\n",
+        },
+        output: failures.length
+          ? undefined
+          : wireSchema().parse(JSON.parse(reply)),
+      };
+    },
   });
-  if ("error" in specCall) {
-    record(
-      empty("spec", spec.hash, { "gate 1": "not-run" }, specCall.response),
-      specDir,
-      responseFile(specCall.response?.message)
-    );
-    return finish(`error:${specCall.error}`);
-  }
-  const specText = text(specCall.response.message);
-  const started = performance.now();
-  const specFailures = gate1(specText, {
-    entries: registry.entries,
-    audience: brief.audience,
-    fixtures,
-  });
-  const specAttempt = attempt("spec", spec.hash, specCall, {
-    gates: { "gate 1": specFailures.length ? "fail" : "pass" },
-    failures: specFailures,
-    gatesMs: performance.now() - started,
-  });
-  record(specAttempt, specDir, {
-    "ui-spec.json": pretty(specText),
-    "gates.json": JSON.stringify({ "gate 1": specFailures }, null, 2) + "\n",
-    ...responseFile(specCall.response.message),
-  });
-  if (specFailures.length) return finish("spec-attempts-exhausted");
-  const uiSpec = wireSchema().parse(JSON.parse(specText));
+  if ("error" in specStep) return finish(`error:${specStep.error}`);
+  if (!specStep.output) return finish("spec-attempts-exhausted");
+  const uiSpec = specStep.output;
   trace.uiSpec = uiSpec;
 
   // The code step: the UI spec and the screen brief in, a whole TSX file out.
   const name = componentName(brief.slug);
-  const codeDir = join(dir, "attempt-1-code");
-  mkdirSync(codeDir, { recursive: true });
-  const codeCall = await call(model, {
-    ...request(stepConfig.code, code.system, code.user(brief, name, uiSpec)),
-    output_config: { effort: stepConfig.code.effort },
-  });
-  const notRun = {
-    "gate 2": "not-run",
-    "gate 3": "not-run",
-    "gate 7 static": "not-run",
-    "gate 4": "not-run",
-    "gate 7 render": "not-run",
-  } as const;
-  if ("error" in codeCall) {
-    record(
-      empty("code", code.hash, notRun, codeCall.response),
-      codeDir,
-      responseFile(codeCall.response?.message)
-    );
-    return finish(`error:${codeCall.error}`);
-  }
-  const tsx = extractTsx(text(codeCall.response.message));
-  const screen = join(codeDir, `${name}.tsx`);
-  writeFileSync(screen, tsx);
-  trace.screen = relative(dir, screen);
-  const gatesStarted = performance.now();
-  const gated = await codeGates(
-    screen,
-    tsx,
-    `src/screens/${brief.slug}/${name}.tsx`
-  );
-  // Every gate that can run does (ADR 0010): the render pass runs whatever
-  // gates 2 and 3 said, and only a failed build stops it.
-  let rendered;
-  try {
-    rendered = await renderGates({
-      dir: codeDir,
-      slug: brief.slug,
-      name,
-      source: tsx,
-      audience: brief.audience,
-      states: uiSpec.states,
-    });
-  } catch (error) {
-    console.error(error);
-    record(
-      {
-        ...attempt("code", code.hash, codeCall, {
+  const codeStep = await runStep(run, {
+    step: "code",
+    config: stepConfig.code,
+    system: code.system,
+    user: code.user(brief, name, uiSpec),
+    promptHash: code.hash,
+    outputConfig: { effort: stepConfig.code.effort },
+    notRun: {
+      "gate 2": "not-run",
+      "gate 3": "not-run",
+      "gate 7 static": "not-run",
+      "gate 4": "not-run",
+      "gate 7 render": "not-run",
+    },
+    gate: async (reply, attemptDir, notRun) => {
+      const tsx = extractTsx(reply);
+      const screen = join(attemptDir, `${name}.tsx`);
+      writeFileSync(screen, tsx);
+      trace.screen = relative(dir, screen);
+      const gated = await codeGates(
+        screen,
+        tsx,
+        `src/screens/${brief.slug}/${name}.tsx`
+      );
+      const files = { "gates.json": JSON.stringify(gated.raw, null, 2) + "\n" };
+      // Every gate that can run does (ADR 0010): the render pass runs
+      // whatever gates 2 and 3 said, and only a failed build stops it.
+      let rendered;
+      try {
+        rendered = await renderGates({
+          dir: attemptDir,
+          slug: brief.slug,
+          name,
+          source: tsx,
+          audience: brief.audience,
+          states: uiSpec.states,
+        });
+      } catch (error) {
+        console.error(error);
+        return {
           gates: { ...notRun, ...gated.gates },
           failures: gated.failures,
-          gatesMs: performance.now() - gatesStarted,
-        }),
-        renders: [],
-      },
-      codeDir,
-      responseFile(codeCall.response.message)
-    );
-    return finish("error:render");
-  }
-  const gates = {
-    ...gated.gates,
-    ...(rendered.built ? {} : { "gate 3": "fail" as const }),
-    ...rendered.gates,
-  };
-  const codeAttempt: Attempt = {
-    ...attempt("code", code.hash, codeCall, {
-      gates,
-      failures: [...gated.failures, ...rendered.failures],
-      gatesMs: performance.now() - gatesStarted,
-    }),
-    renders: rendered.renders,
-  };
-  record(codeAttempt, codeDir, {
-    "gates.json": JSON.stringify(gated.raw, null, 2) + "\n",
-    ...responseFile(codeCall.response.message),
+          files,
+          renders: [],
+          error: "render",
+        };
+      }
+      return {
+        gates: {
+          ...gated.gates,
+          ...(rendered.built ? {} : { "gate 3": "fail" as const }),
+          ...rendered.gates,
+        },
+        failures: [...gated.failures, ...rendered.failures],
+        files,
+        renders: rendered.renders,
+        output: true,
+      };
+    },
   });
-  const passed = Object.values(gates).every((result) => result === "pass");
-  return finish(passed ? "passed" : "code-attempts-exhausted");
+  if ("error" in codeStep) return finish(`error:${codeStep.error}`);
+  return finish(codeStep.output ? "passed" : "code-attempts-exhausted");
 }
 
 // `payment-status` → `PaymentStatus`.
@@ -282,17 +268,113 @@ export function componentName(slug: string) {
   return pascalCase(slug);
 }
 
-function request(
-  config: StepConfig,
-  system: Anthropic.TextBlockParam[],
-  user: string
-): Anthropic.MessageCreateParamsNonStreaming {
-  return {
-    model: config.model,
-    max_tokens: config.maxTokens,
-    system,
-    messages: [{ role: "user", content: user }],
-  };
+type Run = {
+  model: Model;
+  dir: string;
+  trace: RepTrace;
+  onAttempt?: (attempt: Attempt) => void;
+};
+
+type Gated<Output> = {
+  gates: Record<string, GateResult>;
+  failures: Failure[];
+  // Written into the attempt's folder.
+  files: Record<string, string>;
+  renders?: Render[];
+  // What a passing attempt hands on.
+  output?: Output;
+  // The gates themselves couldn't run, which ends the rep.
+  error?: string;
+};
+
+type StepInput<Output> = {
+  step: Step;
+  config: StepConfig;
+  system: Anthropic.TextBlockParam[];
+  user: string;
+  promptHash: string;
+  outputConfig: Anthropic.OutputConfig;
+  notRun: Record<string, GateResult>;
+  gate: (
+    reply: string,
+    attemptDir: string,
+    notRun: Record<string, GateResult>
+  ) => Promise<Gated<Output>>;
+};
+
+// One step's attempts: call, gate, and on a failure append the reply and a
+// repair turn and call again, up to the step's attempt limit. A passing
+// attempt's output comes back; none means the attempts ran out.
+async function runStep<Output>(
+  { model, dir, trace, onAttempt }: Run,
+  input: StepInput<Output>
+): Promise<{ output?: Output } | { error: string }> {
+  const { step, config, promptHash } = input;
+  const messages: Anthropic.MessageParam[] = [
+    { role: "user", content: input.user },
+  ];
+  for (let n = 1; ; n++) {
+    const attemptDir = join(dir, `attempt-${n}-${step}`);
+    mkdirSync(attemptDir, { recursive: true });
+    const record = (attempt: Attempt, files: Record<string, string>) => {
+      trace.attempts.push(attempt);
+      for (const [file, content] of Object.entries(files)) {
+        writeFileSync(join(attemptDir, file), content);
+      }
+      writeFileSync(
+        join(attemptDir, "failures.txt"),
+        attempt.failures.map((line) => line + "\n").join("")
+      );
+      writeJson(join(attemptDir, "attempt.json"), attempt);
+      onAttempt?.(attempt);
+    };
+
+    const called = await call(model, {
+      model: config.model,
+      max_tokens: config.maxTokens,
+      system: input.system,
+      // A copy, so each request keeps the conversation as it was sent.
+      messages: [...messages],
+      output_config: input.outputConfig,
+    });
+    if ("error" in called) {
+      record(
+        empty(step, n, config, promptHash, input.notRun, called.response),
+        responseFile(called.response?.message)
+      );
+      return { error: called.error };
+    }
+    const { response } = called;
+
+    const started = performance.now();
+    const gated = await input.gate(
+      text(response.message),
+      attemptDir,
+      input.notRun
+    );
+    const turn = repairTurn(step, gated.failures);
+    const attempt: Attempt = {
+      ...empty(step, n, config, promptHash, gated.gates, response),
+      failures: turn.lines,
+      wallMs: { model: response.modelMs, gates: performance.now() - started },
+      ...(gated.renders ? { renders: gated.renders } : {}),
+    };
+    const passed = Object.values(gated.gates).every((gate) => gate === "pass");
+    const repair =
+      !gated.error && !passed && turn.lines.length && n < config.attempts;
+    record(attempt, {
+      ...gated.files,
+      ...responseFile(response.message),
+      ...(repair ? { "repair-turn.txt": turn.text + "\n" } : {}),
+    });
+    if (gated.error) return { error: gated.error };
+    if (passed) return { output: gated.output };
+    if (!repair) return {};
+    messages.push(
+      { role: "assistant", content: response.message.content },
+      { role: "user", content: turn.text }
+    );
+  }
 }
 
 type Called = {
@@ -322,41 +404,28 @@ async function call(
   return { response };
 }
 
-function attempt(
-  step: Step,
-  promptHash: string,
-  { response }: { response: Called },
-  result: {
-    gates: Record<string, GateResult>;
-    failures: Failure[];
-    gatesMs: number;
-  }
-): Attempt {
-  return {
-    ...empty(step, promptHash, result.gates, response),
-    failures: result.failures.map(failureLine),
-    wallMs: { model: response.modelMs, gates: result.gatesMs },
-  };
-}
-
 function empty(
   step: Step,
+  attempt: number,
+  config: StepConfig,
   promptHash: string,
   gates: Record<string, GateResult>,
   response?: Called
 ): Attempt {
-  const usage = response?.message.usage;
+  const logged = response?.message.usage;
+  const usage = {
+    input: logged?.input_tokens ?? 0,
+    output: logged?.output_tokens ?? 0,
+    cacheRead: logged?.cache_read_input_tokens ?? 0,
+    cacheWrite: logged?.cache_creation_input_tokens ?? 0,
+  };
   return {
     step,
-    attempt: 1,
+    attempt,
     gates,
     failures: [],
-    usage: {
-      input: usage?.input_tokens ?? 0,
-      output: usage?.output_tokens ?? 0,
-      cacheRead: usage?.cache_read_input_tokens ?? 0,
-      cacheWrite: usage?.cache_creation_input_tokens ?? 0,
-    },
+    usage,
+    cost: cost(config.model, usage),
     stopReason: response?.message.stop_reason ?? null,
     requestId: response?.requestId ?? null,
     wallMs: { model: response?.modelMs ?? 0, gates: 0 },

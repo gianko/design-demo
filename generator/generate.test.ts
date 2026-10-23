@@ -124,7 +124,7 @@ describe("generate", () => {
 
     const trace = await generate(brief, { workDir: dir, model });
 
-    expect(trace.outcome).toBe("passed");
+    expect(trace.endReason).toBe("passed");
     expect(
       trace.attempts.map(({ step, attempt, gates }) => [step, attempt, gates])
     ).toEqual([
@@ -176,15 +176,19 @@ describe("generate", () => {
       'from "../../index.ts"',
       'from "../../no-such-module.ts"'
     );
-    const { model } = stubModel(
+    const { model, requests } = stubModel(
       message(JSON.stringify(smokeSpec)),
-      message(broken)
+      ...[1, 2, 3].map(() => message(broken))
     );
 
     const trace = await generate(brief, { workDir: workDir(), model });
 
     const code = trace.attempts[1]!;
-    expect(trace.outcome).toBe("code-attempts-exhausted");
+    // Three code attempts, the step's limit, and none of them builds.
+    expect(requests).toHaveLength(4);
+    expect(trace.outcome).toBe("fail");
+    expect(trace.endReason).toBe("code-attempts-exhausted");
+    expect(trace.screen).toBe("attempt-3-code/Smoke.tsx");
     expect(code.gates).toMatchObject({
       "gate 3": "fail",
       "gate 4": "not-run",
@@ -216,7 +220,7 @@ describe("generate", () => {
     expect(rep.versions.codePromptHash).toMatch(/^[0-9a-f]{64}$/);
     expect(rep.versions.specPromptHash).not.toBe(rep.versions.codePromptHash);
     expect(rep.versions.registryHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(rep.outcome).toBe("passed");
+    expect(rep.endReason).toBe("passed");
     expect(readJson(join(dir, "attempt-1-spec/attempt.json"))).toMatchObject({
       step: "spec",
       promptHash: rep.versions.specPromptHash,
@@ -266,20 +270,31 @@ describe("generate", () => {
     expect(turn!.content).toContain(JSON.stringify(smokeSpec));
   }, 120_000);
 
-  it("ends after a spec attempt that fails gate 1, without a code attempt", async () => {
+  it("ends after three spec attempts that fail gate 1, without a code attempt", async () => {
     const broken = {
       ...smokeSpec,
       nodes: smokeSpec.nodes.map((node) =>
         node.id === "welcome" ? { ...node, component: "Paragraph" } : node
       ),
     };
-    const { model, requests } = stubModel(message(JSON.stringify(broken)));
+    const { model, requests } = stubModel(
+      ...[1, 2, 3].map(() => message(JSON.stringify(broken)))
+    );
     const dir = workDir();
 
     const trace = await generate(brief, { workDir: dir, model });
 
-    expect(trace.outcome).toBe("spec-attempts-exhausted");
-    expect(requests).toHaveLength(1);
+    expect(trace.outcome).toBe("fail");
+    expect(trace.endReason).toBe("spec-attempts-exhausted");
+    expect(requests).toHaveLength(3);
+    expect(trace.attempts.map(({ step, attempt }) => [step, attempt])).toEqual([
+      ["spec", 1],
+      ["spec", 2],
+      ["spec", 3],
+    ]);
+    // The last attempt has no attempt after it, so no repair turn.
+    expect(existsSync(join(dir, "attempt-2-spec/repair-turn.txt"))).toBe(true);
+    expect(existsSync(join(dir, "attempt-3-spec/repair-turn.txt"))).toBe(false);
     expect(trace.attempts[0]!.failures).toEqual([
       'gate 1 · registered-component · welcome · "Paragraph" isn\'t a registered component.',
     ]);
@@ -304,13 +319,13 @@ export function Smoke() {
 `;
     const { model } = stubModel(
       message(JSON.stringify(smokeSpec)),
-      message(tsx)
+      message(tsx),
+      message(smokeTsx)
     );
 
     const trace = await generate(brief, { workDir: workDir(), model });
 
     const code = trace.attempts[1]!;
-    expect(trace.outcome).toBe("code-attempts-exhausted");
     expect(code.gates).toEqual({
       "gate 2": "fail",
       "gate 3": "fail",
@@ -333,15 +348,286 @@ export function Smoke() {
     ["max_tokens", "error:max_tokens"],
   ] as const)(
     "ends the rep as an error on a %s stop, without gating it",
-    async (stop, outcome) => {
+    async (stop, endReason) => {
       const { model, requests } = stubModel(message("", stop));
 
       const trace = await generate(brief, { workDir: workDir(), model });
 
-      expect(trace.outcome).toBe(outcome);
+      expect(trace.outcome).toBe("error");
+      expect(trace.endReason).toBe(endReason);
       expect(requests).toHaveLength(1);
       expect(trace.attempts[0]!.gates).toEqual({ "gate 1": "not-run" });
     },
     120_000
   );
+});
+
+describe("the repair loop", () => {
+  const paragraph = {
+    ...smokeSpec,
+    nodes: smokeSpec.nodes.map((node) =>
+      node.id === "welcome" ? { ...node, component: "Paragraph" } : node
+    ),
+  };
+
+  it("repairs a UI spec that fails gate 1 with one repair turn, then passes", async () => {
+    const { model, requests } = stubModel(
+      message(JSON.stringify(paragraph)),
+      message(JSON.stringify(smokeSpec)),
+      message(smokeTsx)
+    );
+    const dir = workDir();
+
+    const trace = await generate(brief, { workDir: dir, model });
+
+    expect(trace.outcome).toBe("pass");
+    expect(trace.endReason).toBe("passed");
+    expect(
+      trace.attempts.map(({ step, attempt, gates }) => [step, attempt, gates])
+    ).toEqual([
+      ["spec", 1, { "gate 1": "fail" }],
+      ["spec", 2, { "gate 1": "pass" }],
+      ["code", 1, expect.objectContaining({ "gate 2": "pass" })],
+    ]);
+    const turn = `The UI spec you sent fails these gates. Each line is gate · rule id · location · message.
+
+gate 1
+gate 1 · registered-component · welcome · "Paragraph" isn't a registered component.
+
+Fix every failure above and send the whole UI spec again.`;
+    // Append-only: the second request is the first one, then the reply it
+    // got, then the repair turn.
+    const [first, second] = requests;
+    expect(second!.system).toEqual(first!.system);
+    expect(second!.messages).toEqual([
+      ...first!.messages,
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: JSON.stringify(paragraph), citations: null },
+        ],
+      },
+      { role: "user", content: turn },
+    ]);
+    expect(
+      readFileSync(join(dir, "attempt-1-spec/repair-turn.txt"), "utf8")
+    ).toBe(turn + "\n");
+    expect(readJson(join(dir, "attempt-2-spec/ui-spec.json"))).toEqual(
+      smokeSpec
+    );
+    expect(trace.uiSpec).toEqual(smokeSpec);
+  }, 120_000);
+
+  it("repairs a TSX file with one repair turn, deduplicated, collapsed across theme × state and capped per gate, then passes", async () => {
+    const withState = {
+      ...smokeSpec,
+      states: [{ name: "empty", fixture: "payment-status/empty" }],
+    };
+    // An unnamed button, which axe fails in every theme × screen state, and
+    // 25 intrinsic elements, which gate 2 fails one line each.
+    const failing = `import { Screen, Text } from "../../index.ts";
+
+export function Smoke() {
+  return (
+    <Screen audience="contractor">
+      <Text text="Welcome back. Your invoices and payments will show up here." />
+      <button type="button"></button>
+${Array.from({ length: 24 }, () => "      <span />").join("\n")}
+    </Screen>
+  );
+}
+`;
+    const { model, requests } = stubModel(
+      message(JSON.stringify(withState)),
+      message(failing),
+      message(smokeTsx)
+    );
+    const dir = workDir();
+
+    const trace = await generate(brief, { workDir: dir, model });
+
+    expect(trace.endReason).toBe("passed");
+    expect(
+      trace.attempts.map(({ step, attempt, gates }) => [
+        step,
+        attempt,
+        gates["gate 2"],
+        gates["gate 4"],
+      ])
+    ).toEqual([
+      ["spec", 1, undefined, undefined],
+      ["code", 1, "fail", "fail"],
+      ["code", 2, "pass", "pass"],
+    ]);
+    const [, first, second] = requests;
+    const turn = readFileSync(
+      join(dir, "attempt-1-code/repair-turn.txt"),
+      "utf8"
+    ).trimEnd();
+    expect(second!.messages).toEqual([
+      ...first!.messages,
+      {
+        role: "assistant",
+        content: [{ type: "text", text: failing, citations: null }],
+      },
+      { role: "user", content: turn },
+    ]);
+
+    const lines = turn.split("\n");
+    const gate2 = lines.filter((line) =>
+      line.startsWith("gate 2 · no-restricted-syntax · ")
+    );
+    expect(gate2).toHaveLength(20);
+    expect(lines).toContain("gate 2 · +5 more");
+    // One line for the button, listing the four renders it fails in.
+    const gate4 = lines.filter((line) => line.startsWith("gate 4 · "));
+    expect(gate4).toEqual([
+      expect.stringMatching(
+        /^gate 4 · button-name · button\[type="button"\] <button type="button"><\/button> · Buttons must have discernible text \(in .+\)$/
+      ),
+    ]);
+    for (const where of [
+      "light · default",
+      "dark · default",
+      "light · empty",
+      "dark · empty",
+    ])
+      expect(gate4[0]).toContain(where);
+    // The help lines, once per rule id.
+    expect(turn).toMatch(/^no-restricted-syntax: \S.*$/m);
+    expect(turn).toMatch(/^button-name: \S.*$/m);
+    expect(
+      lines.filter((line) => line.startsWith("button-name: "))
+    ).toHaveLength(1);
+    expect(turn).toMatch(
+      /Fix every failure above and send the whole TSX file again, in one ```tsx block\.$/
+    );
+    // The attempt logs the lines as the turn sent them.
+    expect(trace.attempts[1]!.failures).toEqual(
+      lines.filter((line) => /^gate \d · /.test(line))
+    );
+  }, 240_000);
+
+  it.each([
+    ["refusal", "error:refusal"],
+    ["max_tokens", "error:max_tokens"],
+  ] as const)(
+    "ends the rep as an error on a %s stop in a repair attempt, with no further repair turn",
+    async (stop, endReason) => {
+      // A truncated reply that would fail every gate if it were gated.
+      const truncated = smokeTsx.slice(0, 60);
+      const { model, requests } = stubModel(
+        message(JSON.stringify(paragraph)),
+        message(truncated, stop)
+      );
+      const dir = workDir();
+
+      const trace = await generate(brief, { workDir: dir, model });
+
+      expect(trace.outcome).toBe("error");
+      expect(trace.endReason).toBe(endReason);
+      expect(requests).toHaveLength(2);
+      expect(
+        trace.attempts.map(({ attempt, gates, failures, stopReason }) => [
+          attempt,
+          gates,
+          failures,
+          stopReason,
+        ])
+      ).toEqual([
+        [
+          1,
+          { "gate 1": "fail" },
+          [
+            'gate 1 · registered-component · welcome · "Paragraph" isn\'t a registered component.',
+          ],
+          "end_turn",
+        ],
+        [2, { "gate 1": "not-run" }, [], stop],
+      ]);
+      expect(existsSync(join(dir, "attempt-2-spec/repair-turn.txt"))).toBe(
+        false
+      );
+      expect(existsSync(join(dir, "attempt-1-code"))).toBe(false);
+    },
+    120_000
+  );
+
+  it.each([
+    ["refusal", "error:refusal"],
+    ["max_tokens", "error:max_tokens"],
+  ] as const)(
+    "ends the rep as an error on a %s stop in the code step, without gating it",
+    async (stop, endReason) => {
+      const { model, requests } = stubModel(
+        message(JSON.stringify(smokeSpec)),
+        message(smokeTsx.slice(0, 60), stop)
+      );
+      const dir = workDir();
+
+      const trace = await generate(brief, { workDir: dir, model });
+
+      expect(trace.outcome).toBe("error");
+      expect(trace.endReason).toBe(endReason);
+      expect(requests).toHaveLength(2);
+      expect(trace.attempts[1]!.gates).toEqual({
+        "gate 2": "not-run",
+        "gate 3": "not-run",
+        "gate 7 static": "not-run",
+        "gate 4": "not-run",
+        "gate 7 render": "not-run",
+      });
+      expect(existsSync(join(dir, "attempt-1-code/repair-turn.txt"))).toBe(
+        false
+      );
+    },
+    120_000
+  );
+
+  it("computes each attempt's cost from its logged usage, and keeps every attempt's gate results", async () => {
+    const priced = (text: string) => ({
+      ...message(text),
+      usage: {
+        ...message(text).usage,
+        input_tokens: 2_000,
+        output_tokens: 1_000,
+        cache_read_input_tokens: 10_000,
+        cache_creation_input_tokens: 4_000,
+      },
+    });
+    const { model } = stubModel(
+      priced(JSON.stringify(paragraph)),
+      priced(JSON.stringify(smokeSpec)),
+      priced(smokeTsx)
+    );
+    const dir = workDir();
+
+    const trace = await generate(brief, { workDir: dir, model });
+
+    // At $4, $20, $0.20 and $5 per million input, output, cache-read and
+    // cache-write tokens: $0.008 + $0.02 + $0.002 + $0.02.
+    for (const attempt of trace.attempts) {
+      expect(attempt.usage).toEqual({
+        input: 2_000,
+        output: 1_000,
+        cacheRead: 10_000,
+        cacheWrite: 4_000,
+      });
+      expect(attempt.cost).toBeCloseTo(0.05, 10);
+    }
+    expect(trace.attempts.map(({ gates }) => gates)).toEqual([
+      { "gate 1": "fail" },
+      { "gate 1": "pass" },
+      {
+        "gate 2": "pass",
+        "gate 3": "pass",
+        "gate 7 static": "pass",
+        "gate 4": "pass",
+        "gate 7 render": "pass",
+      },
+    ]);
+    expect(readJson(join(dir, "rep.json")).attempts).toEqual(
+      JSON.parse(JSON.stringify(trace.attempts))
+    );
+  }, 120_000);
 });

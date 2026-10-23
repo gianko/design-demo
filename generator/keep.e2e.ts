@@ -105,7 +105,7 @@ describe("pnpm keep", () => {
         requestId: null,
       }),
     });
-    expect(trace.outcome).toBe("passed");
+    expect(trace.endReason).toBe("passed");
 
     expect(await keep([workDir], { log: () => {} })).toBe(0);
 

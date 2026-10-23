@@ -63,7 +63,13 @@ function reply(text: string): Anthropic.Message {
     content: [{ type: "text", text, citations: null }],
     stop_reason: "end_turn",
     stop_sequence: null,
-    usage: { input_tokens: 1, output_tokens: 1 },
+    // $0.004 + $0.01 + $0.004 + $0.005 at Opus 5.5's prices.
+    usage: {
+      input_tokens: 1000,
+      output_tokens: 500,
+      cache_read_input_tokens: 20_000,
+      cache_creation_input_tokens: 1000,
+    },
   } as Anthropic.Message;
 }
 
@@ -125,7 +131,7 @@ describe("pnpm generate", () => {
       "  dark · default · contractor · gate 4 pass · gate 7 render pass"
     );
     expect(output).toMatch(/pass criteria: met/);
-    expect(output).toMatch(/outcome: passed/);
+    expect(output).toMatch(/^outcome: pass · end reason passed$/m);
     expect(output).toMatch(/\.generated\/\d{8}-\d{6}-cli-/);
     expect(code).toBe(0);
   }, 120_000);
@@ -140,7 +146,7 @@ describe("pnpm generate", () => {
 
     const { code, output } = await run(path, stub(uiSpec, tsxFor(path)));
 
-    expect(output).toMatch(/outcome: passed/);
+    expect(output).toMatch(/^outcome: pass · end reason passed$/m);
     expect(output).toMatch(
       /pass criteria: not met · missing component Card, state empty/
     );
@@ -153,11 +159,54 @@ describe("pnpm generate", () => {
       .replace("<Text", "<div><Text")
       .replace("/>", "/></div>");
 
-    const { code, output } = await run(path, stub(uiSpec, failing));
+    const { code, output } = await run(
+      path,
+      stub(uiSpec, failing, failing, failing)
+    );
 
     expect(output).toMatch(/gate 2 fail/);
     expect(output).toMatch(/gate 2 · no-restricted-syntax · L6:7/);
-    expect(output).toMatch(/outcome: code-attempts-exhausted/);
+    expect(output).toMatch(
+      /^outcome: fail · end reason code-attempts-exhausted$/m
+    );
     expect(code).toBe(1);
+  }, 120_000);
+
+  it("prints a table of every attempt, with its gates, usage, cost and time", async () => {
+    const { path } = brief(smokeBrief);
+    const failing = tsxFor(path)
+      .replace("<Text", "<div><Text")
+      .replace("/>", "/></div>");
+
+    const { code, output } = await run(
+      path,
+      stub(uiSpec, failing, tsxFor(path))
+    );
+
+    // A row's cells, then its model and gates wall times.
+    const row = (cells: string[]) => {
+      const escaped = cells.map((cell) => cell.replace(/[$.]/g, "\\$&"));
+      const time = String.raw`\d+\.\ds`;
+      return new RegExp(
+        `^${[...escaped, time, time].join(String.raw`\s+`)}$`,
+        "m"
+      );
+    };
+    const usage = ["end_turn", "1000", "500", "20000", "1000", "$0.0230"];
+    expect(output).toMatch(
+      /^step\s+attempt\s+gate 1\s+gate 2\s+gate 3\s+gate 7 static\s+gate 4\s+gate 7 render\s+stop\s+input\s+output\s+cache read\s+cache write\s+cost\s+model\s+gates$/m
+    );
+    expect(output).toMatch(
+      row(["spec", "1", "pass", "–", "–", "–", "–", "–", ...usage])
+    );
+    expect(output).toMatch(
+      row(["code", "1", "–", "fail", "pass", "pass", "pass", "pass", ...usage])
+    );
+    expect(output).toMatch(
+      row(["code", "2", "–", "pass", "pass", "pass", "pass", "pass", ...usage])
+    );
+    expect(output).toMatch(/^cost: \$0\.0690 over 3 attempts$/m);
+    expect(output).toMatch(/^outcome: pass · end reason passed$/m);
+    expect(code).toBe(0);
   }, 120_000);
 });

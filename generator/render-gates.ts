@@ -182,6 +182,7 @@ function readResults(
                 rule: violation.id,
                 location: `${node.target} ${trim(node.html)}`,
                 message: violation.help,
+                help: violation.help,
                 renders: [where],
               });
             }
@@ -193,6 +194,7 @@ function readResults(
               rule: rule.name,
               location: "(render)",
               message,
+              help: rule.help,
               renders: [where],
             }))
           );
