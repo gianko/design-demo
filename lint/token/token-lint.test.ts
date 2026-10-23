@@ -122,5 +122,20 @@ describe("token lint", () => {
         ["no-restricted-syntax", `createElement("hr")`],
       ]);
     });
+
+    it("finds every change of state outside the library, and nothing else", async () => {
+      const rule = "screens/screen-state-via-library";
+      expect(await lint("screen-state-violations.tsx", plantedAt)).toEqual([
+        [rule, "useState as useLocalState"],
+        [
+          "no-restricted-imports",
+          `import { fixtureVariant } from "../../fixtures/fixtures.ts";`,
+        ],
+        [rule, "React.useState"],
+        [rule, "useReducer"],
+        [rule, "document.startViewTransition"],
+        [rule, "operations.sendReminder"],
+      ]);
+    });
   });
 });
