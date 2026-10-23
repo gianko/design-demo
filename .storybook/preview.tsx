@@ -18,9 +18,16 @@ const preview: Preview = {
     density: "admin" satisfies Density,
   },
   // Theme and density are CSS scopes, so a story only needs the two attributes.
+  // The wrapper paints the page, as whatever hosts a screen does, so a
+  // component with no surface of its own sits on the page role, not on the
+  // browser's white.
   decorators: [
     (Story, { globals }) => (
-      <div data-theme={globals.theme} data-density={globals.density}>
+      <div
+        className="bg-page"
+        data-theme={globals.theme}
+        data-density={globals.density}
+      >
         <Story />
       </div>
     ),
