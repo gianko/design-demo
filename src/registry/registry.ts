@@ -29,7 +29,8 @@ export function defineRegistry<const E extends readonly RegistryEntry[]>(
   const hash = createHash("sha256").update(serialized).digest("hex");
   // The wire schema's `component` field: only registered names parse.
   const component = z.enum(names as [E[number]["name"]]);
-  return { serialized, hash, component };
+  // Gate 1 checks each node against its entry.
+  return { entries: sorted, serialized, hash, component };
 }
 
 // The output schema, the one PropsOf infers, so a defaulted prop is required
