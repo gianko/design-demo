@@ -158,6 +158,7 @@ function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
     failures.push(...propChecks(node, entry, screen));
   }
   failures.push(...stateChecks(spec, byId, fixtures));
+  failures.push(...headingChecks(screen));
 
   // The audience is the screen brief's, on the spec and on its Screen.
   if (spec.audience !== audience) {
@@ -295,6 +296,70 @@ function stateChecks(
     }
   }
   return failures;
+}
+
+// In each screen state, the headings it shows, in render order, never skip
+// a level, and if there are any, exactly one is level 1. A screen with no
+// headings passes.
+function headingChecks(screen: ScreenModel): Failure[] {
+  const failures = new FailureSet();
+  for (const state of screen.states) {
+    const headings = screen.inOrder.flatMap((node) => {
+      if (node.component !== "Heading") return [];
+      if (!screen.visibleIn(node).includes(state)) return [];
+      const level = propValue(node, "level");
+      return level?.ok && typeof level.value === "number"
+        ? [{ node, level: level.value }]
+        : [];
+    });
+    const [first] = headings;
+    if (first === undefined) continue;
+    const ones = headings.filter(({ level }) => level === 1);
+    if (ones.length === 0) {
+      failures.add(
+        fail(
+          "heading-one",
+          first.node.id,
+          `State "${state}" shows headings but no level 1; this, its first, is level ${first.level}.`
+        )
+      );
+    }
+    for (const { node } of ones.slice(1)) {
+      failures.add(
+        fail(
+          "heading-one",
+          node.id,
+          `A second level 1 in state "${state}", after "${ones[0]!.node.id}".`
+        )
+      );
+    }
+    headings.forEach(({ node, level }, i) => {
+      const before = headings[i - 1];
+      if (before && level > before.level + 1) {
+        failures.add(
+          fail(
+            "heading-skip",
+            node.id,
+            `Level ${level} follows level ${before.level} ("${before.node.id}") in state "${state}", skipping a level.`
+          )
+        );
+      }
+    });
+  }
+  return failures.list;
+}
+
+// Failures found once per screen state, each reported once: for the first
+// state that shows it.
+class FailureSet {
+  readonly list: Failure[] = [];
+  private readonly seen = new Set<string>();
+  add(failure: Failure) {
+    const key = `${failure.rule}\u0000${failure.location}`;
+    if (this.seen.has(key)) return;
+    this.seen.add(key);
+    this.list.push(failure);
+  }
 }
 
 function slotChecks(node: UiNode, parent: RegistryEntry): Failure[] {
@@ -448,6 +513,9 @@ type DataPoint = {
 type ScreenModel = {
   // The default state, then each declared one.
   states: string[];
+  // The nodes reachable from the root, in render order: depth first, and
+  // siblings in list order.
+  inOrder: UiNode[];
   // The screen states a node shows in: its own `when`, within its parent's.
   visibleIn: (node: UiNode) => string[];
   // The DataTable whose rows a node's row paths read, if it sits in one's
@@ -534,7 +602,23 @@ function screenModel(
     return points;
   };
 
-  return { states, visibleIn, rowTable, dataFor };
+  const children = new Map<string, UiNode[]>();
+  for (const node of byId.values()) {
+    if (node.parent === null) continue;
+    const siblings = children.get(node.parent) ?? [];
+    siblings.push(node);
+    children.set(node.parent, siblings);
+  }
+  const ordered = new Set<UiNode>();
+  const visit = (node: UiNode) => {
+    if (ordered.has(node)) return;
+    ordered.add(node);
+    for (const child of children.get(node.id) ?? []) visit(child);
+  };
+  const root = spec.nodes.find((node) => node.parent === null);
+  if (root) visit(root);
+
+  return { states, inOrder: [...ordered], visibleIn, rowTable, dataFor };
 }
 
 // A prop value `{ "bind": "<path>" }` reads its value from the fixtures.

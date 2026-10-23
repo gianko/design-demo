@@ -27,6 +27,11 @@ const entries = [
     props: z.object({ label: z.string() }),
   }),
   defineEntry({
+    name: "Heading",
+    use: "A title.",
+    props: z.object({ text: z.string(), level: z.number().int() }),
+  }),
+  defineEntry({
     name: "Button",
     use: "Runs an action.",
     props: z.object({ label: z.string() }),
@@ -131,6 +136,17 @@ function clean() {
       ),
       shownIn(
         node("empty-note", "Tag", "screen", "body", { label: "No invoices" }),
+        "empty"
+      ),
+      node("title", "Heading", "screen", "body", {
+        text: "Payment status",
+        level: 1,
+      }),
+      shownIn(
+        node("empty-heading", "Heading", "screen", "body", {
+          text: "Nothing yet",
+          level: 2,
+        }),
         "empty"
       ),
     ],
@@ -465,6 +481,45 @@ describe("gate 1", () => {
       runs(nodeOf(spec, "status"), "send-reminder");
 
       expect(check(spec)).toEqual([["action-declared", "status"]]);
+    });
+  });
+
+  describe("headings", () => {
+    it("fails a heading that skips a level in one state, naming it", () => {
+      const spec = clean();
+      // Only the empty state shows it, after the level 1.
+      setProp(nodeOf(spec, "empty-heading"), "level", 3);
+
+      expect(check(spec)).toEqual([["heading-skip", "empty-heading"]]);
+    });
+
+    it("fails a second level 1 shown in the same state, naming it", () => {
+      const spec = clean();
+      setProp(nodeOf(spec, "empty-heading"), "level", 1);
+
+      expect(check(spec)).toEqual([["heading-one", "empty-heading"]]);
+    });
+
+    it("passes two level 1s that never show in the same state", () => {
+      const spec = clean();
+      nodeOf(spec, "title").when = ["default", "sent"];
+      setProp(nodeOf(spec, "empty-heading"), "level", 1);
+
+      expect(check(spec)).toEqual([]);
+    });
+
+    it("fails a state whose headings have no level 1, naming its first", () => {
+      const spec = clean();
+      nodeOf(spec, "title").when = ["default", "sent"];
+
+      expect(check(spec)).toEqual([["heading-one", "empty-heading"]]);
+    });
+
+    it("passes a screen with no headings at all", () => {
+      const spec = clean();
+      spec.nodes = spec.nodes.filter((n) => n.component !== "Heading");
+
+      expect(check(spec)).toEqual([]);
     });
   });
 
