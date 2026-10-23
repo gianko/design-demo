@@ -1,8 +1,11 @@
 // A Playwright reporter that writes the contact sheet: one page with every
 // shot of the run, grouped by story, for the critique and for the human
 // approving new baselines on the component's PR (ADR 0006, ADR 0009).
+// index.html links the PNGs beside it, which the critique reads.
+// contact-sheet.html inlines them, so CI can upload that one file unzipped
+// and the PR can link it.
 
-import { copyFile, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import type {
   FullConfig,
@@ -61,12 +64,21 @@ export default class ContactSheet implements Reporter {
   async onEnd() {
     await rm(this.#folder, { recursive: true, force: true });
     await mkdir(this.#folder, { recursive: true });
+    const inlined = new Map<ShotFile, string>();
     for (const shot of this.#rows.flatMap((row) => row.shots)) {
-      const to = join(this.#folder, shot.file);
-      if (shot.path) await copyFile(shot.path, to);
-      else if (shot.body) await writeFile(to, shot.body);
+      const png = shot.path ? await readFile(shot.path) : shot.body;
+      if (!png) continue;
+      await writeFile(join(this.#folder, shot.file), png);
+      inlined.set(shot, `data:image/png;base64,${png.toString("base64")}`);
     }
-    await writeFile(join(this.#folder, "index.html"), page(this.#rows));
+    await writeFile(
+      join(this.#folder, "index.html"),
+      page(this.#rows, (shot) => shot.file)
+    );
+    await writeFile(
+      join(this.#folder, "contact-sheet.html"),
+      page(this.#rows, (shot) => inlined.get(shot) ?? "")
+    );
   }
 
   printsToStdio() {
@@ -74,14 +86,17 @@ export default class ContactSheet implements Reporter {
   }
 }
 
-function page(rows: Row[]): string {
+// Where each shot's <img> loads it from.
+type Src = (shot: ShotFile) => string;
+
+function page(rows: Row[], src: Src): string {
   const stories = new Map<string, Row[]>();
   for (const row of rows.toSorted((a, b) => a.name.localeCompare(b.name))) {
     stories.set(row.story, [...(stories.get(row.story) ?? []), row]);
   }
   const sections = [...stories].map(
     ([story, renders]) =>
-      `<section><h2>${escape(story)}</h2>${renders.map(render).join("")}</section>`
+      `<section><h2>${escape(story)}</h2>${renders.map((row) => render(row, src)).join("")}</section>`
   );
   const newCount = rows.filter((row) => row.isNew).length;
   return `<!doctype html>
@@ -106,7 +121,7 @@ ${sections.join("\n")}
 `;
 }
 
-function render(row: Row): string {
+function render(row: Row, src: Src): string {
   const flags = [
     row.isNew ? '<span class="flag new">new baseline</span>' : "",
     row.status === "passed"
@@ -116,7 +131,7 @@ function render(row: Row): string {
   const shots = row.shots
     .map(
       (shot) =>
-        `<figure><img src="${escape(shot.file)}" alt="${escape(`${row.name} ${shot.name}`)}"><figcaption>${escape(shot.name)}</figcaption></figure>`
+        `<figure><img src="${escape(src(shot))}" alt="${escape(`${row.name} ${shot.name}`)}"><figcaption>${escape(shot.name)}</figcaption></figure>`
     )
     .join("");
   return `<h3>${escape(row.render)}${flags}</h3><div class="shots">${shots}</div>`;

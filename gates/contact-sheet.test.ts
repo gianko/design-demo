@@ -111,8 +111,25 @@ it("shows every shot the pass takes and none of Playwright's diff images", async
     "button--primary--light-admin--mid-animation.png",
   ]);
   expect((await readdir(folder)).toSorted()).toEqual(
-    [...(shown as string[]), "index.html"].toSorted()
+    [...(shown as string[]), "index.html", "contact-sheet.html"].toSorted()
   );
+});
+
+it("writes a self-contained copy of the sheet, its shots inlined, for the PR to link", async () => {
+  await sheet(
+    render("button--primary", "light", "passed", [png("rest"), png("focus")])
+  );
+
+  const html = await readFile(join(folder, "contact-sheet.html"), "utf8");
+  const page = new DOMParser().parseFromString(html, "text/html");
+  expect(
+    [...page.querySelectorAll("img")].map((img) => img.getAttribute("src"))
+  ).toEqual([
+    // Buffer.from("rest") and Buffer.from("focus"), base64-encoded.
+    "data:image/png;base64,cmVzdA==",
+    "data:image/png;base64,Zm9jdXM=",
+  ]);
+  expect(page.querySelector("h3")?.textContent).toBe("light · admin");
 });
 
 it("groups renders under their story", async () => {
