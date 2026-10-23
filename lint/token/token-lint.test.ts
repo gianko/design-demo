@@ -83,6 +83,7 @@ describe("token lint", () => {
       [rule, "white"],
       [rule, "13px"],
       [rule, "1px"],
+      [rule, "#2a1f2d1f"],
       [rule, "Inter"],
       [rule, "700"],
       [rule, "1.5"],
