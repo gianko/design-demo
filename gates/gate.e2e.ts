@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -247,37 +248,60 @@ describe("in CI", () => {
   });
 });
 
-// The static taste rules run in the gate's ESLint step, which stops the gate
-// before the Playwright pass. Their planted violations are linted only when
-// GATE_LINT_FIXTURES asks.
-describe("static taste rules", () => {
+// The static taste rules and token lint run in the gate's ESLint step, which
+// stops the gate before the Playwright pass. `pnpm lint` ignores their
+// fixtures, so this plants copies where it looks, and removes them after.
+describe("static lint fixtures", () => {
+  const planted = join(repo, "gates/planted-lint-fixtures");
+  const tasteFixtures = join(repo, "lint/taste/fixtures");
   let output: string;
   let status: number | null;
 
+  // The gate's ESLint report on one planted file.
+  const reportOf = (file: string) =>
+    output
+      .split(/\n(?=\/)/)
+      .find((block) => block.startsWith(join(planted, file)));
+
   beforeAll(() => {
+    rmSync(planted, { recursive: true, force: true });
+    mkdirSync(planted);
+    // The rules' own fixtures (the Avatar exemption needs a library path, so
+    // static.test.ts covers it), and token lint's planted CSS.
+    for (const file of readdirSync(tasteFixtures)) {
+      if (/\.(?:pass|fail)\.(?:tsx|css)$/.test(file)) {
+        cpSync(join(tasteFixtures, file), join(planted, file));
+      }
+    }
+    cpSync(
+      join(repo, "lint/token/fixtures/violations.css"),
+      join(planted, "violations.css")
+    );
     ({ status, stdout: output } = spawnSync("pnpm", ["gate"], {
       cwd: repo,
       encoding: "utf8",
-      env: { ...process.env, GATE_LINT_FIXTURES: "1" },
     }));
   });
 
-  it.each(
-    staticRules.flatMap(({ id }) =>
-      ["tsx", "css"].map((extension) => [id, `${id}.fail.${extension}`])
-    )
-  )("fails taste/%s on %s", (rule, file) => {
+  afterAll(() => rmSync(planted, { recursive: true, force: true }));
+
+  it.each([
+    ...staticRules.flatMap(({ id }) =>
+      ["tsx", "css"].map((extension) => [
+        `taste/${id}`,
+        `${id}.fail.${extension}`,
+      ])
+    ),
+    ["taste-exemptions/no-inline-disable", "no-inline-disable.fail.tsx"],
+    ["taste-exemptions/no-inline-disable", "no-inline-disable.fail.css"],
+    ["token/no-raw-css-values", "violations.css"],
+  ])("fails %s on %s", (rule, file) => {
     expect(status).not.toBe(0);
-    const report = output
-      .split(/\n(?=\/)/)
-      .find((block) =>
-        block.startsWith(join(repo, "lint/taste/fixtures", file))
-      );
-    expect(report).toMatch(new RegExp(`error .* taste/${rule}\\n`));
+    expect(reportOf(file)).toMatch(new RegExp(`error .* ${rule}\\n`));
   });
 
-  it("passes the fixtures that follow them", () => {
-    expect(output).not.toMatch(/\.pass\.(tsx|css)|Avatar\.tsx/);
+  it("passes the taste fixtures that follow the rules", () => {
+    expect(output).not.toMatch(/\.pass\.(tsx|css)/);
   });
 });
 

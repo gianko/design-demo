@@ -36,11 +36,6 @@ const rules: Linter.RulesRecord = {
 };
 
 export const tasteConfigs: Linter.Config[] = [
-  // The planted violations the rules' own tests lint. The gate's tests lint
-  // them too, through GATE_LINT_FIXTURES.
-  ...(process.env.GATE_LINT_FIXTURES
-    ? []
-    : [{ ignores: ["lint/taste/fixtures/"] }]),
   // TSX and CSS, as RULES.md says: that's where classes and motion are
   // written, and plain TS is full of strings that only look like classes.
   { files: ["**/*.tsx"], plugins, rules },
