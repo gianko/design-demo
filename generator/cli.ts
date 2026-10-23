@@ -57,7 +57,18 @@ function attemptLines(attempt: Attempt) {
     .join(" · ");
   const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
   const head = `${attempt.step} · attempt ${attempt.attempt} · ${gates} · model ${seconds(attempt.wallMs.model)}, gates ${seconds(attempt.wallMs.gates)}`;
-  return [head, ...attempt.failures.map((line) => `  ${line}`)].join("\n");
+  // The render gates per theme × screen state (ADR 0008).
+  const renders = (attempt.renders ?? []).map(
+    ({ theme, state, density, gates: rendered }) =>
+      `  ${theme} · ${state} · ${density} · ${Object.entries(rendered)
+        .map(([gate, result]) => `${gate} ${result}`)
+        .join(" · ")}`
+  );
+  return [
+    head,
+    ...renders,
+    ...attempt.failures.map((line) => `  ${line}`),
+  ].join("\n");
 }
 
 // Local time, YYYYMMDD-HHMMSS.

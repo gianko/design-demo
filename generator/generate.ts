@@ -1,8 +1,11 @@
 // `generate(screenBrief, { workDir })`: one rep of the generator (ADR 0003,
 // ADR 0010). The spec step turns the screen brief into a UI spec and gate 1
 // checks it; the code step turns the UI spec into a TSX file and gates 2 and
-// 3 and the static taste rules check that. One attempt per step for now: the
-// repair loop joins later. Every attempt writes its folder under workDir.
+// 3 and the static taste rules check that, then, if it builds, gate 4 and the
+// render-time taste rules over every theme × screen state (render-gates.ts).
+// A render pass that can't run ends the rep as `error:render`. One attempt
+// per step for now: the repair loop joins later. Every attempt writes its
+// folder under workDir.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
@@ -16,6 +19,8 @@ import { gate1 } from "./gate1.ts";
 import type { Model } from "./model.ts";
 import { codePrompt, specPrompt } from "./prompts.ts";
 import { type LibraryRegistry, loadRegistry } from "./registry.ts";
+import { type Render, renderGates } from "./render-gates.ts";
+import { pascalCase } from "./screen-stories.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
 import { type UiSpec, wireSchema } from "./ui-spec.ts";
 
@@ -39,6 +44,9 @@ export type Attempt = {
   requestId: string | null;
   wallMs: { model: number; gates: number };
   promptHash: string;
+  // The code step's render pass, one per theme × screen state; empty when
+  // the screen didn't build.
+  renders?: Render[];
 };
 
 export type Outcome =
@@ -184,7 +192,9 @@ export async function generate(
   const notRun = {
     "gate 2": "not-run",
     "gate 3": "not-run",
-    "gate 7": "not-run",
+    "gate 7 static": "not-run",
+    "gate 4": "not-run",
+    "gate 7 render": "not-run",
   } as const;
   if ("error" in codeCall) {
     record(
@@ -204,25 +214,58 @@ export async function generate(
     tsx,
     `src/screens/${brief.slug}/${name}.tsx`
   );
-  const codeAttempt = attempt("code", code.hash, codeCall, {
-    gates: gated.gates,
-    failures: gated.failures,
-    gatesMs: performance.now() - gatesStarted,
-  });
+  // Every gate that can run does (ADR 0010): the render pass runs whatever
+  // gates 2 and 3 said, and only a failed build stops it.
+  let rendered;
+  try {
+    rendered = await renderGates({
+      dir: codeDir,
+      slug: brief.slug,
+      name,
+      source: tsx,
+      audience: brief.audience,
+      states: uiSpec.states,
+    });
+  } catch (error) {
+    console.error(error);
+    record(
+      {
+        ...attempt("code", code.hash, codeCall, {
+          gates: { ...notRun, ...gated.gates },
+          failures: gated.failures,
+          gatesMs: performance.now() - gatesStarted,
+        }),
+        renders: [],
+      },
+      codeDir,
+      responseFile(codeCall.response.message)
+    );
+    return finish("error:render");
+  }
+  const gates = {
+    ...gated.gates,
+    ...(rendered.built ? {} : { "gate 3": "fail" as const }),
+    ...rendered.gates,
+  };
+  const codeAttempt: Attempt = {
+    ...attempt("code", code.hash, codeCall, {
+      gates,
+      failures: [...gated.failures, ...rendered.failures],
+      gatesMs: performance.now() - gatesStarted,
+    }),
+    renders: rendered.renders,
+  };
   record(codeAttempt, codeDir, {
     "gates.json": JSON.stringify(gated.raw, null, 2) + "\n",
     ...responseFile(codeCall.response.message),
   });
-  return finish(gated.failures.length ? "code-attempts-exhausted" : "passed");
+  const passed = Object.values(gates).every((result) => result === "pass");
+  return finish(passed ? "passed" : "code-attempts-exhausted");
 }
 
 // `payment-status` → `PaymentStatus`.
 export function componentName(slug: string) {
-  return slug
-    .split(/[^a-zA-Z0-9]+/)
-    .filter(Boolean)
-    .map((part) => part[0]!.toUpperCase() + part.slice(1))
-    .join("");
+  return pascalCase(slug);
 }
 
 function request(
