@@ -10,7 +10,13 @@
 import type { Rule } from "eslint";
 import { classTokens, type ClassToken } from "../classes.ts";
 import { help } from "../rules-md.ts";
-import { sourceVisitors, type Keyframe } from "../source.ts";
+import {
+  reporter,
+  sourceVisitors,
+  type Keyframe,
+  type Render,
+} from "../source.ts";
+import { splitOutsideBrackets } from "../split.ts";
 
 export const id = "motion-tokens";
 
@@ -30,16 +36,16 @@ export const lint: Rule.RuleModule = {
     messages: { motion: `{{finding}} ${help(id)}` },
   },
   create(context) {
-    const report = (node: unknown, finding: string) =>
-      context.report({
-        node: node as Rule.Node,
-        messageId: "motion",
-        data: { finding },
-      });
+    const report = reporter(context, "motion");
 
     return sourceVisitors(context, {
       classList(text, node, selector) {
         for (const finding of classListFindings(classTokens(text), selector)) {
+          report(node, finding);
+        }
+      },
+      classLists(renders) {
+        for (const { node, finding } of missingTokens(renders)) {
           report(node, finding);
         }
       },
@@ -71,23 +77,26 @@ function declarationFinding(
 ): string | null {
   const motion = /^(?:transition|animation)(?:-|$)/.test(property);
   if (!motion) return null;
-  const v = value.trim();
+  const declared = value.trim();
 
   if (
-    settleVar.test(v) &&
-    (exitSelector.test(selector) || exitDurationVar.test(v))
+    settleVar.test(declared) &&
+    (exitSelector.test(selector) || exitDurationVar.test(declared))
   ) {
-    return `\`${property}: ${v}\` runs \`settle\` on an exit.`;
+    return `\`${property}: ${declared}\` runs \`settle\` on an exit.`;
   }
   switch (property) {
     case "transition":
     case "animation": {
-      if (v === "none" || (property === "animation" && animationVar.test(v))) {
+      if (
+        declared === "none" ||
+        (property === "animation" && animationVar.test(declared))
+      ) {
         return null;
       }
-      for (const part of topLevel(v, ",")) {
+      for (const part of topLevel(declared)) {
         if (property === "transition" && /^all\b/.test(part.trim())) {
-          return `\`${property}: ${v}\` animates every property.`;
+          return `\`${property}: ${declared}\` animates every property.`;
         }
         if (!durationVar.test(part) || !easeVar.test(part)) {
           return `\`${property}: ${part.trim()}\` lacks a duration or easing token.`;
@@ -96,38 +105,27 @@ function declarationFinding(
       return null;
     }
     case "transition-property":
-      return /\ball\b/.test(v)
-        ? `\`${property}: ${v}\` animates every property.`
+      return /\ball\b/.test(declared)
+        ? `\`${property}: ${declared}\` animates every property.`
         : null;
     case "transition-duration":
     case "animation-duration":
-      return topLevel(v, ",").every((part) => durationVar.test(part))
+      return topLevel(declared).every((part) => durationVar.test(part))
         ? null
-        : `\`${property}: ${v}\` is not a duration token.`;
+        : `\`${property}: ${declared}\` is not a duration token.`;
     case "transition-timing-function":
     case "animation-timing-function":
-      return topLevel(v, ",").every((part) => easeVar.test(part))
+      return topLevel(declared).every((part) => easeVar.test(part))
         ? null
-        : `\`${property}: ${v}\` is not an easing token.`;
+        : `\`${property}: ${declared}\` is not an easing token.`;
     default:
       return null;
   }
 }
 
-function topLevel(value: string, separator: string): string[] {
-  const parts: string[] = [];
-  let depth = 0;
-  let start = 0;
-  for (let i = 0; i < value.length; i++) {
-    if (value[i] === "(") depth++;
-    else if (value[i] === ")") depth--;
-    else if (value[i] === separator && depth === 0) {
-      parts.push(value.slice(start, i));
-      start = i + 1;
-    }
-  }
-  parts.push(value.slice(start));
-  return parts;
+// A value's comma-separated layers.
+function topLevel(value: string): string[] {
+  return splitOutsideBrackets(value, ",");
 }
 
 // A keyframe property swings back when its value turns around. Settle's one
@@ -169,22 +167,54 @@ function swingFinding(frames: Keyframe[]): string | null {
   return null;
 }
 
-function classListFindings(tokens: ClassToken[], selector = ""): string[] {
-  const findings: string[] = [];
-  const has = (pattern: RegExp) => tokens.some((t) => pattern.test(t.utility));
-  const transitions = tokens.filter((t) => transition.test(t.utility));
-
-  for (const token of transitions) {
-    if (token.utility === "transition-all") {
-      findings.push(`\`${token.raw}\` animates every property.`);
+// A transition with no duration or easing token among the classes it lands
+// with, reported once on the class list that names it. When only some of a
+// tv() call's option sets leave a token out, the finding names one.
+function missingTokens(
+  renders: Render[]
+): { node: unknown; finding: string }[] {
+  // The first option set each transition lacks a token under.
+  const lacking = new Map<unknown, { finding: string; options: string }>();
+  const complete = new Set<unknown>();
+  for (const { lists, options } of renders) {
+    const tokens = lists.flatMap(({ text, node }) =>
+      classTokens(text).map((token) => ({ ...token, node }))
+    );
+    const has = (pattern: RegExp) =>
+      tokens.some((t) => pattern.test(t.utility));
+    const first = tokens.find((t) => transition.test(t.utility));
+    if (!first) continue;
+    if (has(durationToken) && has(easeToken)) {
+      complete.add(first.node);
+      continue;
     }
-  }
-  if (transitions.length > 0 && !(has(durationToken) && has(easeToken))) {
     const missing = [
       has(durationToken) ? null : "a `duration-*` token",
       has(easeToken) ? null : "an `ease-*` token",
     ].filter(Boolean);
-    findings.push(`\`${transitions[0]!.raw}\` lacks ${missing.join(" and ")}.`);
+    if (!lacking.has(first.node)) {
+      lacking.set(first.node, {
+        finding: `\`${first.raw}\` lacks ${missing.join(" and ")}`,
+        options,
+      });
+    }
+  }
+  return [...lacking].map(([node, { finding, options }]) => ({
+    node,
+    finding:
+      complete.has(node) && options
+        ? `${finding} (${options}).`
+        : `${finding}.`,
+  }));
+}
+
+function classListFindings(tokens: ClassToken[], selector: string): string[] {
+  const findings: string[] = [];
+
+  for (const token of tokens) {
+    if (token.utility === "transition-all") {
+      findings.push(`\`${token.raw}\` animates every property.`);
+    }
   }
 
   // Settle on an exit: under an exit-state variant, or alongside an exit

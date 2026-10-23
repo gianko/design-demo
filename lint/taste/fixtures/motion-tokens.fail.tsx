@@ -18,6 +18,29 @@ export const sheet = tv({
   ],
 });
 
+// A base transition whose duration comes from a variant: one option leaves it
+// out, and the token set for another slot doesn't count for this one.
+export const toast = tv({
+  slots: {
+    root: "transition-opacity ease-standard", // ✗ taste/motion-tokens
+    icon: "size-icon",
+  },
+  variants: {
+    size: {
+      sm: { root: "duration-fast" },
+      md: { icon: "duration-fast" },
+    },
+  },
+  defaultVariants: { size: "sm" },
+});
+
+// The only option that sets the duration applies when `open` is true, and
+// nothing applies when it isn't.
+export const hint = tv({
+  base: "transition-colors ease-standard", // ✗ taste/motion-tokens
+  variants: { open: { true: "duration-fast" } },
+});
+
 export function Row({ selected }: { selected: boolean }) {
   return (
     <div

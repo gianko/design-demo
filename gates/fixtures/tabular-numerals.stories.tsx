@@ -3,8 +3,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 // tabular-numerals (lint/taste/RULES.md). Fail splits a card's amount from
 // its currency symbol, so the digits' own element holds no money on its
 // face, and gives a table's amount tabular figures but leaves the cell
-// start-aligned. Pass has both right, next to a date and a count, which are
-// out of scope.
+// start-aligned. Pass has both right, next to a date, a count and a VAT
+// figure, which are out of scope: VAT is three capitals but no ISO 4217
+// currency code.
 const meta = {
   title: "GateFixtures/TabularNumerals",
   args: { fail: false },
@@ -30,6 +31,7 @@ const meta = {
         </tbody>
       </table>
       <p className="text-caption">1,204 invoices this year</p>
+      <p className="text-caption">VAT 1,200.00</p>
     </div>
   ),
 } satisfies Meta<{ fail: boolean }>;

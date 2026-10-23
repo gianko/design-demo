@@ -3,7 +3,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 // no-pill (lint/taste/RULES.md) at render time. Fail never writes
 // `rounded-full`, so the static rule can't see it: a surface's token radius
 // on a caption-high tag still rounds it fully. Pass holds the same tag to its
-// role's radius, next to the Avatar the config exempts.
+// role's radius, next to the Avatar the config exempts and a bar whose radius
+// is half its width but well under half its height, so not a pill.
 const meta = {
   title: "GateFixtures/NoPill",
   args: { pill: false },
@@ -18,6 +19,7 @@ const meta = {
         data-component="Avatar"
         className="inline-block size-icon rounded-avatar bg-accent"
       />
+      <span className="inline-block h-row w-3xs rounded-tag bg-accent" />
     </div>
   ),
 } satisfies Meta<{ pill: boolean }>;

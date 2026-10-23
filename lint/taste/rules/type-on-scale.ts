@@ -4,13 +4,12 @@
 // and `undersized-ui-text`
 // (https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L504),
 // Apache 2.0, read at commit dad8dbb; reimplemented, no code copied.
-// Impeccable sets a floor under text size. The brief fixes the whole scale,
-// so every visible text's computed size and weight must sit on it; like
-// impeccable, it is the rendered value that counts, so browser defaults
+// Impeccable sets a floor under text size. The design brief fixes the whole
+// scale, so every visible text's computed size and weight must sit on it;
+// like impeccable, it is the rendered value that counts, so browser defaults
 // (a bold `<th>`, a shrunken `<small>`) fail too.
 
-import type { RenderRule } from "../../../gates/render-rules.ts";
-import { inPage } from "../render.ts";
+import { inPage, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
 
 export const id = "type-on-scale";

@@ -1,12 +1,18 @@
-// What the static taste rules read, in either language they run on. In TSX
-// and TS, every string is a possible class list (a className, a tv() slot, a
+// What the static taste rules read, in either language they run on. In TSX,
+// every string is a possible class list (a className, a tv() slot, a
 // template-literal part); JSX text is copy, not classes. In CSS, an @apply is
 // a class list, and each declaration is read with the selector it sits under.
 
 import type { Rule } from "eslint";
+import { tvRenders, type Render } from "./tv.ts";
 
 export type Handlers = {
+  // Each class list on its own.
   classList?(text: string, node: unknown, selector: string): void;
+  // The ways class lists land on one element together: every slot of a tv()
+  // call under every option set (lint/taste/tv.ts), or any other class list
+  // alone, under no options.
+  classLists?(renders: Render[]): void;
   declaration?(
     property: string,
     value: string,
@@ -15,6 +21,8 @@ export type Handlers = {
   ): void;
   keyframes?(name: string, frames: Keyframe[], node: unknown): void;
 };
+
+export type { Render };
 
 // One keyframe selector's declarations; `0%, 100%` gives two.
 export type Keyframe = { offset: number; declarations: Map<string, string> };
@@ -28,6 +36,13 @@ type CssNode = {
   value?: unknown;
 };
 
+// Reports a finding on a node a handler was given, under the rule's message
+// `messageId`, which reads the finding as `{{finding}}`.
+export function reporter(context: Rule.RuleContext, messageId: string) {
+  return (node: unknown, finding: string) =>
+    context.report({ node: node as Rule.Node, messageId, data: { finding } });
+}
+
 export function sourceVisitors(
   context: Rule.RuleContext,
   handlers: Handlers
@@ -35,16 +50,34 @@ export function sourceVisitors(
   if ((context.sourceCode.ast as { type: string }).type === "StyleSheet") {
     return cssVisitors(context, handlers) as Rule.RuleListener;
   }
+  // The class lists a tv() call puts together, read when the call is
+  // entered, before the strings inside it.
+  const inTv = new Set<unknown>();
+  const alone = (text: string, node: Rule.Node) => {
+    handlers.classList?.(text, node, "");
+    if (!inTv.has(node)) {
+      handlers.classLists?.([{ lists: [{ text, node }], options: "" }]);
+    }
+  };
   return {
+    CallExpression(node) {
+      const tv = handlers.classLists && tvRenders(node);
+      if (!tv) return;
+      for (const list of tv.lists) inTv.add(list);
+      handlers.classLists!(
+        tv.renders.map(({ lists, options }) => ({
+          lists: lists.filter((list) => !isCopy(list.node)),
+          options,
+        }))
+      );
+    },
     Literal(node) {
       if (typeof node.value === "string" && !isCopy(node)) {
-        handlers.classList?.(node.value, node, "");
+        alone(node.value, node);
       }
     },
     TemplateElement(node) {
-      if (!isCopy(node)) {
-        handlers.classList?.(node.value.cooked ?? node.value.raw, node, "");
-      }
+      if (!isCopy(node)) alone(node.value.cooked ?? node.value.raw, node);
     },
   };
 }
@@ -85,6 +118,12 @@ function cssVisitors(context: Rule.RuleContext, handlers: Handlers) {
     Atrule(node: CssNode) {
       if (node.name === "apply") {
         handlers.classList?.(text(node.prelude), node, selector());
+        handlers.classLists?.([
+          {
+            lists: [{ text: text(node.prelude), node: node as Rule.Node }],
+            options: "",
+          },
+        ]);
       }
       if (/^(?:-webkit-)?keyframes$/.test(node.name!)) {
         handlers.keyframes?.(text(node.prelude), keyframes(text(node)), node);

@@ -7,8 +7,7 @@
 // past one that clips it with an ellipsis (or a line clamp), but never
 // silently.
 
-import type { RenderRule } from "../../../gates/render-rules.ts";
-import { inPage } from "../render.ts";
+import { inPage, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
 
 export const id = "text-overflow";
@@ -16,7 +15,7 @@ export const id = "text-overflow";
 export const render: RenderRule = {
   name: id,
   help: help(id),
-  check: (page, root) => inPage(page, root, overflowing, null),
+  check: (page, root) => inPage(page, root, overflowing),
 };
 
 function overflowing(root: Element): string[] {

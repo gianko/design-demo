@@ -11,8 +11,10 @@ export default defineConfig([
     ".agents/",
     ".claude/",
     ...generatorOutput,
-    // Planted violations, linted by their own test at the path they plant.
+    // Planted violations. Their own tests lint them with ignores off, and
+    // the gate's e2e plants copies where `pnpm lint` looks.
     "lint/token/fixtures/",
+    "lint/taste/fixtures/",
   ]),
   {
     // Kept off CSS, which ESLint lints too (gate 2).

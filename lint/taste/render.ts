@@ -1,11 +1,21 @@
-// What the render-time taste rules share in the page: the visible text under
-// the story root, and a short description of an element for a failure line.
-// Page functions can't close over Node modules, so `installHelpers` puts
-// these on `globalThis.taste` before a rule's page function runs.
+// What the render-time taste rules share: the shape gate 7 runs them in, and,
+// in the page, the visible text under the story root and a short quote of it
+// for a failure line. Page functions can't close over Node modules, so
+// `installHelpers` puts these on `globalThis.taste` before a rule's page
+// function runs.
 
 import type { Page } from "@playwright/test";
 
-export type Text = {
+// A render-time taste rule. It inspects one rendered story and returns its
+// failures, one line each, worded so the story, theme and density in the test
+// title complete them. Its help line is its line in RULES.md.
+export type RenderRule = {
+  name: string;
+  help: string;
+  check: (page: Page, root: string) => Promise<string[]>;
+};
+
+export type VisibleText = {
   node: globalThis.Text;
   element: Element;
   // The text as it reads, whitespace collapsed.
@@ -15,7 +25,7 @@ export type Text = {
 };
 
 export type Helpers = {
-  texts(root: Element): Text[];
+  texts(root: Element): VisibleText[];
   quote(text: string): string;
 };
 
@@ -23,12 +33,24 @@ declare global {
   var taste: Helpers;
 }
 
-// Runs a rule's page function on the story root.
+// Runs a rule's page function on the story root, with what it needs from
+// Node, if anything.
+export async function inPage<Result>(
+  page: Page,
+  root: string,
+  check: (root: Element) => Result
+): Promise<Result>;
 export async function inPage<Arg, Result>(
   page: Page,
   root: string,
   check: (root: Element, arg: Arg) => Result,
   arg: Arg
+): Promise<Result>;
+export async function inPage<Arg, Result>(
+  page: Page,
+  root: string,
+  check: (root: Element, arg?: Arg) => Result,
+  arg?: Arg
 ): Promise<Result> {
   await page.evaluate(installHelpers);
   return page
@@ -39,7 +61,7 @@ export async function inPage<Arg, Result>(
 function installHelpers() {
   globalThis.taste = {
     texts(root) {
-      const texts: Text[] = [];
+      const texts: VisibleText[] = [];
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       for (let node = walker.nextNode(); node; node = walker.nextNode()) {
         const text = node.textContent!.replace(/\s+/g, " ").trim();

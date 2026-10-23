@@ -7,6 +7,9 @@
   border-color: white;
   margin: var(--ds-space-sm, 13px);
   box-shadow: 0 0 0 1px var(--ds-color-border-line);
+  box-shadow:
+    var(--ds-elevation-raised),
+    0 0 0 var(--ds-border-width-hairline) #2a1f2d1f;
   font-family: Inter;
   font-weight: 700;
   line-height: 1.5;
