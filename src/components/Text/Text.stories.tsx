@@ -1,20 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Text } from "./Text.tsx";
 
-// Text paints no background, and the global decorator doesn't paint the page,
-// so each story sits on the page role it would sit on in a Screen. Without it,
-// dark ink lands on the browser's white.
-const meta = {
-  title: "Components/Text",
-  component: Text,
-  decorators: [
-    (Story) => (
-      <div className="bg-page">
-        <Story />
-      </div>
-    ),
-  ],
-} satisfies Meta<typeof Text>;
+const meta = { title: "Components/Text", component: Text } satisfies Meta<
+  typeof Text
+>;
 
 export default meta;
 
