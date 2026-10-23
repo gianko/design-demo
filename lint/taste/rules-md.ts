@@ -8,7 +8,7 @@ export type RuleRow = {
   id: string;
   origin: string;
   failsWhen: string;
-  briefLine: string;
+  designBriefLine: string;
 };
 
 const rulesMd = resolve(import.meta.dirname, "RULES.md");
@@ -26,20 +26,20 @@ export function ruleRows(markdown = readFileSync(rulesMd, "utf8")): RuleRow[] {
       const cells = line
         .split(" | ")
         .map((cell) => cell.replace(/^\| |\s\|$/g, ""));
-      const [id, , origin, , failsWhen, briefLine] = cells;
+      const [id, , origin, , failsWhen, designBriefLine] = cells;
       return {
         id: id!.replaceAll("`", ""),
         origin: origin!,
         failsWhen: failsWhen!,
-        briefLine: briefLine!,
+        designBriefLine: designBriefLine!,
       };
     });
 }
 
-// A rule's help line: what fails, then the brief line it enforces, both as
-// RULES.md words them.
+// A rule's help line: what fails, then the design brief line it enforces,
+// both as RULES.md words them.
 export function help(id: string): string {
   const row = ruleRows().find((row) => row.id === id);
   if (!row) throw new Error(`RULES.md has no rule \`${id}\`.`);
-  return `${row.failsWhen} Brief: ${row.briefLine}`;
+  return `${row.failsWhen} Design brief: ${row.designBriefLine}`;
 }

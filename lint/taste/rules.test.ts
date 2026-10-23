@@ -27,14 +27,14 @@ const staticRules = ["no-pill", "motion-tokens"];
 
 describe.each(staticRules)("taste/%s's ESLint message", (rule) => {
   it("carries its RULES.md line", async () => {
-    const [, , , , failsWhen, briefLine] = row(`\`${rule}\``);
+    const [, , , , failsWhen, designBriefLine] = row(`\`${rule}\``);
     const eslint = new ESLint({ cwd: repo, ignore: false });
     const [result] = await eslint.lintFiles([
       resolve(import.meta.dirname, `fixtures/${rule}.fail.tsx`),
     ]);
     const message = result!.messages.find((m) => m.ruleId === `taste/${rule}`);
     expect(message?.message).toContain(failsWhen);
-    expect(message?.message).toContain(briefLine);
+    expect(message?.message).toContain(`Design brief: ${designBriefLine}`);
   });
 });
 
@@ -53,10 +53,10 @@ it("gives gate 7 the render rules, each once", () => {
 
 describe.each(renderRuleIds)("gate 7's %s", (rule) => {
   it("carries its RULES.md line", () => {
-    const [, , , , failsWhen, briefLine] = row(`\`${rule}\``);
+    const [, , , , failsWhen, designBriefLine] = row(`\`${rule}\``);
     const { help } = renderRules.find((r) => r.name === rule)!;
     expect(help).toContain(failsWhen);
-    expect(help).toContain(briefLine);
+    expect(help).toContain(`Design brief: ${designBriefLine}`);
   });
 });
 
