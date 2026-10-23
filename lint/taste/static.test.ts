@@ -1,7 +1,8 @@
 // @vitest-environment node
 // The static taste rules, run through the repo's own ESLint config over the
 // fixtures in lint/taste/fixtures. Each failing fixture marks every line it
-// expects a finding on with `✗ taste/<rule>`, so the test holds the rule to
+// expects a finding on with `✗ taste/<rule>` (or the inline opt-out ban's
+// `✗ taste-exemptions/no-inline-disable`), so the test holds the rule to
 // exactly those findings; each passing fixture must produce none.
 
 import { ESLint } from "eslint";
@@ -30,7 +31,7 @@ function expected(file: string) {
   return readFileSync(resolve(fixtures, file), "utf8")
     .split("\n")
     .flatMap((line, i) =>
-      [...line.matchAll(/✗ (taste\/[a-z-]+)/g)].map(
+      [...line.matchAll(/✗ (taste(?:-exemptions)?\/[a-z-]+)/g)].map(
         (match) => `${i + 1} ${match[1]}`
       )
     );
@@ -54,6 +55,16 @@ describe.each(staticRules.map((rule) => rule.id))("taste/%s", (rule) => {
 });
 
 describe("exemptions", () => {
+  it.each(["tsx", "css"])(
+    "are never inline: an opt-out that silences a taste rule fails in .%s",
+    async (extension) => {
+      const fail = `no-inline-disable.fail.${extension}`;
+      const marked = expected(fail);
+      expect(marked.length).toBeGreaterThan(0);
+      expect((await findings(fail)).sort()).toEqual(marked.sort());
+    }
+  );
+
   it("lets a component the config exempts from no-pill be fully rounded", async () => {
     expect(await findings("components/Avatar/Avatar.tsx")).toEqual([]);
   });
