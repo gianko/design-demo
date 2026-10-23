@@ -36,6 +36,8 @@ export async function codeGates(
   const eslint = new ESLint({ cwd: repo, ignore: false });
   const results = await eslint.lintText(source, { filePath: file });
   const lint = results.flatMap((result) => result.messages);
+  // Each rule's help line is its own `meta.docs.description` (ADR 0010).
+  const meta = eslint.getRulesMetaForResults(results);
   const gate2: Failure[] = [];
   const gate7: Failure[] = [];
   for (const message of lint) {
@@ -47,6 +49,7 @@ export async function codeGates(
       rule,
       location: `L${message.line}:${message.column}`,
       message: message.message,
+      ...help(meta[rule]?.docs?.description),
     });
   }
 
@@ -109,4 +112,8 @@ function location(diagnostic: ts.Diagnostic, path: string) {
   return resolve(file.fileName) === path
     ? at
     : `${relative(repo, file.fileName)} ${at}`;
+}
+
+function help(description: string | undefined) {
+  return description ? { help: description } : {};
 }
