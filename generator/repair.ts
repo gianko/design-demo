@@ -1,9 +1,9 @@
 // The repair turn (ADR 0010): one failing attempt's hard-gate failures,
-// normalised. Lines are grouped by gate, in gate order, and deduplicated by (rule, location);
-// a render failure seen in several theme × screen state renders collapses
-// into one line listing each. Each gate keeps at most 20 lines and a `+N
-// more` count. Each rule id gets one help line, and the turn ends by asking
-// for the whole output again.
+// normalised. Lines are grouped by gate, in gate order, and deduplicated by
+// (rule, location); a render failure seen in several theme × screen state
+// renders collapses into one line listing each. Each gate keeps at most 20
+// lines and a `+N more` count. Each rule id gets one help line, and the turn
+// ends by asking for the whole output again.
 
 import { type Failure, failureLine } from "./failure.ts";
 
@@ -11,10 +11,18 @@ export type RepairStep = "spec" | "code";
 
 export const linesPerGate = 20;
 
-const output = { spec: "UI spec", code: "TSX file" } as const;
-const resend = {
-  spec: "send the whole UI spec again.",
-  code: "send the whole TSX file again, in one ```tsx block.",
+// The turn's own words. They steer the model as the prompts do, so each
+// step's prompt hash covers them (prompts.ts).
+export const repairWording = {
+  intro:
+    "The {output} you sent fails these gates. Each line is gate · rule id · location · message.",
+  help: "What each rule checks:",
+  ask: "Fix every failure above and {resend}",
+  spec: { output: "UI spec", resend: "send the whole UI spec again." },
+  code: {
+    output: "TSX file",
+    resend: "send the whole TSX file again, in one ```tsx block.",
+  },
 } as const;
 
 export type RepairTurn = {
@@ -60,19 +68,20 @@ export function repairTurn(step: RepairStep, failures: Failure[]): RepairTurn {
     sections.push([gate, ...gateLines].join("\n"));
   }
 
+  const words = repairWording[step];
   const parts = [
-    `The ${output[step]} you sent fails these gates. Each line is gate · rule id · location · message.`,
+    repairWording.intro.replace("{output}", words.output),
     ...sections,
   ];
   if (help.size) {
     parts.push(
       [
-        "What each rule checks:",
+        repairWording.help,
         ...[...help].map(([rule, line]) => `${rule}: ${line}`),
       ].join("\n")
     );
   }
-  parts.push(`Fix every failure above and ${resend[step]}`);
+  parts.push(repairWording.ask.replace("{resend}", words.resend));
   return { lines, text: parts.join("\n\n") };
 }
 

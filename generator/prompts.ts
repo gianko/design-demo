@@ -1,12 +1,13 @@
 // The two steps' prompts (ADR 0003). Each step's system prompt is a cached
 // prefix shared by every rep; the screen brief, and for the code step the UI
-// spec, ride in the user turn after it. A prompt's hash covers its own words
-// and the design brief: the registry has its own hash (ADR 0004), and both
+// spec, ride in the user turn after it. A prompt's hash covers its own words,
+// its repair turn's (repair.ts) and the design brief: the registry has its own hash (ADR 0004), and both
 // sit in the version tuple (ADR 0008). There are no example UI specs.
 
 import { createHash } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { LibraryRegistry } from "./registry.ts";
+import { repairWording } from "./repair.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
 import type { UiSpec } from "./ui-spec.ts";
 
@@ -62,7 +63,7 @@ export function specPrompt(
       `<wire_schema>\n${wireSchemaJson}\n</wire_schema>`,
     ]),
     user: (brief) => fill(specUser, { brief: brief.text }),
-    hash: hash(specInstructions, designBrief, specUser),
+    hash: hash(specInstructions, designBrief, specUser, repairWords("spec")),
   };
 }
 
@@ -82,7 +83,7 @@ export function codePrompt(
         name,
         uiSpec: JSON.stringify(uiSpec),
       }),
-    hash: hash(codeInstructions, designBrief, codeUser),
+    hash: hash(codeInstructions, designBrief, codeUser, repairWords("code")),
   };
 }
 
@@ -97,4 +98,9 @@ function cached(texts: string[]): Anthropic.TextBlockParam[] {
 
 function hash(...parts: string[]) {
   return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
+}
+
+function repairWords(step: "spec" | "code") {
+  const { intro, help, ask } = repairWording;
+  return JSON.stringify({ intro, help, ask, ...repairWording[step] });
 }
