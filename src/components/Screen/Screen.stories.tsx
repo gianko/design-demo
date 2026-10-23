@@ -1,5 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { VariantName } from "../../fixtures/fixtures.ts";
+import { Text } from "../Text/Text.tsx";
 import { Screen } from "./Screen.tsx";
+import { ScreenHost, useAction, useScreenState } from "./screen-state.tsx";
 
 // Screen sets its own density from `audience`, so each story keeps its
 // density whatever the toolbar's density global is: the root's scope wins over
@@ -41,4 +44,69 @@ export const Contractor: Story = {
       </>
     ),
   },
+};
+
+// Screen states changing through the library (ADR 0011), wired the way a
+// generated screen wires payment-status's send-reminder action: the screen
+// holds no state, `useAction` runs `sendReminder` and enters `reminder-sent`
+// or `reminder-failed` when it settles, and Screen shows the state it's in.
+// The plain button stands in for Button until Button exists.
+function Reminder() {
+  const { state } = useScreenState();
+  const sendReminder = useAction("sendReminder", {
+    success: "reminder-sent",
+    failure: "reminder-failed",
+  });
+  return (
+    <Screen audience="contractor">
+      <Text text="Northwind Logistics & Freight Holdings Ltd. hasn't paid INV-0142 yet. It was due Oct 8." />
+      {state === "reminder-sent" && (
+        <Text
+          live
+          text="Reminder sent to Northwind. We'll tell you when they pay."
+        />
+      )}
+      {state === "reminder-failed" && (
+        <Text
+          live
+          text="The reminder didn't send. Check your connection and send it again."
+        />
+      )}
+      {state !== "reminder-sent" && (
+        <button
+          type="button"
+          aria-busy={sendReminder.pending}
+          aria-disabled={sendReminder.pending}
+          className="mt-2xs rounded-control bg-surface px-control py-3xs text-label"
+          onClick={() => sendReminder.run("INV-0142")}
+        >
+          Send reminder
+        </button>
+      )}
+    </Screen>
+  );
+}
+
+const hosted = (variant: VariantName, state?: string) => () => (
+  <ScreenHost variant={variant} state={state}>
+    <Reminder />
+  </ScreenHost>
+);
+
+// `sendReminder` succeeds under this variant.
+export const SendReminder: Story = {
+  args: { audience: "contractor" },
+  render: hosted("payment-status/reminder-sent"),
+};
+
+// `sendReminder` fails under this variant.
+export const ReminderFails: Story = {
+  args: { audience: "contractor" },
+  render: hosted("payment-status/reminder-failed"),
+};
+
+// Rendered in the state the action enters, as a kept screen's state story is.
+export const ReminderSent: Story = {
+  args: { audience: "contractor" },
+  render: hosted("payment-status/reminder-sent", "reminder-sent"),
 };
