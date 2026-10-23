@@ -5,7 +5,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 const meta = {
   title: "Placeholder",
   render: () => (
-    <div className="bg-page p-page">
+    <div className="p-page">
       <div className="flex flex-col items-start gap-sm rounded-surface border border-line bg-surface p-page">
         <p className="text-body text-ink">Placeholder</p>
         <p className="text-caption text-ink-muted">
