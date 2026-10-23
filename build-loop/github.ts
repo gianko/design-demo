@@ -24,8 +24,6 @@ type RestIssue = {
 
 export function githubTracker(gh: Gh, repo: string): Tracker {
   return {
-    repo,
-
     buildLoopIssues() {
       // The issues endpoint lists PRs too.
       const pages: RestIssue[][] = JSON.parse(

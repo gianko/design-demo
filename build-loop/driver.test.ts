@@ -49,7 +49,7 @@ describe("drive", () => {
     expect(pr!.body).toMatch(/^Closes #54\n/);
     expect(pr!.body).toContain("success: 39 turns, 3 min, ~$1.05 (estimate)");
     expect(pr!.body).toContain(
-      "[contact sheet](https://github.com/gianko/design-demo/actions/workflows/ci.yml?query=branch%3Abuild-component-text)"
+      "**Baselines to approve:** the contact sheet CI links in a comment below."
     );
     // Text is now taken and Stack is still blocked, so the next iteration stops.
     expect(world.log.at(-1)).toBe("No build-loop issue is unblocked.");
@@ -210,7 +210,6 @@ function fakeWorld(
   };
   const ports: Ports = {
     tracker: {
-      repo: "gianko/design-demo",
       buildLoopIssues: () =>
         issues.map((each) => ({ ...each, assignees: [...each.assignees] })),
       claim(number) {

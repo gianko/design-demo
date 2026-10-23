@@ -14,8 +14,6 @@ export type Issue = {
 export type PullRequest = { branch: string; title: string; body: string };
 
 export interface Tracker {
-  // `owner/name`.
-  readonly repo: string;
   // Every open issue labelled `build-loop`.
   buildLoopIssues(): Issue[];
   // Assigns the issue, so the next iteration of the loop skips it.
@@ -110,10 +108,7 @@ export function drive(
     const pr = tracker.openPullRequest({
       branch: build.branch,
       title: issue.title,
-      body: pullRequestBody(tracker.repo, issue, component, build, {
-        filed,
-        next,
-      }),
+      body: pullRequestBody(issue, component, build, { filed, next }),
     });
     log(`Opened PR #${pr} for #${issue.number}`);
   }
@@ -137,22 +132,20 @@ function componentOf(issue: Issue): string {
   return name;
 }
 
-// CI uploads the contact sheet as an artifact of the branch's run, which
-// doesn't exist yet when the PR opens, so the link lists the branch's runs.
+// The contact sheet's run doesn't exist yet when the PR opens, so CI comments
+// its artifact link on the PR instead (.github/workflows/ci.yml).
 function pullRequestBody(
-  repo: string,
   issue: Issue,
   component: string,
   build: Build,
   { filed, next }: { filed: number[]; next: Issue | undefined }
 ): string {
-  const runs = `https://github.com/${repo}/actions/workflows/ci.yml?query=${encodeURIComponent(`branch:${build.branch}`)}`;
   return [
     `Closes #${issue.number}`,
     "",
     `Built by one unattended \`/build-component ${component}\` session (\`pnpm build-loop\`, ADR 0006). Nobody edited its output by hand.`,
     "",
-    `**Baselines to approve:** the \`contact-sheet\` artifact of this branch's CI run ([contact sheet](${runs})).`,
+    "**Baselines to approve:** the contact sheet CI links in a comment below.",
     "",
     "## Session",
     "",
