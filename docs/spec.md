@@ -160,9 +160,9 @@ One `build-loop` issue each, in this order, each blocked by the one before. Each
 
 A component lives in `src/components/<Name>/`: the component, its `*.registry.ts` entry and its stories. Its root element carries `data-component="<Name>"`. Taste-rule exemptions name components, so both are how the gates find one: the file path in ESLint and the marker in the rendered page ([`lint/taste/config.ts`](../lint/taste/config.ts)).
 
-1. **Screen**: the screen root. `audience` prop sets `data-density` and applies `p-page`. Exactly one per UI spec, as its root.
+1. **Screen**: the screen root. `audience` prop sets `data-density` and applies `p-page`. Exactly one per UI spec, as its root. It always renders one visually hidden, empty, polite `role="status"` region and provides `announce(text)` to the library through context, so the region exists before any copy arrives ([Text's `live`](https://github.com/gianko/design-demo/issues/98)).
 2. **Stack**: direction, token-union gap and alignment, no `className` ([ADR 0002](adr/0002-token-only-tailwind-and-eslint-token-lint.md)).
-3. **Text**: `tone` and `size` ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)), and a `live` prop that renders it as a polite `role="status"` region, which confirms an action's result.
+3. **Text**: `tone` and `size` ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)), and a `live` prop, which confirms an action's result: a live Text renders as an ordinary paragraph and, when it mounts (its state is entered), calls Screen's `announce` with its copy. P1's Toast reuses `announce` rather than being its own live region ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)).
 4. **Heading**: `level` 1–3.
 5. **Amount**: `value`, `currency`, `display: table|card`; it owns tabular figures, cents and currency format.
 6. **StatusTag**: the five status pairs, each with its word; tag radius, never a pill.
