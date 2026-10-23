@@ -173,7 +173,8 @@ function swingFinding(frames: Keyframe[]): string | null {
 function missingTokens(
   renders: Render[]
 ): { node: unknown; finding: string }[] {
-  const lacking = new Map<unknown, { finding: string; options: string[] }>();
+  // The first option set each transition lacks a token under.
+  const lacking = new Map<unknown, { finding: string; options: string }>();
   const complete = new Set<unknown>();
   for (const { lists, options } of renders) {
     const tokens = lists.flatMap(({ text, node }) =>
@@ -191,18 +192,18 @@ function missingTokens(
       has(durationToken) ? null : "a `duration-*` token",
       has(easeToken) ? null : "an `ease-*` token",
     ].filter(Boolean);
-    const found = lacking.get(first.node) ?? {
-      finding: `\`${first.raw}\` lacks ${missing.join(" and ")}`,
-      options: [],
-    };
-    found.options.push(options);
-    lacking.set(first.node, found);
+    if (!lacking.has(first.node)) {
+      lacking.set(first.node, {
+        finding: `\`${first.raw}\` lacks ${missing.join(" and ")}`,
+        options,
+      });
+    }
   }
   return [...lacking].map(([node, { finding, options }]) => ({
     node,
     finding:
-      complete.has(node) && options[0]
-        ? `${finding} (${options[0]}).`
+      complete.has(node) && options
+        ? `${finding} (${options}).`
         : `${finding}.`,
   }));
 }
