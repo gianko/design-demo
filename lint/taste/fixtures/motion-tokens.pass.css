@@ -1,0 +1,56 @@
+/* Motion from the tokens: settle on enter, exit tokens on close, a token
+   animation, a keyframe with one overshoot, and one that wraps around. */
+.row {
+  transition: background-color var(--ds-motion-duration-fast)
+    var(--ds-motion-ease-standard);
+}
+
+.sheet[data-state="open"] {
+  transition-duration: var(--ds-motion-duration-slow);
+  transition-timing-function: var(--ds-motion-ease-settle);
+}
+
+.sheet[data-state="closed"] {
+  transition-duration: var(--ds-motion-duration-slow-exit);
+  transition-timing-function: var(--ds-motion-ease-exit);
+}
+
+.edge {
+  animation: var(--ds-motion-animate-progress-fill);
+}
+
+.toast {
+  @apply transition-opacity duration-fast ease-standard;
+}
+
+.still {
+  transition: none;
+  transition-property: opacity;
+}
+
+@keyframes settle-in {
+  0% {
+    transform: scale(0.96);
+  }
+  70% {
+    transform: scale(1.01);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes wrap {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  50.01% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}

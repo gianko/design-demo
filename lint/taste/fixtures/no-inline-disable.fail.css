@@ -1,0 +1,16 @@
+/* Inline opt-outs of taste rules in CSS (lint/taste/RULES.md § Exemptions),
+   each an error, alone or alongside token lint's. Token lint's own opt-out,
+   at the end, is gate 2's business, not taste lint's. */
+.tag {
+  /* eslint-disable-next-line taste/no-pill -- ✗ taste-exemptions/no-inline-disable */
+  @apply rounded-full;
+}
+
+.fade {
+  transition: opacity var(--ds-motion-duration-fast) ease-in-out; /* eslint-disable-line token/no-raw-css-values, taste/motion-tokens -- ✗ taste-exemptions/no-inline-disable */
+}
+
+.raw {
+  /* eslint-disable-next-line token/no-raw-css-values */
+  color: #fff;
+}

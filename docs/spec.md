@@ -158,6 +158,8 @@ The capture script in `.storybook/preview-head.html` and the prompt that runs `g
 
 One `build-loop` issue each, in this order, each blocked by the one before. Each is done when `pnpm gate <Component>` passes in CI, its `*.registry.ts` entry and stories exist, every variant and state is a story in light/dark × admin/contractor, it's exported from the barrel, and the human has approved its baselines and merged its PR. What follows is only what the slice needs from each. Anatomy and the rest are the session's component plan, against the design brief.
 
+A component lives in `src/components/<Name>/`: the component, its `*.registry.ts` entry and its stories. Its root element carries `data-component="<Name>"`. Taste-rule exemptions name components, so both are how the gates find one: the file path in ESLint and the marker in the rendered page ([`lint/taste/config.ts`](../lint/taste/config.ts)).
+
 1. **Screen**: the screen root. `audience` prop sets `data-density` and applies `p-page`. Exactly one per UI spec, as its root.
 2. **Stack**: direction, token-union gap and alignment, no `className` ([ADR 0002](adr/0002-token-only-tailwind-and-eslint-token-lint.md)).
 3. **Text**: `tone` and `size` ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)), and a `live` prop that renders it as a polite `role="status"` region, which confirms an action's result.

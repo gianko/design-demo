@@ -3,9 +3,23 @@
 // directory, so the committed ones are never touched.
 
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { staticRules } from "../lint/taste/rules/index.ts";
+import * as noPill from "../lint/taste/rules/no-pill.ts";
+import * as tabularNumerals from "../lint/taste/rules/tabular-numerals.ts";
+import * as textOverflow from "../lint/taste/rules/text-overflow.ts";
+import * as typeOnScale from "../lint/taste/rules/type-on-scale.ts";
+import { renderRules } from "./render-rules.ts";
 import { renderTitle, renders, shotName, type Render } from "./stories.ts";
 
 const repo = resolve(import.meta.dirname, "..");
@@ -91,6 +105,32 @@ function seed(args: string[]) {
   }
 }
 
+describe("token lint", () => {
+  // Planted in src/ for this test only, and removed after it.
+  const story = join(repo, "src/gate-raw-value.stories.tsx");
+
+  afterAll(() => rmSync(story, { force: true }));
+
+  it("fails a story that uses a raw value, naming the rule", () => {
+    writeFileSync(
+      story,
+      `export default { title: "GateFixtures/RawValue" };
+export const RawValue = { render: () => <p className="bg-[#fff]">Raw</p> };
+`
+    );
+
+    const { status, stdout, stderr } = spawnSync("pnpm", ["gate"], {
+      cwd: repo,
+      encoding: "utf8",
+    });
+
+    expect(status).not.toBe(0);
+    expect(stdout + stderr).toMatch(
+      /gate-raw-value\.stories\.tsx[\s\S]*'\[#fff\]'[\s\S]*better-tailwindcss\/no-restricted-classes/
+    );
+  });
+});
+
 describe("in CI", () => {
   // A story nobody approved.
   const [missing] = rendersOf("gatefixtures-onepixel--before");
@@ -145,6 +185,59 @@ describe("in CI", () => {
     });
   });
 
+  // The P0 render-time taste rules (lint/taste/RULES.md): each rule's
+  // failing fixture story fails gate 7 under the rule's id, with the finding.
+  // A rule's fixtures are the stories of GateFixtures/<Rule>.
+  const fixture = (rule: string, story: string) =>
+    `gatefixtures-${rule.replaceAll("-", "")}--${story}`;
+
+  it.each([
+    [noPill.id, "fail", /"Paid" has a \d+px corner radius on a \d+px-high box/],
+    [typeOnScale.id, "fail", /"Contractor" is set in weight 700/],
+    [typeOnScale.id, "fail", /"yesterday" is set at \d+(\.\d+)?px/],
+    [tabularNumerals.id, "fail", /"4,800\.00" lacks tabular-nums/],
+    [
+      tabularNumerals.id,
+      "fail",
+      /"1,250\.00 EUR" is not end-aligned in its cell/,
+    ],
+    [
+      textOverflow.id,
+      "spill",
+      /"DE89370400440532013000" spills out of its box/,
+    ],
+    [
+      textOverflow.id,
+      "spill",
+      /"Approve and pay all overdue invoices" spills out of its box/,
+    ],
+    [
+      textOverflow.id,
+      "clip",
+      /"Northwind Logistics GmbH" is clipped without an ellipsis/,
+    ],
+    [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
+  ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
+    // The report prints each finding as a JSON string, quotes escaped.
+    const printed = finding.source.replaceAll('"', '\\\\?"');
+    for (const render of rendersOf(fixture(rule, story))) {
+      expectFailed(
+        run,
+        render,
+        new RegExp(`gate 7: ${rule}\\b[\\s\\S]*${printed}`)
+      );
+    }
+  });
+
+  it.each(renderRules.map((rule) => rule.name))(
+    "passes the %s fixture that follows its taste rule",
+    (rule) => {
+      for (const render of rendersOf(fixture(rule, "pass"))) {
+        expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+      }
+    }
+  );
+
   it("fails a missing baseline instead of writing it", () => {
     expectFailed(
       run,
@@ -152,6 +245,63 @@ describe("in CI", () => {
       /gate 6: baseline[\s\S]*A snapshot doesn't exist/
     );
     expect(existsSync(baseline(missing!))).toBe(false);
+  });
+});
+
+// The static taste rules and token lint run in the gate's ESLint step, which
+// stops the gate before the Playwright pass. `pnpm lint` ignores their
+// fixtures, so this plants copies where it looks, and removes them after.
+describe("static lint fixtures", () => {
+  const planted = join(repo, "gates/planted-lint-fixtures");
+  const tasteFixtures = join(repo, "lint/taste/fixtures");
+  let output: string;
+  let status: number | null;
+
+  // The gate's ESLint report on one planted file.
+  const reportOf = (file: string) =>
+    output
+      .split(/\n(?=\/)/)
+      .find((block) => block.startsWith(join(planted, file)));
+
+  beforeAll(() => {
+    rmSync(planted, { recursive: true, force: true });
+    mkdirSync(planted);
+    // The rules' own fixtures (the Avatar exemption needs a library path, so
+    // static.test.ts covers it), and token lint's planted CSS.
+    for (const file of readdirSync(tasteFixtures)) {
+      if (/\.(?:pass|fail)\.(?:tsx|css)$/.test(file)) {
+        cpSync(join(tasteFixtures, file), join(planted, file));
+      }
+    }
+    cpSync(
+      join(repo, "lint/token/fixtures/violations.css"),
+      join(planted, "violations.css")
+    );
+    ({ status, stdout: output } = spawnSync("pnpm", ["gate"], {
+      cwd: repo,
+      encoding: "utf8",
+    }));
+  });
+
+  afterAll(() => rmSync(planted, { recursive: true, force: true }));
+
+  it.each([
+    ...staticRules.flatMap(({ id }) =>
+      ["tsx", "css"].map((extension) => [
+        `taste/${id}`,
+        `${id}.fail.${extension}`,
+      ])
+    ),
+    ["taste-exemptions/no-inline-disable", "no-inline-disable.fail.tsx"],
+    ["taste-exemptions/no-inline-disable", "no-inline-disable.fail.css"],
+    ["token/no-raw-css-values", "violations.css"],
+  ])("fails %s on %s", (rule, file) => {
+    expect(status).not.toBe(0);
+    expect(reportOf(file)).toMatch(new RegExp(`error .* ${rule}\\n`));
+  });
+
+  it("passes the taste fixtures that follow the rules", () => {
+    expect(output).not.toMatch(/\.pass\.(tsx|css)/);
   });
 });
 

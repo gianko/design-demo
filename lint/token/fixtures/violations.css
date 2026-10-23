@@ -1,0 +1,22 @@
+/* Planted as library CSS. Each declaration below carries one raw value;
+   lint/token/token-lint.test.ts lists the findings it must produce. */
+.fixture {
+  --gutter: 13px;
+  color: #fff;
+  background: rgb(0 0 0);
+  border-color: white;
+  margin: var(--ds-space-sm, 13px);
+  box-shadow: 0 0 0 1px var(--ds-color-border-line);
+  box-shadow:
+    var(--ds-elevation-raised),
+    0 0 0 var(--ds-border-width-hairline) #2a1f2d1f;
+  font-family: Inter;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  z-index: 50;
+  opacity: 0.5;
+  transition: color var(--ds-motion-duration-fast) ease-in-out;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  @apply bg-accent/50 p-[13px] text-ink;
+}
