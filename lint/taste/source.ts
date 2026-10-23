@@ -28,6 +28,13 @@ type CssNode = {
   value?: unknown;
 };
 
+// Reports a finding on a node a handler was given, under the rule's message
+// `messageId`, which reads the finding as `{{finding}}`.
+export function reporter(context: Rule.RuleContext, messageId: string) {
+  return (node: unknown, finding: string) =>
+    context.report({ node: node as Rule.Node, messageId, data: { finding } });
+}
+
 export function sourceVisitors(
   context: Rule.RuleContext,
   handlers: Handlers

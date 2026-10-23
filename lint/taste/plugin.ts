@@ -6,18 +6,21 @@ import css from "@eslint/css";
 import type { ESLint, Linter } from "eslint";
 import { tailwind4 } from "tailwind-csstree";
 import { config } from "./config.ts";
-import * as motionTokens from "./rules/motion-tokens.ts";
-import * as noPill from "./rules/no-pill.ts";
+import { staticRules } from "./rules/index.ts";
 
 const plugin: ESLint.Plugin = {
   meta: { name: "taste" },
-  rules: { [noPill.id]: noPill.lint, [motionTokens.id]: motionTokens.lint },
+  rules: Object.fromEntries(staticRules.map((rule) => [rule.id, rule.lint])),
 };
 
-const rules: Linter.RulesRecord = {
-  "taste/no-pill": ["error", config["no-pill"]],
-  "taste/motion-tokens": "error",
-};
+// Every rule is an error, with its config as its options when it has one.
+const options: Partial<Record<string, unknown>> = config;
+const rules: Linter.RulesRecord = Object.fromEntries(
+  staticRules.map(({ id }) => [
+    `taste/${id}`,
+    options[id] ? ["error", options[id]] : "error",
+  ])
+);
 
 export const tasteConfigs: Linter.Config[] = [
   // The planted violations the rules' own tests lint. The gate's tests lint

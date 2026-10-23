@@ -6,8 +6,7 @@
 // table ends its text at the cell's end edge. Dates and counts are out of
 // scope.
 
-import type { RenderRule } from "../../../gates/render-rules.ts";
-import { inPage } from "../render.ts";
+import { inPage, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
 
 export const id = "tabular-numerals";
@@ -15,7 +14,7 @@ export const id = "tabular-numerals";
 export const render: RenderRule = {
   name: id,
   help: help(id),
-  check: (page, root) => inPage(page, root, untabular, null),
+  check: (page, root) => inPage(page, root, untabular),
 };
 
 function untabular(root: Element): string[] {

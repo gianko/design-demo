@@ -5,12 +5,11 @@
 // token radius on a short element is as much a pill as `rounded-full`).
 
 import type { Rule } from "eslint";
-import type { RenderRule } from "../../../gates/render-rules.ts";
 import { classTokens } from "../classes.ts";
 import { config } from "../config.ts";
-import { inPage } from "../render.ts";
+import { inPage, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
-import { sourceVisitors } from "../source.ts";
+import { reporter, sourceVisitors } from "../source.ts";
 
 export const id = "no-pill";
 
@@ -35,19 +34,14 @@ export const lint: Rule.RuleModule = {
         additionalProperties: false,
       },
     ],
-    messages: { pill: `\`{{found}}\` is fully rounded. ${help(id)}` },
+    messages: { pill: `\`{{finding}}\` is fully rounded. ${help(id)}` },
   },
   create(context) {
     const { exempt = [] } = (context.options[0] ?? {}) as Partial<Options>;
     const path = context.filename.split("\\").join("/");
     if (exempt.some((name) => path.includes(`/components/${name}/`))) return {};
 
-    const report = (node: unknown, found: string) =>
-      context.report({
-        node: node as Rule.Node,
-        messageId: "pill",
-        data: { found },
-      });
+    const report = reporter(context, "pill");
 
     return sourceVisitors(context, {
       classList(text, node) {
@@ -70,8 +64,7 @@ export const lint: Rule.RuleModule = {
 export const render: RenderRule = {
   name: id,
   help: help(id),
-  check: (page, root) =>
-    inPage(page, root, findPills, config["no-pill"].exempt),
+  check: (page, root) => inPage(page, root, findPills, config[id].exempt),
 };
 
 // In the page: every visible box whose corner radius reaches half its height

@@ -13,6 +13,12 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { staticRules } from "../lint/taste/rules/index.ts";
+import * as noPill from "../lint/taste/rules/no-pill.ts";
+import * as tabularNumerals from "../lint/taste/rules/tabular-numerals.ts";
+import * as textOverflow from "../lint/taste/rules/text-overflow.ts";
+import * as typeOnScale from "../lint/taste/rules/type-on-scale.ts";
+import { renderRules } from "./render-rules.ts";
 import { renderTitle, renders, shotName, type Render } from "./stories.ts";
 
 const repo = resolve(import.meta.dirname, "..");
@@ -178,54 +184,42 @@ describe("in CI", () => {
     });
   });
 
-  // The P0 render-time taste rules (lint/taste/RULES.md): each failing
-  // fixture fails gate 7 under the rule's id, with the finding.
+  // The P0 render-time taste rules (lint/taste/RULES.md): each rule's
+  // failing fixture story fails gate 7 under the rule's id, with the finding.
+  // A rule's fixtures are the stories of GateFixtures/<Rule>.
+  const fixture = (rule: string, story: string) =>
+    `gatefixtures-${rule.replaceAll("-", "")}--${story}`;
+
   it.each([
+    [noPill.id, "fail", /"Paid" has a \d+px corner radius on a \d+px-high box/],
+    [typeOnScale.id, "fail", /"Contractor" is set in weight 700/],
+    [typeOnScale.id, "fail", /"yesterday" is set at \d+(\.\d+)?px/],
+    [tabularNumerals.id, "fail", /"4,800\.00" lacks tabular-nums/],
     [
-      "no-pill",
-      "nopill--fail",
-      /"Paid" has a \d+px corner radius on a \d+px-high box/,
-    ],
-    ["type-on-scale", "typeonscale--fail", /"Contractor" is set in weight 700/],
-    [
-      "type-on-scale",
-      "typeonscale--fail",
-      /"yesterday" is set at \d+(\.\d+)?px/,
-    ],
-    [
-      "tabular-numerals",
-      "tabularnumerals--fail",
-      /"4,800\.00" lacks tabular-nums/,
-    ],
-    [
-      "tabular-numerals",
-      "tabularnumerals--fail",
+      tabularNumerals.id,
+      "fail",
       /"1,250\.00 EUR" is not end-aligned in its cell/,
     ],
     [
-      "text-overflow",
-      "textoverflow--spill",
+      textOverflow.id,
+      "spill",
       /"DE89370400440532013000" spills out of its box/,
     ],
     [
-      "text-overflow",
-      "textoverflow--spill",
+      textOverflow.id,
+      "spill",
       /"Approve and pay all overdue invoices" spills out of its box/,
     ],
     [
-      "text-overflow",
-      "textoverflow--clip",
+      textOverflow.id,
+      "clip",
       /"Northwind Logistics GmbH" is clipped without an ellipsis/,
     ],
-    [
-      "text-overflow",
-      "textoverflow--collide",
-      /"Awaiting" collides with "Paid"/,
-    ],
+    [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
     const printed = finding.source.replaceAll('"', '\\\\?"');
-    for (const render of rendersOf(`gatefixtures-${story}`)) {
+    for (const render of rendersOf(fixture(rule, story))) {
       expectFailed(
         run,
         render,
@@ -234,10 +228,10 @@ describe("in CI", () => {
     }
   });
 
-  it.each(["nopill", "typeonscale", "tabularnumerals", "textoverflow"])(
+  it.each(renderRules.map((rule) => rule.name))(
     "passes the %s fixture that follows its taste rule",
-    (fixture) => {
-      for (const render of rendersOf(`gatefixtures-${fixture}--pass`)) {
+    (rule) => {
+      for (const render of rendersOf(fixture(rule, "pass"))) {
         expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
       }
     }
@@ -268,12 +262,11 @@ describe("static taste rules", () => {
     }));
   });
 
-  it.each([
-    ["no-pill", "no-pill.fail.tsx"],
-    ["no-pill", "no-pill.fail.css"],
-    ["motion-tokens", "motion-tokens.fail.tsx"],
-    ["motion-tokens", "motion-tokens.fail.css"],
-  ])("fails taste/%s on %s", (rule, file) => {
+  it.each(
+    staticRules.flatMap(({ id }) =>
+      ["tsx", "css"].map((extension) => [id, `${id}.fail.${extension}`])
+    )
+  )("fails taste/%s on %s", (rule, file) => {
     expect(status).not.toBe(0);
     const report = output
       .split(/\n(?=\/)/)

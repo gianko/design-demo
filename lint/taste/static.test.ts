@@ -8,6 +8,7 @@ import { ESLint } from "eslint";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { staticRules } from "./rules/index.ts";
 
 const repo = resolve(import.meta.dirname, "../..");
 const fixtures = resolve(import.meta.dirname, "fixtures");
@@ -35,11 +36,8 @@ function expected(file: string) {
     );
 }
 
-describe.each([
-  ["no-pill", ["tsx", "css"]],
-  ["motion-tokens", ["tsx", "css"]],
-])("taste/%s", (rule, extensions) => {
-  describe.each(extensions)("in .%s", (extension) => {
+describe.each(staticRules.map((rule) => rule.id))("taste/%s", (rule) => {
+  describe.each(["tsx", "css"])("in .%s", (extension) => {
     const fail = `${rule}.fail.${extension}`;
     const pass = `${rule}.pass.${extension}`;
 

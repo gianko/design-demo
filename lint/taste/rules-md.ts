@@ -6,7 +6,10 @@ import { resolve } from "node:path";
 
 export type RuleRow = {
   id: string;
+  p0: boolean;
   origin: string;
+  // "static", "render" or "static + render".
+  check: string;
   failsWhen: string;
   designBriefLine: string;
 };
@@ -26,10 +29,12 @@ export function ruleRows(markdown = readFileSync(rulesMd, "utf8")): RuleRow[] {
       const cells = line
         .split(" | ")
         .map((cell) => cell.replace(/^\| |\s\|$/g, ""));
-      const [id, , origin, , failsWhen, designBriefLine] = cells;
+      const [id, p0, origin, check, failsWhen, designBriefLine] = cells;
       return {
         id: id!.replaceAll("`", ""),
+        p0: p0 === "**P0**",
         origin: origin!,
+        check: check!,
         failsWhen: failsWhen!,
         designBriefLine: designBriefLine!,
       };

@@ -9,8 +9,7 @@
 // like impeccable, it is the rendered value that counts, so browser defaults
 // (a bold `<th>`, a shrunken `<small>`) fail too.
 
-import type { RenderRule } from "../../../gates/render-rules.ts";
-import { inPage } from "../render.ts";
+import { inPage, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
 
 export const id = "type-on-scale";
