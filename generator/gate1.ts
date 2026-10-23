@@ -157,6 +157,7 @@ function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
     if (parentEntry) failures.push(...slotChecks(node, parentEntry));
     failures.push(...propChecks(node, entry, screen));
   }
+  failures.push(...stateChecks(spec, byId, fixtures));
 
   // The audience is the screen brief's, on the spec and on its Screen.
   if (spec.audience !== audience) {
@@ -184,6 +185,115 @@ function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
     );
   }
 
+  return failures;
+}
+
+// States and actions are consistent: each is declared once, each state
+// renders a fixture variant that exists, and every state or action a node or
+// an action names is declared.
+function stateChecks(
+  spec: UiSpec,
+  byId: Map<string, UiNode>,
+  fixtures: Gate1Fixtures
+): Failure[] {
+  const failures: Failure[] = [];
+  const states = new Set([defaultState]);
+  for (const { name, fixture } of spec.states) {
+    const where = `states.${name}`;
+    if (states.has(name)) {
+      failures.push(
+        fail(
+          "state-unique",
+          where,
+          name === defaultState
+            ? `Every screen has a "${defaultState}" state; it isn't declared.`
+            : `"${name}" is declared twice.`
+        )
+      );
+      continue;
+    }
+    states.add(name);
+    if (!Object.hasOwn(fixtures.variants, fixture)) {
+      failures.push(
+        fail(
+          "state-fixture",
+          where,
+          `Its fixture variant "${fixture}" doesn't exist; the variants are ${Object.keys(fixtures.variants).join(", ")}.`
+        )
+      );
+    }
+  }
+  const stateList = [...states].join(", ");
+
+  for (const node of spec.nodes) {
+    for (const state of node.when) {
+      if (!states.has(state)) {
+        failures.push(
+          fail(
+            "when-declared",
+            node.id,
+            `Its when names "${state}", which isn't a screen state; they are ${stateList}.`
+          )
+        );
+      }
+    }
+  }
+
+  const actions = new Set<string>();
+  for (const { name, operation, pending, to } of spec.actions) {
+    const where = `actions.${name}`;
+    if (actions.has(name)) {
+      failures.push(
+        fail("action-unique", where, `"${name}" is declared twice.`)
+      );
+      continue;
+    }
+    actions.add(name);
+    if (!fixtures.operations.includes(operation)) {
+      failures.push(
+        fail(
+          "action-operation",
+          where,
+          `"${operation}" isn't a fixtures operation; they are ${fixtures.operations.join(", ")}.`
+        )
+      );
+    }
+    for (const outcome of ["success", "failure"] as const) {
+      if (!states.has(to[outcome])) {
+        failures.push(
+          fail(
+            "action-to",
+            where,
+            `Its to.${outcome} "${to[outcome]}" isn't a screen state; they are ${stateList}.`
+          )
+        );
+      }
+    }
+    const pendingNode = byId.get(pending);
+    if (pendingNode?.action !== name) {
+      failures.push(
+        fail(
+          "action-pending",
+          where,
+          pendingNode === undefined
+            ? `Its pending node "${pending}" doesn't exist.`
+            : `Its pending node "${pending}" doesn't run it; the node that shows pending is the one whose action is "${name}".`
+        )
+      );
+    }
+  }
+
+  for (const node of spec.nodes) {
+    if (node.action !== null && !actions.has(node.action)) {
+      failures.push(
+        fail(
+          "action-declared",
+          node.id,
+          `It runs "${node.action}", which isn't a declared action.`
+        )
+      );
+    }
+  }
   return failures;
 }
 

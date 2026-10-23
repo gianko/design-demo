@@ -27,6 +27,11 @@ const entries = [
     props: z.object({ label: z.string() }),
   }),
   defineEntry({
+    name: "Button",
+    use: "Runs an action.",
+    props: z.object({ label: z.string() }),
+  }),
+  defineEntry({
     name: "Figure",
     use: "A number.",
     props: z.object({ value: z.number() }),
@@ -118,18 +123,36 @@ function clean() {
       node("sheet-number", "Tag", "row-sheet", "body", {
         label: bind("row.number"),
       }),
+      runs(
+        node("remind-button", "Button", "panel", "body", {
+          label: "Send reminder",
+        }),
+        "remind"
+      ),
+      shownIn(
+        node("empty-note", "Tag", "screen", "body", { label: "No invoices" }),
+        "empty"
+      ),
     ],
     states: [
       { name: "empty", fixture: "brief/empty" },
       { name: "sent", fixture: "brief/sent" },
     ],
-    actions: [] as {
-      name: string;
-      operation: string;
-      pending: string;
-      to: { success: string; failure: string };
-    }[],
+    actions: [
+      {
+        name: "remind",
+        operation: "sendReminder",
+        pending: "remind-button",
+        // Failure goes back to the default state.
+        to: { success: "sent", failure: "default" },
+      },
+    ],
   };
+}
+
+function runs(n: Node, action: string) {
+  n.action = action;
+  return n;
 }
 
 const context = { entries, audience: "contractor", fixtures };
@@ -373,6 +396,75 @@ describe("gate 1", () => {
       expect(gate1(spec, context)[0]?.message).toBe(
         '"label" binds "invoice.client", which doesn\'t resolve in state "empty" (fixture variant "brief/empty").'
       );
+    });
+  });
+
+  describe("states and actions", () => {
+    it("fails a state declared twice, naming it", () => {
+      const spec = clean();
+      spec.states.push({ name: "empty", fixture: "brief/empty" });
+
+      expect(check(spec)).toEqual([["state-unique", "states.empty"]]);
+    });
+
+    it("fails a declared state named default, which every screen has", () => {
+      const spec = clean();
+      spec.states.push({ name: "default", fixture: "brief/sent" });
+
+      expect(check(spec)).toEqual([["state-unique", "states.default"]]);
+    });
+
+    it("fails a state whose fixture variant doesn't exist, naming it", () => {
+      const spec = clean();
+      spec.states[1]!.fixture = "brief/reminder-sent";
+
+      expect(check(spec)).toEqual([["state-fixture", "states.sent"]]);
+    });
+
+    it("fails a when naming a state that isn't declared, naming the node", () => {
+      const spec = clean();
+      // Deep in a row slot, below a node shown in every state.
+      nodeOf(spec, "sheet-number").when = ["default", "snet"];
+
+      expect(check(spec)).toEqual([["when-declared", "sheet-number"]]);
+    });
+
+    it("fails an action declared twice, naming it", () => {
+      const spec = clean();
+      spec.actions.push({ ...spec.actions[0]! });
+
+      expect(check(spec)).toEqual([["action-unique", "actions.remind"]]);
+    });
+
+    it("fails an operation the fixtures don't have, naming the action", () => {
+      const spec = clean();
+      spec.actions[0]!.operation = "payInvoices";
+
+      expect(check(spec)).toEqual([["action-operation", "actions.remind"]]);
+    });
+
+    it("fails a to that names a state that isn't declared, naming the action", () => {
+      const spec = clean();
+      spec.actions[0]!.to.failure = "remind-failed";
+
+      expect(check(spec)).toEqual([["action-to", "actions.remind"]]);
+    });
+
+    it.each([
+      ["a node that doesn't exist", "send-button"],
+      ["a node that doesn't run the action", "note"],
+    ])("fails a pending that names %s, naming the action", (_, pending) => {
+      const spec = clean();
+      spec.actions[0]!.pending = pending;
+
+      expect(check(spec)).toEqual([["action-pending", "actions.remind"]]);
+    });
+
+    it("fails a node that runs an action that isn't declared, naming it", () => {
+      const spec = clean();
+      runs(nodeOf(spec, "status"), "send-reminder");
+
+      expect(check(spec)).toEqual([["action-declared", "status"]]);
     });
   });
 
