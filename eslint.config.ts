@@ -10,6 +10,7 @@ export default defineConfig([
     "gates/out/",
     ".agents/",
     ".claude/",
+    ".scratch/",
     ...generatorOutput,
     // Planted violations. Their own tests lint them with ignores off, and
     // the gate's e2e plants copies where `pnpm lint` looks.

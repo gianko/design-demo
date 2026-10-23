@@ -1,5 +1,7 @@
 .DS_Store
 .claude/worktrees/
+# A session's scratch files (AGENTS.md § Working copy).
+.scratch/
 node_modules/
 storybook-static/
 # rtk's vitest wrapper writes its JSON report here.

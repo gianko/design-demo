@@ -2,6 +2,8 @@
 
 Each session works in its own git worktree (Claude Code: `EnterWorktree`). The main checkout is shared, and other sessions edit it concurrently.
 
+Keep a session's files inside its worktree: edit them with Write/Edit, and put scratch files in the worktree's `.scratch/`, which git and the linters ignore.
+
 ## Agent skills
 
 ### Issue tracker
