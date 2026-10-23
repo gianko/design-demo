@@ -1,8 +1,9 @@
 // `pnpm generate <screen brief>` (spec § Generate CLI): one generate() run
 // that prints each attempt's gate results as they happen, writes the attempt
 // folders to `.generated/<timestamp>-<slug>/`, and checks the screen brief's
-// `requires.*` against the final UI spec. It exits 0 only on `passed` with
-// the pass criteria met.
+// `requires.*` against the final UI spec. It ends with a table of every
+// attempt, the rep's cost and its outcome with the end reason, and exits 0
+// only on `passed` with the pass criteria met.
 
 import { relative, resolve } from "node:path";
 import { checkPassCriteria } from "./pass-criteria.ts";
@@ -47,15 +48,72 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
       ? "pass criteria: met"
       : `pass criteria: not met${criteria.missing.length ? ` · missing ${criteria.missing.join(", ")}` : ""}`
   );
-  log(`outcome: ${trace.outcome}`);
-  return trace.outcome === "passed" && criteria.met ? 0 : 1;
+  log(attemptTable(trace.attempts));
+  const total = trace.attempts.reduce((sum, { cost }) => sum + cost, 0);
+  log(
+    `cost: ${dollars(total)} over ${trace.attempts.length} attempt${trace.attempts.length === 1 ? "" : "s"}`
+  );
+  log(`outcome: ${trace.outcome} · end reason ${trace.endReason}`);
+  return trace.endReason === "passed" && criteria.met ? 0 : 1;
+}
+
+// One row per attempt and one column per gate any attempt ran; a gate its
+// step doesn't have reads `–`.
+function attemptTable(attempts: Attempt[]) {
+  const gates = [...new Set(attempts.flatMap((a) => Object.keys(a.gates)))];
+  const rows = [
+    [
+      "step",
+      "attempt",
+      ...gates,
+      "stop",
+      "input",
+      "output",
+      "cache read",
+      "cache write",
+      "cost",
+      "model",
+      "gates",
+    ],
+    ...attempts.map((attempt) => [
+      attempt.step,
+      String(attempt.attempt),
+      ...gates.map((gate) => attempt.gates[gate] ?? "–"),
+      attempt.stopReason ?? "–",
+      String(attempt.usage.input),
+      String(attempt.usage.output),
+      String(attempt.usage.cacheRead),
+      String(attempt.usage.cacheWrite),
+      dollars(attempt.cost),
+      seconds(attempt.wallMs.model),
+      seconds(attempt.wallMs.gates),
+    ]),
+  ];
+  const widths = rows[0]!.map((_, i) =>
+    Math.max(...rows.map((row) => row[i]!.length))
+  );
+  return rows
+    .map((row) =>
+      row
+        .map((cell, i) => cell.padEnd(widths[i]!))
+        .join("  ")
+        .trimEnd()
+    )
+    .join("\n");
+}
+
+function dollars(usd: number) {
+  return `$${usd.toFixed(4)}`;
+}
+
+function seconds(ms: number) {
+  return `${(ms / 1000).toFixed(1)}s`;
 }
 
 function attemptLines(attempt: Attempt) {
   const gates = Object.entries(attempt.gates)
     .map(([gate, result]) => `${gate} ${result}`)
     .join(" · ");
-  const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
   const head = `${attempt.step} · attempt ${attempt.attempt} · ${gates} · model ${seconds(attempt.wallMs.model)}, gates ${seconds(attempt.wallMs.gates)}`;
   // The render gates per theme × screen state (ADR 0008).
   const renders = (attempt.renders ?? []).map(

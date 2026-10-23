@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { componentName, type Outcome } from "./generate.ts";
+import { componentName, type EndReason } from "./generate.ts";
 import { main } from "./keep.ts";
 import type { UiSpec } from "./ui-spec.ts";
 
@@ -34,9 +34,9 @@ export function ${name}() {
 
 // A run dir as generate() leaves it, for a fresh slug.
 function runDir({
-  outcome = "passed",
+  endReason = "passed",
   states = [],
-}: { outcome?: Outcome; states?: UiSpec["states"] } = {}) {
+}: { endReason?: EndReason; states?: UiSpec["states"] } = {}) {
   const id = randomUUID().slice(0, 8);
   const slug = `keep-${id}`;
   const name = componentName(slug);
@@ -49,7 +49,8 @@ function runDir({
     JSON.stringify({
       slug,
       workDir: "/somewhere/else",
-      outcome,
+      outcome: endReason === "passed" ? "pass" : "fail",
+      endReason,
       uiSpec: { audience: "contractor", nodes: [], states, actions: [] },
       screen: `attempt-1-code/${name}.tsx`,
       attempts: [],
@@ -114,7 +115,7 @@ export function ${run.name}() {
   });
 
   it("refuses a run that didn't pass, and writes nothing", async () => {
-    const run = runDir({ outcome: "code-attempts-exhausted" });
+    const run = runDir({ endReason: "code-attempts-exhausted" });
 
     const { code, output } = await keep(run.dir);
 

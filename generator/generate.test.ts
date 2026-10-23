@@ -124,7 +124,7 @@ describe("generate", () => {
 
     const trace = await generate(brief, { workDir: dir, model });
 
-    expect(trace.outcome).toBe("passed");
+    expect(trace.endReason).toBe("passed");
     expect(
       trace.attempts.map(({ step, attempt, gates }) => [step, attempt, gates])
     ).toEqual([
@@ -176,15 +176,19 @@ describe("generate", () => {
       'from "../../index.ts"',
       'from "../../no-such-module.ts"'
     );
-    const { model } = stubModel(
+    const { model, requests } = stubModel(
       message(JSON.stringify(smokeSpec)),
-      message(broken)
+      ...[1, 2, 3].map(() => message(broken))
     );
 
     const trace = await generate(brief, { workDir: workDir(), model });
 
     const code = trace.attempts[1]!;
-    expect(trace.outcome).toBe("code-attempts-exhausted");
+    // Three code attempts, the step's limit, and none of them builds.
+    expect(requests).toHaveLength(4);
+    expect(trace.outcome).toBe("fail");
+    expect(trace.endReason).toBe("code-attempts-exhausted");
+    expect(trace.screen).toBe("attempt-3-code/Smoke.tsx");
     expect(code.gates).toMatchObject({
       "gate 3": "fail",
       "gate 4": "not-run",
@@ -216,7 +220,7 @@ describe("generate", () => {
     expect(rep.versions.codePromptHash).toMatch(/^[0-9a-f]{64}$/);
     expect(rep.versions.specPromptHash).not.toBe(rep.versions.codePromptHash);
     expect(rep.versions.registryHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(rep.outcome).toBe("passed");
+    expect(rep.endReason).toBe("passed");
     expect(readJson(join(dir, "attempt-1-spec/attempt.json"))).toMatchObject({
       step: "spec",
       promptHash: rep.versions.specPromptHash,
@@ -266,20 +270,31 @@ describe("generate", () => {
     expect(turn!.content).toContain(JSON.stringify(smokeSpec));
   }, 120_000);
 
-  it("ends after a spec attempt that fails gate 1, without a code attempt", async () => {
+  it("ends after three spec attempts that fail gate 1, without a code attempt", async () => {
     const broken = {
       ...smokeSpec,
       nodes: smokeSpec.nodes.map((node) =>
         node.id === "welcome" ? { ...node, component: "Paragraph" } : node
       ),
     };
-    const { model, requests } = stubModel(message(JSON.stringify(broken)));
+    const { model, requests } = stubModel(
+      ...[1, 2, 3].map(() => message(JSON.stringify(broken)))
+    );
     const dir = workDir();
 
     const trace = await generate(brief, { workDir: dir, model });
 
-    expect(trace.outcome).toBe("spec-attempts-exhausted");
-    expect(requests).toHaveLength(1);
+    expect(trace.outcome).toBe("fail");
+    expect(trace.endReason).toBe("spec-attempts-exhausted");
+    expect(requests).toHaveLength(3);
+    expect(trace.attempts.map(({ step, attempt }) => [step, attempt])).toEqual([
+      ["spec", 1],
+      ["spec", 2],
+      ["spec", 3],
+    ]);
+    // The last attempt has no attempt after it, so no repair turn.
+    expect(existsSync(join(dir, "attempt-2-spec/repair-turn.txt"))).toBe(true);
+    expect(existsSync(join(dir, "attempt-3-spec/repair-turn.txt"))).toBe(false);
     expect(trace.attempts[0]!.failures).toEqual([
       'gate 1 · registered-component · welcome · "Paragraph" isn\'t a registered component.',
     ]);
@@ -304,13 +319,13 @@ export function Smoke() {
 `;
     const { model } = stubModel(
       message(JSON.stringify(smokeSpec)),
-      message(tsx)
+      message(tsx),
+      message(smokeTsx)
     );
 
     const trace = await generate(brief, { workDir: workDir(), model });
 
     const code = trace.attempts[1]!;
-    expect(trace.outcome).toBe("code-attempts-exhausted");
     expect(code.gates).toEqual({
       "gate 2": "fail",
       "gate 3": "fail",
@@ -333,15 +348,73 @@ export function Smoke() {
     ["max_tokens", "error:max_tokens"],
   ] as const)(
     "ends the rep as an error on a %s stop, without gating it",
-    async (stop, outcome) => {
+    async (stop, endReason) => {
       const { model, requests } = stubModel(message("", stop));
 
       const trace = await generate(brief, { workDir: workDir(), model });
 
-      expect(trace.outcome).toBe(outcome);
+      expect(trace.outcome).toBe("error");
+      expect(trace.endReason).toBe(endReason);
       expect(requests).toHaveLength(1);
       expect(trace.attempts[0]!.gates).toEqual({ "gate 1": "not-run" });
     },
     120_000
   );
+});
+
+describe("the repair loop", () => {
+  const paragraph = {
+    ...smokeSpec,
+    nodes: smokeSpec.nodes.map((node) =>
+      node.id === "welcome" ? { ...node, component: "Paragraph" } : node
+    ),
+  };
+
+  it("repairs a UI spec that fails gate 1 with one repair turn, then passes", async () => {
+    const { model, requests } = stubModel(
+      message(JSON.stringify(paragraph)),
+      message(JSON.stringify(smokeSpec)),
+      message(smokeTsx)
+    );
+    const dir = workDir();
+
+    const trace = await generate(brief, { workDir: dir, model });
+
+    expect(trace.outcome).toBe("pass");
+    expect(trace.endReason).toBe("passed");
+    expect(
+      trace.attempts.map(({ step, attempt, gates }) => [step, attempt, gates])
+    ).toEqual([
+      ["spec", 1, { "gate 1": "fail" }],
+      ["spec", 2, { "gate 1": "pass" }],
+      ["code", 1, expect.objectContaining({ "gate 2": "pass" })],
+    ]);
+    const turn = `The UI spec you sent fails these gates. Each line is gate · rule id · location · message.
+
+gate 1
+gate 1 · registered-component · welcome · "Paragraph" isn't a registered component.
+
+Fix every failure above and send the whole UI spec again.`;
+    // Append-only: the second request is the first one, then the reply it
+    // got, then the repair turn.
+    const [first, second] = requests;
+    expect(second!.system).toEqual(first!.system);
+    expect(second!.messages).toEqual([
+      ...first!.messages,
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: JSON.stringify(paragraph), citations: null },
+        ],
+      },
+      { role: "user", content: turn },
+    ]);
+    expect(
+      readFileSync(join(dir, "attempt-1-spec/repair-turn.txt"), "utf8")
+    ).toBe(turn + "\n");
+    expect(readJson(join(dir, "attempt-2-spec/ui-spec.json"))).toEqual(
+      smokeSpec
+    );
+    expect(trace.uiSpec).toEqual(smokeSpec);
+  }, 120_000);
 });

@@ -23,3 +23,26 @@ export const stepConfig = {
     attempts: 3,
   },
 } as const satisfies Record<"spec" | "code", StepConfig>;
+
+// USD per million tokens, from Anthropic's published prices. Cache writes
+// are 5-minute writes, at 1.25× input, the only kind the prompts ask for.
+export const pricing = {
+  "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
+} as const satisfies Record<
+  StepConfig["model"],
+  Record<"input" | "output" | "cacheRead" | "cacheWrite", number>
+>;
+
+// What one call cost, from its logged usage.
+export function cost(
+  model: StepConfig["model"],
+  usage: Record<keyof (typeof pricing)[StepConfig["model"]], number>
+) {
+  const prices = pricing[model];
+  const total =
+    usage.input * prices.input +
+    usage.output * prices.output +
+    usage.cacheRead * prices.cacheRead +
+    usage.cacheWrite * prices.cacheWrite;
+  return total / 1_000_000;
+}

@@ -28,8 +28,8 @@ export async function main(argv: string[], deps: KeepDeps = {}) {
     return 1;
   }
   const trace: RepTrace = JSON.parse(readFileSync(repFile, "utf8"));
-  if (trace.outcome !== "passed" || !trace.screen || !trace.uiSpec) {
-    log(`Only a passed run is kept; this one ended ${trace.outcome}.`);
+  if (trace.endReason !== "passed" || !trace.screen || !trace.uiSpec) {
+    log(`Only a passed run is kept; this one ended ${trace.endReason}.`);
     return 1;
   }
 
