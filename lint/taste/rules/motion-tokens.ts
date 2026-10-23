@@ -10,7 +10,12 @@
 import type { Rule } from "eslint";
 import { classTokens, type ClassToken } from "../classes.ts";
 import { help } from "../rules-md.ts";
-import { reporter, sourceVisitors, type Keyframe } from "../source.ts";
+import {
+  reporter,
+  sourceVisitors,
+  type Keyframe,
+  type Render,
+} from "../source.ts";
 import { splitOutsideBrackets } from "../split.ts";
 
 export const id = "motion-tokens";
@@ -36,6 +41,11 @@ export const lint: Rule.RuleModule = {
     return sourceVisitors(context, {
       classList(text, node, selector) {
         for (const finding of classListFindings(classTokens(text), selector)) {
+          report(node, finding);
+        }
+      },
+      classLists(renders) {
+        for (const { node, finding } of missingTokens(renders)) {
           report(node, finding);
         }
       },
@@ -157,22 +167,53 @@ function swingFinding(frames: Keyframe[]): string | null {
   return null;
 }
 
-function classListFindings(tokens: ClassToken[], selector: string): string[] {
-  const findings: string[] = [];
-  const has = (pattern: RegExp) => tokens.some((t) => pattern.test(t.utility));
-  const transitions = tokens.filter((t) => transition.test(t.utility));
-
-  for (const token of transitions) {
-    if (token.utility === "transition-all") {
-      findings.push(`\`${token.raw}\` animates every property.`);
+// A transition with no duration or easing token among the classes it lands
+// with, reported once on the class list that names it. When only some of a
+// tv() call's option sets leave a token out, the finding names one.
+function missingTokens(
+  renders: Render[]
+): { node: unknown; finding: string }[] {
+  const lacking = new Map<unknown, { finding: string; options: string[] }>();
+  const complete = new Set<unknown>();
+  for (const { lists, options } of renders) {
+    const tokens = lists.flatMap(({ text, node }) =>
+      classTokens(text).map((token) => ({ ...token, node }))
+    );
+    const has = (pattern: RegExp) =>
+      tokens.some((t) => pattern.test(t.utility));
+    const first = tokens.find((t) => transition.test(t.utility));
+    if (!first) continue;
+    if (has(durationToken) && has(easeToken)) {
+      complete.add(first.node);
+      continue;
     }
-  }
-  if (transitions.length > 0 && !(has(durationToken) && has(easeToken))) {
     const missing = [
       has(durationToken) ? null : "a `duration-*` token",
       has(easeToken) ? null : "an `ease-*` token",
     ].filter(Boolean);
-    findings.push(`\`${transitions[0]!.raw}\` lacks ${missing.join(" and ")}.`);
+    const found = lacking.get(first.node) ?? {
+      finding: `\`${first.raw}\` lacks ${missing.join(" and ")}`,
+      options: [],
+    };
+    found.options.push(options);
+    lacking.set(first.node, found);
+  }
+  return [...lacking].map(([node, { finding, options }]) => ({
+    node,
+    finding:
+      complete.has(node) && options[0]
+        ? `${finding} (${options[0]}).`
+        : `${finding}.`,
+  }));
+}
+
+function classListFindings(tokens: ClassToken[], selector: string): string[] {
+  const findings: string[] = [];
+
+  for (const token of tokens) {
+    if (token.utility === "transition-all") {
+      findings.push(`\`${token.raw}\` animates every property.`);
+    }
   }
 
   // Settle on an exit: under an exit-state variant, or alongside an exit

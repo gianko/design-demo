@@ -12,6 +12,29 @@ export const sheet = tv({
   },
 });
 
+// A base transition takes its duration, or both tokens, from a variant that
+// sets them in every option, a default picking one when none is passed.
+export const drawer = tv({
+  slots: { panel: "transition-transform ease-standard" },
+  variants: {
+    size: {
+      sm: { panel: "duration-fast" },
+      lg: { panel: "duration-slow" },
+    },
+  },
+  defaultVariants: { size: "sm" },
+});
+
+export const fade = tv({
+  base: "transition-opacity",
+  variants: {
+    calm: {
+      true: "duration-slow ease-standard",
+      false: "duration-fast ease-standard",
+    },
+  },
+});
+
 export function Row() {
   return (
     <div
