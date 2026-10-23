@@ -44,6 +44,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Text n
 
 **Alternative:** the library keeps one persistent, empty status region (on Screen, or owned by `useScreenState`), and a live Text writes its copy into it when its state is entered. Worth deciding before Action wiring.
 
+**Decided:** the alternative, in [#98](https://github.com/gianko/design-demo/issues/98). Screen always renders one visually hidden, empty, polite `role="status"` region and provides `announce(text)` through context (`src/components/Screen/announce.ts`). A live Text is an ordinary paragraph that calls `announce` with its copy when it mounts. Outside a Screen, as in Text's own stories, nothing is announced. P1's Toast reuses `announce` (ADR 0011).
+
 ## Money inside a sentence has nowhere to go
 
 **Undecided:** the `tabular-numerals` render rule fails any money it sees without tabular figures, and Amount owns money. But a sentence like "Your $4,800.00 payment arrives Oct 24" can't be one Text, because Text takes a plain string and can't hold an Amount inline.

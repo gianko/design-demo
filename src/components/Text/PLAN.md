@@ -34,7 +34,7 @@ No margin: spacing between siblings is Stack's (ADR 0002). No font family: the c
 
 ## A11y contract
 
-- **Role**: paragraph, from `<p>`. With `live`: `role="status"`, which is implicitly `aria-live="polite"` and `aria-atomic="true"`, so the whole sentence is read once, without interrupting.
+- **Role**: paragraph, from `<p>`, live or not. With `live`, the copy goes into Screen's persistent `role="status"` region when the Text mounts (#98, superseding a `role="status"` on the paragraph). That region is implicitly `aria-live="polite"` and `aria-atomic="true"`, so the whole sentence is read once, without interrupting.
 - **Accessible name**: none needed; the text is the content.
 - **Keyboard and focus**: not focusable. A live Text doesn't take focus either: the result is announced, and focus stays where the user acted (the Button).
 - **Disabled, busy**: not applicable.
