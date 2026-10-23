@@ -15,7 +15,12 @@ import { generatorOutput } from "../lint/token/config.ts";
 import { codeGates, type GateResult } from "./code-gates.ts";
 import { type StepConfig, stepConfig } from "./config.ts";
 import { type Failure, failureLine } from "./failure.ts";
-import { gate1 } from "./gate1.ts";
+import {
+  fixtureVariant,
+  operationNames,
+  variantNames,
+} from "../src/fixtures/fixtures.ts";
+import { type Gate1Fixtures, gate1 } from "./gate1.ts";
 import type { Model } from "./model.ts";
 import { codePrompt, specPrompt } from "./prompts.ts";
 import { type LibraryRegistry, loadRegistry } from "./registry.ts";
@@ -25,6 +30,14 @@ import type { ScreenBrief } from "./screen-brief.ts";
 import { type UiSpec, wireSchema } from "./ui-spec.ts";
 
 const repo = resolve(import.meta.dirname, "..");
+
+// What gate 1 checks bindings, states and actions against.
+const fixtures: Gate1Fixtures = {
+  variants: Object.fromEntries(
+    variantNames.map((name) => [name, fixtureVariant(name).data])
+  ),
+  operations: operationNames,
+};
 
 export type Step = "spec" | "code";
 
@@ -166,6 +179,7 @@ export async function generate(
   const specFailures = gate1(specText, {
     entries: registry.entries,
     audience: brief.audience,
+    fixtures,
   });
   const specAttempt = attempt("spec", spec.hash, specCall, {
     gates: { "gate 1": specFailures.length ? "fail" : "pass" },

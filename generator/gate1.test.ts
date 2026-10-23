@@ -1,7 +1,7 @@
 // @vitest-environment node
-// Gate 1's structural checks (ADR 0004), against stub registry entries: each
-// planted UI spec breaks one rule, and the failure names that rule and the
-// node it found it on.
+// Gate 1 (ADR 0004, ADR 0011), against stub registry entries and stub
+// fixtures: each planted UI spec breaks one rule, and the failure names that
+// rule and the node it found it on.
 
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -26,7 +26,58 @@ const entries = [
     use: "A status word.",
     props: z.object({ label: z.string() }),
   }),
+  defineEntry({
+    name: "Heading",
+    use: "A title.",
+    props: z.object({ text: z.string(), level: z.number().int() }),
+  }),
+  defineEntry({
+    name: "Button",
+    use: "Runs an action.",
+    props: z.object({ label: z.string() }),
+  }),
+  defineEntry({
+    name: "Figure",
+    use: "A number.",
+    props: z.object({ value: z.number() }),
+  }),
+  defineEntry({
+    name: "DataTable",
+    use: "Rows of data.",
+    props: z.object({ rows: z.array(z.unknown()) }),
+    slots: { cell: {}, detail: { allow: ["Sheet"] } },
+  }),
+  defineEntry({
+    name: "ActionBar",
+    use: "The bulk-action bar.",
+    props: z.object({}),
+    slots: { body: {} },
+  }),
+  defineEntry({
+    name: "Toast",
+    use: "The live result of an action.",
+    props: z.object({ text: z.string() }),
+  }),
+  defineEntry({
+    name: "Sheet",
+    use: "Row detail.",
+    props: z.object({}),
+    slots: { body: {} },
+  }),
 ];
+
+// Two variants with the invoice, one without.
+const invoice = { client: "Northwind", amount: 4800, number: "INV-0142" };
+const fixtures = {
+  operations: ["sendReminder"],
+  variants: {
+    default: { invoice, invoices: [invoice] },
+    "brief/empty": { invoice: null, invoices: [] },
+    "brief/sent": { invoice, invoices: [invoice] },
+  },
+};
+
+const bind = (path: string) => ({ bind: path });
 
 type Node = {
   id: string;
@@ -59,29 +110,109 @@ function node(
   };
 }
 
-// A UI spec that passes every structural check.
+function shownIn(n: Node, ...when: string[]) {
+  n.when = when;
+  return n;
+}
+
+// A UI spec that passes every gate 1 rule.
 function clean() {
   return {
     audience: "contractor",
     nodes: [
       node("screen", "Screen", null, null, { audience: "contractor" }),
-      node("panel", "Panel", "screen", "body", { title: "Invoice" }),
+      // The panel shows only where the invoice exists.
+      shownIn(
+        node("panel", "Panel", "screen", "body", { title: "Invoice" }),
+        "default",
+        "sent"
+      ),
       node("status", "Tag", "panel", "actions", { label: "Overdue" }),
       node("note", "Tag", "panel", "body", { label: "Due Oct 8" }),
+      node("client", "Tag", "panel", "body", { label: bind("invoice.client") }),
+      node("amount", "Figure", "panel", "body", {
+        value: bind("invoice.amount"),
+      }),
+      node("table", "DataTable", "screen", "body", { rows: bind("invoices") }),
+      node("row-client", "Tag", "table", "cell", { label: bind("row.client") }),
+      node("row-sheet", "Sheet", "table", "detail"),
+      node("sheet-number", "Tag", "row-sheet", "body", {
+        label: bind("row.number"),
+      }),
+      runs(
+        node("remind-button", "Button", "panel", "body", {
+          label: "Send reminder",
+        }),
+        "remind"
+      ),
+      shownIn(
+        node("empty-note", "Tag", "screen", "body", { label: "No invoices" }),
+        "empty"
+      ),
+      node("title", "Heading", "screen", "body", {
+        text: "Payment status",
+        level: 1,
+      }),
+      shownIn(
+        node("empty-heading", "Heading", "screen", "body", {
+          text: "Nothing yet",
+          level: 2,
+        }),
+        "empty"
+      ),
+      // The bar hands off to the toast when the action succeeds.
+      shownIn(node("bar", "ActionBar", "screen", "body"), "default"),
+      runs(
+        node("bar-button", "Button", "bar", "body", { label: "Remind" }),
+        "remind"
+      ),
+      shownIn(
+        node("sent-toast", "Toast", "screen", "body", { text: "Sent" }),
+        "sent"
+      ),
     ],
-    states: [],
-    actions: [],
+    states: [
+      { name: "empty", fixture: "brief/empty" },
+      { name: "sent", fixture: "brief/sent" },
+    ],
+    actions: [
+      {
+        name: "remind",
+        operation: "sendReminder",
+        pending: "remind-button",
+        // Failure goes back to the default state.
+        to: { success: "sent", failure: "default" },
+      },
+    ],
   };
 }
 
+function runs(n: Node, action: string) {
+  n.action = action;
+  return n;
+}
+
+const context = { entries, audience: "contractor", fixtures };
+
 function check(spec: unknown) {
-  return gate1(spec, { entries, audience: "contractor" }).map(
-    ({ rule, location }) => [rule, location]
-  );
+  return gate1(spec, context).map(({ rule, location }) => [rule, location]);
+}
+
+function nodeOf(spec: ReturnType<typeof clean>, id: string) {
+  const found = spec.nodes.find((n) => n.id === id);
+  if (!found) throw new Error(`no node ${id}`);
+  return found;
+}
+
+function setProp(n: Node, name: string, value: unknown) {
+  n.props = [
+    ...n.props.filter((prop) => prop.name !== name),
+    { name, value: JSON.stringify(value) },
+  ];
 }
 
 describe("gate 1", () => {
-  it("passes a UI spec that holds every structural rule", () => {
+  it("passes a UI spec that holds every gate 1 rule", () => {
     expect(check(clean())).toEqual([]);
   });
 
@@ -123,11 +254,11 @@ describe("gate 1", () => {
 
   it("fails a root that isn't a Screen, naming it", () => {
     const spec = clean();
-    spec.nodes = spec.nodes.filter((n) => n.id !== "screen");
-    spec.nodes[0]!.parent = null;
-    spec.nodes[0]!.slot = null;
+    const root = spec.nodes[0]!;
+    root.component = "Panel";
+    root.props = [{ name: "title", value: '"Payment status"' }];
 
-    expect(check(spec)).toEqual([["screen-root", "panel"]]);
+    expect(check(spec)).toEqual([["screen-root", "screen"]]);
   });
 
   it("fails a Screen nested below the root, naming it", () => {
@@ -239,11 +370,239 @@ describe("gate 1", () => {
     expect(check(spec)).toEqual([["audience-match", "screen"]]);
   });
 
+  describe("bindings", () => {
+    it("fails a path the fixtures don't have, naming the node", () => {
+      const spec = clean();
+      setProp(nodeOf(spec, "client"), "label", bind("invoice.contractor"));
+
+      expect(check(spec)).toEqual([["binding-resolves", "client"]]);
+    });
+
+    it("fails a path that doesn't resolve in one state the node shows in", () => {
+      const spec = clean();
+      // Shown in every state, so also in empty, where there's no invoice.
+      nodeOf(spec, "panel").when = [];
+
+      expect(check(spec)).toEqual([
+        ["binding-resolves", "client"],
+        ["binding-resolves", "amount"],
+      ]);
+    });
+
+    it("fails a bound value the prop doesn't take, naming the node", () => {
+      const spec = clean();
+      setProp(nodeOf(spec, "client"), "label", bind("invoice.amount"));
+
+      expect(check(spec)).toEqual([["binding-type", "client"]]);
+    });
+
+    it("fails a binding on a prop the entry doesn't have", () => {
+      const spec = clean();
+      setProp(nodeOf(spec, "client"), "tone", bind("invoice.client"));
+
+      expect(check(spec)).toEqual([["props-parse", "client"]]);
+    });
+
+    it("fails a row path outside a DataTable's cell or detail slot", () => {
+      const spec = clean();
+      // On the DataTable itself, which is outside its own rows.
+      setProp(nodeOf(spec, "table"), "rows", bind("row.invoices"));
+
+      expect(check(spec)).toEqual([["binding-row-scope", "table"]]);
+    });
+
+    it("fails a row path that doesn't resolve on a row, naming the node", () => {
+      const spec = clean();
+      // Below the Sheet, two levels into the detail slot.
+      setProp(nodeOf(spec, "sheet-number"), "label", bind("row.dueLabel"));
+
+      expect(check(spec)).toEqual([["binding-resolves", "sheet-number"]]);
+    });
+
+    it("fails a row value the prop doesn't take, naming the node", () => {
+      const spec = clean();
+      setProp(nodeOf(spec, "row-client"), "label", bind("row.amount"));
+
+      expect(check(spec)).toEqual([["binding-type", "row-client"]]);
+    });
+
+    it("says which path, state and fixture variant didn't resolve", () => {
+      const spec = clean();
+      nodeOf(spec, "panel").when = [];
+
+      expect(gate1(spec, context)[0]?.message).toBe(
+        '"label" binds "invoice.client", which doesn\'t resolve in state "empty" (fixture variant "brief/empty").'
+      );
+    });
+  });
+
+  describe("states and actions", () => {
+    it("fails a state declared twice, naming it", () => {
+      const spec = clean();
+      spec.states.push({ name: "empty", fixture: "brief/empty" });
+
+      expect(check(spec)).toEqual([["state-unique", "states.empty"]]);
+    });
+
+    it("fails a declared state named default, which every screen has", () => {
+      const spec = clean();
+      spec.states.push({ name: "default", fixture: "brief/sent" });
+
+      expect(check(spec)).toEqual([["state-unique", "states.default"]]);
+    });
+
+    it("fails a state whose fixture variant doesn't exist, naming it", () => {
+      const spec = clean();
+      spec.states[1]!.fixture = "brief/reminder-sent";
+
+      expect(check(spec)).toEqual([["state-fixture", "states.sent"]]);
+    });
+
+    it("fails a when naming a state that isn't declared, naming the node", () => {
+      const spec = clean();
+      // Deep in a row slot, below a node shown in every state.
+      nodeOf(spec, "sheet-number").when = ["default", "snet"];
+
+      expect(check(spec)).toEqual([["when-declared", "sheet-number"]]);
+    });
+
+    it("fails an action declared twice, naming it", () => {
+      const spec = clean();
+      spec.actions.push({ ...spec.actions[0]! });
+
+      expect(check(spec)).toEqual([["action-unique", "actions.remind"]]);
+    });
+
+    it("fails an operation the fixtures don't have, naming the action", () => {
+      const spec = clean();
+      spec.actions[0]!.operation = "payInvoices";
+
+      expect(check(spec)).toEqual([["action-operation", "actions.remind"]]);
+    });
+
+    it("fails a to that names a state that isn't declared, naming the action", () => {
+      const spec = clean();
+      spec.actions[0]!.to.failure = "remind-failed";
+
+      expect(check(spec)).toEqual([["action-to", "actions.remind"]]);
+    });
+
+    it.each([
+      ["a node that doesn't exist", "send-button"],
+      ["a node that doesn't run the action", "note"],
+    ])("fails a pending that names %s, naming the action", (_, pending) => {
+      const spec = clean();
+      spec.actions[0]!.pending = pending;
+
+      expect(check(spec)).toEqual([["action-pending", "actions.remind"]]);
+    });
+
+    it("fails a node that runs an action that isn't declared, naming it", () => {
+      const spec = clean();
+      runs(nodeOf(spec, "status"), "send-reminder");
+
+      expect(check(spec)).toEqual([["action-declared", "status"]]);
+    });
+  });
+
+  describe("headings", () => {
+    it("fails a heading that skips a level in one state, naming it", () => {
+      const spec = clean();
+      // Only the empty state shows it, after the level 1.
+      setProp(nodeOf(spec, "empty-heading"), "level", 3);
+
+      expect(check(spec)).toEqual([["heading-skip", "empty-heading"]]);
+    });
+
+    it("fails a second level 1 shown in the same state, naming it", () => {
+      const spec = clean();
+      setProp(nodeOf(spec, "empty-heading"), "level", 1);
+
+      expect(check(spec)).toEqual([["heading-one", "empty-heading"]]);
+    });
+
+    it("passes two level 1s that never show in the same state", () => {
+      const spec = clean();
+      nodeOf(spec, "title").when = ["default", "sent"];
+      setProp(nodeOf(spec, "empty-heading"), "level", 1);
+
+      expect(check(spec)).toEqual([]);
+    });
+
+    it("fails a state whose headings have no level 1, naming its first", () => {
+      const spec = clean();
+      nodeOf(spec, "title").when = ["default", "sent"];
+
+      expect(check(spec)).toEqual([["heading-one", "empty-heading"]]);
+    });
+
+    it("passes a screen with no headings at all", () => {
+      const spec = clean();
+      spec.nodes = spec.nodes.filter((n) => n.component !== "Heading");
+
+      expect(check(spec)).toEqual([]);
+    });
+  });
+
+  describe("ActionBar, Toast and Sheet", () => {
+    it("fails a second ActionBar shown in the same state, naming it", () => {
+      const spec = clean();
+      // Shown in every state, so beside the first bar in default.
+      spec.nodes.push(node("second-bar", "ActionBar", "screen", "body"));
+
+      expect(check(spec)).toEqual([["one-action-bar", "second-bar"]]);
+    });
+
+    it("fails a second Toast shown in the same state, naming it", () => {
+      const spec = clean();
+      // Inside the panel, which shows in sent too.
+      spec.nodes.push(
+        shownIn(
+          node("panel-toast", "Toast", "panel", "body", { text: "Done" }),
+          "sent"
+        )
+      );
+
+      expect(check(spec)).toEqual([["one-toast", "panel-toast"]]);
+    });
+
+    it.each([
+      ["the default state", ["default", "sent"]],
+      ["a state no action enters", ["sent", "empty"]],
+    ])("fails a Toast shown in %s, naming it", (_, when) => {
+      const spec = clean();
+      nodeOf(spec, "sent-toast").when = when;
+
+      expect(check(spec)).toEqual([["toast-state", "sent-toast"]]);
+    });
+
+    it.each([
+      ["outside a DataTable", "panel", "body"],
+      ["in a DataTable's cell slot", "table", "cell"],
+    ])("fails a Sheet %s, naming it", (_, parent, slot) => {
+      const spec = clean();
+      spec.nodes.push(node("stray-sheet", "Sheet", parent, slot));
+
+      expect(check(spec)).toEqual([["sheet-in-detail", "stray-sheet"]]);
+    });
+
+    it("fails a Button in an ActionBar that runs no action, naming it", () => {
+      const spec = clean();
+      // Nested a level down inside the bar.
+      spec.nodes.push(
+        node("bar-panel", "Panel", "bar", "body", { title: "More" }),
+        node("idle-button", "Button", "bar-panel", "body", { label: "Later" })
+      );
+
+      expect(check(spec)).toEqual([["action-bar-button", "idle-button"]]);
+    });
+  });
+
   it("says in each failure what broke", () => {
     const spec = clean();
     spec.nodes[3]!.slot = "footer";
 
-    expect(gate1(spec, { entries, audience: "contractor" })).toEqual([
+    expect(gate1(spec, context)).toEqual([
       {
         gate: "gate 1",
         rule: "slot-exists",
