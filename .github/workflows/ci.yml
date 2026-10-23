@@ -18,6 +18,10 @@ jobs:
   # arm64 to match the pinned Playwright image; later steps join this job.
   gate:
     runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      # To comment the contact sheet's link on the PR.
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -43,8 +47,20 @@ jobs:
           path: gates/out/report/
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
+        id: contact-sheet
         if: ${{ !cancelled() }}
         with:
           name: contact-sheet
           path: gates/out/contact-sheet/
           if-no-files-found: ignore
+      # The baselines are approved from the contact sheet, so the PR links it
+      # directly. One comment, edited on each push, rather than one per run.
+      - if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.contact-sheet.outputs.artifact-url != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          URL: ${{ steps.contact-sheet.outputs.artifact-url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none \
+            --body "**Contact sheet** for $SHA: $URL"
