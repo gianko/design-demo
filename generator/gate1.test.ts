@@ -48,6 +48,17 @@ const entries = [
     slots: { cell: {}, detail: { allow: ["Sheet"] } },
   }),
   defineEntry({
+    name: "ActionBar",
+    use: "The bulk-action bar.",
+    props: z.object({}),
+    slots: { body: {} },
+  }),
+  defineEntry({
+    name: "Toast",
+    use: "The live result of an action.",
+    props: z.object({ text: z.string() }),
+  }),
+  defineEntry({
     name: "Sheet",
     use: "Row detail.",
     props: z.object({}),
@@ -149,6 +160,16 @@ function clean() {
         }),
         "empty"
       ),
+      // The bar hands off to the toast when the action succeeds.
+      shownIn(node("bar", "ActionBar", "screen", "body"), "default"),
+      runs(
+        node("bar-button", "Button", "bar", "body", { label: "Remind" }),
+        "remind"
+      ),
+      shownIn(
+        node("sent-toast", "Toast", "screen", "body", { text: "Sent" }),
+        "sent"
+      ),
     ],
     states: [
       { name: "empty", fixture: "brief/empty" },
@@ -191,7 +212,7 @@ function setProp(n: Node, name: string, value: unknown) {
 }
 
 describe("gate 1", () => {
-  it("passes a UI spec that holds every structural rule", () => {
+  it("passes a UI spec that holds every gate 1 rule", () => {
     expect(check(clean())).toEqual([]);
   });
 
@@ -520,6 +541,60 @@ describe("gate 1", () => {
       spec.nodes = spec.nodes.filter((n) => n.component !== "Heading");
 
       expect(check(spec)).toEqual([]);
+    });
+  });
+
+  describe("ActionBar, Toast and Sheet", () => {
+    it("fails a second ActionBar shown in the same state, naming it", () => {
+      const spec = clean();
+      // Shown in every state, so beside the first bar in default.
+      spec.nodes.push(node("second-bar", "ActionBar", "screen", "body"));
+
+      expect(check(spec)).toEqual([["one-action-bar", "second-bar"]]);
+    });
+
+    it("fails a second Toast shown in the same state, naming it", () => {
+      const spec = clean();
+      // Inside the panel, which shows in sent too.
+      spec.nodes.push(
+        shownIn(
+          node("panel-toast", "Toast", "panel", "body", { text: "Done" }),
+          "sent"
+        )
+      );
+
+      expect(check(spec)).toEqual([["one-toast", "panel-toast"]]);
+    });
+
+    it.each([
+      ["the default state", ["default", "sent"]],
+      ["a state no action enters", ["sent", "empty"]],
+    ])("fails a Toast shown in %s, naming it", (_, when) => {
+      const spec = clean();
+      nodeOf(spec, "sent-toast").when = when;
+
+      expect(check(spec)).toEqual([["toast-state", "sent-toast"]]);
+    });
+
+    it.each([
+      ["outside a DataTable", "panel", "body"],
+      ["in a DataTable's cell slot", "table", "cell"],
+    ])("fails a Sheet %s, naming it", (_, parent, slot) => {
+      const spec = clean();
+      spec.nodes.push(node("stray-sheet", "Sheet", parent, slot));
+
+      expect(check(spec)).toEqual([["sheet-in-detail", "stray-sheet"]]);
+    });
+
+    it("fails a Button in an ActionBar that runs no action, naming it", () => {
+      const spec = clean();
+      // Nested a level down inside the bar.
+      spec.nodes.push(
+        node("bar-panel", "Panel", "bar", "body", { title: "More" }),
+        node("idle-button", "Button", "bar-panel", "body", { label: "Later" })
+      );
+
+      expect(check(spec)).toEqual([["action-bar-button", "idle-button"]]);
     });
   });
 

@@ -159,6 +159,7 @@ function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
   }
   failures.push(...stateChecks(spec, byId, fixtures));
   failures.push(...headingChecks(screen));
+  failures.push(...motionChecks(spec, byId, screen));
 
   // The audience is the screen brief's, on the spec and on its Screen.
   if (spec.audience !== audience) {
@@ -345,6 +346,91 @@ function headingChecks(screen: ScreenModel): Failure[] {
         );
       }
     });
+  }
+  return failures.list;
+}
+
+// The structure the signature transitions ride on (ADR 0011): ActionBar and
+// Toast pair by one view transition name, so each state shows at most one of
+// each; a Toast is an action's result, so it shows only in states an action
+// enters; a Sheet is a DataTable row's detail; and an ActionBar's Buttons run
+// actions.
+function motionChecks(
+  spec: UiSpec,
+  byId: Map<string, UiNode>,
+  screen: ScreenModel
+): Failure[] {
+  const failures = new FailureSet();
+  for (const state of screen.states) {
+    for (const [component, rule] of [
+      ["ActionBar", "one-action-bar"],
+      ["Toast", "one-toast"],
+    ] as const) {
+      // In list order, so the one named is the one written later.
+      const shown = spec.nodes.filter(
+        (node) =>
+          node.component === component && screen.visibleIn(node).includes(state)
+      );
+      for (const extra of shown.slice(1)) {
+        failures.add(
+          fail(
+            rule,
+            extra.id,
+            `A second ${component} in state "${state}", after "${shown[0]!.id}"; a state shows at most one.`
+          )
+        );
+      }
+    }
+  }
+
+  const entered = new Set(
+    spec.actions.flatMap(({ to }) => [to.success, to.failure])
+  );
+  const parentOf = (node: UiNode) =>
+    node.parent === null ? undefined : byId.get(node.parent);
+  for (const node of spec.nodes) {
+    if (node.component === "Toast") {
+      const stray = screen
+        .visibleIn(node)
+        .filter((state) => state === defaultState || !entered.has(state));
+      if (stray.length > 0) {
+        failures.add(
+          fail(
+            "toast-state",
+            node.id,
+            `It shows in ${stray.map((state) => `"${state}"`).join(", ")}; a Toast shows only in a state an action's to enters, never the default state.`
+          )
+        );
+      }
+    }
+    if (node.component === "Sheet") {
+      const parent = parentOf(node);
+      if (parent?.component !== "DataTable" || node.slot !== "detail") {
+        failures.add(
+          fail(
+            "sheet-in-detail",
+            node.id,
+            "A Sheet sits only in a DataTable's detail slot."
+          )
+        );
+      }
+    }
+    if (node.component === "Button" && node.action === null) {
+      const seen = new Set<UiNode>();
+      for (let at = parentOf(node); at && !seen.has(at); at = parentOf(at)) {
+        seen.add(at);
+        if (at.component === "ActionBar") {
+          failures.add(
+            fail(
+              "action-bar-button",
+              node.id,
+              `It sits in the ActionBar "${at.id}" but runs no action.`
+            )
+          );
+          break;
+        }
+      }
+    }
   }
   return failures.list;
 }
