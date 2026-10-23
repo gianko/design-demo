@@ -2,6 +2,9 @@
 // theme × density from the built Storybook and holds it to gate 4 (axe), gate
 // 6 (zero-pixel baselines) and gate 7 (render-time taste rules), then takes
 // the shots the critique and the contact sheet read (ADR 0006, ADR 0009).
+// The generator's render pass runs it too, on one generated screen's own
+// build, at its audience's density and with no baselines (ADR 0008): see
+// generator/render.config.ts.
 
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
@@ -15,11 +18,22 @@ import {
   renders,
   selectStories,
   shotName,
+  type Checks,
   type Render,
   type Shot,
 } from "./stories.ts";
 
-const storybookStatic = resolve(import.meta.dirname, "../storybook-static");
+const storybookStatic = resolve(
+  process.env.GATE_STORYBOOK ||
+    resolve(import.meta.dirname, "../storybook-static")
+);
+
+// The generator's render pass: gates 4 and 7 only. A fresh generated screen
+// has no baseline, and nobody reads its state shots (ADR 0008).
+const renderOnly = Boolean(process.env.GATE_RENDER_ONLY);
+
+// A comma-separated subset of the densities, for the render pass.
+const densityFilter = process.env.GATE_DENSITIES?.split(",");
 
 // The built Storybook is served from disk through a route, so there's no
 // server to start, and any request that leaves it fails: a render never
@@ -44,7 +58,9 @@ test.beforeEach(async ({ context }) => {
 
 for (const story of stories) {
   test.describe(story.id, () => {
-    for (const render of renders([story])) {
+    for (const render of renders([story]).filter(
+      ({ density }) => !densityFilter || densityFilter.includes(density)
+    )) {
       test(
         renderTitle(render),
         {
@@ -71,6 +87,10 @@ for (const story of stories) {
             .include(root)
             .disableRules(["region"])
             .analyze();
+          const taste: Record<string, string[]> = {};
+          for (const rule of renderRules) {
+            taste[rule.name] = await rule.check(page, root);
+          }
           expect
             .soft(
               violations.map(
@@ -86,11 +106,30 @@ for (const story of stories) {
           // Gate 7.
           for (const rule of renderRules) {
             expect
-              .soft(
-                await rule.check(page, root),
-                `gate 7: ${rule.name}. ${rule.help}`
-              )
+              .soft(taste[rule.name], `gate 7: ${rule.name}. ${rule.help}`)
               .toEqual([]);
+          }
+
+          // What the generator's render pass reads back.
+          await testInfo.attach(annotation.checks, {
+            body: JSON.stringify({
+              axe: violations.map(({ id, help, nodes }) => ({
+                id,
+                help,
+                nodes: nodes.map(({ target, html }) => ({
+                  target: target.join(" "),
+                  html,
+                })),
+              })),
+              taste,
+            } satisfies Checks),
+            contentType: "application/json",
+          });
+
+          if (renderOnly) {
+            await shoot(page, "rest");
+            expect.soft(scriptErrors, "script-error").toEqual([]);
+            return;
           }
 
           // Gate 6. A missing baseline is written outside CI, and the
@@ -140,13 +179,17 @@ async function open(page: Page, { id, theme, density }: Render) {
   await page.goto(
     `${origin}/iframe.html?id=${id}&viewMode=story&globals=theme:${theme};density:${density}`
   );
-  await page.locator("body.sb-show-main, body.sb-show-errordisplay").waitFor();
+  // A story that throws can show main for a moment before the error display.
+  await page
+    .locator(`body.sb-show-main ${root} > *, body.sb-show-errordisplay`)
+    .first()
+    // The body reads as hidden while the error display shows.
+    .waitFor({ state: "attached" });
   if (await page.locator("body.sb-show-errordisplay").count()) {
     throw new Error(
       `The story failed to render: ${await page.locator("#error-message").innerText()}`
     );
   }
-  await page.locator(`${root} > *`).first().waitFor();
   // Instrument Sans swaps in once loaded. Until then the fallback font
   // renders, which would flake gate 6 and give gate 7 the wrong metrics.
   await page.evaluate(async () => {

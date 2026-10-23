@@ -75,4 +75,16 @@ export type Shot = (typeof shots)[number];
 export const annotation = {
   shot: "shot",
   newBaseline: "new baseline",
+  // The attachment that holds a render's Checks.
+  checks: "checks",
 } as const;
+
+// One render's gate 4 violations, and its render-time taste failures by rule.
+export type Checks = {
+  axe: {
+    id: string;
+    help: string;
+    nodes: { target: string; html: string }[];
+  }[];
+  taste: Record<string, string[]>;
+};

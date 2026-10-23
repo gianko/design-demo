@@ -10,7 +10,11 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     root: resolve(import.meta.dirname, ".."),
-    include: ["gates/gate.e2e.ts"],
+    // The gate's cases, and the kept screen's (spec § Keep).
+    include: ["gates/gate.e2e.ts", "generator/keep.e2e.ts"],
+    // Every file runs `pnpm gate` over the one checkout, and plants files
+    // in src/ that the other's runs would pick up, so one file at a time.
+    fileParallelism: false,
     globalSetup: ["gates/e2e.setup.ts"],
     environment: "node",
     testTimeout: 300_000,

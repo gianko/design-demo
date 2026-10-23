@@ -13,7 +13,11 @@ const repo = resolve(import.meta.dirname, "..");
 export type GateResult = "pass" | "fail" | "not-run";
 
 export type CodeGates = {
-  gates: { "gate 2": GateResult; "gate 3": GateResult; "gate 7": GateResult };
+  gates: {
+    "gate 2": GateResult;
+    "gate 3": GateResult;
+    "gate 7 static": GateResult;
+  };
   failures: Failure[];
   // ESLint's and tsc's own output, kept beside the attempt.
   raw: { eslint: ESLint.LintResult[]; tsc: string[] };
@@ -58,7 +62,7 @@ export async function codeGates(
     gates: {
       "gate 2": gate2.length ? "fail" : "pass",
       "gate 3": gate3.length ? "fail" : "pass",
-      "gate 7": gate7.length ? "fail" : "pass",
+      "gate 7 static": gate7.length ? "fail" : "pass",
     },
     failures: [...gate2, ...gate3, ...gate7],
     raw: {

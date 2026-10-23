@@ -115,13 +115,20 @@ describe("pnpm generate", () => {
 
     expect(output).toMatch(/spec · attempt 1 · gate 1 pass/);
     expect(output).toMatch(
-      /code · attempt 1 · gate 2 pass · gate 3 pass · gate 7 pass/
+      /code · attempt 1 · gate 2 pass · gate 3 pass · gate 7 static pass · gate 4 pass · gate 7 render pass/
+    );
+    // The render gates per theme × screen state, at the audience's density.
+    expect(output).toContain(
+      "  light · default · contractor · gate 4 pass · gate 7 render pass"
+    );
+    expect(output).toContain(
+      "  dark · default · contractor · gate 4 pass · gate 7 render pass"
     );
     expect(output).toMatch(/pass criteria: met/);
     expect(output).toMatch(/outcome: passed/);
     expect(output).toMatch(/\.generated\/\d{8}-\d{6}-cli-/);
     expect(code).toBe(0);
-  }, 60_000);
+  }, 120_000);
 
   it("exits non-zero on passed when the pass criteria aren't met", async () => {
     const { path } = brief(
@@ -138,7 +145,7 @@ describe("pnpm generate", () => {
       /pass criteria: not met · missing component Card, state empty/
     );
     expect(code).toBe(1);
-  }, 60_000);
+  }, 120_000);
 
   it("exits non-zero when a gate fails, printing the failure", async () => {
     const { path } = brief(smokeBrief);
@@ -152,5 +159,5 @@ describe("pnpm generate", () => {
     expect(output).toMatch(/gate 2 · no-restricted-syntax · L6:7/);
     expect(output).toMatch(/outcome: code-attempts-exhausted/);
     expect(code).toBe(1);
-  }, 60_000);
+  }, 120_000);
 });

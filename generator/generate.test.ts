@@ -129,10 +129,72 @@ describe("generate", () => {
       trace.attempts.map(({ step, attempt, gates }) => [step, attempt, gates])
     ).toEqual([
       ["spec", 1, { "gate 1": "pass" }],
-      ["code", 1, { "gate 2": "pass", "gate 3": "pass", "gate 7": "pass" }],
+      [
+        "code",
+        1,
+        {
+          "gate 2": "pass",
+          "gate 3": "pass",
+          "gate 7 static": "pass",
+          "gate 4": "pass",
+          "gate 7 render": "pass",
+        },
+      ],
     ]);
     expect(trace.uiSpec).toEqual(smokeSpec);
-  }, 60_000);
+  }, 120_000);
+
+  it("renders the code attempt in light and dark × every screen state, at the audience's density", async () => {
+    const { model } = stubModel(
+      message(JSON.stringify(smokeSpec)),
+      message(smokeTsx)
+    );
+    const dir = workDir();
+
+    const trace = await generate(brief, { workDir: dir, model });
+
+    const passed = { "gate 4": "pass", "gate 7 render": "pass" };
+    expect(trace.attempts[1]!.renders).toEqual([
+      {
+        theme: "light",
+        density: "contractor",
+        state: "default",
+        gates: passed,
+      },
+      { theme: "dark", density: "contractor", state: "default", gates: passed },
+    ]);
+    expect(
+      readJson(join(dir, "attempt-1-code/attempt.json")).renders
+    ).toHaveLength(2);
+    expect(
+      existsSync(join(dir, "attempt-1-code/render/out/results.json"))
+    ).toBe(true);
+  }, 120_000);
+
+  it("records the render gates as not-run when the generated file doesn't build", async () => {
+    const broken = smokeTsx.replace(
+      'from "../../index.ts"',
+      'from "../../no-such-module.ts"'
+    );
+    const { model } = stubModel(
+      message(JSON.stringify(smokeSpec)),
+      message(broken)
+    );
+
+    const trace = await generate(brief, { workDir: workDir(), model });
+
+    const code = trace.attempts[1]!;
+    expect(trace.outcome).toBe("code-attempts-exhausted");
+    expect(code.gates).toMatchObject({
+      "gate 3": "fail",
+      "gate 4": "not-run",
+      "gate 7 render": "not-run",
+    });
+    expect(code.renders).toEqual([]);
+    expect(code.failures).toContainEqual(
+      expect.stringMatching(/^gate 3 · build · \(build\) · /)
+    );
+  }, 120_000);
 
   it("writes the attempt folders, with both prompt hashes recorded", async () => {
     const { model } = stubModel(
@@ -168,7 +230,7 @@ describe("generate", () => {
       requestId: "req_2",
     });
     expect(trace.versions).toEqual(rep.versions);
-  }, 60_000);
+  }, 120_000);
 
   it("asks each step with its own config and the cached system prefix", async () => {
     const { model, requests } = stubModel(
@@ -202,7 +264,7 @@ describe("generate", () => {
     expect(JSON.stringify(code!.messages)).toContain("Smoke: welcome back");
     const [turn] = code!.messages;
     expect(turn!.content).toContain(JSON.stringify(smokeSpec));
-  }, 60_000);
+  }, 120_000);
 
   it("ends after a spec attempt that fails gate 1, without a code attempt", async () => {
     const broken = {
@@ -225,7 +287,7 @@ describe("generate", () => {
       readFileSync(join(dir, "attempt-1-spec/failures.txt"), "utf8")
     ).toContain("registered-component · welcome");
     expect(existsSync(join(dir, "attempt-1-code"))).toBe(false);
-  }, 60_000);
+  }, 120_000);
 
   it("runs gates 2 and 3 and the static taste rules on the code attempt", async () => {
     const tsx = `import { Screen, Text } from "../../index.ts";
@@ -252,7 +314,9 @@ export function Smoke() {
     expect(code.gates).toEqual({
       "gate 2": "fail",
       "gate 3": "fail",
-      "gate 7": "pass",
+      "gate 7 static": "pass",
+      "gate 4": "pass",
+      "gate 7 render": "pass",
     });
     expect(code.failures).toContainEqual(
       expect.stringMatching(/^gate 2 · no-restricted-syntax · L6:7 · /)
@@ -262,7 +326,7 @@ export function Smoke() {
         /^gate 3 · TS2322 · L7:15 · Type 'number' is not assignable to type 'string'/
       )
     );
-  }, 60_000);
+  }, 120_000);
 
   it.each([
     ["refusal", "error:refusal"],
@@ -278,6 +342,6 @@ export function Smoke() {
       expect(requests).toHaveLength(1);
       expect(trace.attempts[0]!.gates).toEqual({ "gate 1": "not-run" });
     },
-    60_000
+    120_000
   );
 });
