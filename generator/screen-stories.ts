@@ -27,8 +27,8 @@ export function storyStates({ states }: Pick<ScreenStoriesInput, "states">) {
 export function screenStories({ slug, name, states }: ScreenStoriesInput) {
   const stories = storyStates({ states }).map(({ exportName, state }) => {
     const declared = states.find((candidate) => candidate.name === state);
-    // Applying the variant is the library's job once screen states exist
-    // (ADR 0011); the story names it in its parameters.
+    // The story names its state and variant in its parameters, and the
+    // Storybook preview's ScreenHost applies them (ADR 0011).
     const body = declared
       ? `{\n  parameters: {\n    screenState: { name: ${JSON.stringify(declared.name)}, fixture: ${JSON.stringify(declared.fixture)} },\n  },\n}`
       : "{}";
