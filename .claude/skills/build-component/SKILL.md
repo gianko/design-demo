@@ -8,7 +8,7 @@ You are building **one** library component, `$ARGUMENTS`, for a design system wh
 
 **Precedence**, wherever sources disagree: `docs/design-brief.md` > `docs/adr/*` > `frontend-design`.
 
-**Working copy.** You start in a working copy of your own, on this component's own branch (`pnpm build-component` makes one from `origin/main`): it already meets `AGENTS.md` § Working copy, so build in it as it stands. Leave the work uncommitted; whoever started the session commits it and opens the PR.
+**Working copy.** You start in a working copy of your own, on this component's own branch (`pnpm build-loop` or `pnpm build-component` makes one from `origin/main`): it already meets `AGENTS.md` § Working copy, so build in it as it stands. Leave the work uncommitted; whoever started the session commits it, files your gaps and opens the PR.
 
 ## 1. Load `frontend-design`
 
