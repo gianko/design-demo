@@ -2,7 +2,8 @@
 // (no `style`, no raw SVG colours, imports only through the library barrel,
 // no Radix outside the library), eslint-plugin-better-tailwindcss for classes,
 // and @eslint/css with our own rule for CSS. Generated screens also contain no
-// intrinsic JSX elements (ADR 0004).
+// intrinsic JSX elements (ADR 0004) and change screen state only through the
+// library (ADR 0011).
 
 import css from "@eslint/css";
 import betterTailwind from "eslint-plugin-better-tailwindcss";
@@ -10,6 +11,7 @@ import type { Linter } from "eslint";
 import { tailwind4 } from "tailwind-csstree";
 import { noRawCssValues } from "./no-raw-css-values.ts";
 import { restrictedClasses } from "./restricted-classes.ts";
+import { screenStateViaLibrary } from "./screen-state-via-library.ts";
 
 // Generator output (ADR 0010): `pnpm lint` ignores this scratch, and the
 // generator lints it with ignores off, so these rules still reach it.
@@ -98,9 +100,13 @@ export const tokenLint: Linter.Config[] = [
     name: "token-lint/screens",
     files: ["src/screens/**/*.tsx", ...generated],
     ignores: ["**/*.stories.tsx"],
+    plugins: {
+      screens: { rules: { "screen-state-via-library": screenStateViaLibrary } },
+    },
     rules: {
       "no-restricted-syntax": ["error", ...noRawStyles, ...noIntrinsicElements],
       "no-restricted-imports": ["error", { patterns: [radix, pastTheBarrel] }],
+      "screens/screen-state-via-library": "error",
     },
   },
   {
