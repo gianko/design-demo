@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
-import { sessionArgs, transcriptPath } from "./session.ts";
+import { sessionArgs, summarise, transcriptPath } from "./session.ts";
 
 describe("sessionArgs", () => {
   const args = sessionArgs("Screen");
@@ -70,6 +70,40 @@ describe("transcriptPath", () => {
         now,
       })
     ).toThrow(/outside the working tree/);
+  });
+
+  // "..x" starts with "..", yet it names a folder inside the worktree.
+  test("refuses a folder inside the worktree whose name starts with two dots", () => {
+    expect(() =>
+      transcriptPath("Screen", {
+        worktree: "/repo/.claude/worktrees/build-component-screen",
+        stateHome: "/repo/.claude/worktrees/build-component-screen/..state",
+        now,
+      })
+    ).toThrow(/outside the working tree/);
+  });
+});
+
+describe("summarise", () => {
+  const result = JSON.stringify({
+    type: "result",
+    subtype: "success",
+    num_turns: 120,
+    duration_ms: 359918,
+    total_cost_usd: 1.384586,
+    result: "PASS on gate run 2.",
+  });
+
+  test("reads the session's result from the stream's last line", () => {
+    expect(summarise(`{"type":"system"}\n${result}\n`)).toBe(
+      "success: 120 turns, 6 min, ~$1.38 (estimate)\n\nPASS on gate run 2."
+    );
+  });
+
+  test("says so when the stream ends without a result", () => {
+    expect(summarise(`{"type":"system"}\n{"type":"assis`)).toBe(
+      "The session ended without a result."
+    );
   });
 });
 

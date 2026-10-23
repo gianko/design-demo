@@ -8,7 +8,7 @@ You are building **one** library component, `$ARGUMENTS`, for a design system wh
 
 **Precedence**, wherever sources disagree: `docs/design-brief.md` > `docs/adr/*` > `frontend-design`.
 
-**Working copy.** `pnpm build-component` started you in a fresh worktree of `origin/main` on this component's own branch: work right here, and leave the work uncommitted. The human or the build-loop driver commits it and opens the PR.
+**Working copy.** You start in a working copy of your own, on this component's own branch (`pnpm build-component` makes one from `origin/main`): it already meets `AGENTS.md` § Working copy, so build in it as it stands. Leave the work uncommitted; whoever started the session commits it and opens the PR.
 
 ## 1. Load `frontend-design`
 
@@ -46,9 +46,11 @@ In `src/components/$ARGUMENTS/`:
 - **`$ARGUMENTS.stories.tsx`**: `title: "Components/$ARGUMENTS"`; one story per variant, plus one per non-default state (disabled, pending, with icon…), with real product copy from the brief's domain (contractor invoices and payments), written to the brief's copy rules. A story that animates while idle (a pending sweep) carries the `animates-while-idle` tag, which gets it a mid-animation shot.
 - Export it from the barrel, `src/index.ts`.
 
+The build is done when the three files exist, every variant and state in the plan has its story, and the barrel exports the component.
+
 ## 5. Gate loop
 
-From the repo root, run `pnpm gate $ARGUMENTS`. It runs `pnpm lint` (gate 2 and the static taste rules), `pnpm typecheck` (gate 3) and the Storybook build on the host, and stops at the first of them that fails. Then it runs gates 4, 6 and render-time 7 in the pinned Playwright image (ADR 0009): every story in light/dark × admin/contractor, each failure named by story, theme and density.
+From the repo root, run `pnpm gate $ARGUMENTS`. Its host steps (lint, typecheck, Storybook build) stop at the first failure, so a lint or type error hides the render gates until it's fixed. The render gates run in the pinned Playwright image (ADR 0009) and name each failure by story, theme and density.
 
 Fix each failure **at its cause in the component**. The standard is everything outside `src/components/$ARGUMENTS/` and `src/index.ts`: `tokens/`, `lint/`, `gates/` and its existing baselines, `.storybook/` and `docs/` stay as they are. The gate writes a missing baseline to `gates/baselines/` on its own, and the human approves it from the contact sheet; that is expected. A baseline that already exists changes only by the human's `--update`.
 

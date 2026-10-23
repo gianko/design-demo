@@ -1,10 +1,8 @@
 // The headless `/build-component <Component>` session, isolated as ADR 0006
-// sets out: project settings only (a user-level hook leaked into the
-// prototype's first run), so `frontend-design` is its only plugin; edits
-// accepted; Bash limited to pnpm and npx; and a transcript kept outside the
-// working tree.
+// sets out. Project settings only, since a user-level hook leaked into the
+// prototype's first run; they make `frontend-design` its only plugin.
 
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 
 export function sessionArgs(component: string): string[] {
   return [
@@ -45,10 +43,27 @@ export function transcriptPath(
     "runs",
     `${component}-${stamp}.jsonl`
   );
-  if (!relative(worktree, path).startsWith("..")) {
+  if (relative(worktree, path).split(sep)[0] !== "..") {
     throw new Error(
       `The transcript must be written outside the working tree, but ${path} is inside ${worktree}.`
     );
   }
   return path;
+}
+
+// One line for the human from the transcript's last line, the session's
+// result. A session that dies mid-write leaves no result line to read.
+export function summarise(transcript: string): string {
+  const last = transcript.trim().split("\n").at(-1) ?? "";
+  let result;
+  try {
+    result = JSON.parse(last);
+  } catch {
+    result = undefined;
+  }
+  if (result?.type !== "result") return "The session ended without a result.";
+  const minutes = Math.round(result.duration_ms / 60000);
+  const cost = result.total_cost_usd.toFixed(2);
+  const line = `${result.subtype}: ${result.num_turns} turns, ${minutes} min, ~$${cost} (estimate)`;
+  return result.result ? `${line}\n\n${result.result}` : line;
 }

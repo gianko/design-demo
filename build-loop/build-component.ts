@@ -7,19 +7,28 @@ import { spawnSync } from "node:child_process";
 import { closeSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
-import { sessionArgs, transcriptPath } from "./session.ts";
+import { parseArgs } from "node:util";
+import { sessionArgs, summarise, transcriptPath } from "./session.ts";
 
 const repo = resolve(import.meta.dirname, "..");
 
-const [component, ...extra] = process.argv.slice(2);
-if (!component || extra.length > 0 || !/^[A-Z][A-Za-z0-9]*$/.test(component)) {
+const { positionals } = parseArgs({ allowPositionals: true });
+const [component] = positionals;
+if (
+  !component ||
+  positionals.length > 1 ||
+  !/^[A-Z][A-Za-z0-9]*$/.test(component)
+) {
   fail(
     "Usage: pnpm build-component <Component>, e.g. pnpm build-component Screen"
   );
 }
 
-// `pnpm gate` renders in Docker (ADR 0009); without it every gate run fails.
-run("docker", ["info", "--format", "{{.ServerVersion}}"], repo, "ignore");
+if (spawnSync("docker", ["info"], { stdio: "ignore" }).status !== 0) {
+  fail(
+    "Docker isn't running. `pnpm gate` renders in it (ADR 0009), so no gate run in the session could pass."
+  );
+}
 
 const branch = `build-component-${component.toLowerCase()}`;
 const worktree = resolve(repo, ".claude/worktrees", branch);
@@ -46,32 +55,19 @@ const session = spawnSync("claude", sessionArgs(component), {
 closeSync(out);
 if (session.error) fail(`claude: ${session.error.message}`);
 
-// The stream's last line is the session's result.
-const last = readFileSync(transcript, "utf8").trim().split("\n").at(-1);
-const result = last ? JSON.parse(last) : {};
-if (result.type === "result") {
-  console.log(
-    `\n${result.subtype}: ${result.num_turns} turns, ${Math.round(result.duration_ms / 60000)} min, ~$${result.total_cost_usd?.toFixed(2)} (estimate)`
-  );
-  if (result.result) console.log(`\n${result.result}`);
-}
+console.log(`\n${summarise(readFileSync(transcript, "utf8"))}`);
 console.log(
   `\nContact sheet: ${resolve(worktree, "gates/out/contact-sheet/index.html")}`
 );
 process.exit(session.status ?? 1);
 
-function run(
-  command: string,
-  args: string[],
-  cwd: string,
-  stdout: "inherit" | "ignore" = "inherit"
-) {
+function run(command: string, args: string[], cwd: string) {
   const { status, error } = spawnSync(command, args, {
     cwd,
-    stdio: ["ignore", stdout, "inherit"],
+    stdio: ["ignore", "inherit", "inherit"],
   });
   if (error) fail(`${command}: ${error.message}`);
-  if (status !== 0) fail(`${command} ${args.join(" ")} exited ${status}.`);
+  if (status !== 0) process.exit(status ?? 1);
 }
 
 function fail(message: string): never {
