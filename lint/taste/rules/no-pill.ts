@@ -1,10 +1,12 @@
 // `no-pill` (lint/taste/RULES.md). Origin: the design brief, "Nothing is fully
 // rounded except avatars." Static: `rounded-full` in source outside the
-// exempt components, and its CSS equivalents. Render: any element whose
-// computed radius reaches half its shorter side, however it got there (a
-// token radius on a short element is as much a pill as `rounded-full`).
+// exempt components, as a class or as the value it compiles to. Render: any
+// element whose computed radius reaches half its height, however it got
+// there (a token radius on a short element is as much a pill as
+// `rounded-full`).
 
 import type { Rule } from "eslint";
+import { relative, sep } from "node:path";
 import { classTokens } from "../classes.ts";
 import { config } from "../config.ts";
 import { inPage, type RenderRule } from "../render.ts";
@@ -18,10 +20,9 @@ type Options = { exempt: readonly string[] };
 const fullyRounded =
   /^-?rounded(?:-(?:t|r|b|l|s|e|tl|tr|br|bl|ss|se|es|ee))?-full$/;
 
-// A declared radius that rounds anything fully: Tailwind's `rounded-full`
-// value, a length no box reaches, or half the box or more.
-const fullRadius =
-  /infinity|\b\d{4,}(?:\.\d+)?px\b|\b(?:[5-9]\d|\d{3,})(?:\.\d+)?%/;
+// `rounded-full` written as CSS: the value Tailwind 4 compiles it to,
+// `calc(infinity * 1px)`, or Tailwind 3's `9999px`.
+const fullRadius = /\binfinity\b|(?<![\d.])9999px\b/;
 
 export const lint: Rule.RuleModule = {
   meta: {
@@ -38,8 +39,11 @@ export const lint: Rule.RuleModule = {
   },
   create(context) {
     const { exempt = [] } = (context.options[0] ?? {}) as Partial<Options>;
-    const path = context.filename.split("\\").join("/");
-    if (exempt.some((name) => path.includes(`/components/${name}/`))) return {};
+    // A library component's files live in `src/<name>/`, e.g. `src/amount/`.
+    const path = relative(context.cwd, context.filename).split(sep).join("/");
+    if (exempt.some((name) => path.startsWith(`src/${name.toLowerCase()}/`))) {
+      return {};
+    }
 
     const report = reporter(context, "pill");
 
@@ -67,9 +71,8 @@ export const render: RenderRule = {
   check: (page, root) => inPage(page, root, findPills, config[id].exempt),
 };
 
-// In the page: every visible box whose corner radius reaches half its height
-// (or half its width, for a box taller than wide), outside the exempt
-// components.
+// In the page: every visible box whose corner radius reaches half its
+// height, outside the exempt components.
 function findPills(root: Element, exempt: readonly string[]): string[] {
   const failures: string[] = [];
   const corners = [
@@ -86,27 +89,17 @@ function findPills(root: Element, exempt: readonly string[]): string[] {
     if (width === 0 || height === 0 || !element.checkVisibility()) continue;
     const style = getComputedStyle(element);
     // A computed corner is "12px", "50%" or "12px 6px" (horizontal,
-    // vertical); each radius is measured against the half side it runs along.
-    const px = (value: string, side: number) =>
-      value.endsWith("%")
-        ? (parseFloat(value) / 100) * side
-        : parseFloat(value);
-    const share = Math.max(
+    // vertical). Its vertical radius is the one that runs along the height.
+    const radius = Math.max(
       ...corners.map((corner) => {
         const [x = "0", y = x] = style[corner].split(" ");
-        return Math.max(
-          px(x, width) / (width / 2),
-          px(y, height) / (height / 2)
-        );
+        return y.endsWith("%") ? (parseFloat(y) / 100) * height : parseFloat(y);
       })
     );
-    if (share < 1) continue;
+    if (radius < height / 2) continue;
     const text = element.textContent!.replace(/\s+/g, " ").trim();
-    const radius = Math.max(
-      ...corners.map((corner) => px(style[corner].split(" ")[0]!, width))
-    );
     failures.push(
-      `${text ? taste.quote(text) : `<${element.tagName.toLowerCase()}>`} has a ${Math.round(radius)}px corner radius on a ${Math.round(Math.min(width, height))}px-high box.`
+      `${text ? taste.quote(text) : `<${element.tagName.toLowerCase()}>`} has a ${Math.round(radius)}px corner radius on a ${Math.round(height)}px-high box.`
     );
   }
   return failures;

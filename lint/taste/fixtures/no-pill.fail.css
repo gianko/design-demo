@@ -1,5 +1,5 @@
-/* Fully rounded corners in CSS: through @apply under a variant, and as a
-   declared radius on one corner, as a percentage and as a huge length. */
+/* Fully rounded corners in CSS: through @apply under a variant, and as
+   `rounded-full`'s value on one corner, Tailwind 4's and Tailwind 3's. */
 .tag {
   @apply rounded-tag focus-visible:rounded-full; /* ✗ taste/no-pill */
 }
@@ -8,10 +8,6 @@
   border-start-start-radius: calc(infinity * 1px); /* ✗ taste/no-pill */
 }
 
-.chip {
-  border-radius: var(--ds-radius-tag) 50%; /* ✗ taste/no-pill */
-}
-
 .badge {
-  border-radius: 9999px; /* ✗ taste/no-pill */
+  border-radius: var(--ds-radius-tag) 9999px; /* ✗ taste/no-pill */
 }
