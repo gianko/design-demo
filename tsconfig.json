@@ -23,6 +23,9 @@
     ".agents",
     ".claude",
     // Planted violations import modules that don't exist on purpose.
-    "lint/token/fixtures"
+    "lint/token/fixtures",
+    // Generator output: gate 3 checks each file where it would be kept.
+    ".generated",
+    "evals/runs"
   ]
 }
