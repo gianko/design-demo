@@ -7,3 +7,38 @@
    brief uses two weights only. */
 @import "@fontsource/instrument-sans/400.css";
 @import "@fontsource/instrument-sans/600.css";
+
+/* Screen-state changes (ADR 0011). Every change is a View Transition, run by
+   the library's useScreenState and useAction: a crossfade at `base`, the old
+   view leaving at its exit duration and easing. `ease-settle` runs only under
+   `confirm`, a confirmed result, and never on the leaving view; `fail` keeps
+   `standard`. Under reduced motion every change is a `fast` crossfade, and
+   nothing moves. */
+::view-transition-group(*),
+::view-transition-new(*) {
+  animation-duration: var(--ds-motion-duration-base);
+  animation-timing-function: var(--ds-motion-ease-standard);
+}
+
+::view-transition-old(*) {
+  animation-duration: var(--ds-motion-duration-base-exit);
+  animation-timing-function: var(--ds-motion-ease-exit);
+}
+
+:root:active-view-transition-type(confirm)::view-transition-group(*),
+:root:active-view-transition-type(confirm)::view-transition-new(*) {
+  animation-timing-function: var(--ds-motion-ease-settle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation-name: none;
+  }
+
+  ::view-transition-new(*),
+  ::view-transition-old(*),
+  :root:active-view-transition-type(confirm)::view-transition-new(*) {
+    animation-duration: var(--ds-motion-duration-fast);
+    animation-timing-function: var(--ds-motion-ease-standard);
+  }
+}

@@ -52,7 +52,9 @@ const screen = (
 describe("renderGates", () => {
   it("passes a clean screen in light and dark × every screen state, at its audience's density", async () => {
     const result = await renderGates(
-      screen(smokeTsx, [{ name: "reminder-sent", fixture: "smoke/sent" }])
+      screen(smokeTsx, [
+        { name: "reminder-sent", fixture: "payment-status/reminder-sent" },
+      ])
     );
 
     expect(result.failures).toEqual([]);
@@ -90,7 +92,7 @@ export function Smoke() {
 }
 `;
     const result = await renderGates(
-      screen(tsx, [{ name: "empty", fixture: "smoke/empty" }])
+      screen(tsx, [{ name: "empty", fixture: "payment-status/empty" }])
     );
 
     expect(result.gates).toEqual({ "gate 4": "fail", "gate 7 render": "fail" });

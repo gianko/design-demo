@@ -68,6 +68,7 @@ function installHelpers() {
         const element = node.parentElement;
         if (!text || !element) continue;
         if (!element.checkVisibility({ visibilityProperty: true })) continue;
+        if (visuallyHidden(element)) continue;
         const range = document.createRange();
         range.selectNodeContents(node);
         const rects = [...range.getClientRects()].filter(
@@ -77,6 +78,28 @@ function installHelpers() {
         texts.push({ node: node as globalThis.Text, element, text, rects });
       }
       return texts;
+
+      // Copy only assistive tech reads, as in Screen's status region:
+      // something around it clips it to nothing, with a clip that leaves no
+      // area or a 1px box that hides its overflow, so no one sees its type
+      // or where it runs.
+      function visuallyHidden(element: Element) {
+        for (let box: Element | null = element; box; box = box.parentElement) {
+          const style = getComputedStyle(box);
+          if (style.clipPath === "inset(50%)") return true;
+          if (style.clip === "rect(0px, 0px, 0px, 0px)") return true;
+          const rect = box.getBoundingClientRect();
+          if (
+            style.overflowX !== "visible" &&
+            style.overflowY !== "visible" &&
+            rect.width <= 1 &&
+            rect.height <= 1
+          ) {
+            return true;
+          }
+        }
+        return false;
+      }
     },
     quote(text) {
       return JSON.stringify(text.length > 40 ? `${text.slice(0, 39)}…` : text);

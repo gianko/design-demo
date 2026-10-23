@@ -29,7 +29,8 @@ const codeInstructions = `You turn a UI spec into one React screen: a whole TSX 
 - Export one function component with the name you're given, taking no props, and export nothing else.
 - Render each node as its component with exactly the props it gives, each value as its JSON says. Don't add, drop or reword nodes, props or copy.
 - A node in its parent's body slot is one of the parent's children; a node in any other slot is passed as the parent's prop named after that slot. Siblings keep their order in the node list.
-- No intrinsic elements (div, span, p and the rest), no className and no style: the library does all the styling.`;
+- No intrinsic elements (div, span, p and the rest), no className and no style: the library does all the styling.
+- The screen holds no state of its own; the library's hooks change it, so every change is a View Transition. Read the screen state with const { state } = useScreenState(); it is "default" until an action settles, and a node with a non-empty when renders only while state is one of those states. Wire each declared action as const <action> = useAction("<operation>", { success: "<to.success>", failure: "<to.failure>" }): the node that runs it calls <action>.run(…) with the operation's arguments, and its pending node shows <action>.pending. Never call useState, useReducer, startViewTransition or an operation yourself.`;
 
 // The user turns, as templates, so their words hash the same under any
 // runtime.
