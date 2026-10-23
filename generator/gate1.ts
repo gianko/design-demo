@@ -1,19 +1,36 @@
-// Gate 1 (ADR 0004): the UI spec checked against the registry before any code
-// exists. These are its structural checks; each failure names the node id it
-// found the problem on, or `(ui spec)` for the spec as a whole. Every check
-// runs, so one attempt reports everything it got wrong (ADR 0010).
+// Gate 1 (ADR 0004, ADR 0011): the UI spec checked against the registry and
+// the fixtures before any code exists. Each failure names the node id it
+// found the problem on, `states.<name>` or `actions.<name>` for a declared
+// state or action, or `(ui spec)` for the spec as a whole. Every check runs,
+// so one attempt reports everything it got wrong (ADR 0010).
 
+import { z } from "zod";
 import type { RegistryEntry } from "../src/registry/entry.ts";
 import type { Failure } from "./failure.ts";
 import { type UiNode, type UiSpec, wireSchema } from "./ui-spec.ts";
+
+export type Gate1Fixtures = {
+  // Each fixture variant's data by name; the default state renders the one
+  // named "default".
+  variants: Readonly<Record<string, unknown>>;
+  // The mock async operations an action may run.
+  operations: readonly string[];
+};
 
 export type Gate1Context = {
   entries: readonly RegistryEntry[];
   // The screen brief's audience.
   audience: string;
+  fixtures: Gate1Fixtures;
 };
 
 const whole = "(ui spec)";
+// The screen state every screen has besides the declared ones; a node's
+// `when` and an action's `to` may name it.
+const defaultState = "default";
+// A DataTable's slots whose template node renders once per row, where `row.*`
+// paths resolve (ADR 0004, ADR 0011).
+const rowSlots = ["cell", "detail"];
 
 export function gate1(raw: unknown, context: Gate1Context): Failure[] {
   let input = raw;
@@ -37,7 +54,7 @@ export function gate1(raw: unknown, context: Gate1Context): Failure[] {
   return checks(parsed.data, context);
 }
 
-function checks(spec: UiSpec, { entries, audience }: Gate1Context) {
+function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
   const failures: Failure[] = [];
   const entryOf = new Map(entries.map((entry) => [entry.name, entry]));
   const byId = new Map<string, UiNode>();
@@ -122,6 +139,7 @@ function checks(spec: UiSpec, { entries, audience }: Gate1Context) {
     }
   }
 
+  const screen = screenModel(spec, byId, fixtures);
   for (const node of spec.nodes) {
     const entry = entryOf.get(node.component);
     if (entry === undefined) {
@@ -137,7 +155,7 @@ function checks(spec: UiSpec, { entries, audience }: Gate1Context) {
     const parent = node.parent === null ? undefined : byId.get(node.parent);
     const parentEntry = parent && entryOf.get(parent.component);
     if (parentEntry) failures.push(...slotChecks(node, parentEntry));
-    failures.push(...propChecks(node, entry));
+    failures.push(...propChecks(node, entry, screen));
   }
 
   // The audience is the screen brief's, on the spec and on its Screen.
@@ -213,7 +231,11 @@ function slotChecks(node: UiNode, parent: RegistryEntry): Failure[] {
   return [];
 }
 
-function propChecks(node: UiNode, entry: RegistryEntry): Failure[] {
+function propChecks(
+  node: UiNode,
+  entry: RegistryEntry,
+  screen: ScreenModel
+): Failure[] {
   const failures: Failure[] = [];
   const props: Record<string, unknown> = {};
   let unparsed = false;
@@ -233,7 +255,23 @@ function propChecks(node: UiNode, entry: RegistryEntry): Failure[] {
   }
   // A value that isn't JSON would also read as missing; say it once.
   if (unparsed) return failures;
-  const result = entry.props.strict().safeParse(props);
+
+  // A bound prop of the entry's is checked against the data it resolves to,
+  // below; every other prop, a bound one the entry doesn't have included,
+  // parses here as written.
+  const shape = entry.props.shape;
+  const bound = Object.entries(props).flatMap(([name, value]) => {
+    const path = bindingPath(value);
+    return path !== undefined && Object.hasOwn(shape, name)
+      ? [{ name, path }]
+      : [];
+  });
+  const boundNames = new Set(bound.map(({ name }) => name));
+  const unbound = <T>(record: Record<string, T>) =>
+    Object.fromEntries(
+      Object.entries(record).filter(([name]) => !boundNames.has(name))
+    );
+  const result = z.strictObject(unbound(shape)).safeParse(unbound(props));
   if (!result.success) {
     for (const issue of result.error.issues) {
       const path = issue.path.join(".");
@@ -246,7 +284,187 @@ function propChecks(node: UiNode, entry: RegistryEntry): Failure[] {
       );
     }
   }
+
+  const table = screen.rowTable(node);
+  for (const { name, path } of bound) {
+    const binds = `"${name}" binds "${path}"`;
+    if (isRowPath(path) && table === undefined) {
+      failures.push(
+        fail(
+          "binding-row-scope",
+          node.id,
+          `${binds}, but row paths resolve only inside a DataTable's ${rowSlots.join(" or ")} slot.`
+        )
+      );
+      continue;
+    }
+    for (const where of screen.dataFor(node, table)) {
+      const resolved = resolvePath(path, where);
+      if (!resolved.ok) {
+        failures.push(
+          fail(
+            "binding-resolves",
+            node.id,
+            `${binds}, which doesn't resolve ${describe(where)}.`
+          )
+        );
+        break;
+      }
+      const fit = shape[name]!.safeParse(resolved.value);
+      if (!fit.success) {
+        failures.push(
+          fail(
+            "binding-type",
+            node.id,
+            `${binds} to ${JSON.stringify(resolved.value)} ${describe(where)}, which ${entry.name}'s "${name}" doesn't take: ${fit.error.issues[0]!.message}`
+          )
+        );
+        break;
+      }
+    }
+  }
   return failures;
+}
+
+// The data a node renders: one fixture variant per screen state it shows in,
+// and inside a DataTable's row slots, each row of each.
+type DataPoint = {
+  state: string;
+  variant: string;
+  data: unknown;
+  row?: { index: number; value: unknown };
+};
+
+type ScreenModel = {
+  // The default state, then each declared one.
+  states: string[];
+  // The screen states a node shows in: its own `when`, within its parent's.
+  visibleIn: (node: UiNode) => string[];
+  // The DataTable whose rows a node's row paths read, if it sits in one's
+  // row slots.
+  rowTable: (node: UiNode) => UiNode | undefined;
+  dataFor: (node: UiNode, table: UiNode | undefined) => DataPoint[];
+};
+
+function screenModel(
+  spec: UiSpec,
+  byId: Map<string, UiNode>,
+  fixtures: Gate1Fixtures
+): ScreenModel {
+  const variantOf = new Map([[defaultState, defaultState]]);
+  for (const { name, fixture } of spec.states) {
+    if (!variantOf.has(name)) variantOf.set(name, fixture);
+  }
+  const states = [...variantOf.keys()];
+  const parentOf = (node: UiNode) =>
+    node.parent === null ? undefined : byId.get(node.parent);
+
+  const visibility = new Map<UiNode, string[]>();
+  const visibleIn = (node: UiNode, seen = new Set<UiNode>()): string[] => {
+    const known = visibility.get(node);
+    if (known) return known;
+    seen.add(node);
+    let shown =
+      node.when.length === 0
+        ? states
+        : states.filter((state) => node.when.includes(state));
+    const parent = parentOf(node);
+    if (parent && !seen.has(parent)) {
+      const above = visibleIn(parent, seen);
+      shown = shown.filter((state) => above.includes(state));
+    }
+    visibility.set(node, shown);
+    return shown;
+  };
+
+  const rowTable = (node: UiNode) => {
+    const seen = new Set<UiNode>();
+    let child = node;
+    let parent = parentOf(child);
+    // Up to the first edge into a row slot, then up to the DataTable that
+    // owns it or holds its owner.
+    while (parent && !seen.has(parent)) {
+      seen.add(parent);
+      if (child.slot !== null && rowSlots.includes(child.slot)) {
+        for (let at: UiNode | undefined = parent; at; at = parentOf(at)) {
+          if (at.component === "DataTable") return at;
+          if (seen.has(at) && at !== parent) break;
+          seen.add(at);
+        }
+        return undefined;
+      }
+      child = parent;
+      parent = parentOf(child);
+    }
+    return undefined;
+  };
+
+  const dataFor = (node: UiNode, table: UiNode | undefined) => {
+    const points: DataPoint[] = [];
+    for (const state of visibleIn(node)) {
+      const variant = variantOf.get(state)!;
+      if (!Object.hasOwn(fixtures.variants, variant)) continue;
+      const point = { state, variant, data: fixtures.variants[variant] };
+      if (table === undefined) {
+        points.push(point);
+        continue;
+      }
+      const rowsProp = propValue(table, "rows");
+      const rowsPath = rowsProp?.ok ? bindingPath(rowsProp.value) : undefined;
+      const rows =
+        rowsPath === undefined || isRowPath(rowsPath)
+          ? undefined
+          : resolvePath(rowsPath, point);
+      if (rows?.ok && Array.isArray(rows.value)) {
+        rows.value.forEach((value: unknown, index) =>
+          points.push({ ...point, row: { index, value } })
+        );
+      }
+    }
+    return points;
+  };
+
+  return { states, visibleIn, rowTable, dataFor };
+}
+
+// A prop value `{ "bind": "<path>" }` reads its value from the fixtures.
+function bindingPath(value: unknown) {
+  if (typeof value !== "object" || value === null) return undefined;
+  const keys = Object.keys(value);
+  const path = (value as { bind?: unknown }).bind;
+  return keys.length === 1 && typeof path === "string" ? path : undefined;
+}
+
+function isRowPath(path: string) {
+  return path === "row" || path.startsWith("row.");
+}
+
+function resolvePath(path: string, { data, row }: DataPoint) {
+  const [first, ...rest] = path.split(".");
+  let current: unknown = data;
+  let segments = [first!, ...rest];
+  if (isRowPath(path)) {
+    current = row?.value;
+    segments = rest;
+  }
+  for (const segment of segments) {
+    if (
+      typeof current !== "object" ||
+      current === null ||
+      !Object.hasOwn(current, segment)
+    ) {
+      return { ok: false as const };
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current === undefined
+    ? { ok: false as const }
+    : { ok: true as const, value: current };
+}
+
+function describe({ state, variant, row }: DataPoint) {
+  const where = `in state "${state}" (fixture variant "${variant}")`;
+  return row ? `${where}, on row ${row.index + 1}` : where;
 }
 
 function propValue(node: UiNode, name: string) {
