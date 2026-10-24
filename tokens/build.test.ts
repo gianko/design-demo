@@ -136,12 +136,12 @@ describe("the Figma payload", () => {
     ]);
   });
 
-  it("aliases a colour role to its primitive in each theme, with the --ds-* code syntax", () => {
+  it("aliases a colour role to its primitive in each theme, marked as a --ds-* variable", () => {
     expect(variable("Color", "color/text/ink-muted")).toEqual({
       name: "color/text/ink-muted",
       type: "COLOR",
       scopes: ["TEXT_FILL"],
-      codeSyntax: { WEB: "var(--ds-color-text-ink-muted)" },
+      css: true,
       valuesByMode: {
         Light: { alias: "primitive/neutral/500" },
         Dark: { alias: "primitive/neutral/740" },
@@ -151,8 +151,26 @@ describe("the Figma payload", () => {
       scopes: [],
     });
     expect(variable("Primitives", "primitive/neutral/740")).not.toHaveProperty(
-      "codeSyntax"
+      "css"
     );
+  });
+
+  // The sync script derives code syntax as var(--ds-<name, / as ->), so a
+  // marked variable must be one tokens.css declares, and an unmarked one not.
+  it("marks exactly the variables whose derived --ds-* name tokens.css declares", () => {
+    const declared = new Set(
+      [...built.css.matchAll(/^\s+(--ds-[\w-]+):/gm)].map(([, name]) => name)
+    );
+    const derived = (name: string) => `--ds-${name.split("/").join("-")}`;
+    const variables = payload.collections.flatMap((c) => c.variables);
+
+    expect(
+      variables.filter((v) => v.css && !declared.has(derived(v.name)))
+    ).toEqual([]);
+    expect(
+      variables.filter((v) => !v.css && declared.has(derived(v.name)))
+    ).toEqual([]);
+    expect(variables.filter((v) => v.css)).toHaveLength(86);
   });
 
   it("converts a literal colour to sRGB 0–1 and keeps its alpha", () => {
@@ -213,7 +231,7 @@ describe("the Figma payload", () => {
     ).toEqual({ Admin: 14, Contractor: 16 });
     expect(variable("Type", "type/title/letter-spacing")).toMatchObject({
       scopes: ["LETTER_SPACING"],
-      codeSyntax: { WEB: "var(--ds-type-title-letter-spacing)" },
+      css: true,
       valuesByMode: { Value: -0.36 },
     });
     expect(variable("Type", "type/family/sans").valuesByMode).toEqual({
@@ -227,7 +245,7 @@ describe("the Figma payload", () => {
     expect(variable("Motion", "motion/ease/settle")).toEqual({
       name: "motion/ease/settle",
       type: "EASING",
-      codeSyntax: { WEB: "var(--ds-motion-ease-settle)" },
+      css: true,
       valuesByMode: {
         Value: {
           type: "CUSTOM_CUBIC_BEZIER",

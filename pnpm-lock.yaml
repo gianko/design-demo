@@ -63,6 +63,9 @@ importers:
       culori:
         specifier: ^4.0.2
         version: 4.0.2
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       eslint:
         specifier: ^10.13.0
         version: 10.13.0(jiti@2.7.0)
