@@ -5,8 +5,7 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { launch } from "./launch.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import { repo } from "../repo.ts";
 
 const { positionals } = parseArgs({ allowPositionals: true });
 const [component] = positionals;

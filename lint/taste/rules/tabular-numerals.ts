@@ -7,7 +7,7 @@
 // table ends its text at the cell's end edge. Dates and counts are out of
 // scope.
 
-import { inPage, type RenderRule } from "../render.ts";
+import { inPage, type RenderFinding, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
 
 export const id = "tabular-numerals";
@@ -19,8 +19,8 @@ export const render: RenderRule = {
     inPage(page, root, untabular, Intl.supportedValuesOf("currency")),
 };
 
-function untabular(root: Element, isoCodes: string[]): string[] {
-  const failures: string[] = [];
+function untabular(root: Element, isoCodes: string[]): RenderFinding[] {
+  const failures: RenderFinding[] = [];
   // Grouped by commas or (no-break) spaces.
   const amount = new RegExp(
     String.raw`\d{1,3}(?:[,\u00a0\u202f ]\d{3})*\.\d{2}(?!\d)`,
@@ -51,7 +51,9 @@ function untabular(root: Element, isoCodes: string[]): string[] {
       if (
         !getComputedStyle(element).fontVariantNumeric.includes("tabular-nums")
       ) {
-        failures.push(`${taste.quote(digits)} lacks tabular-nums.`);
+        failures.push(
+          taste.at(element, `${taste.quote(digits)} lacks tabular-nums.`)
+        );
       }
 
       const cell = element.closest(
@@ -67,7 +69,12 @@ function untabular(root: Element, isoCodes: string[]): string[] {
           parseFloat(style.borderRightWidth) -
           parseFloat(style.paddingRight);
         if (contentEnd - textEnd > 1) {
-          failures.push(`${taste.quote(text)} is not end-aligned in its cell.`);
+          failures.push(
+            taste.at(
+              element,
+              `${taste.quote(text)} is not end-aligned in its cell.`
+            )
+          );
         }
       }
     }

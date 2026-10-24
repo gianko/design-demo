@@ -7,6 +7,7 @@ import {
   type Density,
   type Theme,
 } from "../.storybook/globals.ts";
+import type { RenderFinding } from "../lint/taste/render.ts";
 
 export type Story = { id: string; tags: string[] };
 
@@ -75,4 +76,16 @@ export type Shot = (typeof shots)[number];
 export const annotation = {
   shot: "shot",
   newBaseline: "new baseline",
+  // The attachment that holds a render's Checks.
+  checks: "checks",
 } as const;
+
+// One render's gate 4 violations, and its render-time taste failures by rule.
+export type Checks = {
+  axe: {
+    id: string;
+    help: string;
+    nodes: { target: string; html: string }[];
+  }[];
+  taste: Record<string, RenderFinding[]>;
+};

@@ -4,13 +4,11 @@
 // gaps and opens the PR; it stops when no `build-loop` issue is unblocked.
 // `--dry-run` prints the issue it would take, and writes nothing.
 
-import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { drive } from "./driver.ts";
 import { gh, githubTracker } from "./github.ts";
 import { sessionBuilder } from "./launch.ts";
-
-const root = resolve(import.meta.dirname, "..");
+import { repo as root } from "../repo.ts";
 
 const { values } = parseArgs({
   options: { "dry-run": { type: "boolean", default: false } },

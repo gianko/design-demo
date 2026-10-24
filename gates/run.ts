@@ -5,12 +5,10 @@
 // baselineMode's call.
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { baselineMode, type BaselineMode } from "./baseline-mode.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import { playwrightInImage } from "./image.ts";
+import { repo } from "../repo.ts";
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -28,44 +26,21 @@ try {
   fail((error as Error).message);
 }
 
-// The image is pinned to the installed @playwright/test, so bumping the
-// package bumps the renderer with it and the two can't drift.
-const { version } = JSON.parse(
-  readFileSync(
-    resolve(repo, "node_modules/@playwright/test/package.json"),
-    "utf8"
-  )
-);
-const image = `mcr.microsoft.com/playwright:v${version}-noble`;
-
 run("pnpm", ["lint"]);
 run("pnpm", ["typecheck"]);
 run("pnpm", ["storybook:build", "--quiet"]);
-run("docker", [
-  "run",
-  "--rm",
-  "--init",
-  "--ipc=host",
-  // The Mac and the CI runner are both arm64; Chromium's antialiasing can
-  // differ between architectures.
-  "--platform=linux/arm64",
-  // Files the pass writes belong to the caller, and Chromium needs a HOME.
-  `--user=${process.getuid!()}:${process.getgid!()}`,
-  "--env=HOME=/tmp",
-  ...(ci ? ["--env=CI"] : []),
-  ...(target ? [`--env=GATE_TARGET=${target}`] : []),
-  ...(process.env.GATE_BASELINES
-    ? [`--env=GATE_BASELINES=${process.env.GATE_BASELINES}`]
-    : []),
-  `--volume=${repo}:/work`,
-  "--workdir=/work",
-  image,
-  "node",
-  "node_modules/@playwright/test/cli.js",
-  "test",
-  "--config=gates/playwright.config.ts",
-  `--update-snapshots=${mode}`,
-]);
+run(
+  "docker",
+  playwrightInImage(
+    "gates/playwright.config.ts",
+    [`--update-snapshots=${mode}`],
+    {
+      CI: ci ? "1" : undefined,
+      GATE_TARGET: target,
+      GATE_BASELINES: process.env.GATE_BASELINES || undefined,
+    }
+  )
+);
 
 function run(command: string, args: string[]) {
   const { status, error } = spawnSync(command, args, {

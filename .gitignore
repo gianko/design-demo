@@ -7,5 +7,8 @@ storybook-static/
 # rtk's vitest wrapper writes its JSON report here.
 .vitest/
 .env
+# Generator output (ADR 0010): stand-alone runs and eval-run scratch.
+.generated/
+evals/runs/
 # Written by the Playwright pass of `pnpm gate`.
 gates/out/

@@ -66,7 +66,7 @@ The DTCG source files, `tokens/build.ts`, `tokens/keyframes.css` and the three c
 
 ### Registry core
 
-The pieces every `*.registry.ts` entry uses ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)): a helper to define an entry (props schema, `use` line, slots with optional allow-lists), reading variant enums from a component's `tv()` config, serializing the registry for the spec step's system prefix, its content hash, and the wire schema's generated `component` enum.
+The pieces every `*.registry.ts` entry uses ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)): a helper to define an entry (props schema, `use` line, slots with optional allow-lists; a slot named `body` is the component's `children`, and every other slot is a `ReactNode` prop named after it, such as Card's `header` and `footer`, which is how the code step renders a node in each), reading variant enums from a component's `tv()` config, serializing the registry for the spec step's system prefix, its content hash, and the wire schema's generated `component` enum.
 
 **Done when:** Vitest, against two stub entries, shows that serialization is stable, the hash changes when and only when an entry changes, variants come from `tv()`, and the props type is `z.infer` of the entry.
 
@@ -114,7 +114,7 @@ Dates carry their display label beside the ISO value; the UI spec binds the labe
 
 ### Gate 1 and the spec step
 
-The spec step: `messages.parse()` with the flat wire schema, the cached system prefix (design brief + serialized registry + wire schema, **no example UI specs**), and model, effort, `max_tokens` and attempt limit from the per-step config ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md), [ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)). Gate 1 runs every check listed in [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md), including the Screen root and `to` checks it gained here. The repair turns follow ADR 0010. The initial prompt is written here and hashed.
+The spec step: a streamed call whose output format is the flat wire schema, converted by `zodOutputFormat()` and validated by gate 1 against the same Zod schema, rather than `messages.parse()`, so a refusal, a `max_tokens` stop and a reply that doesn't parse each end as [ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md) says instead of throwing ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md)); the cached system prefix (design brief + serialized registry + wire schema, **no example UI specs**), with each fixture variant's bindable paths in the user turn after it; and model, effort, `max_tokens` and attempt limit from the per-step config ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md), [ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)). Gate 1 runs every check listed in [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md), including the Screen root and `to` checks it gained here. The repair turns follow ADR 0010. The initial prompt is written here and hashed.
 
 **Done when:** against a stub registry and the fixtures, Vitest shows that each gate 1 rule fails a planted UI spec with the node id and rule named, and a stubbed model that returns a failing UI spec, then a fixed one, produces one repair turn in the ADR 0010 shape and ends passed.
 
@@ -126,7 +126,7 @@ The code step: the UI spec and screen brief in, a whole TSX file out, written in
 
 ### Action wiring
 
-The library hooks `useScreenState` and `useAction` and the gate 2 rule `screen-state-via-library`, as [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) sets them out. The code step wires every declared action through them.
+The library's `ScreenHost`, its hooks `useScreenState`, `useAction` and `useFixtureData`, and the gate 2 rule `screen-state-via-library`, as [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) sets them out. The code step wires every declared action through them, and reads bound props and operation arguments from `useFixtureData`.
 
 **Done when:** a test story wiring `sendReminder` through `useAction` enters `reminder-sent` through a `confirm` View Transition and `reminder-failed` through a `fail` one, and a planted generated screen that uses `useState` or calls `sendReminder` directly fails gate 2 with the rule id.
 
@@ -138,9 +138,9 @@ The library hooks `useScreenState` and `useAction` and the gate 2 rule `screen-s
 
 ### Keep
 
-`pnpm keep <.generated run dir>`: copies the final TSX to `src/screens/<slug>/` and writes one story per declared screen state plus the default, each with its fixture variant applied. The human then runs `pnpm gate <slug> --update` and approves the baselines on the PR ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
+`pnpm keep <.generated rep dir>`: copies the final TSX to `src/screens/<slug>/` and writes one story per declared screen state plus the default, each with its fixture variant applied. The human then runs `pnpm gate <slug> --update` and approves the baselines on the PR ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 
-**Done when:** keeping a passed run gives a screen whose `pnpm gate <slug>` passes after `--update`, with no hand edits.
+**Done when:** keeping a passed rep gives a screen whose `pnpm gate <slug>` passes after `--update`, with no hand edits.
 
 ### figma:sync-tokens
 
@@ -160,9 +160,9 @@ One `build-loop` issue each, in this order, each blocked by the one before. Each
 
 A component lives in `src/components/<Name>/`: the component, its `*.registry.ts` entry and its stories. Its root element carries `data-component="<Name>"`. Taste-rule exemptions name components, so both are how the gates find one: the file path in ESLint and the marker in the rendered page ([`lint/taste/config.ts`](../lint/taste/config.ts)).
 
-1. **Screen**: the screen root. `audience` prop sets `data-density` and applies `p-page`. Exactly one per UI spec, as its root.
+1. **Screen**: the screen root. `audience` prop sets `data-density` and applies `p-page`. Exactly one per UI spec, as its root. It always renders one visually hidden, empty, polite `role="status"` region and provides `announce(text)` to the library through context, so the region exists before any copy arrives ([Text's `live`](https://github.com/gianko/design-demo/issues/98)).
 2. **Stack**: direction, token-union gap and alignment, no `className` ([ADR 0002](adr/0002-token-only-tailwind-and-eslint-token-lint.md)).
-3. **Text**: `tone` and `size` ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)), and a `live` prop that renders it as a polite `role="status"` region, which confirms an action's result.
+3. **Text**: `tone` and `size` ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)), and a `live` prop, which confirms an action's result: a live Text renders as an ordinary paragraph and, each time its state is entered (re-entered by a retry included), calls Screen's `announce` with its copy, which Screen adds to the region as a new node, so repeated copy is announced again. P1's Toast reuses `announce` rather than being its own live region ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)).
 4. **Heading**: `level` 1–3.
 5. **Amount**: `value`, `currency`, `display: table|card`; it owns tabular figures, cents and currency format.
 6. **StatusTag**: the five status pairs, each with its word; tag radius, never a pill.

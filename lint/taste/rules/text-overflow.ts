@@ -7,7 +7,7 @@
 // past one that clips it with an ellipsis (or a line clamp), but never
 // silently.
 
-import { inPage, type RenderRule } from "../render.ts";
+import { inPage, type RenderFinding, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
 
 export const id = "text-overflow";
@@ -18,8 +18,8 @@ export const render: RenderRule = {
   check: (page, root) => inPage(page, root, overflowing),
 };
 
-function overflowing(root: Element): string[] {
-  const failures: string[] = [];
+function overflowing(root: Element): RenderFinding[] {
+  const failures: RenderFinding[] = [];
   // Sub-pixel layout rounding is not overflow.
   const slack = 1;
   const texts = taste.texts(root);
@@ -85,7 +85,7 @@ function overflowing(root: Element): string[] {
         failure = `${taste.quote(text)} spills out of its box.`;
       if (box === root) break;
     }
-    if (failure) failures.push(failure);
+    if (failure) failures.push(taste.at(element, failure));
   }
 
   // Collisions: two texts whose line boxes overlap by more than the slack.
@@ -102,7 +102,10 @@ function overflowing(root: Element): string[] {
       );
       if (overlap) {
         failures.push(
-          `${taste.quote(a.text)} collides with ${taste.quote(b.text)}.`
+          taste.at(
+            a.element,
+            `${taste.quote(a.text)} collides with ${taste.quote(b.text)}.`
+          )
         );
       }
     }

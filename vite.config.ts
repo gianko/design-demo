@@ -14,6 +14,8 @@ export default defineConfig({
       "gates/out/**",
       ".agents/**",
       ".claude/**",
+      ".generated/**",
+      "evals/runs/**",
     ],
   },
 });

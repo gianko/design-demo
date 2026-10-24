@@ -5,11 +5,11 @@
 // planted fixtures with the repo's real ESLint config and pin every finding.
 
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
+import { repo } from "../../repo.ts";
 
-const repo = resolve(import.meta.dirname, "../..");
 // Generator output is ignored by `pnpm lint`, so the generator lints it with
 // ignores off, as this does.
 const eslint = new ESLint({ cwd: repo, ignore: false });
@@ -120,6 +120,24 @@ describe("token lint", () => {
         ],
         ["no-restricted-syntax", "<span>"],
         ["no-restricted-syntax", `createElement("hr")`],
+      ]);
+    });
+
+    it("finds every change of state outside the library, and a screen hosting itself, and nothing else", async () => {
+      const rule = "screens/screen-state-via-library";
+      expect(await lint("screen-state-violations.tsx", plantedAt)).toEqual([
+        [rule, "useState as useLocalState"],
+        [
+          "no-restricted-imports",
+          `import { fixtureVariant } from "../../fixtures/fixtures.ts";`,
+        ],
+        [rule, "sendReminder: remind"],
+        [rule, "React.useState"],
+        [rule, "useReducer"],
+        [rule, "document.startViewTransition"],
+        [rule, "operations.sendReminder"],
+        [rule, `operations["sendReminder"]`],
+        [rule, "Library.ScreenHost"],
       ]);
     });
   });

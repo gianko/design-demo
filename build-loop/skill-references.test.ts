@@ -1,12 +1,12 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { animatesWhileIdle, shots } from "../gates/stories.ts";
 import { brokenReferences } from "./skill-references.ts";
+import { repo } from "../repo.ts";
 
 describe("the build-component skill", () => {
-  const repo = resolve(import.meta.dirname, "..");
   const skill = readFileSync(
     join(repo, ".claude/skills/build-component/SKILL.md"),
     "utf8"

@@ -10,8 +10,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { staticRules } from "./rules/index.ts";
+import { repo } from "../../repo.ts";
 
-const repo = resolve(import.meta.dirname, "../..");
 const fixtures = resolve(import.meta.dirname, "fixtures");
 
 // The fixtures are ignored by the config, so `pnpm lint` stays clean; the

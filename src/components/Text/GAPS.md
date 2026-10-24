@@ -6,9 +6,11 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Text n
 
 **Undecided:** the global decorator in `.storybook/preview.tsx` sets `data-theme` and `data-density` but paints nothing. Screen passed because it paints `bg-page` itself. Text paints no background, so in dark its light ink sat on the browser's white, and axe `color-contrast` failed all 8 dark renders on the first gate run. Every later component without its own surface (Stack, Heading, Amount, StatusTag's text) will hit the same failure.
 
-**Call:** Text's stories carry their own decorator, a `<div className="bg-page">`, so each story sits on the page role it would sit on in a Screen. The component itself paints nothing.
+**Call:** Text's stories carried their own decorator, a `<div className="bg-page">`, so each story sat on the page role it would sit on in a Screen. The component itself paints nothing.
 
 **Alternative:** the global decorator paints `bg-page`, so every story gets the page by default and no component's stories repeat the wrapper.
+
+**Decided (#94):** the alternative. The global decorator's `div` paints `bg-page`, matching #85's direction that whatever hosts a screen paints the page. Text's stories dropped their wrapper, and no component's stories carry one. Text still paints nothing itself.
 
 ## No measure for running copy
 
@@ -41,6 +43,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Text n
 **Call:** `role="status"` on the paragraph as the spec says, mounted with its copy. The gate's axe pass can't tell whether it was announced.
 
 **Alternative:** the library keeps one persistent, empty status region (on Screen, or owned by `useScreenState`), and a live Text writes its copy into it when its state is entered. Worth deciding before Action wiring.
+
+**Decided:** the alternative, in [#98](https://github.com/gianko/design-demo/issues/98). Screen always renders one visually hidden, empty, polite `role="status"` region and provides `announce(text)` through context (`src/components/Screen/announce.ts`). A live Text is an ordinary paragraph that calls `announce` with its copy when it mounts. Outside a Screen, as in Text's own stories, nothing is announced. P1's Toast reuses `announce` (ADR 0011).
 
 ## Money inside a sentence has nowhere to go
 

@@ -12,6 +12,8 @@
     "gate": "node gates/run.ts",
     "build-component": "node build-loop/build-component.ts",
     "build-loop": "node build-loop/build-loop.ts",
+    "generate": "tsx generator/bin/generate.ts",
+    "keep": "tsx generator/bin/keep.ts",
     "test": "vitest run",
     "test:gate": "vitest run --config gates/e2e.config.ts",
     "lint": "eslint .",
@@ -29,6 +31,7 @@
     "tailwind-variants": "^3.3.1"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.2.0",
     "@axe-core/playwright": "4.14.0",
     "@eslint/css": "^2.0.1",
     "@eslint/js": "^10.0.1",
@@ -52,10 +55,12 @@
     "storybook": "^10.6.3",
     "tailwind-csstree": "^0.4.1",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.0",
     "vite": "^8.3.5",
     "vitest": "^5.0.5",
+    "yaml": "^2.9.1",
     "zod": "^4.6.7"
   },
   "pnpm": {
