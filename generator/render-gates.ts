@@ -191,21 +191,33 @@ function readResults(
             }
           }
           gates["gate 4"] = checks.axe.length ? "fail" : "pass";
-          const taste = renderRules.flatMap((rule) =>
-            (checks.taste[rule.name] ?? []).map((message) => ({
+          // One line per rule and element: a rule's findings on one element
+          // join into one message.
+          const taste = renderRules.flatMap((rule) => {
+            const byElement = new Map<string, string[]>();
+            for (const { selector, html, message } of checks.taste[rule.name] ??
+              []) {
+              const location = `${selector} ${trim(html)}`;
+              byElement.set(location, [
+                ...(byElement.get(location) ?? []),
+                message,
+              ]);
+            }
+            return [...byElement].map(([location, messages]) => ({
               gate: "gate 7",
               rule: rule.name,
-              location: "(render)",
-              message,
+              location,
+              message: messages.join(" "),
               help: rule.help,
               renders: [where],
-            }))
-          );
+            }));
+          });
           failures.push(...taste);
           gates["gate 7 render"] = taste.length ? "fail" : "pass";
         }
         // script-error (lint/taste/RULES.md § Placed elsewhere): a render
-        // that throws, logs a console error or never renders.
+        // that throws, logs a console error or never renders. It has no
+        // element to point at, so its location is the page.
         const scriptErrors = result.errors
           .map((error) => error.message ?? "")
           .filter((message) => !/gate [47]:/.test(message))
@@ -216,7 +228,7 @@ function readResults(
             ...scriptErrors.map((message) => ({
               gate: "gate 7",
               rule: "script-error",
-              location: "(render)",
+              location: "(page)",
               message,
               renders: [where],
             }))

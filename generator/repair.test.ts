@@ -54,26 +54,26 @@ describe("repairTurn", () => {
     ]);
   });
 
-  // A render-time taste failure has no element to point at, so its message
-  // is what tells two of them apart.
-  it("keeps render-time taste failures apart by message, collapsing each across renders", () => {
-    const taste = (message: string, render: string): Failure => ({
+  // A script error has no element to point at, only the page, so its
+  // message is what tells two of them apart.
+  it("keeps failures with no place to point at apart by message, collapsing each across renders", () => {
+    const scriptError = (message: string, render: string): Failure => ({
       gate: "gate 7",
-      rule: "type-on-scale",
-      location: "(render)",
+      rule: "script-error",
+      location: "(page)",
       message,
       renders: [render],
     });
 
     const { lines } = repairTurn("code", [
-      taste('"Total" is set at 13px.', "light · default"),
-      taste('"Due" is set at 15px.', "light · default"),
-      taste('"Total" is set at 13px.', "dark · default"),
+      scriptError("pageerror: The screen broke.", "light · default"),
+      scriptError("console error: A key is missing.", "light · default"),
+      scriptError("pageerror: The screen broke.", "dark · default"),
     ]);
 
     expect(lines).toEqual([
-      'gate 7 · type-on-scale · (render) · "Total" is set at 13px. (in light · default, dark · default)',
-      'gate 7 · type-on-scale · (render) · "Due" is set at 15px. (in light · default)',
+      "gate 7 · script-error · (page) · pageerror: The screen broke. (in light · default, dark · default)",
+      "gate 7 · script-error · (page) · console error: A key is missing. (in light · default)",
     ]);
   });
 

@@ -87,7 +87,7 @@ for (const story of stories) {
             .include(root)
             .disableRules(["region"])
             .analyze();
-          const taste: Record<string, string[]> = {};
+          const taste: Checks["taste"] = {};
           for (const rule of renderRules) {
             taste[rule.name] = await rule.check(page, root);
           }
@@ -106,7 +106,12 @@ for (const story of stories) {
           // Gate 7.
           for (const rule of renderRules) {
             expect
-              .soft(taste[rule.name], `gate 7: ${rule.name}. ${rule.help}`)
+              .soft(
+                taste[rule.name]!.map(
+                  ({ message, selector }) => `${message} at ${selector}`
+                ),
+                `gate 7: ${rule.name}. ${rule.help}`
+              )
               .toEqual([]);
           }
 

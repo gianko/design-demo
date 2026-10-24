@@ -9,7 +9,7 @@ import type { Rule } from "eslint";
 import { relative, sep } from "node:path";
 import { classTokens } from "../classes.ts";
 import { config } from "../config.ts";
-import { inPage, type RenderRule } from "../render.ts";
+import { inPage, type RenderFinding, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
 import { reporter, sourceVisitors } from "../source.ts";
 
@@ -74,8 +74,8 @@ export const render: RenderRule = {
 
 // In the page: every visible box whose corner radius reaches half its
 // height, outside the exempt components.
-function findPills(root: Element, exempt: readonly string[]): string[] {
-  const failures: string[] = [];
+function findPills(root: Element, exempt: readonly string[]): RenderFinding[] {
+  const failures: RenderFinding[] = [];
   const corners = [
     "borderTopLeftRadius",
     "borderTopRightRadius",
@@ -100,7 +100,10 @@ function findPills(root: Element, exempt: readonly string[]): string[] {
     if (radius < height / 2) continue;
     const text = element.textContent!.replace(/\s+/g, " ").trim();
     failures.push(
-      `${text ? taste.quote(text) : `<${element.tagName.toLowerCase()}>`} has a ${Math.round(radius)}px corner radius on a ${Math.round(height)}px-high box.`
+      taste.at(
+        element,
+        `${text ? taste.quote(text) : `<${element.tagName.toLowerCase()}>`} has a ${Math.round(radius)}px corner radius on a ${Math.round(height)}px-high box.`
+      )
     );
   }
   return failures;

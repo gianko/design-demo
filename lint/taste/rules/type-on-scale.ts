@@ -9,7 +9,7 @@
 // like impeccable, it is the rendered value that counts, so browser defaults
 // (a bold `<th>`, a shrunken `<small>`) fail too.
 
-import { inPage, type RenderRule } from "../render.ts";
+import { inPage, type RenderFinding, type RenderRule } from "../render.ts";
 import { help } from "../rules-md.ts";
 
 export const id = "type-on-scale";
@@ -24,8 +24,11 @@ export const render: RenderRule = {
   check: (page, root) => inPage(page, root, offScale, scale),
 };
 
-function offScale(root: Element, { sizes, weights }: typeof scale): string[] {
-  const failures: string[] = [];
+function offScale(
+  root: Element,
+  { sizes, weights }: typeof scale
+): RenderFinding[] {
+  const failures: RenderFinding[] = [];
   const seen = new Set<Element>();
   for (const { element, text } of taste.texts(root)) {
     if (seen.has(element)) continue;
@@ -34,10 +37,14 @@ function offScale(root: Element, { sizes, weights }: typeof scale): string[] {
     const size = Math.round(parseFloat(style.fontSize) * 100) / 100;
     const weight = Number(style.fontWeight);
     if (!sizes.includes(size)) {
-      failures.push(`${taste.quote(text)} is set at ${size}px.`);
+      failures.push(
+        taste.at(element, `${taste.quote(text)} is set at ${size}px.`)
+      );
     }
     if (!weights.includes(weight)) {
-      failures.push(`${taste.quote(text)} is set in weight ${weight}.`);
+      failures.push(
+        taste.at(element, `${taste.quote(text)} is set in weight ${weight}.`)
+      );
     }
   }
   return failures;

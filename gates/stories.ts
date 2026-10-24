@@ -7,6 +7,7 @@ import {
   type Density,
   type Theme,
 } from "../.storybook/globals.ts";
+import type { RenderFinding } from "../lint/taste/render.ts";
 
 export type Story = { id: string; tags: string[] };
 
@@ -86,5 +87,5 @@ export type Checks = {
     help: string;
     nodes: { target: string; html: string }[];
   }[];
-  taste: Record<string, string[]>;
+  taste: Record<string, RenderFinding[]>;
 };

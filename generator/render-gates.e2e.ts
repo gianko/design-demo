@@ -81,7 +81,9 @@ describe("renderGates", () => {
   }, 120_000);
 
   // Planted with intrinsic elements, which gate 2 fails on its own, so
-  // these renders fail only gate 4 and only gate 7 respectively.
+  // these renders fail only gate 4 and only gate 7 respectively. The
+  // paragraph fails type-on-scale twice, on size and on weight: one element,
+  // so one line.
   it("names each gate 4 and render-time taste failure with its rule, element and theme × screen state", async () => {
     const tsx = `import { Screen } from "../../index.ts";
 
@@ -89,7 +91,7 @@ export function Smoke() {
   return (
     <Screen audience="contractor">
       <button type="button"></button>
-      <p style={{ fontSize: 13 }}>Off the type scale</p>
+      <p style={{ fontSize: 13, fontWeight: 500 }}>Off the type scale</p>
     </Screen>
   );
 }
@@ -123,7 +125,7 @@ export function Smoke() {
         `gate 4 · button-name · button[type="button"] <button type="button"></button> · Buttons must have discernible text (in ${where})`
       );
       expect(lines).toContainEqual(
-        `gate 7 · type-on-scale · (render) · "Off the type scale" is set at 13px. (in ${where})`
+        `gate 7 · type-on-scale · #storybook-root > div > main[data-component="Screen"] > p <p style="font-size: 13px; font-weight: 500;">Off the type scale</p> · "Off the type scale" is set at 13px. "Off the type scale" is set in weight 500. (in ${where})`
       );
     }
   }, 120_000);
@@ -149,6 +151,7 @@ export function Smoke() {
     expect(existsSync(join(dir, "render/out"))).toBe(false);
   }, 120_000);
 
+  // A script error has no element to point at, so it names the page.
   it("fails a render that throws as script-error", async () => {
     const tsx = `import { Screen } from "../../index.ts";
 
@@ -162,7 +165,7 @@ export function Smoke(): React.ReactNode {
     expect(result.gates["gate 7 render"]).toBe("fail");
     expect(result.failures.map(failureLine)).toContainEqual(
       expect.stringMatching(
-        /^gate 7 · script-error · \(render\) · .*The screen broke\..* \(in light · default\)$/
+        /^gate 7 · script-error · \(page\) · .*The screen broke\..* \(in light · default\)$/
       )
     );
   }, 120_000);

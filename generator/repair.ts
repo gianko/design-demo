@@ -85,8 +85,10 @@ export function repairTurn(step: RepairStep, failures: Failure[]): RepairTurn {
   return { lines, text: parts.join("\n\n") };
 }
 
-// A location in parentheses, such as a render-time taste rule's `(render)`,
-// names no element, so the message is what tells two failures apart.
+// Lines are told apart by (rule, location), as ADR 0010 has it. A location
+// in parentheses names no place to point at: a script error's `(page)`, a
+// failed build, a gate 1 failure on the whole UI spec, a tsc diagnostic with
+// no file. Two of those differ only by message, so the message joins the key.
 function identity({ gate, rule, location, message }: Failure) {
   const parts = [gate, rule, location];
   if (location.startsWith("(")) parts.push(message);
