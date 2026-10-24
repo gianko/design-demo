@@ -93,6 +93,36 @@ it("enters reminder-failed through a fail View Transition once sendReminder fail
   expect(screen.getByRole("status").textContent).toMatch(/didn't send/);
 });
 
+// Sending again from reminder-failed, and failing again, re-enters the state
+// the screen is in; its live Text must say so again (#98).
+it("announces the failure again when a retry fails again", async () => {
+  render(<ReminderFails />);
+  const added: string[] = [];
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of record.addedNodes) added.push(node.textContent ?? "");
+    }
+  });
+  observer.observe(screen.getByRole("status"), {
+    childList: true,
+    subtree: true,
+  });
+
+  sendReminder();
+  await act(() => vi.advanceTimersByTimeAsync(1800));
+  sendReminder();
+  await act(() => vi.advanceTimersByTimeAsync(1800));
+  observer.disconnect();
+
+  expect(transitions.map(({ after }) => after)).toEqual([
+    "reminder-failed",
+    "reminder-failed",
+  ]);
+  expect(added).toHaveLength(2);
+  expect(added[1]).toBe(added[0]);
+  expect(added[0]).toMatch(/didn't send/);
+});
+
 it("holds the action pending until sendReminder settles, and runs it once", async () => {
   render(<SendReminder />);
   const button = screen.getByRole("button", { name: "Send reminder" });

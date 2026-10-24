@@ -46,3 +46,26 @@ it("announces nothing for a Text that isn't live", () => {
 
   expect(screen.getByRole("status").textContent).toBe("");
 });
+
+// A screen reader announces what is added to a live region, so the same
+// copy written over itself would go unannounced (#98).
+it("announces the same copy again when its state is entered again", async () => {
+  const { rerender } = render(<ReminderScreen state="empty" />);
+  const region = screen.getByRole("status");
+  const added: string[] = [];
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of record.addedNodes) added.push(node.textContent ?? "");
+    }
+  });
+  observer.observe(region, { childList: true, subtree: true });
+
+  rerender(<ReminderScreen state="reminder-sent" />);
+  rerender(<ReminderScreen state="empty" />);
+  rerender(<ReminderScreen state="reminder-sent" />);
+  await Promise.resolve();
+  observer.disconnect();
+
+  expect(added).toEqual([confirmation, confirmation]);
+  expect(region.textContent).toBe(confirmation);
+});

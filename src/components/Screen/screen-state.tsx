@@ -34,6 +34,9 @@ export type TransitionType = "confirm" | "fail";
 
 type ScreenStateContext = {
   state: string;
+  // How many times a state has been entered, the one it is in included, so
+  // re-entering the same state (a retry that fails again) is still a change.
+  entries: number;
   // Enters `name`; `alongside` runs in the same update, so the transition's
   // old snapshot holds what it undoes (a Button's pending).
   enter: (name: string, type?: TransitionType, alongside?: () => void) => void;
@@ -58,7 +61,10 @@ export function ScreenHost({
   state: initial = defaultState,
   children,
 }: ScreenHostProps) {
-  const [state, setState] = useState(initial);
+  const [{ state, entries }, setEntered] = useState({
+    state: initial,
+    entries: 0,
+  });
   const { data, operations } = useMemo(
     () => fixtureVariant(variant),
     [variant]
@@ -67,7 +73,7 @@ export function ScreenHost({
     (name: string, type?: TransitionType, alongside?: () => void) => {
       const update = () =>
         flushSync(() => {
-          setState(name);
+          setEntered((last) => ({ state: name, entries: last.entries + 1 }));
           alongside?.();
         });
       if (typeof document.startViewTransition !== "function") {
@@ -79,8 +85,8 @@ export function ScreenHost({
     []
   );
   const value = useMemo(
-    () => ({ state, enter, data, operations }),
-    [state, enter, data, operations]
+    () => ({ state, entries, enter, data, operations }),
+    [state, entries, enter, data, operations]
   );
   return <HostContext value={value}>{children}</HostContext>;
 }
@@ -112,6 +118,12 @@ export function useFixtureData(): FixtureData {
 // host never changes state, so it is in the default one.
 export function useCurrentScreenState() {
   return useContext(HostContext)?.state ?? defaultState;
+}
+
+// Changes each time a screen state is entered, the same one again included,
+// so a live Text announces each entry. Outside a host nothing is entered.
+export function useStateEntry() {
+  return useContext(HostContext)?.entries ?? 0;
 }
 
 export type Action<N extends OperationName> = {

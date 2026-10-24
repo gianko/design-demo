@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { tv } from "tailwind-variants/lite";
 import type { PropsOf } from "../../registry/entry.ts";
 import { AnnounceContext } from "./announce.ts";
@@ -22,7 +22,15 @@ export type ScreenProps = PropsOf<typeof screenEntry> & {
 
 export function Screen({ audience, children }: ScreenProps) {
   const { root, status } = screen({ audience });
-  const [announcement, announce] = useState("");
+  // Each announcement is a new node in the region, keyed by its count, so
+  // copy that repeats the last announcement is added again, and announced
+  // again, rather than written over itself.
+  const [announcement, setAnnouncement] = useState({ text: "", count: 0 });
+  const announce = useCallback(
+    (text: string) =>
+      setAnnouncement(({ count }) => ({ text, count: count + 1 })),
+    []
+  );
   const state = useCurrentScreenState();
   return (
     <main
@@ -33,7 +41,9 @@ export function Screen({ audience, children }: ScreenProps) {
     >
       <AnnounceContext value={announce}>{children}</AnnounceContext>
       <div role="status" className={status()}>
-        {announcement}
+        {announcement.text && (
+          <span key={announcement.count}>{announcement.text}</span>
+        )}
       </div>
     </main>
   );
