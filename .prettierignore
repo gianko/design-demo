@@ -8,6 +8,7 @@ skills-lock.json
 # Written by tokens/build.ts; CI fails if they differ from a fresh build.
 tokens/tokens.css
 tokens/tokens.ts
+tokens/figma.json
 # Each line a taste rule should flag carries its ✗ mark; reflowing moves them.
 lint/taste/fixtures/
 # markdownlint checks Markdown; Prettier would re-pad every table on each edit.

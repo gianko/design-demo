@@ -1,11 +1,11 @@
 // The hand-written token build of ADR 0005. It reads the DTCG sources in this
-// folder, validates them, and writes tokens.css and tokens.ts. Run it with
+// folder, validates them, and writes tokens.css, tokens.ts and figma.json. Run it with
 // `pnpm tokens`; `--source <dir>` and `--out <dir>` point it elsewhere.
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { inGamut, wcagContrast, type Oklch } from "culori";
+import { converter, inGamut, wcagContrast, type Oklch } from "culori";
 import { z } from "zod";
 import { tokenNames } from "./naming.ts";
 
@@ -50,7 +50,8 @@ export type Check =
   | "settle"
   | "neutral-elevation"
   | "banned-font"
-  | "keyframes";
+  | "keyframes"
+  | "figma";
 
 export type Failure = {
   check: Check;
@@ -60,7 +61,7 @@ export type Failure = {
 };
 
 export type Sources = { files: Record<string, unknown>; keyframes: string };
-export type Built = { ok: true; css: string; ts: string };
+export type Built = { ok: true; css: string; ts: string; figma: string };
 export type BuildResult = Built | { ok: false; failures: Failure[] };
 
 // The design brief's banned fonts, plus their families ("Inter Tight").
@@ -407,10 +408,15 @@ export function build({ files, keyframes }: Sources): BuildResult {
   }
   if (failures.list.length) return { ok: false, failures: failures.list };
 
+  // Payload checks assume valid, matching modes.
+  const figma = emitFigma(resolvedFiles, failures);
+  if (failures.list.length) return { ok: false, failures: failures.list };
+
   return {
     ok: true,
     css: emitCss(resolvedFiles, keyframes),
     ts: emitTs(parsed),
+    figma: `${JSON.stringify(figma, null, 2)}\n`,
   };
 }
 
@@ -907,12 +913,390 @@ function emitTs(parsed: Map<string, Token[]>): string {
   ].join("\n");
 }
 
+// ── Figma ─────────────────────────────────────────────────────────────────
+
+// The payload figma/sync-tokens.ts wraps into one Plugin API script (ADR 0007).
+// Collections mirror the source files; z-index has nothing to bind in Figma.
+const notInFigma = ["z"];
+
+type Rgba = { r: number; g: number; b: number; a: number };
+type FigmaValue =
+  | number
+  | string
+  | Rgba
+  | { alias: string }
+  | {
+      type: "CUSTOM_CUBIC_BEZIER";
+      easingFunctionCubicBezier: Record<"x1" | "y1" | "x2" | "y2", number>;
+    };
+type FigmaVariable = {
+  name: string;
+  type: "COLOR" | "FLOAT" | "STRING" | "TIMING" | "EASING";
+  /** Absent for TIMING and EASING, which throw on scopes. */
+  scopes?: string[];
+  codeSyntax?: { WEB: string };
+  valuesByMode: Record<string, FigmaValue>;
+};
+type ShadowField = "color" | "offsetX" | "offsetY" | "radius" | "spread";
+
+export type FigmaPayload = {
+  collections: {
+    name: string;
+    modes: string[];
+    hidden: boolean;
+    variables: FigmaVariable[];
+  }[];
+  textStyles: { name: string; bind: Record<string, string> }[];
+  effectStyles: {
+    name: string;
+    effects: {
+      type: "DROP_SHADOW" | "INNER_SHADOW";
+      bind: Record<ShadowField, string>;
+    }[];
+  }[];
+};
+
+const title = (name: string) => name[0]!.toUpperCase() + name.slice(1);
+const toRgb = converter("rgb");
+/** A colour channel, clamped to Figma's 0–1 and rounded. */
+const channel = (value: number) =>
+  Number(Math.min(1, Math.max(0, value)).toFixed(4));
+
+function rgba(value: ColorValue): Rgba {
+  const { r, g, b } = toRgb(oklch(value));
+  return {
+    r: channel(r),
+    g: channel(g),
+    b: channel(b),
+    a: channel(value.alpha ?? 1),
+  };
+}
+
+/** A colour stays an alias where its source writes one, so roles alias Primitives. */
+function figmaColor(written: unknown, resolved: ColorValue): FigmaValue {
+  return typeof written === "string"
+    ? { alias: tokenNames(written.slice(1, -1)).figma }
+    : rgba(resolved);
+}
+
+// Each colour namespace maps to the Figma fills it may be picked for (ADR 0005).
+const colorScopes: Record<string, string[]> = {
+  bg: ["FRAME_FILL", "SHAPE_FILL"],
+  text: ["TEXT_FILL"],
+  border: ["STROKE_COLOR"],
+  ring: ["STROKE_COLOR"],
+};
+
+function dimensionScopes(path: string): string[] {
+  const [family, second] = path.split(".");
+  if (family === "space" || second === "padding") return ["GAP"];
+  if (family === "radius" || second === "radius") return ["CORNER_RADIUS"];
+  return ["WIDTH_HEIGHT"];
+}
+
+// A typography token becomes the --ds-* sub-variables its CSS declares, plus a
+// text style that binds them, its family, and one of the two shared weights.
+const typographyFields: [
+  field: string,
+  suffix: string,
+  scope: string,
+  value: (type: Typography) => number,
+][] = [
+  ["fontSize", "font-size", "FONT_SIZE", (type) => type.fontSize.value],
+  [
+    "lineHeight",
+    "line-height",
+    "LINE_HEIGHT",
+    // Whole pixels at the role's size, as the CSS declares it.
+    (type) => Math.round(type.fontSize.value * type.lineHeight),
+  ],
+  [
+    "letterSpacing",
+    "letter-spacing",
+    "LETTER_SPACING",
+    (type) => type.letterSpacing.value,
+  ],
+];
+
+/** A shadow layer's Figma field, the DTCG field it comes from, and its variable's name. */
+const shadowFields: [
+  field: ShadowField,
+  source: keyof ShadowLayer,
+  suffix: string,
+][] = [
+  ["color", "color", "color"],
+  ["offsetX", "offsetX", "offset-x"],
+  ["offsetY", "offsetY", "offset-y"],
+  ["radius", "blur", "blur"],
+  ["spread", "spread", "spread"],
+];
+const emptyLayer: ShadowLayer = {
+  color: { colorSpace: "oklch", components: [0, 0, 0], alpha: 0 },
+  offsetX: { value: 0, unit: "px" },
+  offsetY: { value: 0, unit: "px" },
+  blur: { value: 0, unit: "px" },
+  spread: { value: 0, unit: "px" },
+};
+
+function emitFigma(
+  files: Map<string, Resolved[]>,
+  failures: Failures
+): FigmaPayload {
+  const payload: FigmaPayload = {
+    collections: [],
+    textStyles: [],
+    effectStyles: [],
+  };
+  for (const [name, scope] of Object.entries(collections)) {
+    if (notInFigma.includes(name)) continue;
+    const modes = scope?.modes ?? [];
+    const modeNames = scope ? modes.map(title) : ["Value"];
+    const byMode = (
+      scope ? modes.map((mode) => `${name}.${mode}`) : [name]
+    ).map(
+      (file) => new Map(files.get(file)!.map((token) => [token.path, token]))
+    );
+    const variables: FigmaVariable[] = [];
+    const variable = (
+      figma: string,
+      type: FigmaVariable["type"],
+      scopes: string[] | undefined,
+      cssVar: string | undefined,
+      value: (token: Resolved) => FigmaValue,
+      path: string
+    ) => {
+      variables.push({
+        name: figma,
+        type,
+        ...(scopes && { scopes }),
+        ...(cssVar && { codeSyntax: { WEB: `var(${cssVar})` } }),
+        valuesByMode: Object.fromEntries(
+          byMode.map((tokens, index) => [
+            modeNames[index]!,
+            value(tokens.get(path)!),
+          ])
+        ),
+      });
+    };
+
+    for (const token of byMode[0]!.values()) {
+      const names = tokenNames(token.path);
+      // Primitives only feed aliases: no code syntax, and no picker scopes.
+      const cssVar = name === "primitives" ? undefined : names.cssVar;
+      switch (token.type) {
+        case "color": {
+          const scopes =
+            name === "primitives"
+              ? []
+              : (colorScopes[token.path.split(".")[1]!] ?? ["ALL_FILLS"]);
+          variable(
+            names.figma,
+            "COLOR",
+            scopes,
+            cssVar,
+            (t) => figmaColor(t.value, t.resolved as ColorValue),
+            token.path
+          );
+          break;
+        }
+        case "dimension":
+          variable(
+            names.figma,
+            "FLOAT",
+            dimensionScopes(token.path),
+            cssVar,
+            (t) => (t.resolved as Dimension).value,
+            token.path
+          );
+          break;
+        case "fontFamily":
+          // Figma takes one family; the rest of the stack is CSS fallback.
+          variable(
+            names.figma,
+            "STRING",
+            ["FONT_FAMILY"],
+            cssVar,
+            (t) => [t.resolved as string | string[]].flat()[0]!,
+            token.path
+          );
+          break;
+        case "fontWeight":
+          variable(
+            names.figma,
+            "FLOAT",
+            ["FONT_WEIGHT"],
+            cssVar,
+            (t) => t.resolved as number,
+            token.path
+          );
+          break;
+        case "duration":
+          variable(
+            names.figma,
+            "TIMING",
+            undefined,
+            cssVar,
+            (t) => (t.resolved as Duration).value,
+            token.path
+          );
+          break;
+        case "cubicBezier":
+          variable(
+            names.figma,
+            "EASING",
+            undefined,
+            cssVar,
+            (t) => {
+              const [x1, y1, x2, y2] = t.resolved as number[];
+              return {
+                type: "CUSTOM_CUBIC_BEZIER",
+                easingFunctionCubicBezier: {
+                  x1: x1!,
+                  y1: y1!,
+                  x2: x2!,
+                  y2: y2!,
+                },
+              };
+            },
+            token.path
+          );
+          break;
+        case "typography": {
+          const bind: Record<string, string> = {};
+          for (const field of ["fontFamily", "fontWeight"] as const) {
+            // Bound straight to a shared variable, so it can't vary by mode.
+            const written = new Set(
+              byMode.map(
+                (tokens) =>
+                  (tokens.get(token.path)!.value as Record<string, unknown>)[
+                    field
+                  ]
+              )
+            );
+            const [alias] = written;
+            if (
+              written.size !== 1 ||
+              typeof alias !== "string" ||
+              !alias.startsWith("{")
+            ) {
+              failures.add(
+                "figma",
+                token.path,
+                token.file,
+                `needs its ${field} to be one alias in every mode, so its Figma text style can bind it`
+              );
+              continue;
+            }
+            bind[field] = tokenNames(alias.slice(1, -1)).figma;
+          }
+          for (const [field, suffix, scope, value] of typographyFields) {
+            const figma = `${names.figma}/${suffix}`;
+            variable(
+              figma,
+              "FLOAT",
+              [scope],
+              `${names.cssVar}-${suffix}`,
+              (t) => value(t.resolved as Typography),
+              token.path
+            );
+            bind[field] = figma;
+          }
+          payload.textStyles.push({ name: names.role!, bind });
+          break;
+        }
+        case "shadow": {
+          // Every theme pads to the same layer count with empty layers, so
+          // one effect style's fields can bind each theme's values.
+          const themes = byMode.map((tokens) =>
+            layers(tokens.get(token.path)!)
+          );
+          const count = Math.max(...themes.map((list) => list.length));
+          const effects: FigmaPayload["effectStyles"][number]["effects"] = [];
+          for (let index = 0; index < count; index++) {
+            const insets = new Set(
+              themes.flatMap((list) =>
+                list[index] ? [Boolean(list[index]!.inset)] : []
+              )
+            );
+            if (insets.size > 1) {
+              failures.add(
+                "figma",
+                token.path,
+                token.file,
+                `is inset in one theme but not another at layer ${index + 1}; a Figma effect can't change type by mode`
+              );
+            }
+            const bind = {} as Record<ShadowField, string>;
+            for (const [field, source, suffix] of shadowFields) {
+              const figma = `${names.figma}/${index + 1}/${suffix}`;
+              const at = (t: Resolved) => {
+                // A whole-shadow alias has no written layers of its own.
+                const written =
+                  typeof t.value === "string"
+                    ? []
+                    : [t.value as ShadowLayer | ShadowLayer[]].flat();
+                return {
+                  written: written[index],
+                  resolved: layers(t)[index] ?? emptyLayer,
+                };
+              };
+              if (field === "color") {
+                variable(
+                  figma,
+                  "COLOR",
+                  ["EFFECT_COLOR"],
+                  undefined,
+                  (t) => {
+                    const { written, resolved } = at(t);
+                    return figmaColor(written?.color, resolved.color);
+                  },
+                  token.path
+                );
+              } else {
+                variable(
+                  figma,
+                  "FLOAT",
+                  ["EFFECT_FLOAT"],
+                  undefined,
+                  (t) => (at(t).resolved[source] as Dimension).value,
+                  token.path
+                );
+              }
+              bind[field] = figma;
+            }
+            effects.push({
+              type: insets.has(true) ? "INNER_SHADOW" : "DROP_SHADOW",
+              bind,
+            });
+          }
+          payload.effectStyles.push({ name: names.figma, effects });
+          break;
+        }
+        // A transition names a CSS keyframe, which Figma can't carry.
+        case "transition":
+        case "number":
+          break;
+      }
+    }
+    payload.collections.push({
+      name: title(name),
+      modes: modeNames,
+      hidden: name === "primitives",
+      variables,
+    });
+  }
+  return payload;
+}
+
 // ── CLI ───────────────────────────────────────────────────────────────────
+
+/** The build's JSON output, which sits among the sources but isn't one. */
+export const figmaPayloadFile = "figma.json";
 
 export async function readSources(dir: string): Promise<Sources> {
   const files: Record<string, unknown> = {};
   for (const entry of (await readdir(dir)).sort()) {
-    if (!entry.endsWith(".json")) continue;
+    if (!entry.endsWith(".json") || entry === figmaPayloadFile) continue;
     files[entry.slice(0, -".json".length)] = JSON.parse(
       await readFile(join(dir, entry), "utf8")
     );
@@ -943,7 +1327,10 @@ async function main(args: string[]): Promise<number> {
   }
   await writeFile(join(out, "tokens.css"), result.css);
   await writeFile(join(out, "tokens.ts"), result.ts);
-  console.log(`tokens: wrote tokens.css and tokens.ts to ${out}`);
+  await writeFile(join(out, figmaPayloadFile), result.figma);
+  console.log(
+    `tokens: wrote tokens.css, tokens.ts and ${figmaPayloadFile} to ${out}`
+  );
   return 0;
 }
 
