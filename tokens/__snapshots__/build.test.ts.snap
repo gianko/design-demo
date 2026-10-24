@@ -1037,9 +1037,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-page)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/985"
@@ -1056,9 +1054,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-surface)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/995"
@@ -1075,9 +1071,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-surface-raised)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/970"
@@ -1094,9 +1088,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-surface-hover)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/975"
@@ -1113,9 +1105,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-surface-pressed)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/940"
@@ -1132,9 +1122,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-selected)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/heather/950"
@@ -1151,9 +1139,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-accent)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/heather/480"
@@ -1170,9 +1156,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-accent-hover)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/heather/430"
@@ -1189,9 +1173,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-accent-pressed)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/heather/390"
@@ -1208,9 +1190,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-on-accent)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/995"
@@ -1227,9 +1207,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-disabled)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/950"
@@ -1246,9 +1224,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-scrim)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "r": 0.1788,
@@ -1271,9 +1247,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-awaiting)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/amber/950"
@@ -1290,9 +1264,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-overdue)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/red/940"
@@ -1309,9 +1281,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-paid)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/green/950"
@@ -1328,9 +1298,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-scheduled)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/blue/940"
@@ -1347,9 +1315,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "FRAME_FILL",
             "SHAPE_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-bg-failed)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/red/520"
@@ -1365,9 +1331,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-ink)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/270"
@@ -1383,9 +1347,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-ink-muted)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/500"
@@ -1401,9 +1363,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-accent)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/heather/480"
@@ -1419,9 +1379,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-on-accent)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/995"
@@ -1437,9 +1395,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-disabled)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/600"
@@ -1455,9 +1411,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-awaiting)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/amber/450"
@@ -1473,9 +1427,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-overdue)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/red/480"
@@ -1491,9 +1443,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-paid)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/green/450"
@@ -1509,9 +1459,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-scheduled)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/blue/470"
@@ -1527,9 +1475,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "TEXT_FILL"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-text-failed)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/995"
@@ -1545,9 +1491,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "STROKE_COLOR"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-border-line)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/900"
@@ -1563,9 +1507,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "STROKE_COLOR"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-border-control)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/neutral/620"
@@ -1581,9 +1523,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "STROKE_COLOR"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-color-ring-focus)"
-          },
+          "css": true,
           "valuesByMode": {
             "Light": {
               "alias": "primitive/heather/480"
@@ -1863,9 +1803,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-padding-page)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 28,
             "Contractor": 36
@@ -1877,9 +1815,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-padding-control)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 12,
             "Contractor": 16
@@ -1891,9 +1827,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "WIDTH_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-height-row)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 46,
             "Contractor": 60
@@ -1905,9 +1839,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "WIDTH_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-height-control)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 32,
             "Contractor": 44
@@ -1919,9 +1851,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "WIDTH_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-min-height-target)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 24,
             "Contractor": 44
@@ -1933,9 +1863,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "WIDTH_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-size-icon)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 16,
             "Contractor": 20
@@ -1947,9 +1875,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "CORNER_RADIUS"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-radius-surface)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 8,
             "Contractor": 12
@@ -1961,9 +1887,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_SIZE"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-text-body-font-size)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 14,
             "Contractor": 16
@@ -1975,9 +1899,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LINE_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-text-body-line-height)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 20,
             "Contractor": 24
@@ -1989,9 +1911,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LETTER_SPACING"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-text-body-letter-spacing)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 0,
             "Contractor": 0
@@ -2003,9 +1923,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_SIZE"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-text-label-font-size)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 14,
             "Contractor": 16
@@ -2017,9 +1935,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LINE_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-text-label-line-height)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 20,
             "Contractor": 24
@@ -2031,9 +1947,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LETTER_SPACING"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-density-text-label-letter-spacing)"
-          },
+          "css": true,
           "valuesByMode": {
             "Admin": 0,
             "Contractor": 0
@@ -2054,9 +1968,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-0)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 0
           }
@@ -2067,9 +1979,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-3xs)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 4
           }
@@ -2080,9 +1990,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-2xs)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 8
           }
@@ -2093,9 +2001,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-xs)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 12
           }
@@ -2106,9 +2012,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-sm)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 16
           }
@@ -2119,9 +2023,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-md)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 20
           }
@@ -2132,9 +2034,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-lg)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 24
           }
@@ -2145,9 +2045,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-xl)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 32
           }
@@ -2158,9 +2056,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-2xl)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 40
           }
@@ -2171,9 +2067,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-3xl)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 48
           }
@@ -2184,9 +2078,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "GAP"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-space-4xl)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 64
           }
@@ -2206,9 +2098,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "WIDTH_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-size-height-edge)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 2
           }
@@ -2219,9 +2109,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "WIDTH_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-size-width-sheet)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 420
           }
@@ -2241,9 +2129,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "CORNER_RADIUS"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-radius-control)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 6
           }
@@ -2254,9 +2140,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "CORNER_RADIUS"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-radius-tag)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 4
           }
@@ -2267,9 +2151,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "CORNER_RADIUS"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-radius-avatar)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 9999
           }
@@ -2289,9 +2171,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_FAMILY"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-family-sans)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": "Instrument Sans"
           }
@@ -2302,9 +2182,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_WEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-weight-regular)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 400
           }
@@ -2315,9 +2193,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_WEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-weight-semibold)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 600
           }
@@ -2328,9 +2204,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_SIZE"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-caption-font-size)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 12
           }
@@ -2341,9 +2215,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LINE_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-caption-line-height)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 16
           }
@@ -2354,9 +2226,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LETTER_SPACING"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-caption-letter-spacing)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 0
           }
@@ -2367,9 +2237,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_SIZE"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-heading-font-size)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 20
           }
@@ -2380,9 +2248,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LINE_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-heading-line-height)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 28
           }
@@ -2393,9 +2259,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LETTER_SPACING"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-heading-letter-spacing)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 0
           }
@@ -2406,9 +2270,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_SIZE"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-title-font-size)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 24
           }
@@ -2419,9 +2281,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LINE_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-title-line-height)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 32
           }
@@ -2432,9 +2292,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LETTER_SPACING"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-title-letter-spacing)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": -0.36
           }
@@ -2445,9 +2303,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "FONT_SIZE"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-figure-font-size)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 32
           }
@@ -2458,9 +2314,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LINE_HEIGHT"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-figure-line-height)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 40
           }
@@ -2471,9 +2325,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [
             "LETTER_SPACING"
           ],
-          "codeSyntax": {
-            "WEB": "var(--ds-type-figure-letter-spacing)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": -0.64
           }
@@ -2490,9 +2342,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/duration/fast",
           "type": "TIMING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-duration-fast)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 120
           }
@@ -2500,9 +2350,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/duration/base",
           "type": "TIMING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-duration-base)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 240
           }
@@ -2510,9 +2358,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/duration/slow",
           "type": "TIMING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-duration-slow)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 320
           }
@@ -2520,9 +2366,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/duration/fast-exit",
           "type": "TIMING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-duration-fast-exit)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 84
           }
@@ -2530,9 +2374,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/duration/base-exit",
           "type": "TIMING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-duration-base-exit)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 168
           }
@@ -2540,9 +2382,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/duration/slow-exit",
           "type": "TIMING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-duration-slow-exit)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 224
           }
@@ -2550,9 +2390,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/duration/loop",
           "type": "TIMING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-duration-loop)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 1280
           }
@@ -2560,9 +2398,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/delay/stagger",
           "type": "TIMING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-delay-stagger)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": 40
           }
@@ -2570,9 +2406,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/ease/standard",
           "type": "EASING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-ease-standard)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": {
               "type": "CUSTOM_CUBIC_BEZIER",
@@ -2588,9 +2422,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/ease/exit",
           "type": "EASING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-ease-exit)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": {
               "type": "CUSTOM_CUBIC_BEZIER",
@@ -2606,9 +2438,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/ease/settle",
           "type": "EASING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-ease-settle)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": {
               "type": "CUSTOM_CUBIC_BEZIER",
@@ -2624,9 +2454,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         {
           "name": "motion/ease/linear",
           "type": "EASING",
-          "codeSyntax": {
-            "WEB": "var(--ds-motion-ease-linear)"
-          },
+          "css": true,
           "valuesByMode": {
             "Value": {
               "type": "CUSTOM_CUBIC_BEZIER",

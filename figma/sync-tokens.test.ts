@@ -77,6 +77,20 @@ describe("a sync into an empty file", () => {
     expect(report!.unbound).toEqual([]);
   });
 
+  it("gives each --ds-* variable its code syntax, and the rest none", async () => {
+    const file = fakePluginApi();
+
+    await sync(file);
+    const codeSyntax = (name: string) =>
+      file.state().variables.find((v) => v.name === name)!.codeSyntax;
+
+    expect(codeSyntax("density/text/body/line-height")).toEqual({
+      WEB: "var(--ds-density-text-body-line-height)",
+    });
+    expect(codeSyntax("primitive/neutral/740")).toEqual({});
+    expect(codeSyntax("shadow/raised/1/blur")).toEqual({});
+  });
+
   it("is followed by a dry run that reports zero changes", async () => {
     const file = fakePluginApi();
     await sync(file);

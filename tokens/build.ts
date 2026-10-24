@@ -934,7 +934,11 @@ type FigmaVariable = {
   type: "COLOR" | "FLOAT" | "STRING" | "TIMING" | "EASING";
   /** Absent for TIMING and EASING, which throw on scopes. */
   scopes?: string[];
-  codeSyntax?: { WEB: string };
+  /**
+   * A --ds-* variable in tokens.css. The sync script derives its code syntax,
+   * var(--ds-<name with / as ->), rather than carrying it (ADR 0007).
+   */
+  css?: true;
   valuesByMode: Record<string, FigmaValue>;
 };
 type ShadowField = "color" | "offsetX" | "offsetY" | "radius" | "spread";
@@ -1065,11 +1069,15 @@ function emitFigma(
       value: (token: Resolved) => FigmaValue,
       path: string
     ) => {
+      // The derivation must name the variable tokens.css declares.
+      if (cssVar && cssVar !== `--ds-${figma.split("/").join("-")}`) {
+        throw new Error(`${figma} can't derive its code syntax ${cssVar}`);
+      }
       variables.push({
         name: figma,
         type,
         ...(scopes && { scopes }),
-        ...(cssVar && { codeSyntax: { WEB: `var(${cssVar})` } }),
+        ...(cssVar && { css: true as const }),
         valuesByMode: Object.fromEntries(
           byMode.map((tokens, index) => [
             modeNames[index]!,
