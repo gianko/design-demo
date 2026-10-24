@@ -66,7 +66,7 @@ The DTCG source files, `tokens/build.ts`, `tokens/keyframes.css` and the three c
 
 ### Registry core
 
-The pieces every `*.registry.ts` entry uses ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)): a helper to define an entry (props schema, `use` line, slots with optional allow-lists), reading variant enums from a component's `tv()` config, serializing the registry for the spec step's system prefix, its content hash, and the wire schema's generated `component` enum.
+The pieces every `*.registry.ts` entry uses ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)): a helper to define an entry (props schema, `use` line, slots with optional allow-lists; a slot named `body` is the component's `children`, and every other slot is a `ReactNode` prop named after it, such as Card's `header` and `footer`, which is how the code step renders a node in each), reading variant enums from a component's `tv()` config, serializing the registry for the spec step's system prefix, its content hash, and the wire schema's generated `component` enum.
 
 **Done when:** Vitest, against two stub entries, shows that serialization is stable, the hash changes when and only when an entry changes, variants come from `tv()`, and the props type is `z.infer` of the entry.
 
@@ -114,7 +114,7 @@ Dates carry their display label beside the ISO value; the UI spec binds the labe
 
 ### Gate 1 and the spec step
 
-The spec step: `messages.parse()` with the flat wire schema, the cached system prefix (design brief + serialized registry + wire schema, **no example UI specs**), and model, effort, `max_tokens` and attempt limit from the per-step config ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md), [ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)). Gate 1 runs every check listed in [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md), including the Screen root and `to` checks it gained here. The repair turns follow ADR 0010. The initial prompt is written here and hashed.
+The spec step: a streamed call whose output format is the flat wire schema, converted by `zodOutputFormat()` and validated by gate 1 against the same Zod schema, rather than `messages.parse()`, so a refusal, a `max_tokens` stop and a reply that doesn't parse each end as [ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md) says instead of throwing ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md)); the cached system prefix (design brief + serialized registry + wire schema, **no example UI specs**), with each fixture variant's bindable paths in the user turn after it; and model, effort, `max_tokens` and attempt limit from the per-step config ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md), [ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)). Gate 1 runs every check listed in [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md), including the Screen root and `to` checks it gained here. The repair turns follow ADR 0010. The initial prompt is written here and hashed.
 
 **Done when:** against a stub registry and the fixtures, Vitest shows that each gate 1 rule fails a planted UI spec with the node id and rule named, and a stubbed model that returns a failing UI spec, then a fixed one, produces one repair turn in the ADR 0010 shape and ends passed.
 
