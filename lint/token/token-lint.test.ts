@@ -123,7 +123,7 @@ describe("token lint", () => {
       ]);
     });
 
-    it("finds every change of state outside the library, and nothing else", async () => {
+    it("finds every change of state outside the library, and a screen hosting itself, and nothing else", async () => {
       const rule = "screens/screen-state-via-library";
       expect(await lint("screen-state-violations.tsx", plantedAt)).toEqual([
         [rule, "useState as useLocalState"],
@@ -131,10 +131,13 @@ describe("token lint", () => {
           "no-restricted-imports",
           `import { fixtureVariant } from "../../fixtures/fixtures.ts";`,
         ],
+        [rule, "sendReminder: remind"],
         [rule, "React.useState"],
         [rule, "useReducer"],
         [rule, "document.startViewTransition"],
         [rule, "operations.sendReminder"],
+        [rule, `operations["sendReminder"]`],
+        [rule, "Library.ScreenHost"],
       ]);
     });
   });
