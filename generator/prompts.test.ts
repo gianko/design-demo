@@ -1,10 +1,10 @@
-// The spec step's prompt (ADR 0004, spec § Gate 1 and the spec step): it
-// teaches bindings, and the user turn lists the paths each fixture variant
-// can bind, after a cached prefix that holds only the design brief, the
-// registry and the wire schema.
+// The steps' prompts (ADR 0004). The spec step's teaches bindings, and its
+// user turn lists the paths each fixture variant can bind, after a cached
+// prefix that holds only the design brief, the registry and the wire schema
+// (spec § Gate 1 and the spec step). The code step's wires that data.
 
 import { describe, expect, it } from "vitest";
-import { specPrompt } from "./prompts.ts";
+import { codePrompt, specPrompt } from "./prompts.ts";
 import type { LibraryRegistry } from "./registry.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
 
@@ -24,6 +24,19 @@ const fixtures = {
   },
   "payment-status/empty": { invoices: [], overdueInvoice: null },
 };
+
+// ADR 0004: the code step wires data. Bound props and operation arguments
+// read the host's fixture variant through the library's hook.
+describe("codePrompt", () => {
+  it("wires bound props and operation arguments through useFixtureData", () => {
+    const [instructions] = codePrompt("# Design brief", registry).system;
+
+    expect(instructions!.text).toContain("const data = useFixtureData()");
+    expect(instructions!.text).toContain(
+      "sendReminder.run(data.overdueInvoice.id)"
+    );
+  });
+});
 
 describe("specPrompt", () => {
   it("teaches a bound prop value", () => {

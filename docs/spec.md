@@ -126,7 +126,7 @@ The code step: the UI spec and screen brief in, a whole TSX file out, written in
 
 ### Action wiring
 
-The library hooks `useScreenState` and `useAction` and the gate 2 rule `screen-state-via-library`, as [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) sets them out. The code step wires every declared action through them.
+The library's `ScreenHost`, its hooks `useScreenState`, `useAction` and `useFixtureData`, and the gate 2 rule `screen-state-via-library`, as [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) sets them out. The code step wires every declared action through them, and reads bound props and operation arguments from `useFixtureData`.
 
 **Done when:** a test story wiring `sendReminder` through `useAction` enters `reminder-sent` through a `confirm` View Transition and `reminder-failed` through a `fail` one, and a planted generated screen that uses `useState` or calls `sendReminder` directly fails gate 2 with the rule id.
 

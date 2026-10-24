@@ -4,6 +4,7 @@ export { Screen, type ScreenProps } from "./components/Screen/Screen.tsx";
 export {
   ScreenHost,
   useAction,
+  useFixtureData,
   useScreenState,
   type Action,
   type ScreenHostProps,

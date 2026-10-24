@@ -10,6 +10,7 @@ import {
 import { flushSync } from "react-dom";
 import {
   fixtureVariant,
+  type FixtureData,
   type Operations,
   type OperationName,
   type VariantName,
@@ -20,7 +21,9 @@ import {
 // and `useAction` runs a fixtures operation and enters the state it settles
 // in, and every change runs inside `document.startViewTransition`. The state
 // lives in the ScreenHost around the generated screen, so the screen's own
-// hooks and the Screen it renders see the same one.
+// hooks and the Screen it renders see the same one. The host also holds the
+// fixture variant, whose data `useFixtureData` reads for bound props and
+// operation arguments (ADR 0004).
 
 export const defaultState = "default";
 
@@ -34,6 +37,7 @@ type ScreenStateContext = {
   // Enters `name`; `alongside` runs in the same update, so the transition's
   // old snapshot holds what it undoes (a Button's pending).
   enter: (name: string, type?: TransitionType, alongside?: () => void) => void;
+  data: FixtureData;
   operations: Operations;
 };
 
@@ -55,8 +59,8 @@ export function ScreenHost({
   children,
 }: ScreenHostProps) {
   const [state, setState] = useState(initial);
-  const operations = useMemo(
-    () => fixtureVariant(variant).operations,
+  const { data, operations } = useMemo(
+    () => fixtureVariant(variant),
     [variant]
   );
   const enter = useCallback(
@@ -75,8 +79,8 @@ export function ScreenHost({
     []
   );
   const value = useMemo(
-    () => ({ state, enter, operations }),
-    [state, enter, operations]
+    () => ({ state, enter, data, operations }),
+    [state, enter, data, operations]
   );
   return <HostContext value={value}>{children}</HostContext>;
 }
@@ -96,6 +100,12 @@ function useHost(hook: string) {
 export function useScreenState() {
   const { state, enter } = useHost("useScreenState");
   return { state, enter: (name: string) => enter(name) };
+}
+
+// The data of the fixture variant the host renders: what a UI spec's
+// `{ "bind": "<path>" }` props and its operations' arguments read.
+export function useFixtureData(): FixtureData {
+  return useHost("useFixtureData").data;
 }
 
 // Screen's own read of the state, for its data attribute. A Screen outside a

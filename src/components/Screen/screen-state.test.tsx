@@ -14,6 +14,8 @@ import {
   screen,
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { Text } from "../Text/Text.tsx";
+import { ScreenHost, useFixtureData } from "./screen-state.tsx";
 import * as stories from "./Screen.stories.tsx";
 
 const { SendReminder, ReminderFails, ReminderSent } = composeStories(stories);
@@ -114,6 +116,31 @@ it("changes state without a transition where the browser has no View Transitions
   await act(() => vi.advanceTimersByTimeAsync(1800));
 
   expect(screenState()).toBe("reminder-sent");
+});
+
+// A generated screen reads its bound data, and its operations' arguments,
+// from the fixture variant its host renders (ADR 0004, ADR 0011).
+it("reads the data of the fixture variant its host names", () => {
+  function Due() {
+    const { overdueInvoice } = useFixtureData();
+    return <Text text={overdueInvoice?.dueLabel ?? "Nothing due"} />;
+  }
+
+  render(
+    <>
+      <ScreenHost>
+        <Due />
+      </ScreenHost>
+      <ScreenHost variant="payment-status/empty">
+        <Due />
+      </ScreenHost>
+    </>
+  );
+
+  expect(screen.getAllByText(/./).map((node) => node.textContent)).toEqual([
+    "Oct 8",
+    "Nothing due",
+  ]);
 });
 
 it("starts in the screen state its host names", () => {
