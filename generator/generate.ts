@@ -139,7 +139,8 @@ export async function generate(
   const spec = specPrompt(
     designBrief,
     registry,
-    JSON.stringify(schema, null, 2)
+    JSON.stringify(schema, null, 2),
+    fixtures.variants
   );
   const code = codePrompt(designBrief, registry);
 

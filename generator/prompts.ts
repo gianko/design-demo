@@ -1,8 +1,9 @@
 // The two steps' prompts (ADR 0003). Each step's system prompt is a cached
 // prefix shared by every rep; the screen brief, and for the code step the UI
 // spec, ride in the user turn after it. A prompt's hash covers its own words,
-// its repair turn's (repair.ts) and the design brief: the registry has its own hash (ADR 0004), and both
-// sit in the version tuple (ADR 0008). There are no example UI specs.
+// its repair turn's (repair.ts), the design brief and, for the spec step, the
+// fixture paths: the registry has its own hash (ADR 0004), and both sit in
+// the version tuple (ADR 0008). There are no example UI specs.
 
 import { createHash } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
@@ -18,8 +19,9 @@ const specInstructions = `You turn a screen brief into a UI spec: a flat list of
 - Siblings render in the order they appear in the list.
 - Each prop is a name and its value written as JSON: the string Paid is "\\"Paid\\"", and true is "true".
 - audience is the screen brief's audience, and the Screen's audience prop is the same.
-- Every user-facing string is literal copy in a prop, in the design brief's voice: sentence case, plain-spoken. Where the screen brief gives exact copy, use it word for word.
-- Declare a screen state in states, or an action in actions, only when the screen brief asks for one. A node's when lists the states it shows in, and is empty to show it in every state. action is null unless the node runs a declared action.
+- Every user-facing string you write is literal copy in a prop, in the design brief's voice: sentence case, plain-spoken. Where the screen brief gives exact copy, use it word for word.
+- Data is bound, never copied: a value that comes from the fixtures (an amount, a status, a name, a date's label) is the prop value {"bind":"<path>"}, written as JSON like any other, so binding the due date's label is "{\\"bind\\":\\"overdueInvoice.dueLabel\\"}". The paths each fixture variant can bind are listed after the screen brief. A bound path must resolve, to a value the prop takes, in the fixture variant of every screen state its node shows in; where a variant lacks the data, show the node only in the states that have it. A path starting row. resolves only inside a DataTable's cell or detail slot.
+- Declare a screen state in states, or an action in actions, only when the screen brief asks for one. Each state's fixture is one of the listed fixture variants. A node's when lists the states it shows in, and is empty to show it in every state. action is null unless the node runs a declared action.
 - Each id is a short kebab-case name for what its node is.`;
 
 const codeInstructions = `You turn a UI spec into one React screen: a whole TSX file built only from library components, following the UI spec exactly. The screen brief comes with it for intent.
@@ -34,7 +36,8 @@ const codeInstructions = `You turn a UI spec into one React screen: a whole TSX 
 
 // The user turns, as templates, so their words hash the same under any
 // runtime.
-const specUser = "Write the UI spec for this screen brief.\n\n{brief}";
+const specUser =
+  "Write the UI spec for this screen brief.\n\n{brief}\n\nThe paths a prop can bind in each fixture variant, with their values:\n\n{fixtures}";
 const codeUser =
   "Write the screen {name} from this UI spec.\n\n```json\n{uiSpec}\n```\n\nThe screen brief it came from:\n\n{brief}";
 
@@ -51,11 +54,21 @@ export type StepPrompt<A extends unknown[]> = {
   hash: string;
 };
 
+// `fixtures` is each fixture variant's data by name. Its paths ride in the
+// user turn, so the cached prefix stays the design brief, the registry and
+// the wire schema (spec § Gate 1 and the spec step), and the hash covers
+// them, since they steer the model as the words do.
 export function specPrompt(
   designBrief: string,
   registry: LibraryRegistry,
-  wireSchemaJson: string
+  wireSchemaJson: string,
+  fixtures: Readonly<Record<string, unknown>>
 ): StepPrompt<[ScreenBrief]> {
+  const paths = Object.entries(fixtures)
+    .map(([variant, data]) =>
+      [`Fixture variant "${variant}":`, ...bindable(data)].join("\n")
+    )
+    .join("\n\n");
   return {
     system: cached([
       specInstructions,
@@ -63,9 +76,26 @@ export function specPrompt(
       `<registry>\n${registry.serialized}\n</registry>`,
       `<wire_schema>\n${wireSchemaJson}\n</wire_schema>`,
     ]),
-    user: (brief) => fill(specUser, { brief: brief.text }),
-    hash: hash(specInstructions, designBrief, specUser, repairWords("spec")),
+    user: (brief) => fill(specUser, { brief: brief.text, fixtures: paths }),
+    hash: hash(
+      specInstructions,
+      designBrief,
+      specUser,
+      paths,
+      repairWords("spec")
+    ),
   };
+}
+
+// One `- <path>: <value>` line per value a binding can reach: down through
+// objects and arrays (by index) to each scalar, empty array or null.
+function bindable(value: unknown, path = ""): string[] {
+  const entries =
+    typeof value === "object" && value !== null ? Object.entries(value) : [];
+  if (entries.length === 0) return [`- ${path}: ${JSON.stringify(value)}`];
+  return entries.flatMap(([key, child]) =>
+    bindable(child, path ? `${path}.${key}` : key)
+  );
 }
 
 export function codePrompt(
