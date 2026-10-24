@@ -4,6 +4,8 @@
 // the current state as a data attribute. jsdom has no View Transitions, so
 // `document.startViewTransition` is stubbed as the browser's boundary: it
 // records each transition's types and the state either side of its update.
+// The stories compose with the Storybook preview, whose ScreenHost hosts
+// them as it does in the gate.
 
 import { composeStories } from "@storybook/react-vite";
 import {
@@ -14,11 +16,15 @@ import {
   screen,
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import preview from "../../../.storybook/preview.tsx";
 import { Text } from "../Text/Text.tsx";
 import { ScreenHost, useFixtureData } from "./screen-state.tsx";
 import * as stories from "./Screen.stories.tsx";
 
-const { SendReminder, ReminderFails, ReminderSent } = composeStories(stories);
+const { SendReminder, ReminderFails, ReminderSent } = composeStories(
+  stories,
+  preview
+);
 
 type Transition = { types: string[]; before: string; after: string };
 let transitions: Transition[];
@@ -161,7 +167,9 @@ it("reads the data of the fixture variant its host names", () => {
       <ScreenHost>
         <Due />
       </ScreenHost>
-      <ScreenHost variant="payment-status/empty">
+      <ScreenHost
+        screenState={{ name: "default", fixture: "payment-status/empty" }}
+      >
         <Due />
       </ScreenHost>
     </>

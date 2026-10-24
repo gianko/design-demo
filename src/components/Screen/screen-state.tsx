@@ -15,6 +15,7 @@ import {
   type OperationName,
   type VariantName,
 } from "../../fixtures/fixtures.ts";
+import { defaultState } from "./default-state.ts";
 
 // Screen states change only through the library (ADR 0011). A generated
 // screen holds no state of its own: `useScreenState` reads the current state
@@ -25,7 +26,7 @@ import {
 // fixture variant, whose data `useFixtureData` reads for bound props and
 // operation arguments (ADR 0004).
 
-export const defaultState = "default";
+export { defaultState };
 
 // `confirm` follows a confirmed result and is the only type `ease-settle`
 // runs under; `fail` follows a failed one. An untyped change (DataTable
@@ -46,21 +47,26 @@ type ScreenStateContext = {
 
 const HostContext = createContext<ScreenStateContext | null>(null);
 
+// The screen state a host starts in, and the fixture variant the screen
+// renders and its operations settle under: a UI spec's declared state. A
+// story names one in `parameters.screenState`, which
+// generator/screen-stories.ts writes and the Storybook preview hands to
+// ScreenHost; this is the one shape all three hold to.
+export type HostedState = { name: string; fixture: VariantName };
+
+export type ScreenStateParameters = { screenState?: HostedState };
+
 export type ScreenHostProps = {
-  // The fixture variant the screen renders, and its operations settle under.
-  variant?: VariantName;
-  // The screen state it starts in.
-  state?: string;
+  // The default state, in the default variant, when not given.
+  screenState?: HostedState;
   children?: ReactNode;
 };
 
 // What hosts a generated screen: a story, the gate harness or an app. It
 // holds the screen state and the fixture variant.
-export function ScreenHost({
-  variant = "default",
-  state: initial = defaultState,
-  children,
-}: ScreenHostProps) {
+export function ScreenHost({ screenState, children }: ScreenHostProps) {
+  const initial = screenState?.name ?? defaultState;
+  const variant = screenState?.fixture ?? "default";
   const [{ state, entries }, setEntered] = useState({
     state: initial,
     entries: 0,

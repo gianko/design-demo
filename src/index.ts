@@ -7,6 +7,8 @@ export {
   useFixtureData,
   useScreenState,
   type Action,
+  type HostedState,
   type ScreenHostProps,
+  type ScreenStateParameters,
 } from "./components/Screen/screen-state.tsx";
 export { Text, type TextProps } from "./components/Text/Text.tsx";

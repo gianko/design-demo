@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { VariantName } from "../../fixtures/fixtures.ts";
 import { Text } from "../Text/Text.tsx";
 import { Screen } from "./Screen.tsx";
 import {
-  ScreenHost,
   useAction,
   useFixtureData,
   useScreenState,
+  type HostedState,
+  type ScreenStateParameters,
 } from "./screen-state.tsx";
 
 // Screen sets its own density from `audience`, so each story keeps its
@@ -94,26 +94,28 @@ function Reminder() {
   );
 }
 
-const hosted = (variant: VariantName, state?: string) => () => (
-  <ScreenHost variant={variant} state={state}>
-    <Reminder />
-  </ScreenHost>
-);
+// The preview's ScreenHost starts each in the state, under the fixture
+// variant, that `parameters.screenState` names, as it does a kept screen's.
+const hosted = (screenState: HostedState): Story => ({
+  args: { audience: "contractor" },
+  parameters: { screenState } satisfies ScreenStateParameters,
+  render: () => <Reminder />,
+});
 
 // `sendReminder` succeeds under this variant.
-export const SendReminder: Story = {
-  args: { audience: "contractor" },
-  render: hosted("payment-status/reminder-sent"),
-};
+export const SendReminder = hosted({
+  name: "default",
+  fixture: "payment-status/reminder-sent",
+});
 
 // `sendReminder` fails under this variant.
-export const ReminderFails: Story = {
-  args: { audience: "contractor" },
-  render: hosted("payment-status/reminder-failed"),
-};
+export const ReminderFails = hosted({
+  name: "default",
+  fixture: "payment-status/reminder-failed",
+});
 
 // Rendered in the state the action enters, as a kept screen's state story is.
-export const ReminderSent: Story = {
-  args: { audience: "contractor" },
-  render: hosted("payment-status/reminder-sent", "reminder-sent"),
-};
+export const ReminderSent = hosted({
+  name: "reminder-sent",
+  fixture: "payment-status/reminder-sent",
+});

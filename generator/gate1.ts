@@ -5,6 +5,9 @@
 // so one attempt reports everything it got wrong (ADR 0010).
 
 import { z } from "zod";
+// The screen state every screen has besides the declared ones; a node's
+// `when` and an action's `to` may name it.
+import { defaultState } from "../src/components/Screen/default-state.ts";
 import type { RegistryEntry } from "../src/registry/entry.ts";
 import type { Failure } from "./failure.ts";
 import { type UiNode, type UiSpec, wireSchema } from "./ui-spec.ts";
@@ -25,9 +28,6 @@ export type Gate1Context = {
 };
 
 const whole = "(ui spec)";
-// The screen state every screen has besides the declared ones; a node's
-// `when` and an action's `to` may name it.
-const defaultState = "default";
 // A DataTable's slots whose template node renders once per row, where `row.*`
 // paths resolve (ADR 0004, ADR 0011).
 const rowSlots = ["cell", "detail"];

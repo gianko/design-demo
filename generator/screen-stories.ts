@@ -5,6 +5,11 @@
 //
 // The title's last segment is the slug, so `pnpm gate <slug>` selects them.
 
+import { defaultState } from "../src/components/Screen/default-state.ts";
+import type {
+  HostedState,
+  ScreenStateParameters,
+} from "../src/components/Screen/screen-state.tsx";
 import type { UiSpec } from "./ui-spec.ts";
 
 export type ScreenStoriesInput = {
@@ -16,7 +21,7 @@ export type ScreenStoriesInput = {
 // Each story's export name and the screen state it renders.
 export function storyStates({ states }: Pick<ScreenStoriesInput, "states">) {
   return [
-    { exportName: "Default", state: "default" },
+    { exportName: pascalCase(defaultState), state: defaultState },
     ...states.map(({ name }) => ({
       exportName: pascalCase(name),
       state: name,
@@ -24,13 +29,24 @@ export function storyStates({ states }: Pick<ScreenStoriesInput, "states">) {
   ];
 }
 
+// The story parameter the Storybook preview hands to ScreenHost (ADR 0011),
+// in the library's own shape.
+const parameter: keyof ScreenStateParameters = "screenState";
+
 export function screenStories({ slug, name, states }: ScreenStoriesInput) {
   const stories = storyStates({ states }).map(({ exportName, state }) => {
     const declared = states.find((candidate) => candidate.name === state);
-    // The story names its state and variant in its parameters, and the
-    // Storybook preview's ScreenHost applies them (ADR 0011).
-    const body = declared
-      ? `{\n  parameters: {\n    screenState: { name: ${JSON.stringify(declared.name)}, fixture: ${JSON.stringify(declared.fixture)} },\n  },\n}`
+    const hosted: Record<keyof HostedState, string> | undefined = declared && {
+      name: declared.name,
+      fixture: declared.fixture,
+    };
+    const fields =
+      hosted &&
+      Object.entries(hosted)
+        .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+        .join(", ");
+    const body = fields
+      ? `{\n  parameters: {\n    ${parameter}: { ${fields} },\n  },\n}`
       : "{}";
     return `export const ${exportName}: Story = ${body};\n`;
   });
