@@ -53,7 +53,7 @@ async function tokens(edit: (files: Files, sources: Sources) => void) {
   }
 }
 
-it("writes both outputs and exits 0 on the committed sources", async () => {
+it("writes every output and exits 0 on the committed sources", async () => {
   const { code, dir } = await tokens(() => {});
   const built = build(sources);
 
@@ -63,6 +63,9 @@ it("writes both outputs and exits 0 on the committed sources", async () => {
   );
   expect(built.ok && built.ts).toBe(
     await readFile(join(dir, "tokens.ts"), "utf8")
+  );
+  expect(built.ok && built.figma).toBe(
+    await readFile(join(dir, "figma.json"), "utf8")
   );
 });
 
@@ -180,6 +183,29 @@ const fixtures: [
         "@keyframes progress-sweep",
         "@keyframes sweep"
       );
+    },
+  ],
+  // A Figma text style binds weight to one shared variable in every mode.
+  [
+    "figma",
+    "density.text.body",
+    (files) => {
+      files["density.contractor"].density.text.body.$value.fontWeight =
+        "{type.weight.semibold}";
+    },
+  ],
+  [
+    "figma",
+    "type.figure",
+    (files) => {
+      files.type.type.figure.$value.fontFamily = ["Instrument Sans"];
+    },
+  ],
+  [
+    "figma",
+    "shadow.overlay",
+    (files) => {
+      files["color.dark"].shadow.overlay.$value[1].inset = true;
     },
   ],
 ];

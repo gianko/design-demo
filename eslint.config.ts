@@ -8,6 +8,7 @@ export default defineConfig([
   globalIgnores([
     "storybook-static/",
     "gates/out/",
+    "figma/out/",
     ".agents/",
     ".claude/",
     ".scratch/",

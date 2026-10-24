@@ -9,6 +9,7 @@
   "scripts": {
     "typecheck": "tsc",
     "tokens": "node tokens/build.ts",
+    "figma:sync-tokens": "node figma/sync-tokens.ts",
     "gate": "node gates/run.ts",
     "build-component": "node build-loop/build-component.ts",
     "build-loop": "node build-loop/build-loop.ts",

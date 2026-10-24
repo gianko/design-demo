@@ -12,3 +12,5 @@ storybook-static/
 evals/runs/
 # Written by the Playwright pass of `pnpm gate`.
 gates/out/
+# figma:sync-tokens scripts, written fresh from tokens/figma.json each run.
+figma/out/
