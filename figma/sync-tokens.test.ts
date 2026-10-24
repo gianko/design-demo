@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { readFile } from "node:fs/promises";
 import { beforeAll, describe, expect, it } from "vitest";
 import { repo } from "../repo.ts";
