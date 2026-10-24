@@ -27,7 +27,7 @@ import { type Gate1Fixtures, gate1 } from "./gate1.ts";
 import type { Model } from "./model.ts";
 import { codePrompt, specPrompt } from "./prompts.ts";
 import { type LibraryRegistry, loadRegistry } from "./registry.ts";
-import { type Render, renderGates } from "./render-gates.ts";
+import { type Render, type RenderPass, renderGates } from "./render-gates.ts";
 import { repairTurn } from "./repair.ts";
 import { pascalCase } from "./screen-stories.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
@@ -103,13 +103,22 @@ export type GenerateOptions = {
   workDir: string;
   model: Model;
   registry?: LibraryRegistry;
+  // The code step's render pass. The real one builds Storybook and runs
+  // Playwright in the pinned image (ADR 0009), so unit tests stand in a stub.
+  render?: RenderPass;
   // Called as each attempt's gates finish, so a CLI can print as it goes.
   onAttempt?: (attempt: Attempt) => void;
 };
 
 export async function generate(
   brief: ScreenBrief,
-  { workDir, model, registry: given, onAttempt }: GenerateOptions
+  {
+    workDir,
+    model,
+    registry: given,
+    render = renderGates,
+    onAttempt,
+  }: GenerateOptions
 ): Promise<RepTrace> {
   const dir = resolve(workDir);
   // Token lint reaches generated screens only where the config looks for them.
@@ -228,7 +237,7 @@ export async function generate(
       // whatever gates 2 and 3 said, and only a failed build stops it.
       let rendered;
       try {
-        rendered = await renderGates({
+        rendered = await render({
           dir: attemptDir,
           slug: brief.slug,
           name,

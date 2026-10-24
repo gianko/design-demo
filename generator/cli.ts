@@ -9,12 +9,15 @@ import { relative, resolve } from "node:path";
 import { checkPassCriteria } from "./pass-criteria.ts";
 import { type Attempt, generate } from "./generate.ts";
 import type { Model } from "./model.ts";
+import type { RenderPass } from "./render-gates.ts";
 import { readScreenBrief } from "./screen-brief.ts";
 
 const repo = resolve(import.meta.dirname, "..");
 
 export type CliDeps = {
   model: Model;
+  // generate()'s render pass; the real one unless a test stands in its own.
+  render?: RenderPass;
   log?: (line: string) => void;
   now?: () => Date;
   // Told the run dir before anything is written to it.
@@ -39,6 +42,7 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
   const trace = await generate(brief, {
     workDir,
     model: deps.model,
+    render: deps.render,
     onAttempt: (attempt) => log(attemptLines(attempt)),
   });
 

@@ -1,7 +1,8 @@
 // @vitest-environment node
-// One generate() run on the smoke brief with a stubbed model: one spec
-// attempt, one code attempt, no repair. The code step's gates are the real
-// ESLint config and tsc, so these tests are slow by design.
+// generate() on the smoke brief with a stubbed model. The code step's gates
+// 2 and 3 and static taste rules are the real ESLint config and tsc, so these
+// tests are slow by design. The render pass is stubbed, since the real one
+// needs Docker (ADR 0009); generator/render-gates.e2e.ts runs it for real.
 
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -10,6 +11,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { generate } from "./generate.ts";
 import type { Model } from "./model.ts";
+import type { RenderInput, RenderPass } from "./render-gates.ts";
 import { readScreenBrief } from "./screen-brief.ts";
 
 const repo = resolve(import.meta.dirname, "..");
@@ -99,6 +101,58 @@ function stubModel(...replies: Anthropic.Message[]) {
   return { model, requests };
 }
 
+// The render pass, stubbed. It renders light and dark × the default and
+// every declared state at the audience's density, as the real one does. A
+// screen with an unnamed `<button>` fails axe's button-name in each render;
+// any other screen passes. A source that imports a module that doesn't exist
+// doesn't build. It keeps every input it got.
+const renderInputs: RenderInput[] = [];
+const render: RenderPass = async (input) => {
+  renderInputs.push(input);
+  if (input.source.includes("no-such-module")) {
+    return {
+      built: false,
+      gates: { "gate 4": "not-run", "gate 7 render": "not-run" },
+      renders: [],
+      failures: [
+        {
+          gate: "gate 3",
+          rule: "build",
+          location: "(build)",
+          message: "Could not resolve ../../no-such-module.ts",
+        },
+      ],
+    };
+  }
+  const unnamed = input.source.includes('<button type="button"></button>');
+  const result = unnamed ? "fail" : "pass";
+  const gates = { "gate 4": result, "gate 7 render": "pass" } as const;
+  const renders = ["default", ...input.states.map(({ name }) => name)].flatMap(
+    (state) =>
+      (["light", "dark"] as const).map((theme) => ({
+        theme,
+        density: input.audience,
+        state,
+        gates,
+      }))
+  );
+  return {
+    built: true,
+    gates,
+    renders,
+    failures: unnamed
+      ? renders.map(({ theme, state }) => ({
+          gate: "gate 4",
+          rule: "button-name",
+          location: 'button[type="button"] <button type="button"></button>',
+          message: "Buttons must have discernible text",
+          help: "Buttons must have discernible text",
+          renders: [`${theme} · ${state}`],
+        }))
+      : [],
+  };
+};
+
 const workDirs: string[] = [];
 function workDir() {
   const dir = join(repo, ".generated", `vitest-${randomUUID()}`);
@@ -106,6 +160,7 @@ function workDir() {
   return dir;
 }
 afterEach(() => {
+  renderInputs.splice(0);
   for (const dir of workDirs.splice(0))
     rmSync(dir, { recursive: true, force: true });
 });
@@ -122,7 +177,7 @@ describe("generate", () => {
     );
     const dir = workDir();
 
-    const trace = await generate(brief, { workDir: dir, model });
+    const trace = await generate(brief, { workDir: dir, model, render });
 
     expect(trace.endReason).toBe("passed");
     expect(
@@ -144,31 +199,71 @@ describe("generate", () => {
     expect(trace.uiSpec).toEqual(smokeSpec);
   }, 120_000);
 
-  it("renders the code attempt in light and dark × every screen state, at the audience's density", async () => {
+  it("hands the render pass the attempt's TSX, audience and screen states, and records its renders", async () => {
+    const withState = {
+      ...smokeSpec,
+      states: [{ name: "empty", fixture: "payment-status/empty" }],
+    };
     const { model } = stubModel(
-      message(JSON.stringify(smokeSpec)),
+      message(JSON.stringify(withState)),
       message(smokeTsx)
     );
     const dir = workDir();
 
-    const trace = await generate(brief, { workDir: dir, model });
+    const trace = await generate(brief, { workDir: dir, model, render });
 
-    const passed = { "gate 4": "pass", "gate 7 render": "pass" };
-    expect(trace.attempts[1]!.renders).toEqual([
+    expect(renderInputs).toEqual([
       {
-        theme: "light",
-        density: "contractor",
-        state: "default",
-        gates: passed,
+        dir: join(dir, "attempt-1-code"),
+        slug: "smoke",
+        name: "Smoke",
+        source: smokeTsx,
+        audience: "contractor",
+        states: withState.states,
       },
-      { theme: "dark", density: "contractor", state: "default", gates: passed },
     ]);
+    const passed = { "gate 4": "pass", "gate 7 render": "pass" };
+    expect(trace.attempts[1]!.renders).toEqual(
+      [
+        ["light", "default"],
+        ["dark", "default"],
+        ["light", "empty"],
+        ["dark", "empty"],
+      ].map(([theme, state]) => ({
+        theme,
+        density: "contractor",
+        state,
+        gates: passed,
+      }))
+    );
     expect(
       readJson(join(dir, "attempt-1-code/attempt.json")).renders
-    ).toHaveLength(2);
-    expect(
-      existsSync(join(dir, "attempt-1-code/render/out/results.json"))
-    ).toBe(true);
+    ).toHaveLength(4);
+  }, 120_000);
+
+  it("ends the rep as error:render when the render pass can't run", async () => {
+    const { model, requests } = stubModel(
+      message(JSON.stringify(smokeSpec)),
+      message(smokeTsx)
+    );
+    const broken: RenderPass = async () => {
+      throw new Error("The render pass wrote no results.");
+    };
+
+    const trace = await generate(brief, {
+      workDir: workDir(),
+      model,
+      render: broken,
+    });
+
+    expect(trace.outcome).toBe("error");
+    expect(trace.endReason).toBe("error:render");
+    expect(requests).toHaveLength(2);
+    expect(trace.attempts[1]!.gates).toMatchObject({
+      "gate 2": "pass",
+      "gate 4": "not-run",
+      "gate 7 render": "not-run",
+    });
   }, 120_000);
 
   it("records the render gates as not-run when the generated file doesn't build", async () => {
@@ -181,7 +276,7 @@ describe("generate", () => {
       ...[1, 2, 3].map(() => message(broken))
     );
 
-    const trace = await generate(brief, { workDir: workDir(), model });
+    const trace = await generate(brief, { workDir: workDir(), model, render });
 
     const code = trace.attempts[1]!;
     // Three code attempts, the step's limit, and none of them builds.
@@ -207,7 +302,7 @@ describe("generate", () => {
     );
     const dir = workDir();
 
-    const trace = await generate(brief, { workDir: dir, model });
+    const trace = await generate(brief, { workDir: dir, model, render });
 
     expect(readJson(join(dir, "attempt-1-spec/ui-spec.json"))).toEqual(
       smokeSpec
@@ -242,7 +337,7 @@ describe("generate", () => {
       message(smokeTsx)
     );
 
-    await generate(brief, { workDir: workDir(), model });
+    await generate(brief, { workDir: workDir(), model, render });
 
     const [spec, code] = requests;
     expect(spec).toMatchObject({
@@ -282,7 +377,7 @@ describe("generate", () => {
     );
     const dir = workDir();
 
-    const trace = await generate(brief, { workDir: dir, model });
+    const trace = await generate(brief, { workDir: dir, model, render });
 
     expect(trace.outcome).toBe("fail");
     expect(trace.endReason).toBe("spec-attempts-exhausted");
@@ -323,7 +418,7 @@ export function Smoke() {
       message(smokeTsx)
     );
 
-    const trace = await generate(brief, { workDir: workDir(), model });
+    const trace = await generate(brief, { workDir: workDir(), model, render });
 
     const code = trace.attempts[1]!;
     expect(code.gates).toEqual({
@@ -351,7 +446,11 @@ export function Smoke() {
     async (stop, endReason) => {
       const { model, requests } = stubModel(message("", stop));
 
-      const trace = await generate(brief, { workDir: workDir(), model });
+      const trace = await generate(brief, {
+        workDir: workDir(),
+        model,
+        render,
+      });
 
       expect(trace.outcome).toBe("error");
       expect(trace.endReason).toBe(endReason);
@@ -378,7 +477,7 @@ describe("the repair loop", () => {
     );
     const dir = workDir();
 
-    const trace = await generate(brief, { workDir: dir, model });
+    const trace = await generate(brief, { workDir: dir, model, render });
 
     expect(trace.outcome).toBe("pass");
     expect(trace.endReason).toBe("passed");
@@ -444,7 +543,7 @@ ${Array.from({ length: 24 }, () => "      <span />").join("\n")}
     );
     const dir = workDir();
 
-    const trace = await generate(brief, { workDir: dir, model });
+    const trace = await generate(brief, { workDir: dir, model, render });
 
     expect(trace.endReason).toBe("passed");
     expect(
@@ -522,7 +621,7 @@ ${Array.from({ length: 24 }, () => "      <span />").join("\n")}
       );
       const dir = workDir();
 
-      const trace = await generate(brief, { workDir: dir, model });
+      const trace = await generate(brief, { workDir: dir, model, render });
 
       expect(trace.outcome).toBe("error");
       expect(trace.endReason).toBe(endReason);
@@ -565,7 +664,7 @@ ${Array.from({ length: 24 }, () => "      <span />").join("\n")}
       );
       const dir = workDir();
 
-      const trace = await generate(brief, { workDir: dir, model });
+      const trace = await generate(brief, { workDir: dir, model, render });
 
       expect(trace.outcome).toBe("error");
       expect(trace.endReason).toBe(endReason);
@@ -602,7 +701,7 @@ ${Array.from({ length: 24 }, () => "      <span />").join("\n")}
     );
     const dir = workDir();
 
-    const trace = await generate(brief, { workDir: dir, model });
+    const trace = await generate(brief, { workDir: dir, model, render });
 
     // At $4, $20, $0.20 and $5 per million input, output, cache-read and
     // cache-write tokens: $0.008 + $0.02 + $0.002 + $0.02.

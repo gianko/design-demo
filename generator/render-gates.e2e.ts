@@ -1,16 +1,19 @@
-// @vitest-environment node
 // The code step's render pass (ADR 0008, ADR 0010): a generated screen that
 // builds renders in light and dark × the default and every declared screen
 // state, at its audience's density, under gate 4 and the render-time taste
 // rules. It runs the real Storybook build and the Playwright pass in the
-// pinned image, so these tests are slow and need Docker.
+// pinned image, so these tests need Docker and run in `pnpm test:gate`, not
+// `pnpm test` (ADR 0009).
 
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
+import type Anthropic from "@anthropic-ai/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { failureLine } from "./failure.ts";
+import { generate } from "./generate.ts";
 import { renderGates } from "./render-gates.ts";
+import { readScreenBrief } from "./screen-brief.ts";
 
 const repo = resolve(import.meta.dirname, "..");
 
@@ -162,5 +165,65 @@ export function Smoke(): React.ReactNode {
         /^gate 7 · script-error · \(render\) · .*The screen broke\..* \(in light · default\)$/
       )
     );
+  }, 120_000);
+});
+
+describe("generate", () => {
+  it("runs the real render pass on a code attempt unless told otherwise", async () => {
+    const uiSpec = {
+      audience: "contractor",
+      nodes: [
+        {
+          id: "screen",
+          component: "Screen",
+          parent: null,
+          slot: null,
+          props: [{ name: "audience", value: '"contractor"' }],
+          when: [],
+          action: null,
+        },
+        {
+          id: "welcome",
+          component: "Text",
+          parent: "screen",
+          slot: "body",
+          props: [
+            {
+              name: "text",
+              value: JSON.stringify(
+                "Welcome back. Your invoices and payments will show up here."
+              ),
+            },
+          ],
+          when: [],
+          action: null,
+        },
+      ],
+      states: [],
+      actions: [],
+    };
+    const replies = [JSON.stringify(uiSpec), smokeTsx];
+    const workDir = resolve(attemptDir(), "..", "rep");
+
+    const trace = await generate(
+      readScreenBrief(join(import.meta.dirname, "fixtures/smoke.md")),
+      {
+        workDir,
+        model: async () => ({
+          message: {
+            content: [{ type: "text", text: replies.shift()! }],
+            stop_reason: "end_turn",
+            usage: { input_tokens: 1, output_tokens: 1 },
+          } as Anthropic.Message,
+          requestId: null,
+        }),
+      }
+    );
+
+    expect(trace.endReason).toBe("passed");
+    expect(trace.attempts[1]!.renders).toHaveLength(2);
+    expect(
+      existsSync(join(workDir, "attempt-1-code/render/out/results.json"))
+    ).toBe(true);
   }, 120_000);
 });

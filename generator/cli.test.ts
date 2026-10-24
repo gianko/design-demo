@@ -1,7 +1,8 @@
 // @vitest-environment node
 // `pnpm generate <screen brief>` with a stubbed model: it prints each step's
 // gate results and the pass criteria, and exits 0 only on `passed` with the
-// pass criteria met.
+// pass criteria met. The render pass is stubbed, since the real one needs
+// Docker (ADR 0009).
 
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -10,6 +11,24 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { main } from "./cli.ts";
 import type { Model } from "./model.ts";
+import type { RenderPass } from "./render-gates.ts";
+
+// Every render passes, in light and dark × the default state at the
+// audience's density.
+const render: RenderPass = async ({ audience }) => {
+  const gates = { "gate 4": "pass", "gate 7 render": "pass" } as const;
+  return {
+    built: true,
+    gates,
+    renders: (["light", "dark"] as const).map((theme) => ({
+      theme,
+      density: audience,
+      state: "default",
+      gates,
+    })),
+    failures: [],
+  };
+};
 
 const repo = resolve(import.meta.dirname, "..");
 const smokeBrief = readFileSync(
@@ -98,6 +117,7 @@ async function run(briefPath: string, model: Model) {
   const lines: string[] = [];
   const code = await main([briefPath], {
     model,
+    render,
     log: (line) => lines.push(line),
     onRunDir: (dir) => cleanup.push(dir),
   });

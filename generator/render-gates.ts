@@ -48,6 +48,9 @@ export type RenderInput = {
   states: UiSpec["states"];
 };
 
+// The render pass as generate() takes it, so a test can stand in its own.
+export type RenderPass = (input: RenderInput) => Promise<RenderGates>;
+
 const notRun = { "gate 4": "not-run", "gate 7 render": "not-run" } as const;
 
 // A failure line's location quotes at most this much of an element.
