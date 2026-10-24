@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { readFile } from "node:fs/promises";
 import { beforeAll, describe, expect, it } from "vitest";
 import { repo } from "../repo.ts";
@@ -73,6 +75,20 @@ describe("a sync into an empty file", () => {
     expect(report!.created).toContain("body (text style)");
     expect(report!.created).toContain("shadow/raised (effect style)");
     expect(report!.unbound).toEqual([]);
+  });
+
+  it("gives each --ds-* variable its code syntax, and the rest none", async () => {
+    const file = fakePluginApi();
+
+    await sync(file);
+    const codeSyntax = (name: string) =>
+      file.state().variables.find((v) => v.name === name)!.codeSyntax;
+
+    expect(codeSyntax("density/text/body/line-height")).toEqual({
+      WEB: "var(--ds-density-text-body-line-height)",
+    });
+    expect(codeSyntax("primitive/neutral/740")).toEqual({});
+    expect(codeSyntax("shadow/raised/1/blur")).toEqual({});
   });
 
   it("is followed by a dry run that reports zero changes", async () => {

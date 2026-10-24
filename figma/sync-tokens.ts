@@ -7,6 +7,7 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { transform } from "esbuild";
 import { repo } from "../repo.ts";
 import { figmaPayloadFile, type FigmaPayload } from "../tokens/build.ts";
 
@@ -20,9 +21,11 @@ export type SyncOptions = {
 };
 export type Script = { name: string; code: string };
 
-const runtime = await readFile(
-  join(import.meta.dirname, "sync-runtime.js"),
-  "utf8"
+// The agent re-types every byte into use_figma, so the runtime goes in without
+// its comments and indentation. Names stay, so its errors still read.
+const { code: runtime } = await transform(
+  await readFile(join(import.meta.dirname, "sync-runtime.js"), "utf8"),
+  { minifyWhitespace: true }
 );
 
 // The runtime's own copy hashes the data the same way.

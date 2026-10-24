@@ -265,7 +265,10 @@ async function syncTokens(RUN, PAYLOAD, CHECKSUM) {
         changes.push("scopes");
         if (write) variable.scopes = wantedVariable.scopes;
       }
-      const syntax = wantedVariable.codeSyntax ?? {};
+      // A --ds-* variable's CSS name is its Figma name with / as - (ADR 0005).
+      const syntax = wantedVariable.css
+        ? { WEB: `var(--ds-${wantedVariable.name.split("/").join("-")})` }
+        : {};
       if (!same(variable.codeSyntax, syntax)) {
         changes.push("codeSyntax");
         if (write) {
