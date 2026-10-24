@@ -102,7 +102,7 @@ afterEach(() => {
     rmSync(path, { recursive: true, force: true });
 });
 
-// A screen brief under a unique slug, so each run gets its own run dir.
+// A screen brief under a unique slug, so each rep gets its own rep dir.
 function brief(text: string) {
   const dir = join(repo, ".generated", `vitest-briefs-${randomUUID()}`);
   mkdirSync(dir, { recursive: true });
@@ -119,7 +119,7 @@ async function run(briefPath: string, model: Model) {
     model,
     render,
     log: (line) => lines.push(line),
-    onRunDir: (dir) => cleanup.push(dir),
+    onRepDir: (dir) => cleanup.push(dir),
   });
   return { code, output: lines.join("\n") };
 }

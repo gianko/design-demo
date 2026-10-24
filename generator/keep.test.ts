@@ -1,5 +1,5 @@
 // @vitest-environment node
-// `pnpm keep <run dir>` (spec § Keep): a passed run's final TSX goes to
+// `pnpm keep <rep dir>` (spec § Keep): a passed rep's final TSX goes to
 // src/screens/<slug>/ with one story per declared screen state plus the
 // default. Run dirs here are written by hand in the shape generate() leaves.
 
@@ -32,8 +32,8 @@ export function ${name}() {
 }
 `;
 
-// A run dir as generate() leaves it, for a fresh slug.
-function runDir({
+// A rep dir as generate() leaves it, for a fresh slug.
+function repDir({
   endReason = "passed",
   states = [],
 }: { endReason?: EndReason; states?: UiSpec["states"] } = {}) {
@@ -66,16 +66,16 @@ async function keep(dir: string) {
 }
 
 describe("pnpm keep", () => {
-  it("copies a passed run's final TSX to src/screens/<slug>/, formatted", async () => {
-    const run = runDir();
+  it("copies a passed rep's final TSX to src/screens/<slug>/, formatted", async () => {
+    const rep = repDir();
 
-    const { code, output } = await keep(run.dir);
+    const { code, output } = await keep(rep.dir);
 
     expect(code).toBe(0);
-    expect(readFileSync(join(run.kept, `${run.name}.tsx`), "utf8")).toBe(
+    expect(readFileSync(join(rep.kept, `${rep.name}.tsx`), "utf8")).toBe(
       `import { Screen, Text } from "../../index.ts";
 
-export function ${run.name}() {
+export function ${rep.name}() {
   return (
     <Screen audience="contractor">
       <Text text="Welcome back." />
@@ -84,27 +84,27 @@ export function ${run.name}() {
 }
 `
     );
-    expect(output).toContain(`pnpm gate ${run.slug} --update`);
+    expect(output).toContain(`pnpm gate ${rep.slug} --update`);
   });
 
   it("writes the default story and one per declared screen state, each naming its fixture variant", async () => {
-    const run = runDir({
+    const rep = repDir({
       states: [
         { name: "empty", fixture: "payment-status/empty" },
         { name: "reminder-sent", fixture: "payment-status/reminder-sent" },
       ],
     });
 
-    await keep(run.dir);
+    await keep(rep.dir);
 
     const stories = readFileSync(
-      join(run.kept, `${run.name}.stories.tsx`),
+      join(rep.kept, `${rep.name}.stories.tsx`),
       "utf8"
     );
     expect(stories).toContain(
-      `import { ${run.name} } from "./${run.name}.tsx";`
+      `import { ${rep.name} } from "./${rep.name}.tsx";`
     );
-    expect(stories).toContain(`title: "Screens/${run.slug}"`);
+    expect(stories).toContain(`title: "Screens/${rep.slug}"`);
     expect(stories).toContain("export const Default: Story = {};");
     expect(stories).toMatch(
       /export const Empty: Story = \{\s*parameters: \{\s*screenState: \{ name: "empty", fixture: "payment-status\/empty" \},?\s*\},?\s*\};/
@@ -114,25 +114,25 @@ export function ${run.name}() {
     );
   });
 
-  it("refuses a run that didn't pass, and writes nothing", async () => {
-    const run = runDir({ endReason: "code-attempts-exhausted" });
+  it("refuses a rep that didn't pass, and writes nothing", async () => {
+    const rep = repDir({ endReason: "code-attempts-exhausted" });
 
-    const { code, output } = await keep(run.dir);
+    const { code, output } = await keep(rep.dir);
 
     expect(code).toBe(1);
     expect(output).toMatch(/code-attempts-exhausted/);
-    expect(existsSync(run.kept)).toBe(false);
+    expect(existsSync(rep.kept)).toBe(false);
   });
 
   it("refuses to overwrite a kept screen", async () => {
-    const run = runDir();
-    mkdirSync(run.kept, { recursive: true });
-    writeFileSync(join(run.kept, "Mine.tsx"), "// kept by hand\n");
+    const rep = repDir();
+    mkdirSync(rep.kept, { recursive: true });
+    writeFileSync(join(rep.kept, "Mine.tsx"), "// kept by hand\n");
 
-    const { code, output } = await keep(run.dir);
+    const { code, output } = await keep(rep.dir);
 
     expect(code).toBe(1);
     expect(output).toMatch(/already kept/);
-    expect(existsSync(join(run.kept, `${run.name}.tsx`))).toBe(false);
+    expect(existsSync(join(rep.kept, `${rep.name}.tsx`))).toBe(false);
   });
 });

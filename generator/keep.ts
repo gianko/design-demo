@@ -1,4 +1,4 @@
-// `pnpm keep <.generated run dir>` (spec § Keep): copies a passed run's final
+// `pnpm keep <.generated rep dir>` (spec § Keep): copies a passed rep's final
 // TSX to `src/screens/<slug>/` and writes beside it the stories the render
 // pass gated, one per declared screen state plus the default. From then on
 // the kept screen is gated like a library component (ADR 0009); the human
@@ -18,32 +18,32 @@ export type KeepDeps = { log?: (line: string) => void };
 export async function main(argv: string[], deps: KeepDeps = {}) {
   const log = deps.log ?? console.log;
   if (argv.length !== 1) {
-    log("Usage: pnpm keep <.generated run dir>");
+    log("Usage: pnpm keep <.generated rep dir>");
     return 2;
   }
-  const runDir = resolve(argv[0]!);
-  const repFile = join(runDir, "rep.json");
+  const repDir = resolve(argv[0]!);
+  const repFile = join(repDir, "rep.json");
   if (!existsSync(repFile)) {
-    log(`${relative(repo, runDir)} isn't a run dir: it has no rep.json.`);
+    log(`${relative(repo, repDir)} isn't a rep dir: it has no rep.json.`);
     return 1;
   }
   const trace: RepTrace = JSON.parse(readFileSync(repFile, "utf8"));
   if (trace.endReason !== "passed" || !trace.screen || !trace.uiSpec) {
-    log(`Only a passed run is kept; this one ended ${trace.endReason}.`);
+    log(`Only a passed rep is kept; this one ended ${trace.endReason}.`);
     return 1;
   }
 
   const dir = resolve(repo, "src/screens", trace.slug);
   if (existsSync(dir)) {
     log(
-      `${relative(repo, dir)} is already kept. Remove it first to keep this run instead.`
+      `${relative(repo, dir)} is already kept. Remove it first to keep this rep instead.`
     );
     return 1;
   }
-  // The run dir may have moved since generate() wrote it, so the screen is
-  // found from where the run dir is now.
+  // The rep dir may have moved since generate() wrote it, so the screen is
+  // found from where the rep dir is now.
   const name = basename(trace.screen, ".tsx");
-  const source = readFileSync(join(runDir, trace.screen), "utf8");
+  const source = readFileSync(join(repDir, trace.screen), "utf8");
   const files = {
     [`${name}.tsx`]: source,
     [`${name}.stories.tsx`]: screenStories({

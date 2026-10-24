@@ -1,4 +1,4 @@
-// spec § Keep, end to end: a run that generate() passed (stubbed model, the
+// spec § Keep, end to end: a rep that generate() passed (stubbed model, the
 // smoke brief under its own slug) is kept, and then `pnpm gate <slug>`
 // passes after `--update`, with no hand edits. `pnpm gate` lints and
 // typechecks the whole repo, so the kept files are held to every gate a
@@ -89,7 +89,7 @@ function gate(args: string[], ci: boolean) {
 }
 
 describe("pnpm keep", () => {
-  it("keeps a passed run as a screen whose pnpm gate <slug> passes after --update", async () => {
+  it("keeps a passed rep as a screen whose pnpm gate <slug> passes after --update", async () => {
     mkdirSync(scratch, { recursive: true });
     const briefPath = join(scratch, `${slug}.md`);
     writeFileSync(

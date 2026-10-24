@@ -1,4 +1,4 @@
-// `pnpm keep <.generated run dir>`.
+// `pnpm keep <.generated rep dir>`.
 
 import { main } from "../keep.ts";
 

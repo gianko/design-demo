@@ -138,9 +138,9 @@ The library's `ScreenHost`, its hooks `useScreenState`, `useAction` and `useFixt
 
 ### Keep
 
-`pnpm keep <.generated run dir>`: copies the final TSX to `src/screens/<slug>/` and writes one story per declared screen state plus the default, each with its fixture variant applied. The human then runs `pnpm gate <slug> --update` and approves the baselines on the PR ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
+`pnpm keep <.generated rep dir>`: copies the final TSX to `src/screens/<slug>/` and writes one story per declared screen state plus the default, each with its fixture variant applied. The human then runs `pnpm gate <slug> --update` and approves the baselines on the PR ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 
-**Done when:** keeping a passed run gives a screen whose `pnpm gate <slug>` passes after `--update`, with no hand edits.
+**Done when:** keeping a passed rep gives a screen whose `pnpm gate <slug>` passes after `--update`, with no hand edits.
 
 ### figma:sync-tokens
 

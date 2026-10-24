@@ -1,4 +1,4 @@
-// `pnpm generate <screen brief>` (spec § Generate CLI): one generate() run
+// `pnpm generate <screen brief>` (spec § Generate CLI): one generate() rep
 // that prints each attempt's gate results as they happen, writes the attempt
 // folders to `.generated/<timestamp>-<slug>/`, and checks the screen brief's
 // `requires.*` against the final UI spec. It ends with a table of every
@@ -20,8 +20,8 @@ export type CliDeps = {
   render?: RenderPass;
   log?: (line: string) => void;
   now?: () => Date;
-  // Told the run dir before anything is written to it.
-  onRunDir?: (dir: string) => void;
+  // Told the rep dir before anything is written to it.
+  onRepDir?: (dir: string) => void;
 };
 
 export async function main(argv: string[], deps: CliDeps): Promise<number> {
@@ -36,8 +36,8 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
     ".generated",
     `${stamp((deps.now ?? (() => new Date()))())}-${brief.slug}`
   );
-  deps.onRunDir?.(workDir);
-  log(`run dir: ${relative(repo, workDir)}`);
+  deps.onRepDir?.(workDir);
+  log(`rep dir: ${relative(repo, workDir)}`);
 
   const trace = await generate(brief, {
     workDir,

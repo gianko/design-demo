@@ -169,13 +169,13 @@ export async function generate(
     writeJson(join(dir, "rep.json"), trace);
     return trace;
   };
-  const run = { model, dir, trace, onAttempt };
+  const rep = { model, dir, trace, onAttempt };
 
   // The spec step. The request carries the wire schema as converted by
   // zodOutputFormat(), and gate 1 validates the reply against the same Zod
   // schema: that is messages.parse() in two halves, so a reply that doesn't
   // parse fails gate 1 by name instead of throwing.
-  const specStep = await runStep(run, {
+  const specStep = await runStep(rep, {
     step: "spec",
     config: stepConfig.spec,
     system: spec.system,
@@ -209,7 +209,7 @@ export async function generate(
 
   // The code step: the UI spec and the screen brief in, a whole TSX file out.
   const name = componentName(brief.slug);
-  const codeStep = await runStep(run, {
+  const codeStep = await runStep(rep, {
     step: "code",
     config: stepConfig.code,
     system: code.system,
@@ -278,7 +278,7 @@ export function componentName(slug: string) {
   return pascalCase(slug);
 }
 
-type Run = {
+type Rep = {
   model: Model;
   dir: string;
   trace: RepTrace;
@@ -316,7 +316,7 @@ type StepInput<Output> = {
 // repair turn and call again, up to the step's attempt limit. A passing
 // attempt's output comes back; none means the attempts ran out.
 async function runStep<Output>(
-  { model, dir, trace, onAttempt }: Run,
+  { model, dir, trace, onAttempt }: Rep,
   input: StepInput<Output>
 ): Promise<{ output?: Output } | { error: string }> {
   const { step, config, promptHash } = input;
