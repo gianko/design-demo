@@ -3,8 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-
-const repo = resolve(import.meta.dirname, "..");
+import { repo } from "../repo.ts";
 
 // The image is pinned to the installed @playwright/test, so bumping the
 // package bumps the renderer with it and the two can't drift.

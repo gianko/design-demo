@@ -5,12 +5,12 @@
 // `pnpm test:gate -t "<case name>"` runs only the cases you're changing.
 // Only one run at a time per checkout (run-lock.ts).
 
-import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
+import { repo } from "../repo.ts";
 
 export default defineConfig({
   test: {
-    root: resolve(import.meta.dirname, ".."),
+    root: repo,
     // The gate's cases, the kept screen's (spec § Keep) and the generator's
     // render pass.
     include: [

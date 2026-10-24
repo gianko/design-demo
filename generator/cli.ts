@@ -8,11 +8,11 @@
 import { relative, resolve } from "node:path";
 import { checkPassCriteria } from "./pass-criteria.ts";
 import { type Attempt, generate } from "./generate.ts";
+import type { GateName } from "./failure.ts";
 import type { Model } from "./model.ts";
 import type { RenderPass } from "./render-gates.ts";
 import { readScreenBrief } from "./screen-brief.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import { repo } from "../repo.ts";
 
 export type CliDeps = {
   model: Model;
@@ -64,7 +64,9 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
 // One row per attempt and one column per gate any attempt ran; a gate its
 // step doesn't have reads `–`.
 function attemptTable(attempts: Attempt[]) {
-  const gates = [...new Set(attempts.flatMap((a) => Object.keys(a.gates)))];
+  const gates = [
+    ...new Set(attempts.flatMap((a) => Object.keys(a.gates) as GateName[])),
+  ];
   const rows = [
     [
       "step",
@@ -114,17 +116,19 @@ function seconds(ms: number) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function attemptLines(attempt: Attempt) {
-  const gates = Object.entries(attempt.gates)
+// `gate 2 pass · gate 3 fail`.
+function gateResults(gates: Attempt["gates"]) {
+  return Object.entries(gates)
     .map(([gate, result]) => `${gate} ${result}`)
     .join(" · ");
-  const head = `${attempt.step} · attempt ${attempt.attempt} · ${gates} · model ${seconds(attempt.wallMs.model)}, gates ${seconds(attempt.wallMs.gates)}`;
+}
+
+function attemptLines(attempt: Attempt) {
+  const head = `${attempt.step} · attempt ${attempt.attempt} · ${gateResults(attempt.gates)} · model ${seconds(attempt.wallMs.model)}, gates ${seconds(attempt.wallMs.gates)}`;
   // The render gates per theme × screen state (ADR 0008).
   const renders = (attempt.renders ?? []).map(
-    ({ theme, state, density, gates: rendered }) =>
-      `  ${theme} · ${state} · ${density} · ${Object.entries(rendered)
-        .map(([gate, result]) => `${gate} ${result}`)
-        .join(" · ")}`
+    ({ theme, state, density, gates }) =>
+      `  ${theme} · ${state} · ${density} · ${gateResults(gates)}`
   );
   return [
     head,

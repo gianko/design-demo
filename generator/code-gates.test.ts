@@ -2,11 +2,11 @@
 // The code step's gate 2 holds a generated screen to ADR 0011: one that keeps
 // its own state, or runs a mock operation itself, fails under the rule's id.
 
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { codeGates } from "./code-gates.ts";
+import { repo } from "../repo.ts";
 
-const repo = resolve(import.meta.dirname, "..");
 const file = join(
   repo,
   ".generated/vitest-code-gates/attempt-1-code/Reminder.tsx"
@@ -85,5 +85,35 @@ export function Reminder() {
 }
 `)
     ).toEqual({ result: "pass", rules: [] });
+  }, 60_000);
+});
+
+// A failure line names its gate as the attempt's results do, so a repair
+// turn's `gate 7 static` lines match the `gate 7 static` result (ADR 0010).
+describe("codeGates", () => {
+  it("names each failure by the gate its result is recorded under", async () => {
+    const { gates, failures } = await codeGates(
+      file,
+      `import { Screen, Text } from "../../index.ts";
+
+export function Reminder() {
+  return (
+    <Screen audience="contractor">
+      <span className="rounded-full">Paid</span>
+      <Text text={42} />
+    </Screen>
+  );
+}
+`,
+      keptAt
+    );
+
+    const failed = Object.entries(gates)
+      .filter(([, result]) => result === "fail")
+      .map(([gate]) => gate);
+    expect(failed).toEqual(["gate 2", "gate 3", "gate 7 static"]);
+    expect([...new Set(failures.map(({ gate }) => gate))].sort()).toEqual(
+      failed
+    );
   }, 60_000);
 });

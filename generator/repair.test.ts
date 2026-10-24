@@ -58,7 +58,7 @@ describe("repairTurn", () => {
   // message is what tells two of them apart.
   it("keeps failures with no place to point at apart by message, collapsing each across renders", () => {
     const scriptError = (message: string, render: string): Failure => ({
-      gate: "gate 7",
+      gate: "gate 7 render",
       rule: "script-error",
       location: "(page)",
       message,
@@ -72,8 +72,8 @@ describe("repairTurn", () => {
     ]);
 
     expect(lines).toEqual([
-      "gate 7 · script-error · (page) · pageerror: The screen broke. (in light · default, dark · default)",
-      "gate 7 · script-error · (page) · console error: A key is missing. (in light · default)",
+      "gate 7 render · script-error · (page) · pageerror: The screen broke. (in light · default, dark · default)",
+      "gate 7 render · script-error · (page) · console error: A key is missing. (in light · default)",
     ]);
   });
 

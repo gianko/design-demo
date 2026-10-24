@@ -5,12 +5,10 @@
 // baselineMode's call.
 
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { baselineMode, type BaselineMode } from "./baseline-mode.ts";
 import { playwrightInImage } from "./image.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import { repo } from "../repo.ts";
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,

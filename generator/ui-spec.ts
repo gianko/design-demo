@@ -5,11 +5,12 @@
 // gate 1, locally, against the registry.
 
 import { z } from "zod";
+import { densities } from "../.storybook/globals.ts";
 
 export function wireSchema(component: z.ZodType<string> = z.string()) {
   return z.object({
     audience: z
-      .enum(["admin", "contractor"])
+      .enum(densities)
       .describe("Copied from the screen brief's frontmatter."),
     nodes: z
       .array(

@@ -9,8 +9,7 @@ import { describe, expect, it } from "vitest";
 import { renderRules } from "../../gates/render-rules.ts";
 import { tasteConfigs } from "./plugin.ts";
 import { ruleRows } from "./rules-md.ts";
-
-const repo = resolve(import.meta.dirname, "../..");
+import { repo } from "../../repo.ts";
 
 const p0 = ruleRows().filter((row) => row.p0);
 const staticRows = p0.filter((row) => row.check.includes("static"));

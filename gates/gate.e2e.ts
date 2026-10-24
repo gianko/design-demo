@@ -12,7 +12,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { staticRules } from "../lint/taste/rules/index.ts";
 import * as noPill from "../lint/taste/rules/no-pill.ts";
@@ -21,8 +21,8 @@ import * as textOverflow from "../lint/taste/rules/text-overflow.ts";
 import * as typeOnScale from "../lint/taste/rules/type-on-scale.ts";
 import { renderRules } from "./render-rules.ts";
 import { renderTitle, renders, shotName, type Render } from "./stories.ts";
+import { repo } from "../repo.ts";
 
-const repo = resolve(import.meta.dirname, "..");
 const baselines = join(repo, "gates/out/e2e-baselines");
 const contactSheet = join(repo, "gates/out/contact-sheet");
 

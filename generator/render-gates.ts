@@ -15,13 +15,12 @@ import { playwrightInImage } from "../gates/image.ts";
 import { annotation, type Checks } from "../gates/stories.ts";
 import { renderRules } from "../gates/render-rules.ts";
 import type { GateResult } from "./code-gates.ts";
-import type { Failure } from "./failure.ts";
+import type { Failure, GateName } from "./failure.ts";
 import { screenStories, storyStates } from "./screen-stories.ts";
 import type { UiSpec } from "./ui-spec.ts";
+import { repo } from "../repo.ts";
 
-const repo = resolve(import.meta.dirname, "..");
-
-export type RenderGateName = "gate 4" | "gate 7 render";
+export type RenderGateName = Extract<GateName, "gate 4" | "gate 7 render">;
 
 export type Render = {
   theme: Theme;
@@ -204,7 +203,7 @@ function readResults(
               ]);
             }
             return [...byElement].map(([location, messages]) => ({
-              gate: "gate 7",
+              gate: "gate 7 render" as const,
               rule: rule.name,
               location,
               message: messages.join(" "),
@@ -226,7 +225,7 @@ function readResults(
           gates["gate 7 render"] = "fail";
           failures.push(
             ...scriptErrors.map((message) => ({
-              gate: "gate 7",
+              gate: "gate 7 render" as const,
               rule: "script-error",
               location: "(page)",
               message,

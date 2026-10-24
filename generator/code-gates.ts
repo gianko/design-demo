@@ -6,18 +6,16 @@
 import { dirname, relative, resolve } from "node:path";
 import { ESLint } from "eslint";
 import ts from "typescript";
-import type { Failure } from "./failure.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import type { Failure, GateName } from "./failure.ts";
+import { repo } from "../repo.ts";
 
 export type GateResult = "pass" | "fail" | "not-run";
 
 export type CodeGates = {
-  gates: {
-    "gate 2": GateResult;
-    "gate 3": GateResult;
-    "gate 7 static": GateResult;
-  };
+  gates: Record<
+    Extract<GateName, "gate 2" | "gate 3" | "gate 7 static">,
+    GateResult
+  >;
   failures: Failure[];
   // ESLint's and tsc's own output, kept beside the attempt.
   raw: { eslint: ESLint.LintResult[]; tsc: string[] };
@@ -45,7 +43,7 @@ export async function codeGates(
     const taste =
       rule.startsWith("taste/") || rule.startsWith("taste-exemptions/");
     (taste ? gate7 : gate2).push({
-      gate: taste ? "gate 7" : "gate 2",
+      gate: taste ? "gate 7 static" : "gate 2",
       rule,
       location: `L${message.line}:${message.column}`,
       message: message.message,

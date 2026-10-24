@@ -6,12 +6,13 @@
 
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { main } from "./cli.ts";
 import type { Model } from "./model.ts";
 import type { RenderPass } from "./render-gates.ts";
+import { repo } from "../repo.ts";
 
 // Every render passes, in light and dark × the default state at the
 // audience's density.
@@ -30,7 +31,6 @@ const render: RenderPass = async ({ audience }) => {
   };
 };
 
-const repo = resolve(import.meta.dirname, "..");
 const smokeBrief = readFileSync(
   join(import.meta.dirname, "fixtures/smoke.md"),
   "utf8"

@@ -7,6 +7,7 @@
 
 import { createHash } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
+import type { Step } from "./config.ts";
 import type { LibraryRegistry } from "./registry.ts";
 import { repairWording } from "./repair.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
@@ -132,7 +133,7 @@ function hash(...parts: string[]) {
   return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
 }
 
-function repairWords(step: "spec" | "code") {
+function repairWords(step: Step) {
   const { intro, help, ask } = repairWording;
   return JSON.stringify({ intro, help, ask, ...repairWording[step] });
 }

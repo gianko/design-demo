@@ -11,13 +11,13 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { componentName, type EndReason } from "./generate.ts";
+import type { EndReason } from "./generate.ts";
+import { pascalCase } from "./screen-stories.ts";
 import { main } from "./keep.ts";
 import type { UiSpec } from "./ui-spec.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import { repo } from "../repo.ts";
 
 const cleanup: string[] = [];
 afterEach(() => {
@@ -39,7 +39,7 @@ function repDir({
 }: { endReason?: EndReason; states?: UiSpec["states"] } = {}) {
   const id = randomUUID().slice(0, 8);
   const slug = `keep-${id}`;
-  const name = componentName(slug);
+  const name = pascalCase(slug);
   const dir = join(repo, ".generated", `vitest-keep-${id}`);
   mkdirSync(join(dir, "attempt-1-code"), { recursive: true });
   cleanup.push(dir, join(repo, "src/screens", slug));

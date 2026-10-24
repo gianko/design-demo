@@ -16,8 +16,14 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { generatorOutput } from "../lint/token/config.ts";
 import { codeGates, type GateResult } from "./code-gates.ts";
-import { cost, type StepConfig, stepConfig } from "./config.ts";
-import type { Failure } from "./failure.ts";
+import {
+  cost,
+  type Step,
+  type StepConfig,
+  stepConfig,
+  type Usage,
+} from "./config.ts";
+import type { Failure, GateName } from "./failure.ts";
 import {
   fixtureVariant,
   operationNames,
@@ -32,8 +38,7 @@ import { repairTurn } from "./repair.ts";
 import { pascalCase } from "./screen-stories.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
 import { type UiSpec, wireSchema } from "./ui-spec.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import { repo } from "../repo.ts";
 
 // What gate 1 checks bindings, states and actions against.
 const fixtures: Gate1Fixtures = {
@@ -43,20 +48,14 @@ const fixtures: Gate1Fixtures = {
   operations: operationNames,
 };
 
-export type Step = "spec" | "code";
-
-export type Usage = {
-  input: number;
-  output: number;
-  cacheRead: number;
-  cacheWrite: number;
-};
+// An attempt's result for each gate its step has.
+type Gates = Partial<Record<GateName, GateResult>>;
 
 export type Attempt = {
   step: Step;
   // Counted within the step, from 1.
   attempt: number;
-  gates: Record<string, GateResult>;
+  gates: Gates;
   // As a repair turn sends them (ADR 0010): normalised, `+N more` counts
   // included.
   failures: string[];
@@ -194,7 +193,7 @@ export async function generate(
         failures,
         files: {
           "ui-spec.json": pretty(reply),
-          "gates.json": JSON.stringify({ "gate 1": failures }, null, 2) + "\n",
+          "gates.json": json({ "gate 1": failures }),
         },
         output: failures.length
           ? undefined
@@ -207,8 +206,9 @@ export async function generate(
   const uiSpec = specStep.output;
   trace.uiSpec = uiSpec;
 
-  // The code step: the UI spec and the screen brief in, a whole TSX file out.
-  const name = componentName(brief.slug);
+  // The code step: the UI spec and the screen brief in, a whole TSX file out,
+  // a component named for its slug (`payment-status` → `PaymentStatus`).
+  const name = pascalCase(brief.slug);
   const codeStep = await runStep(rep, {
     step: "code",
     config: stepConfig.code,
@@ -233,7 +233,7 @@ export async function generate(
         tsx,
         `src/screens/${brief.slug}/${name}.tsx`
       );
-      const files = { "gates.json": JSON.stringify(gated.raw, null, 2) + "\n" };
+      const files = { "gates.json": json(gated.raw) };
       // Every gate that can run does (ADR 0010): the render pass runs
       // whatever gates 2 and 3 said, and only a failed build stops it.
       let rendered;
@@ -273,11 +273,6 @@ export async function generate(
   return finish(codeStep.output ? "passed" : "code-attempts-exhausted");
 }
 
-// `payment-status` → `PaymentStatus`.
-export function componentName(slug: string) {
-  return pascalCase(slug);
-}
-
 type Rep = {
   model: Model;
   dir: string;
@@ -286,7 +281,7 @@ type Rep = {
 };
 
 type Gated<Output> = {
-  gates: Record<string, GateResult>;
+  gates: Gates;
   failures: Failure[];
   // Written into the attempt's folder.
   files: Record<string, string>;
@@ -304,11 +299,11 @@ type StepInput<Output> = {
   user: string;
   promptHash: string;
   outputConfig: Anthropic.OutputConfig;
-  notRun: Record<string, GateResult>;
+  notRun: Gates;
   gate: (
     reply: string,
     attemptDir: string,
-    notRun: Record<string, GateResult>
+    notRun: Gates
   ) => Promise<Gated<Output>>;
 };
 
@@ -349,7 +344,14 @@ async function runStep<Output>(
     });
     if ("error" in called) {
       record(
-        empty(step, n, config, promptHash, input.notRun, called.response),
+        buildAttempt(
+          step,
+          n,
+          config,
+          promptHash,
+          input.notRun,
+          called.response
+        ),
         responseFile(called.response?.message)
       );
       return { error: called.error };
@@ -364,7 +366,7 @@ async function runStep<Output>(
     );
     const turn = repairTurn(step, gated.failures);
     const attempt: Attempt = {
-      ...empty(step, n, config, promptHash, gated.gates, response),
+      ...buildAttempt(step, n, config, promptHash, gated.gates, response),
       failures: turn.lines,
       wallMs: { model: response.modelMs, gates: performance.now() - started },
       ...(gated.renders ? { renders: gated.renders } : {}),
@@ -414,12 +416,14 @@ async function call(
   return { response };
 }
 
-function empty(
+// An Attempt from its call alone: usage, cost and stop reason, with no
+// failures yet. With no response, the call never returned.
+function buildAttempt(
   step: Step,
   attempt: number,
   config: StepConfig,
   promptHash: string,
-  gates: Record<string, GateResult>,
+  gates: Gates,
   response?: Called
 ): Attempt {
   const logged = response?.message.usage;
@@ -455,20 +459,24 @@ function extractTsx(reply: string) {
   return fenced ? fenced[1]! : reply;
 }
 
-function pretty(json: string) {
+// A reply as indented JSON, or as sent when it isn't JSON.
+function pretty(reply: string) {
   try {
-    return JSON.stringify(JSON.parse(json), null, 2) + "\n";
+    return json(JSON.parse(reply));
   } catch {
-    return json;
+    return reply;
   }
 }
 
 function responseFile(message?: Anthropic.Message): Record<string, string> {
-  return message
-    ? { "response.json": JSON.stringify(message, null, 2) + "\n" }
-    : {};
+  return message ? { "response.json": json(message) } : {};
+}
+
+// Every JSON file a rep writes: indented, with a final newline.
+function json(value: unknown) {
+  return JSON.stringify(value, null, 2) + "\n";
 }
 
 function writeJson(path: string, value: unknown) {
-  writeFileSync(path, JSON.stringify(value, null, 2) + "\n");
+  writeFileSync(path, json(value));
 }

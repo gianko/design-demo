@@ -5,9 +5,11 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
+import { densities } from "../.storybook/globals.ts";
 
 const frontmatter = z.object({
-  audience: z.enum(["admin", "contractor"]),
+  // An audience is the density set it gets (ADR 0001).
+  audience: z.enum(densities),
   requires: z.object({
     components: z.array(z.string()),
     states: z.array(z.string()).default([]),

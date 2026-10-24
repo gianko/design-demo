@@ -5,7 +5,7 @@
 // needs Docker (ADR 0009); generator/render-gates.e2e.ts runs it for real.
 
 import { existsSync, readFileSync, rmSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
 import { afterEach, describe, expect, it } from "vitest";
@@ -13,8 +13,8 @@ import { generate } from "./generate.ts";
 import type { Model } from "./model.ts";
 import type { RenderInput, RenderPass } from "./render-gates.ts";
 import { readScreenBrief } from "./screen-brief.ts";
+import { repo } from "../repo.ts";
 
-const repo = resolve(import.meta.dirname, "..");
 const brief = readScreenBrief(join(import.meta.dirname, "fixtures/smoke.md"));
 
 const smokeSpec = {

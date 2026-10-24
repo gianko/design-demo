@@ -6,14 +6,14 @@
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { afterAll, describe, expect, it } from "vitest";
 import { generate } from "./generate.ts";
 import { main as keep } from "./keep.ts";
 import { readScreenBrief } from "./screen-brief.ts";
+import { repo } from "../repo.ts";
 
-const repo = resolve(import.meta.dirname, "..");
 const slug = "keep-e2e";
 const scratch = join(repo, ".generated", "vitest-keep-e2e");
 const kept = join(repo, "src/screens", slug);

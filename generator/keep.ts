@@ -10,8 +10,7 @@ import { basename, join, relative, resolve } from "node:path";
 import { format, resolveConfig } from "prettier";
 import type { RepTrace } from "./generate.ts";
 import { screenStories } from "./screen-stories.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import { repo } from "../repo.ts";
 
 export type KeepDeps = { log?: (line: string) => void };
 

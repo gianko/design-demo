@@ -14,8 +14,7 @@ import { failureLine } from "./failure.ts";
 import { generate } from "./generate.ts";
 import { renderGates } from "./render-gates.ts";
 import { readScreenBrief } from "./screen-brief.ts";
-
-const repo = resolve(import.meta.dirname, "..");
+import { repo } from "../repo.ts";
 
 const smokeTsx = `import { Screen, Text } from "../../index.ts";
 
@@ -125,7 +124,7 @@ export function Smoke() {
         `gate 4 · button-name · button[type="button"] <button type="button"></button> · Buttons must have discernible text (in ${where})`
       );
       expect(lines).toContainEqual(
-        `gate 7 · type-on-scale · #storybook-root > div > main[data-component="Screen"] > p <p style="font-size: 13px; font-weight: 500;">Off the type scale</p> · "Off the type scale" is set at 13px. "Off the type scale" is set in weight 500. (in ${where})`
+        `gate 7 render · type-on-scale · #storybook-root > div > main[data-component="Screen"] > p <p style="font-size: 13px; font-weight: 500;">Off the type scale</p> · "Off the type scale" is set at 13px. "Off the type scale" is set in weight 500. (in ${where})`
       );
     }
   }, 120_000);
@@ -165,7 +164,7 @@ export function Smoke(): React.ReactNode {
     expect(result.gates["gate 7 render"]).toBe("fail");
     expect(result.failures.map(failureLine)).toContainEqual(
       expect.stringMatching(
-        /^gate 7 · script-error · \(page\) · .*The screen broke\..* \(in light · default\)$/
+        /^gate 7 render · script-error · \(page\) · .*The screen broke\..* \(in light · default\)$/
       )
     );
   }, 120_000);

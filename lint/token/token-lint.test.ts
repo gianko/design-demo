@@ -5,11 +5,11 @@
 // planted fixtures with the repo's real ESLint config and pin every finding.
 
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
+import { repo } from "../../repo.ts";
 
-const repo = resolve(import.meta.dirname, "../..");
 // Generator output is ignored by `pnpm lint`, so the generator lints it with
 // ignores off, as this does.
 const eslint = new ESLint({ cwd: repo, ignore: false });

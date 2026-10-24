@@ -5,9 +5,8 @@
 // lines and a `+N more` count. Each rule id gets one help line, and the turn
 // ends by asking for the whole output again.
 
+import type { Step } from "./config.ts";
 import { type Failure, failureLine } from "./failure.ts";
-
-export type RepairStep = "spec" | "code";
 
 export const linesPerGate = 20;
 
@@ -31,7 +30,7 @@ export type RepairTurn = {
   text: string;
 };
 
-export function repairTurn(step: RepairStep, failures: Failure[]): RepairTurn {
+export function repairTurn(step: Step, failures: Failure[]): RepairTurn {
   const groups = new Map<string, Failure[]>();
   const seen = new Map<string, Failure>();
   for (const failure of failures) {
