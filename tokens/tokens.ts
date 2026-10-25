@@ -7,7 +7,7 @@ export type BackgroundColor = (typeof backgroundColor)[number];
 export const textColor = ["ink", "ink-muted", "accent", "on-accent", "disabled", "awaiting", "overdue", "paid", "scheduled", "failed"] as const;
 export type TextColor = (typeof textColor)[number];
 
-export const borderColor = ["line", "control"] as const;
+export const borderColor = ["line", "control", "disabled"] as const;
 export type BorderColor = (typeof borderColor)[number];
 
 export const ringColor = ["focus"] as const;

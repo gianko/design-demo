@@ -219,7 +219,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(88);
+    expect(variables.filter((v) => v.css)).toHaveLength(89);
   });
 
   // ADR 0001 lists container padding among what density changes.
@@ -239,6 +239,21 @@ describe("the Figma payload", () => {
       scopes: ["WIDTH_HEIGHT"],
       css: true,
       valuesByMode: { Value: 560 },
+    });
+  });
+
+  // A disabled secondary keeps its edge (#145): its own role, though it
+  // shares line's values today.
+  it("gives a disabled bordered control its own edge role in each theme", () => {
+    expect(variable("Color", "color/border/disabled")).toEqual({
+      name: "color/border/disabled",
+      type: "COLOR",
+      scopes: ["STROKE_COLOR"],
+      css: true,
+      valuesByMode: {
+        Light: { alias: "primitive/neutral/900" },
+        Dark: { alias: "primitive/neutral/360" },
+      },
     });
   });
 

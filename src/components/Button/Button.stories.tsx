@@ -34,6 +34,18 @@ export const Disabled: Story = {
   args: { intent: "primary", text: "Approve and pay", disabled: true },
 };
 
+// A disabled secondary keeps its edge, in `disabled`, and its width: the
+// reminder was sent today, so there's nothing to send yet.
+export const DisabledSecondary: Story = {
+  args: { intent: "secondary", text: "Send reminder", disabled: true },
+};
+
+// A disabled quiet button stays bare, so it's no more prominent than an
+// enabled one.
+export const DisabledQuiet: Story = {
+  args: { intent: "quiet", text: "View invoice", disabled: true },
+};
+
 // The payment is running: the label stays, and the edge fills, then sweeps.
 export const Pending: Story = {
   args: { intent: "primary", text: "Approve and pay", pending: true },

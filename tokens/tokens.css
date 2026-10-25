@@ -88,6 +88,7 @@
   --ds-color-text-failed: oklch(0.995 0.003 330);
   --ds-color-border-line: oklch(0.9 0.012 330);
   --ds-color-border-control: oklch(0.62 0.02 330);
+  --ds-color-border-disabled: oklch(0.9 0.012 330);
   --ds-color-ring-focus: oklch(0.48 0.085 330);
   --ds-shadow-raised: 0px 1px 2px 0px oklch(0.27 0.025 330 / 0.06), 0px 4px 12px 0px oklch(0.27 0.025 330 / 0.08);
   --ds-shadow-overlay: 0px 8px 24px 0px oklch(0.27 0.025 330 / 0.12), 0px 24px 48px 0px oklch(0.27 0.025 330 / 0.14);
@@ -123,6 +124,7 @@
   --ds-color-text-failed: oklch(0.18 0.03 25);
   --ds-color-border-line: oklch(0.36 0.02 330);
   --ds-color-border-control: oklch(0.56 0.02 330);
+  --ds-color-border-disabled: oklch(0.36 0.02 330);
   --ds-color-ring-focus: oklch(0.82 0.06 330);
   --ds-shadow-raised: 0px 0px 0px 1px oklch(0.36 0.02 330);
   --ds-shadow-overlay: 0px 0px 0px 1px oklch(0.4 0.02 330), 0px 24px 48px 0px oklch(0.1 0.02 330 / 0.4);
@@ -200,6 +202,7 @@
   --text-color-failed: var(--ds-color-text-failed);
   --border-color-line: var(--ds-color-border-line);
   --border-color-control: var(--ds-color-border-control);
+  --border-color-disabled: var(--ds-color-border-disabled);
   --ring-color-focus: var(--ds-color-ring-focus);
   --shadow-raised: var(--ds-shadow-raised);
   --shadow-overlay: var(--ds-shadow-overlay);

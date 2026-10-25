@@ -1116,6 +1116,22 @@
           }
         },
         {
+          "name": "color/border/disabled",
+          "type": "COLOR",
+          "scopes": [
+            "STROKE_COLOR"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Light": {
+              "alias": "primitive/neutral/900"
+            },
+            "Dark": {
+              "alias": "primitive/neutral/360"
+            }
+          }
+        },
+        {
           "name": "color/ring/focus",
           "type": "COLOR",
           "scopes": [
