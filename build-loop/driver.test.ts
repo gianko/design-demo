@@ -20,16 +20,47 @@ describe("drive --dry-run", () => {
 
 describe("drive", () => {
   test("stops without building when every build-loop issue is blocked or taken", () => {
-    const world = fakeWorld([
-      issue(61, "Build component: Stack", { openBlockers: 1 }),
-      issue(54, "Build component: Text", { assignees: ["gianko"] }),
-    ]);
+    const world = fakeWorld(
+      [
+        issue(61, "Build component: Stack", { openBlockers: 1 }),
+        issue(54, "Build component: Text", { assignees: ["gianko"] }),
+      ],
+      {},
+      { openPullRequests: [54] }
+    );
 
     drive(world.ports, { dryRun: false });
 
     expect(world.log).toEqual(["No build-loop issue is unblocked."]);
     expect(world.writes).toEqual([]);
   });
+
+  test.each([false, true])(
+    "names each claimed issue that has no PR when nothing is unblocked, and fails (dry run: %s)",
+    (dryRun) => {
+      const world = fakeWorld(
+        [
+          issue(54, "Build component: Text", { assignees: ["gianko"] }),
+          issue(61, "Build component: Stack", { assignees: ["gianko"] }),
+          issue(62, "Build component: Heading", {
+            assignees: ["gianko"],
+            openBlockers: 1,
+          }),
+        ],
+        {},
+        { openPullRequests: [61] }
+      );
+
+      expect(() => drive(world.ports, { dryRun })).toThrow(
+        [
+          "No build-loop issue is unblocked, and some are stranded:",
+          "  #54 is claimed but has no PR; finish it or unassign it.",
+          "  #62 is claimed but has no PR; finish it or unassign it.",
+        ].join("\n")
+      );
+      expect(world.writes).toEqual([]);
+    }
+  );
 
   test("claims the issue, builds its component, and opens a PR that closes it", () => {
     const world = fakeWorld([
@@ -175,6 +206,31 @@ describe("drive, when a session fails", () => {
     expect(world.log).toEqual(["No build-loop issue is unblocked."]);
   });
 
+  // On #62, one refused connection while filing gaps left the issue claimed,
+  // its branch pushed and no PR, and the rerun read as a clean stop.
+  test("reports an issue stranded by a tracker failure partway through filing gaps", () => {
+    const world = fakeWorld(
+      [issue(54, "Build component: Text"), issue(61, "Build component: Stack")],
+      { Text: { gaps: textGaps } },
+      { failOnTriage: 2 }
+    );
+
+    expect(() => drive(world.ports, { dryRun: false })).toThrow(
+      "connection refused"
+    );
+    expect(world.writes).toEqual([
+      "claim #54",
+      "build Text",
+      "push build-component-text",
+      "triage Text gap: No prose width",
+      "block #61 by #201",
+    ]);
+    // Stack is now blocked by the gap filed, so nothing is unblocked.
+    expect(() => drive(world.ports, { dryRun: false })).toThrow(
+      "#54 is claimed but has no PR; finish it or unassign it."
+    );
+  });
+
   // `/build-component text` would make a `text` folder no gate or lint
   // treats as a component.
   test("refuses a component name that isn't PascalCase", () => {
@@ -217,17 +273,29 @@ function issue(
 }
 
 // An in-memory GitHub and session that keep the state the real ones would: a
-// claim assigns the issue, and a blocking edge counts against the blocked
-// issue. Every write, to either, lands in one log, in order.
+// claim assigns the issue, a blocking edge counts against the blocked issue,
+// and a PR whose body closes an issue is that issue's open PR. Every write,
+// to either, lands in one log, in order. `failOnTriage` makes that triage
+// filing, counting from 1, throw as a refused connection would.
 function fakeWorld(
   issues: Issue[],
   sessions: Partial<Record<string, Partial<Build>>> = {},
-  { mainFailures = [] }: { mainFailures?: string[] } = {}
+  {
+    mainFailures = [],
+    openPullRequests = [],
+    failOnTriage,
+  }: {
+    mainFailures?: string[];
+    openPullRequests?: number[];
+    failOnTriage?: number;
+  } = {}
 ) {
   const writes: string[] = [];
   const log: string[] = [];
   const pullRequests: { branch: string; title: string; body: string }[] = [];
   const triageIssues: { title: string; body: string }[] = [];
+  const withPullRequest = new Set(openPullRequests);
+  let triageCalls = 0;
   const find = (number: number) => {
     const found = issues.find((each) => each.number === number);
     if (!found) throw new Error(`No issue #${number}`);
@@ -243,6 +311,12 @@ function fakeWorld(
         find(number).assignees.push("me");
       },
       fileTriageIssue(triage) {
+        triageCalls += 1;
+        if (triageCalls === failOnTriage) {
+          throw new Error(
+            "dial tcp 140.82.112.6:443: connect: connection refused"
+          );
+        }
         writes.push(`triage ${triage.title}`);
         triageIssues.push(triage);
         return 200 + triageIssues.length;
@@ -254,8 +328,11 @@ function fakeWorld(
       openPullRequest(pr) {
         writes.push(`pr ${pr.branch}: ${pr.title}`);
         pullRequests.push(pr);
+        const closes = /^Closes #(\d+)/.exec(pr.body)?.[1];
+        if (closes) withPullRequest.add(Number(closes));
         return 100 + pullRequests.length;
       },
+      hasOpenPullRequest: (number) => withPullRequest.has(number),
     },
     builder: {
       build(component) {

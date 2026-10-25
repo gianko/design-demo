@@ -18,14 +18,6 @@ Each entry is one place where the brief, the ADRs or the tokens didn't decide so
 
 **Alternative:** a content-width token (for example `size.width.card`, around 480–560px) that Card applies as a `max-w`. Or a Grid component that lays cards out in columns, which payment-overview's three cards and payment-run would use.
 
-## Nothing in gate 1 stops a Card inside a Card
-
-**Undecided:** the brief bans the SaaS-card kit, and `lint/taste/RULES.md` names `nested-cards`, but that rule isn't in P0, and its render check isn't built yet. A UI spec can put a Card in another Card's `body` directly or through a Stack, and only that future rule would catch it.
-
-**Call:** `header` and `footer` have allow-lists that leave Card out. `body` allows any component, because a list there would have to name every future content component. The `use` line tells the spec step "Never put a Card inside a Card".
-
-**Alternative:** a gate 1 rule that rejects a Card with a Card anywhere beneath it, which also covers the path through a Stack. Or an allow-list on `body` too, updated as each component joins.
-
 ## Card has no semantic grouping
 
 **Undecided:** Card renders a plain `<div>`. A card about one invoice could be an `<article>` or a `<section>` labelled by its Heading, so that a screen reader can list and jump between cards. Generated screens have no intrinsic elements (ADR 0004), so they can't add that markup themselves, and the brief doesn't mention landmarks.

@@ -18,10 +18,14 @@ export const heading = tv({
 
 export type HeadingProps = PropsOf<typeof headingEntry>;
 
-const elements = { "1": "h1", "2": "h2", "3": "h3" } as const;
+const elements = { 1: "h1", 2: "h2", 3: "h3" } as const satisfies Record<
+  HeadingProps["level"],
+  string
+>;
 
 export function Heading({ text, level }: HeadingProps) {
-  const { root } = heading({ level });
+  // tv() keys are strings; the registry reads them as numbers.
+  const { root } = heading({ level: `${level}` });
   const Element = elements[level];
   return (
     <Element data-component="Heading" className={root()}>

@@ -23,7 +23,7 @@ export const Full: Story = {
   args: {
     header: (
       <Stack direction="row" justify="between">
-        <Heading level="2" text="Northwind Logistics" />
+        <Heading level={2} text="Northwind Logistics" />
         <StatusTag status="overdue" />
       </Stack>
     ),
@@ -42,7 +42,7 @@ export const NoFooter: Story = {
   args: {
     header: (
       <Stack direction="row" justify="between">
-        <Heading level="2" text="Next payment" />
+        <Heading level={2} text="Next payment" />
         <StatusTag status="scheduled" />
       </Stack>
     ),
@@ -73,7 +73,7 @@ export const FooterNote: Story = {
   args: {
     header: (
       <Stack direction="row" justify="between">
-        <Heading level="2" text="Northwind Logistics & Freight Holdings Ltd." />
+        <Heading level={2} text="Northwind Logistics & Freight Holdings Ltd." />
         <StatusTag status="awaiting" />
       </Stack>
     ),

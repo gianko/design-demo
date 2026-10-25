@@ -12,7 +12,7 @@ One slot, `root`, an `<h1>`, `<h2>` or `<h3>` chosen by `level`, carrying `data-
 
 | Variant | Options | Default | Brief line behind it |
 |---|---|---|---|
-| `level` | `1`, `2`, `3` | none: required | Spec § Component pieces 4: "`level` 1–3". ADR 0004: "heading levels don't skip and there's one level 1", which gate 1 checks, so the spec step has to choose every level; a default would hide the choice. Brief: "hierarchy comes from size and weight, not from a second face", so each level is one step down the scale. |
+| `level` | the numbers `1`, `2`, `3`, read from the `tv()` keys by `variantNumbers` | none: required | Spec § Component pieces 4: "`level` 1–3". ADR 0004: "heading levels don't skip and there's one level 1", which gate 1 checks, so the spec step has to choose every level; a default would hide the choice. Brief: "hierarchy comes from size and weight, not from a second face", so each level is one step down the scale. |
 
 Each level is a type role from the brief's scale:
 

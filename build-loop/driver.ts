@@ -27,6 +27,8 @@ export interface Tracker {
   block(issue: number, by: number): void;
   // Returns the PR's number.
   openPullRequest(pr: PullRequest): number;
+  // Some open PR will close the issue when it merges.
+  hasOpenPullRequest(issue: number): boolean;
 }
 
 // One finished session, its work still uncommitted on its own branch.
@@ -61,6 +63,24 @@ export function drive(
       issues.filter((each) => each.openBlockers === 0)
     );
     if (!issue) {
+      // A claimed issue with no PR is one whose session failed, or whose
+      // push, filing or PR step did; nothing finishes it, so it would
+      // otherwise read as a clean stop.
+      const stranded = issues.filter(
+        (each) =>
+          each.assignees.length > 0 && !tracker.hasOpenPullRequest(each.number)
+      );
+      if (stranded.length > 0) {
+        throw new Error(
+          [
+            "No build-loop issue is unblocked, and some are stranded:",
+            ...stranded.map(
+              (each) =>
+                `  #${each.number} is claimed but has no PR; finish it or unassign it.`
+            ),
+          ].join("\n")
+        );
+      }
       log("No build-loop issue is unblocked.");
       return;
     }

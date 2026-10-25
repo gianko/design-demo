@@ -1,7 +1,14 @@
+import type { ReactNode } from "react";
 import { tv } from "tailwind-variants/lite";
 import { expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
-import { defineEntry, type PropsOf, specProps, variantEnum } from "./entry.ts";
+import {
+  defineEntry,
+  type PropsOf,
+  specProps,
+  variantEnum,
+  variantNumbers,
+} from "./entry.ts";
 
 const button = tv({
   slots: { root: "", label: "" },
@@ -20,6 +27,29 @@ it("reads a variant's options from the component's tv() config", () => {
   expectTypeOf(intent.parse("quiet")).toEqualTypeOf<
     "primary" | "secondary" | "quiet"
   >();
+});
+
+const heading = tv({
+  slots: { root: "" },
+  variants: { level: { "1": "", "2": "", "3": "" } },
+});
+
+it("reads a numbered variant's options from the tv() config as numbers", () => {
+  const level = variantNumbers(heading, "level");
+
+  expect(level.safeParse(2).success).toBe(true);
+  expect(level.safeParse("2").success).toBe(false);
+  expect(level.safeParse(4).success).toBe(false);
+  expectTypeOf(level.parse(1)).toEqualTypeOf<1 | 2 | 3>();
+  // A level the config drops leaves the prop's type too.
+  const fewer = tv({ variants: { level: { "1": "", "2": "" } } });
+  expectTypeOf(variantNumbers(fewer, "level").parse(1)).toEqualTypeOf<1 | 2>();
+});
+
+it("refuses a variant whose options aren't all numbers", () => {
+  expect(() => variantNumbers(button, "intent")).toThrow(
+    /"intent" has options that aren't numbers: primary, secondary, quiet/
+  );
 });
 
 it("refuses a boolean variant, which a z.boolean() prop describes", () => {
@@ -108,4 +138,19 @@ it("leaves a code-only prop out of what a UI spec node may give", () => {
   const entry = defineEntry({ ...pendingButton, codeOnly: ["pending"] });
 
   expect(Object.keys(specProps(entry).shape)).toEqual(["label"]);
+});
+
+it("types an entry with no props of its own as an empty object, so slot props can join it", () => {
+  const entry = defineEntry({
+    name: "Card",
+    use: "Groups the facts about one thing.",
+    props: z.object({}),
+    slots: { header: {} },
+  });
+
+  expectTypeOf<PropsOf<typeof entry>>().toEqualTypeOf<Record<never, never>>();
+  expectTypeOf<{ header: ReactNode }>().toExtend<
+    PropsOf<typeof entry> & { header?: ReactNode }
+  >();
+  expect(entry.props.parse({})).toEqual({});
 });

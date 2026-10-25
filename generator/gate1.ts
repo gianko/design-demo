@@ -160,6 +160,7 @@ function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
   failures.push(...stateChecks(spec, byId, fixtures));
   failures.push(...headingChecks(screen));
   failures.push(...motionChecks(spec, byId, screen));
+  failures.push(...nestingChecks(spec, byId));
 
   // The audience is the screen brief's, on the spec and on its Screen.
   if (spec.audience !== audience) {
@@ -433,6 +434,33 @@ function motionChecks(
     }
   }
   return failures.list;
+}
+
+// No Card sits anywhere beneath another Card, through any slot and any
+// depth of layout nodes (`nested-cards` in lint/taste/RULES.md): a surface
+// inside a surface is the SaaS-card kit the brief bans.
+function nestingChecks(spec: UiSpec, byId: Map<string, UiNode>): Failure[] {
+  const failures: Failure[] = [];
+  const parentOf = (node: UiNode) =>
+    node.parent === null ? undefined : byId.get(node.parent);
+  for (const node of spec.nodes) {
+    if (node.component !== "Card") continue;
+    const seen = new Set<UiNode>([node]);
+    for (let at = parentOf(node); at && !seen.has(at); at = parentOf(at)) {
+      seen.add(at);
+      if (at.component === "Card") {
+        failures.push(
+          fail(
+            "nested-cards",
+            node.id,
+            `It sits inside the Card "${at.id}"; never put a Card inside a Card.`
+          )
+        );
+        break;
+      }
+    }
+  }
+  return failures;
 }
 
 // Failures found once per screen state, each reported once: for the first

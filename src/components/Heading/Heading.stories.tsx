@@ -12,13 +12,13 @@ type Story = StoryObj<typeof meta>;
 // The screen's one title, long enough to show how it wraps.
 export const Level1: Story = {
   args: {
-    level: "1",
+    level: 1,
     text: "Invoice INV-0142 for Northwind Logistics & Freight Holdings Ltd.",
   },
 };
 
-export const Level2: Story = { args: { level: "2", text: "Payment details" } };
+export const Level2: Story = { args: { level: 2, text: "Payment details" } };
 
 export const Level3: Story = {
-  args: { level: "3", text: "Reminders you've sent" },
+  args: { level: 3, text: "Reminders you've sent" },
 };

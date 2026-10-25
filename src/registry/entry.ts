@@ -22,6 +22,32 @@ export function variantEnum<
   return z.enum(options as [keyof C["variants"][K] & string]);
 }
 
+// The number a numbered variant key such as "2" spells.
+type NumberOf<S> = S extends `${infer N extends number}` ? N : never;
+
+// A numbered variant's options as a Zod literal of numbers, such as Heading's
+// level 1–3, read from the tv() config's keys as variantEnum reads them, so a
+// UI spec writes the number the spec names and the registry still can't
+// offer an option the component doesn't style.
+export function variantNumbers<
+  C extends HasVariants,
+  K extends keyof C["variants"] & string,
+>(component: C, key: K) {
+  const options = Object.keys(component.variants[key] ?? {});
+  if (options.length === 0) {
+    throw new Error(`tv() config has no options for variant "${key}"`);
+  }
+  const stray = options.filter((option) => !/^\d+$/.test(option));
+  if (stray.length > 0) {
+    throw new Error(
+      `"${key}" has options that aren't numbers: ${stray.join(", ")}`
+    );
+  }
+  return z.literal(
+    options.map(Number) as NumberOf<keyof C["variants"][K] & string>[]
+  );
+}
+
 export type Slot = {
   // Component names this slot accepts; any registered component when absent.
   allow?: readonly string[];
@@ -85,5 +111,10 @@ export function specProps(entry: RegistryEntry): z.ZodObject {
   return entry.props.omit(omitted as never);
 }
 
+// Keeps an object type's named keys, dropping a string index signature.
+type NamedKeys<T> = { [K in keyof T as string extends K ? never : K]: T[K] };
+
 // The component's props type, so the component and its entry can't drift.
-export type PropsOf<E extends RegistryEntry> = z.infer<E["props"]>;
+// Zod infers an empty props object as Record<string, never>, whose index
+// signature would forbid every slot prop, so only named keys are kept.
+export type PropsOf<E extends RegistryEntry> = NamedKeys<z.infer<E["props"]>>;

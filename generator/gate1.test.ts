@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { defineEntry } from "../src/registry/entry.ts";
 import { gate1 } from "./gate1.ts";
+import { loadRegistry } from "./registry.ts";
 
 const entries = [
   defineEntry({
@@ -62,6 +63,22 @@ const entries = [
   defineEntry({
     name: "Sheet",
     use: "Row detail.",
+    props: z.object({}),
+    slots: { body: {} },
+  }),
+  defineEntry({
+    name: "Card",
+    use: "A surface.",
+    props: z.object({}),
+    slots: {
+      header: { allow: ["Heading", "Tag", "Stack"] },
+      body: {},
+      footer: { allow: ["Button", "Stack"] },
+    },
+  }),
+  defineEntry({
+    name: "Stack",
+    use: "Lays out nodes.",
     props: z.object({}),
     slots: { body: {} },
   }),
@@ -647,6 +664,78 @@ describe("gate 1", () => {
     });
   });
 
+  describe("nested cards", () => {
+    function withCard() {
+      const spec = clean();
+      spec.nodes.push(
+        node("card", "Card", "screen", "body"),
+        node("card-title", "Heading", "card", "header", {
+          text: "Invoice",
+          level: 2,
+        })
+      );
+      return spec;
+    }
+
+    it("fails a Card in another Card's body, naming the inner Card", () => {
+      const spec = withCard();
+      spec.nodes.push(node("inner", "Card", "card", "body"));
+
+      expect(check(spec)).toEqual([["nested-cards", "inner"]]);
+    });
+
+    it.each(["header", "body", "footer"])(
+      "fails a Card inside a Stack in another Card's %s",
+      (slot) => {
+        const spec = withCard();
+        spec.nodes.push(
+          node("row", "Stack", "card", slot),
+          node("inner", "Card", "row", "body")
+        );
+
+        expect(check(spec)).toEqual([["nested-cards", "inner"]]);
+      }
+    );
+
+    it("fails a Card two Stacks deep in another Card's footer", () => {
+      const spec = withCard();
+      spec.nodes.push(
+        node("column", "Stack", "card", "footer"),
+        node("row", "Stack", "column", "body"),
+        node("inner", "Card", "row", "body")
+      );
+
+      expect(check(spec)).toEqual([["nested-cards", "inner"]]);
+    });
+
+    it("passes Cards side by side under a Screen and in a Stack", () => {
+      const spec = withCard();
+      spec.nodes.push(
+        node("second", "Card", "screen", "body"),
+        node("row", "Stack", "screen", "body"),
+        node("third", "Card", "row", "body"),
+        node("fourth", "Card", "row", "body")
+      );
+
+      expect(check(spec)).toEqual([]);
+    });
+
+    it("ends its walk on Cards whose parents loop", () => {
+      const spec = withCard();
+      spec.nodes.push(
+        node("a", "Card", "b", "body"),
+        node("b", "Card", "a", "body")
+      );
+
+      expect(check(spec)).toEqual([
+        ["no-cycles", "a"],
+        ["no-cycles", "b"],
+        ["nested-cards", "a"],
+        ["nested-cards", "b"],
+      ]);
+    });
+  });
+
   it("says in each failure what broke", () => {
     const spec = clean();
     spec.nodes[3]!.slot = "footer";
@@ -658,6 +747,64 @@ describe("gate 1", () => {
         location: "note",
         message: 'Panel has no slot "footer"; its slots are body, actions.',
       },
+    ]);
+  });
+});
+
+// The stub Heading above stands in for the real one; these hold gate 1's
+// heading checks to the entry the spec step actually sees.
+describe("gate 1 against the library's registry", () => {
+  const library = {
+    audience: "admin",
+    fixtures: { variants: { default: {} }, operations: [] },
+  };
+
+  function headings(...levels: string[]) {
+    return {
+      audience: "admin",
+      nodes: [
+        node("screen", "Screen", null, null, { audience: "admin" }),
+        node("column", "Stack", "screen", "body"),
+        ...levels.map((level, i) => ({
+          ...node(`heading-${i}`, "Heading", "column", "body"),
+          props: [
+            { name: "text", value: '"Payment status"' },
+            { name: "level", value: level },
+          ],
+        })),
+      ],
+      states: [],
+      actions: [],
+    };
+  }
+
+  async function checkLibrary(spec: unknown) {
+    const { entries } = await loadRegistry();
+    return gate1(spec, { ...library, entries }).map(({ rule, location }) => [
+      rule,
+      location,
+    ]);
+  }
+
+  it("takes a Heading level as a number", async () => {
+    expect(await checkLibrary(headings("1", "2"))).toEqual([]);
+  });
+
+  it("fails a Heading level written as a string", async () => {
+    expect(await checkLibrary(headings("1", '"2"'))).toEqual([
+      ["props-parse", "heading-1"],
+    ]);
+  });
+
+  it("fails a level 3 directly after a level 1", async () => {
+    expect(await checkLibrary(headings("1", "3"))).toEqual([
+      ["heading-skip", "heading-1"],
+    ]);
+  });
+
+  it("fails two level 1s in the same state", async () => {
+    expect(await checkLibrary(headings("1", "2", "1"))).toEqual([
+      ["heading-one", "heading-2"],
     ]);
   });
 });
