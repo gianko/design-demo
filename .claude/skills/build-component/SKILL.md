@@ -43,7 +43,7 @@ In `src/components/$ARGUMENTS/`:
 
 - **`$ARGUMENTS.tsx`**: one `tv()` from `tailwind-variants/lite`, a slot per part. Its root element carries `data-component="$ARGUMENTS"`: the rendered gates find a component by that marker, as ESLint finds it by this folder. Props are `PropsOf<typeof entry>` from the registry entry, extended only with React's own (event handlers, `ref`) and one prop per registry slot: the `body` slot is `children`, and every other slot is a `ReactNode` prop of the slot's name (Card's `header`), which is how the code step fills it. The component takes no `className` and no `style`.
 - **`$ARGUMENTS.registry.ts`**: the entry, built with `defineEntry` (ADR 0004): `name`, `use`, `slots` with their allow-lists, and a `props` schema whose variant enums come from `variantEnum(<tv config>, "<variant>")`, so the two can't drift.
-- **`$ARGUMENTS.stories.tsx`**: `title: "Components/$ARGUMENTS"`; one story per variant, plus one per non-default state (disabled, pending, with icon…), with real product copy from the brief's domain (contractor invoices and payments), written to the brief's copy rules. A story that animates while idle (a pending sweep) carries the `animates-while-idle` tag, which gets it a mid-animation shot.
+- **`$ARGUMENTS.stories.tsx`**: `title: "Components/$ARGUMENTS"`; one story per variant, plus one per non-default state (disabled, pending, with icon…), with real product copy from the brief's domain (contractor invoices and payments), written to the brief's copy rules. A story that animates while idle (a pending sweep) carries the `animates-while-idle` tag, which gets it a mid-animation shot and a reduced-motion shot, each with its own baseline.
 - Export it from the barrel, `src/index.ts`.
 
 The build is done when the three files exist, every variant and state in the plan has its story, and the barrel exports the component.
@@ -58,7 +58,9 @@ The loop is done when `pnpm gate $ARGUMENTS` exits 0 with every test passed. Aft
 
 ## 6. Critique the screenshots
 
-Open every PNG of this component in `gates/out/contact-sheet/` with the Read tool. They are named `<story-id>--<theme>-<density>--<shot>.png`: each story at `rest`, plus `focus`, `hover` and `pressed` shots of its first control, and `mid-animation` for a story tagged `animates-while-idle`. Judge them against the brief's personality (warm, assured, plain-spoken), the density table, the radius table and the banned list, and against `frontend-design`'s default clusters. Then apply its mirror rule: remove one accessory.
+Open every PNG of this component in `gates/out/contact-sheet/` with the Read tool. They are named `<story-id>--<theme>-<density>--<shot>.png`: each story at `rest`, plus `focus`, `hover` and `pressed` shots of its first control, and `mid-animation` and `reduced-motion` for a story tagged `animates-while-idle`. Judge them against the brief's personality (warm, assured, plain-spoken), the density table, the radius table and the banned list, and against `frontend-design`'s default clusters. Then apply its mirror rule: remove one accessory.
+
+When a shot leaves you unsure what is drawn where (a line that might be antialiasing, an edge that might be clipped), measure instead of reading pixels: `pnpm gate:measure <story-id>` prints every element's box and transforms from the built CSS, with `--mid-animation` or `--reduced-motion` for those frames.
 
 If you change anything, go back to step 5. The critique is done when a full pass over the screenshots produces no change.
 

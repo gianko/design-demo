@@ -7,10 +7,17 @@
 // generator/render.config.ts.
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page, type Route } from "@playwright/test";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { join, resolve, sep } from "node:path";
+import { expect, test, type Page } from "@playwright/test";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { renderRules } from "./render-rules.ts";
+import {
+  openStory,
+  pauseAnimationsAtQuarter,
+  playAnimations,
+  root,
+  serveStorybook,
+} from "./storybook-page.ts";
 import {
   animatesWhileIdle,
   annotation,
@@ -20,7 +27,6 @@ import {
   shotName,
   targetsEnv,
   type Checks,
-  type Render,
   type Shot,
 } from "./stories.ts";
 
@@ -36,13 +42,6 @@ const renderOnly = Boolean(process.env.GATE_RENDER_ONLY);
 // A comma-separated subset of the densities, for the render pass.
 const densityFilter = process.env.GATE_DENSITIES?.split(",");
 
-// The built Storybook is served from disk through a route, so there's no
-// server to start, and any request that leaves it fails: a render never
-// depends on the network.
-const origin = "http://storybook.gate";
-
-const root = "#storybook-root";
-
 // The first control a keyboard user reaches, for the focus, hover and
 // pressed shots.
 const focusable =
@@ -54,7 +53,7 @@ const index = JSON.parse(
 const stories = selectStories(index, targetsEnv.read(process.env.GATE_TARGETS));
 
 test.beforeEach(async ({ context }) => {
-  await context.route("**/*", serve);
+  await serveStorybook(context, storybookStatic);
 });
 
 for (const story of stories) {
@@ -80,7 +79,7 @@ for (const story of stories) {
             }
           });
 
-          await open(page, render);
+          await openStory(page, render);
 
           // Gate 4. A story is a fragment, not a page, so axe's rule that
           // all content sits in a landmark doesn't apply.
@@ -138,25 +137,15 @@ for (const story of stories) {
             return;
           }
 
-          // Gate 6. A missing baseline is written outside CI, and the
-          // contact sheet marks it for the human to approve.
           const name = shotName(render);
-          const baseline = testInfo.snapshotPath(`${name}.png`, {
-            kind: "screenshot",
-          });
-          const isNew = !existsSync(baseline);
-          await expect
-            .soft(page.locator(root), "gate 6: baseline")
-            .toHaveScreenshot(`${name}.png`);
-          if (isNew && existsSync(baseline)) {
-            testInfo.annotations.push({ type: annotation.newBaseline });
-          }
+          await matchBaseline(page, `${name}.png`);
 
           await shoot(page, "rest");
           // Before the state shots, whose hover-out and release transitions
           // would otherwise still be running.
           if (render.tags.includes(animatesWhileIdle)) {
-            await shootMidAnimation(page);
+            await shootMidAnimation(page, `${name}--mid-animation.png`);
+            await shootReducedMotion(page, `${name}--reduced-motion.png`);
           }
           await shootStates(page);
 
@@ -167,40 +156,25 @@ for (const story of stories) {
   });
 }
 
-async function serve(route: Route) {
-  const url = new URL(route.request().url());
-  if (url.origin !== origin) return route.abort();
-  const file = join(storybookStatic, decodeURIComponent(url.pathname));
-  if (
-    !file.startsWith(storybookStatic + sep) ||
-    !existsSync(file) ||
-    !statSync(file).isFile()
-  ) {
-    return route.fulfill({ status: 404 });
-  }
-  return route.fulfill({ path: file });
-}
-
-async function open(page: Page, { id, theme, density }: Render) {
-  await page.goto(
-    `${origin}/iframe.html?id=${id}&viewMode=story&globals=theme:${theme};density:${density}`
+// Gate 6 for one baseline file. A missing baseline is written outside CI,
+// and the contact sheet marks its render for the human to approve.
+async function matchBaseline(
+  page: Page,
+  file: string,
+  animations: "allow" | "disabled" = "disabled"
+) {
+  const testInfo = test.info();
+  const baseline = testInfo.snapshotPath(file, { kind: "screenshot" });
+  const isNew = !existsSync(baseline);
+  await expect
+    .soft(page.locator(root), "gate 6: baseline")
+    .toHaveScreenshot(file, { animations });
+  const marked = testInfo.annotations.some(
+    ({ type }) => type === annotation.newBaseline
   );
-  // A story that throws can show main for a moment before the error display.
-  await page
-    .locator(`body.sb-show-main ${root} > *, body.sb-show-errordisplay`)
-    .first()
-    // The body reads as hidden while the error display shows.
-    .waitFor({ state: "attached" });
-  if (await page.locator("body.sb-show-errordisplay").count()) {
-    throw new Error(
-      `The story failed to render: ${await page.locator("#error-message").innerText()}`
-    );
+  if (isNew && existsSync(baseline) && !marked) {
+    testInfo.annotations.push({ type: annotation.newBaseline });
   }
-  // Instrument Sans swaps in once loaded. Until then the fallback font
-  // renders, which would flake gate 6 and give gate 7 the wrong metrics.
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-  });
 }
 
 async function shoot(
@@ -236,22 +210,24 @@ async function shootStates(page: Page) {
 }
 
 // The rest shot disables animations, so an idle animation (a pending sweep)
-// is invisible in it (ADR 0006, Consequences). This shot pauses each CSS
-// animation a quarter into its first iteration, so it is the same each run.
-// Not halfway: a loop can wrap there, and the sweep is out of view at 50%.
-// Transitions are left alone; they belong to the state shots.
-async function shootMidAnimation(page: Page) {
-  await page.evaluate(() => {
-    for (const animation of document.getAnimations()) {
-      if (!(animation instanceof CSSAnimation)) continue;
-      const timing = animation.effect!.getComputedTiming();
-      animation.pause();
-      animation.currentTime =
-        Number(timing.delay) + Number(timing.duration) / 4;
-    }
-  });
+// is invisible in it (ADR 0006, Consequences). This shot pauses it a quarter
+// in, so it is the same each run; transitions belong to the state shots. The
+// frame has a baseline: the dev Storybook doesn't minify, so a running
+// animation can look right there and break only in the built CSS this pass
+// renders.
+async function shootMidAnimation(page: Page, baseline: string) {
+  await pauseAnimationsAtQuarter(page);
+  await matchBaseline(page, baseline, "allow");
   await shoot(page, "mid-animation", "allow");
-  await page.evaluate(() => {
-    for (const animation of document.getAnimations()) animation.play();
-  });
+  await playAnimations(page);
+}
+
+// What someone who asked for reduced motion sees in place of the idle
+// animation (the brief's static edge). No other shot emulates it: the rest
+// shot disables animations without matching `prefers-reduced-motion`.
+async function shootReducedMotion(page: Page, baseline: string) {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await matchBaseline(page, baseline);
+  await shoot(page, "reduced-motion");
+  await page.emulateMedia({ reducedMotion: null });
 }
