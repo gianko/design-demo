@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { tv } from "tailwind-variants/lite";
 import { expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
@@ -50,6 +51,22 @@ it("types a component's props as z.infer of its entry", () => {
     intent: "quiet",
     label: "Pay",
   });
+});
+
+it("lets an entry with no props compose with its React slots", () => {
+  const entry = defineEntry({
+    name: "Card",
+    use: "Groups content.",
+    props: z.object({}),
+    slots: { header: {} },
+  });
+
+  expectTypeOf<PropsOf<typeof entry>>().toEqualTypeOf<Record<never, never>>();
+  const props: PropsOf<typeof entry> & { header?: ReactNode } = {
+    header: "Heading",
+  };
+  expect(props.header).toBe("Heading");
+  expect(entry.props.parse({})).toEqual({});
 });
 
 const pendingButton = {

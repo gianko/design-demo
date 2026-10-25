@@ -86,4 +86,8 @@ export function specProps(entry: RegistryEntry): z.ZodObject {
 }
 
 // The component's props type, so the component and its entry can't drift.
-export type PropsOf<E extends RegistryEntry> = z.infer<E["props"]>;
+// An empty Zod object infers Record<string, never>; its index signature
+// must not forbid the React slot props the component adds.
+type NamedProps<P> = { [K in keyof P as string extends K ? never : K]: P[K] };
+
+export type PropsOf<E extends RegistryEntry> = NamedProps<z.infer<E["props"]>>;

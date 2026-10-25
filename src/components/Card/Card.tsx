@@ -17,14 +17,7 @@ export const card = tv({
   },
 });
 
-// Zod infers an empty props object as Record<string, never>, whose index
-// signature would forbid the slot props, so only its named keys are kept.
-type EntryProps = PropsOf<typeof cardEntry>;
-type NamedEntryProps = {
-  [K in keyof EntryProps as string extends K ? never : K]: EntryProps[K];
-};
-
-export type CardProps = NamedEntryProps & {
+export type CardProps = PropsOf<typeof cardEntry> & {
   header?: ReactNode;
   children?: ReactNode;
   footer?: ReactNode;
