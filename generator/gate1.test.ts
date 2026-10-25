@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { defineEntry } from "../src/registry/entry.ts";
 import { gate1 } from "./gate1.ts";
+import { loadRegistry } from "./registry.ts";
 
 const entries = [
   defineEntry({
@@ -746,6 +747,64 @@ describe("gate 1", () => {
         location: "note",
         message: 'Panel has no slot "footer"; its slots are body, actions.',
       },
+    ]);
+  });
+});
+
+// The stub Heading above stands in for the real one; these hold gate 1's
+// heading checks to the entry the spec step actually sees.
+describe("gate 1 against the library's registry", () => {
+  const library = {
+    audience: "admin",
+    fixtures: { variants: { default: {} }, operations: [] },
+  };
+
+  function headings(...levels: string[]) {
+    return {
+      audience: "admin",
+      nodes: [
+        node("screen", "Screen", null, null, { audience: "admin" }),
+        node("column", "Stack", "screen", "body"),
+        ...levels.map((level, i) => ({
+          ...node(`heading-${i}`, "Heading", "column", "body"),
+          props: [
+            { name: "text", value: '"Payment status"' },
+            { name: "level", value: level },
+          ],
+        })),
+      ],
+      states: [],
+      actions: [],
+    };
+  }
+
+  async function checkLibrary(spec: unknown) {
+    const { entries } = await loadRegistry();
+    return gate1(spec, { ...library, entries }).map(({ rule, location }) => [
+      rule,
+      location,
+    ]);
+  }
+
+  it("takes a Heading level as a number", async () => {
+    expect(await checkLibrary(headings("1", "2"))).toEqual([]);
+  });
+
+  it("fails a Heading level written as a string", async () => {
+    expect(await checkLibrary(headings("1", '"2"'))).toEqual([
+      ["props-parse", "heading-1"],
+    ]);
+  });
+
+  it("fails a level 3 directly after a level 1", async () => {
+    expect(await checkLibrary(headings("1", "3"))).toEqual([
+      ["heading-skip", "heading-1"],
+    ]);
+  });
+
+  it("fails two level 1s in the same state", async () => {
+    expect(await checkLibrary(headings("1", "2", "1"))).toEqual([
+      ["heading-one", "heading-2"],
     ]);
   });
 });
