@@ -147,10 +147,91 @@ export function fakePluginApi(fonts: FontName[] = instrumentSans) {
     id: variable.id,
   });
 
+  // A captured layer, as a figma:walk-capture script reads it: the fields
+  // Figma reports in boundVariables, and the modes the layer pins.
+  type Paint = {
+    type: "SOLID";
+    color: { r: number; g: number; b: number };
+    opacity: number;
+    boundVariables?: { color: Alias };
+  };
+  type SceneNode = {
+    id: string;
+    name: string;
+    type: string;
+    fills: Paint[] | typeof mixed;
+    strokes: Paint[];
+    boundVariables: Record<string, Alias | Alias[]>;
+    explicitVariableModes: Record<string, string>;
+    children?: SceneNode[];
+  };
+  // What Figma returns for a property that varies across a text node's ranges.
+  const mixed = Symbol("figma.mixed");
+  const literalPaint = (spec: LiteralPaint): Paint => {
+    const { rgb, visible = true } = Array.isArray(spec) ? { rgb: spec } : spec;
+    const [r, g, b, opacity = 1] = rgb;
+    return {
+      type: "SOLID",
+      color: { r: r! / 255, g: g! / 255, b: b! / 255 },
+      opacity,
+      ...(visible ? {} : { visible }),
+    };
+  };
+  const nodes = new Map<string, SceneNode>();
+
+  function sceneNode(spec: NodeSpec): SceneNode {
+    const variable = (name: string) => {
+      const found = variables.find((v) => v.name === name);
+      if (!found) throw new Error(`addNode: no variable ${name}`);
+      return alias(found);
+    };
+    // A bound paint carries its alias, as Figma's do; a literal one doesn't.
+    const paints = (field: "fills" | "strokes") => [
+      ...[spec.bound?.[field] ?? []]
+        .flat()
+        .map((name): Paint => ({
+          ...literalPaint([0, 0, 0]),
+          boundVariables: { color: variable(name) },
+        })),
+      ...(spec.literal?.[field] ?? []).map(literalPaint),
+    ];
+    const node: SceneNode = {
+      id: id("node"),
+      name: spec.name,
+      type: spec.type ?? "FRAME",
+      fills: spec.mixedFills ? mixed : paints("fills"),
+      strokes: paints("strokes"),
+      boundVariables: Object.fromEntries(
+        Object.entries(spec.bound ?? {}).map(([field, bound]) => [
+          field,
+          Array.isArray(bound) ? bound.map(variable) : variable(bound),
+        ])
+      ),
+      explicitVariableModes: Object.fromEntries(
+        Object.entries(spec.explicitModes ?? {}).map(([name, modeName]) => {
+          const collection = collections.find((c) => c.name === name)!;
+          const mode = collection.modes.find((m) => m.name === modeName)!;
+          return [collection.id, mode.modeId];
+        })
+      ),
+      ...(spec.type === "TEXT"
+        ? {}
+        : { children: (spec.children ?? []).map(sceneNode) }),
+    };
+    nodes.set(node.id, node);
+    return node;
+  }
+
   const figma = {
+    mixed,
+    getNodeByIdAsync: async (nodeId: string) => nodes.get(nodeId) ?? null,
     variables: {
       getLocalVariableCollectionsAsync: async () => [...collections],
       getLocalVariablesAsync: async () => [...variables],
+      getVariableByIdAsync: async (variableId: string) =>
+        variables.find((v) => v.id === variableId) ?? null,
+      getVariableCollectionByIdAsync: async (collectionId: string) =>
+        collections.find((c) => c.id === collectionId) ?? null,
       createVariableCollection(name: string) {
         const collection = new Collection(name);
         collections.push(collection);
@@ -232,10 +313,40 @@ export function fakePluginApi(fonts: FontName[] = instrumentSans) {
     });
   }
 
-  return { figma, state };
+  /** Adds a captured layer tree bound to variables by name; returns its root's ID. */
+  function addNode(spec: NodeSpec): string {
+    return sceneNode(spec).id;
+  }
+
+  return { figma, state, addNode };
 }
 
 export type FakePluginApi = ReturnType<typeof fakePluginApi>;
+
+export type NodeSpec = {
+  name: string;
+  type?: "FRAME" | "TEXT";
+  /** Collection name → mode name. */
+  explicitModes?: Record<string, string>;
+  /** Field → variable name; paint and text fields take a list. */
+  bound?: Record<string, string | string[]>;
+  literal?: Partial<Record<"fills" | "strokes", LiteralPaint[]>>;
+  /** A text node whose ranges have different fills: `fills` is figma.mixed. */
+  mixedFills?: true;
+  children?: NodeSpec[];
+};
+
+/** An unbound solid paint: [r, g, b] 0–255 with an optional opacity, or hidden. */
+type LiteralPaint = number[] | { rgb: number[]; visible: false };
+
+const AsyncFunction = (async () => {}).constructor as new (
+  ...args: string[]
+) => (figma: unknown) => Promise<unknown>;
+
+/** Runs one script the way use_figma does: its body, with `figma` in scope. */
+export function runScript(code: string, file: FakePluginApi) {
+  return new AsyncFunction("figma", code)(file.figma);
+}
 
 const instrumentSans: FontName[] = [
   "Regular",
