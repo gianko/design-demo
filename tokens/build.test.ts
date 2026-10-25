@@ -83,6 +83,32 @@ describe("the naming chain", () => {
     );
   });
 
+  // A capture binds a property only through a plain var(--ds-*); behind
+  // Tailwind's --tw-leading or --tw-tracking it binds by value and can land
+  // on another role (#104).
+  it.each([
+    "type.caption",
+    "density.text.label",
+    "density.text.body",
+    "type.heading",
+    "type.title",
+    "type.figure",
+  ])(
+    "compiles %s's class once, with its own line height and tracking as plain variables",
+    (path) => {
+      const { className, cssVar } = tokenNames(path);
+      const css = utilities(className!);
+
+      expect(css.match(new RegExp(`\\.${className}\\s*\\{`, "g"))).toHaveLength(
+        1
+      );
+      expect(css).toContain(`line-height: var(${cssVar}-line-height);`);
+      expect(css).toContain(`letter-spacing: var(${cssVar}-letter-spacing);`);
+      expect(css).not.toContain("--tw-leading");
+      expect(css).not.toContain("--tw-tracking");
+    }
+  );
+
   it("draws the keyboard focus ring from the edge and focus tokens", () => {
     const css = utilities("focus-visible:focus-ring");
 

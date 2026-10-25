@@ -46,7 +46,7 @@ The capture is done when, for every frame:
 
 Anything else, show it to the human and stop. A `literal` paint usually means the variable's Figma value drifted from the colour the browser painted, so the capture couldn't match it. Compare the two before anything else ([issue #59](https://github.com/gianko/design-demo/issues/59)).
 
-These misses are known and expected ([issue #15](https://github.com/gianko/design-demo/issues/15)): alpha colours (the scrim, transparent borders), `min-height`, text and effect styles, and motion. Line height and letter spacing bind by value and can land on another role's variable ([issue #104](https://github.com/gianko/design-demo/issues/104)). They are no reason to recapture.
+These misses are known and expected ([issue #15](https://github.com/gianko/design-demo/issues/15)): alpha colours (the scrim, transparent borders), `min-height`, text and effect styles, and motion. They are no reason to recapture.
 
 ## Recapturing
 
