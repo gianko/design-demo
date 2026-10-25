@@ -18,6 +18,7 @@ import {
   renders,
   selectStories,
   shotName,
+  targetsEnv,
   type Checks,
   type Render,
   type Shot,
@@ -50,7 +51,7 @@ const focusable =
 const index = JSON.parse(
   readFileSync(join(storybookStatic, "index.json"), "utf8")
 );
-const stories = selectStories(index, process.env.GATE_TARGET || undefined);
+const stories = selectStories(index, targetsEnv.read(process.env.GATE_TARGETS));
 
 test.beforeEach(async ({ context }) => {
   await context.route("**/*", serve);

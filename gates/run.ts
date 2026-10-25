@@ -1,4 +1,4 @@
-// `pnpm gate [<Component|screen>] [--update]` (ADR 0006, ADR 0009). It runs
+// `pnpm gate [<Component|screen>...] [--update]` (ADR 0006, ADR 0009). It runs
 // ESLint (gate 2 and the static taste rules), tsc (gate 3) and the Storybook
 // build on the host, then the Playwright pass inside the pinned image, so
 // every baseline comes from one renderer. What it may do to baselines is
@@ -8,16 +8,13 @@ import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { baselineMode, type BaselineMode } from "./baseline-mode.ts";
 import { playwrightInImage } from "./image.ts";
+import { targetsEnv } from "./stories.ts";
 import { repo } from "../repo.ts";
 
-const { positionals, values } = parseArgs({
+const { positionals: targets, values } = parseArgs({
   allowPositionals: true,
   options: { update: { type: "boolean", default: false } },
 });
-if (positionals.length > 1) {
-  fail("Usage: pnpm gate [<Component|screen>] [--update]");
-}
-const [target] = positionals;
 const ci = Boolean(process.env.CI);
 let mode: BaselineMode;
 try {
@@ -36,7 +33,7 @@ run(
     [`--update-snapshots=${mode}`],
     {
       CI: ci ? "1" : undefined,
-      GATE_TARGET: target,
+      GATE_TARGETS: targetsEnv.write(targets),
       GATE_BASELINES: process.env.GATE_BASELINES || undefined,
     }
   )
