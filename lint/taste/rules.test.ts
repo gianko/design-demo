@@ -1,6 +1,7 @@
 // @vitest-environment node
 // Every P0 taste rule runs where RULES.md says, says what RULES.md says, and
-// credits impeccable where RULES.md's Origin column draws on it.
+// credits impeccable where, and only where, RULES.md's Origin column draws on
+// it.
 
 import { ESLint } from "eslint";
 import { readFileSync } from "node:fs";
@@ -64,7 +65,7 @@ it("reads all 61 of impeccable's rules from RULES.md", () => {
   expect(impeccable.size).toBe(61);
 });
 
-describe.each(p0)("lint/taste/rules/$id.ts", ({ id, origin }) => {
+describe.each(p0)("taste/$id's source", ({ id, origin }) => {
   const named = [...origin.matchAll(/`([a-z0-9-]+)`/g)]
     .map(([, id]) => id!)
     .filter((id) => impeccable.has(id));
@@ -74,12 +75,16 @@ describe.each(p0)("lint/taste/rules/$id.ts", ({ id, origin }) => {
     "utf8"
   );
 
-  it.runIf(named.length > 0)(
-    "credits impeccable, its licence and each rule it draws on",
-    () => {
+  if (named.length > 0) {
+    it("credits impeccable, its licence and each rule it draws on", () => {
       expect(source).toMatch(/impeccable/);
       expect(source).toMatch(/Apache 2\.0/);
       for (const id of named) expect(source).toContain(impeccable.get(id));
-    }
-  );
+    });
+  } else {
+    it("credits no impeccable rule, as RULES.md's Origin draws on none", () => {
+      expect(source).not.toContain("github.com/pbakaus/impeccable");
+      expect(source).not.toMatch(/Apache 2\.0/);
+    });
+  }
 });
