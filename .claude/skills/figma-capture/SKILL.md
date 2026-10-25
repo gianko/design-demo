@@ -26,7 +26,7 @@ For each capture:
 
 1. Call `generate_figma_design` with the `fileKey`, the Screens page's `nodeId`, and the session ID. It returns a capture ID and the hash parameters to open.
 2. Open the story's standalone iframe in the human's browser with `open "<url>"`: `http://localhost:6006/iframe.html?id=<story>&viewMode=story&globals=theme:<theme>;density:<density>`, then `#` and the hash parameters the tool returned, plus `figmaselector=%23storybook-root` so the capture crops to the story.
-3. Poll `generate_figma_design` with the capture ID every 5 seconds, up to 10 times, until its status is `completed`. Note the captured frame's node ID.
+3. Poll `generate_figma_design` with the capture ID every 5 seconds, up to 10 times, until its status is `completed`. Note the captured frame's node ID. If it's still `pending` after 5 polls, ask the human what the browser tab shows (an error, or Figma's capture toolbar) before polling on: the tab is the only place a failed capture says why.
 
 Each capture ID captures one page, once. A capture that doesn't complete gets a fresh ID, never a reopened one.
 

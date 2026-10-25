@@ -34,17 +34,20 @@ describe("sessionArgs", () => {
 });
 
 // With project settings only, the plugins the session loads are exactly the
-// ones the project's settings enable.
+// ones the project's settings enable. A plugin set to false is one the project
+// turns off for everyone, such as typescript-lsp, whose pushed diagnostics
+// are false here.
 test("the project enables frontend-design as its only plugin", () => {
   const settings = JSON.parse(
     readFileSync(
       resolve(import.meta.dirname, "../.claude/settings.json"),
       "utf8"
     )
-  );
-  expect(settings.enabledPlugins).toEqual({
-    "frontend-design@claude-plugins-official": true,
-  });
+  ) as { enabledPlugins: Record<string, boolean> };
+  const enabled = Object.entries(settings.enabledPlugins)
+    .filter(([, on]) => on)
+    .map(([plugin]) => plugin);
+  expect(enabled).toEqual(["frontend-design@claude-plugins-official"]);
 });
 
 describe("transcriptPath", () => {
