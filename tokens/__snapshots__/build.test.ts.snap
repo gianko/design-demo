@@ -134,6 +134,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
 [data-density="admin"] {
   --ds-density-padding-page: 28px;
   --ds-density-padding-control: 12px;
+  --ds-density-padding-surface: 20px;
   --ds-density-height-row: 46px;
   --ds-density-height-control: 32px;
   --ds-density-min-height-target: 24px;
@@ -152,6 +153,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
 [data-density="contractor"] {
   --ds-density-padding-page: 36px;
   --ds-density-padding-control: 16px;
+  --ds-density-padding-surface: 24px;
   --ds-density-height-row: 60px;
   --ds-density-height-control: 44px;
   --ds-density-min-height-target: 44px;
@@ -205,6 +207,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --shadow-overlay: var(--ds-shadow-overlay);
   --padding-page: var(--ds-density-padding-page);
   --padding-control: var(--ds-density-padding-control);
+  --padding-surface: var(--ds-density-padding-surface);
   --height-row: var(--ds-density-height-row);
   --height-control: var(--ds-density-height-control);
   --min-height-target: var(--ds-density-min-height-target);
@@ -374,7 +377,7 @@ export type RingColor = (typeof ringColor)[number];
 export const shadow = ["raised", "overlay"] as const;
 export type Shadow = (typeof shadow)[number];
 
-export const padding = ["page", "control"] as const;
+export const padding = ["page", "control", "surface"] as const;
 export type Padding = (typeof padding)[number];
 
 export const height = ["row", "control", "edge"] as const;
@@ -1838,6 +1841,18 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "valuesByMode": {
             "Admin": 12,
             "Contractor": 16
+          }
+        },
+        {
+          "name": "density/padding/surface",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 20,
+            "Contractor": 24
           }
         },
         {

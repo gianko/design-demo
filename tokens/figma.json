@@ -1420,6 +1420,18 @@
           }
         },
         {
+          "name": "density/padding/surface",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 20,
+            "Contractor": 24
+          }
+        },
+        {
           "name": "density/height/row",
           "type": "FLOAT",
           "scopes": [

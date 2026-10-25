@@ -2,14 +2,6 @@
 
 Each entry is one place where the brief, the ADRs or the tokens didn't decide something Card needed. It gives the call made and the alternative a human might prefer.
 
-## Card padding and spacing don't follow density
-
-**Undecided:** the brief sets page padding per density (28px admin, 36px contractor) and the surface radius per density (8px, 12px), but it gives no padding for a surface. ADR 0001's list of what density changes includes "container padding", and the only density padding tokens are `p-page` and `px-control`, which are named for other roles. The brief also doesn't say how far apart a card's header, body and footer sit, or whether a hairline divides them.
-
-**Call:** fixed `p-lg` (24px) padding and a `gap-md` (20px) between the parts at both densities, with no dividers. A contractor card gets more room only through its 12px radius and larger body text, so admin and contractor cards look almost the same size apart from their type.
-
-**Alternative:** a density token for surface padding (for example `density.padding.surface`: 20px admin, 24–28px contractor) and maybe one for the gap between a surface's parts. Or reuse `p-page` on Card, which reads as roomier on contractor screens but doubles the page's padding inside every card.
-
 ## Cards stretch to the full width of the screen
 
 **Undecided:** nothing sets a content width (Stack's and Screen's gaps already note there's no measure token). A Card placed in a Screen's column fills it. At 1280px the header's title and its StatusTag sit more than 1,000px apart (see the Full and NoFooter stories). That's hard to scan, and it doesn't match Stripe's compact surfaces.

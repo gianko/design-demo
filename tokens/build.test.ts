@@ -58,6 +58,7 @@ describe("the naming chain", () => {
     ["space.sm", ":root"],
     ["radius.control", ":root"],
     ["density.padding.page", '[data-density="contractor"]'],
+    ["density.padding.surface", '[data-density="contractor"]'],
     ["density.height.control", '[data-density="contractor"]'],
     ["density.min-height.target", '[data-density="contractor"]'],
     ["density.size.icon", '[data-density="contractor"]'],
@@ -217,7 +218,17 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(86);
+    expect(variables.filter((v) => v.css)).toHaveLength(87);
+  });
+
+  // ADR 0001 lists container padding among what density changes.
+  it("pads a surface by density: 20px admin, 24px contractor", () => {
+    expect(variable("Density", "density/padding/surface")).toMatchObject({
+      type: "FLOAT",
+      scopes: ["GAP"],
+      css: true,
+      valuesByMode: { Admin: 20, Contractor: 24 },
+    });
   });
 
   it("converts a literal colour to sRGB 0–1 and keeps its alpha", () => {

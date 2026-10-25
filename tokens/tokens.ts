@@ -16,7 +16,7 @@ export type RingColor = (typeof ringColor)[number];
 export const shadow = ["raised", "overlay"] as const;
 export type Shadow = (typeof shadow)[number];
 
-export const padding = ["page", "control"] as const;
+export const padding = ["page", "control", "surface"] as const;
 export type Padding = (typeof padding)[number];
 
 export const height = ["row", "control", "edge"] as const;

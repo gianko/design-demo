@@ -10,7 +10,7 @@ import type { cardEntry } from "./Card.registry.ts";
 // footer render only when given.
 export const card = tv({
   slots: {
-    root: "flex flex-col gap-md rounded-surface border border-line bg-surface p-lg",
+    root: "flex flex-col gap-md rounded-surface border border-line bg-surface p-surface",
     header: "",
     body: "",
     footer: "",

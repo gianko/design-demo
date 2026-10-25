@@ -7,6 +7,10 @@
       "control": {
         "$description": "A control's side padding.",
         "$value": { "value": 12, "unit": "px" }
+      },
+      "surface": {
+        "$description": "A surface's padding, such as a Card's.",
+        "$value": { "value": 20, "unit": "px" }
       }
     },
     "height": {
