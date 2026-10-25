@@ -1,6 +1,8 @@
 // One isolated, headless `/build-component` session (ADR 0006). It runs in a
 // fresh worktree of origin/main on its own branch, since other sessions share
-// the main checkout, and leaves the work there uncommitted for the PR.
+// the main checkout, and leaves the work there uncommitted for the PR. Every
+// session's worktree sits under the main checkout's .claude/worktrees, even
+// when the loop runs from a worktree of its own.
 
 import { spawnSync } from "node:child_process";
 import {
@@ -24,10 +26,12 @@ export function launch(component: string, repo: string, log: Log): Session {
     );
   }
 
+  const main = mainCheckout(repo);
   const branch = `build-component-${component.toLowerCase()}`;
-  const worktree = resolve(repo, ".claude/worktrees", branch);
-  run("git", ["fetch", "origin", "main"], repo);
-  run("git", ["worktree", "add", "-b", branch, worktree, "origin/main"], repo);
+  const worktree = resolve(main, ".claude/worktrees", branch);
+  run("git", ["fetch", "origin", "main"], main);
+  pruneMerged(main, log);
+  run("git", ["worktree", "add", "-b", branch, worktree, "origin/main"], main);
   run("pnpm", ["install", "--frozen-lockfile"], worktree);
 
   const transcript = transcriptPath(component, {
@@ -72,6 +76,56 @@ export function sessionBuilder(repo: string, log: Log): Builder {
       run("git", ["push", "--set-upstream", "origin", branch], worktree);
     },
   };
+}
+
+// The main checkout of the repo `checkout` belongs to, which may be itself.
+export function mainCheckout(checkout: string): string {
+  return dirname(
+    capture(
+      "git",
+      ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+      checkout
+    ).trim()
+  );
+}
+
+// Removes each session worktree whose branch origin/main already contains,
+// with its branch, so merged sessions don't pile up. One that is locked or
+// holds uncommitted work stays.
+export function pruneMerged(main: string, log: Log) {
+  const list = capture("git", ["worktree", "list", "--porcelain"], main);
+  for (const entry of list.split("\n\n")) {
+    const path = /^worktree (.+)$/m.exec(entry)?.[1];
+    const branch = /^branch refs\/heads\/(build-component-\S+)$/m.exec(
+      entry
+    )?.[1];
+    if (!path || !branch || /^locked/m.test(entry)) continue;
+    const merged =
+      spawnSync("git", ["merge-base", "--is-ancestor", branch, "origin/main"], {
+        cwd: main,
+      }).status === 0;
+    if (!merged) continue;
+    if (capture("git", ["status", "--porcelain"], path).trim()) {
+      log(`Kept ${path}: its branch is merged, but it has uncommitted work.`);
+      continue;
+    }
+    run("git", ["worktree", "remove", path], main);
+    run("git", ["branch", "--delete", branch], main);
+    log(`Removed ${path}: its branch is merged.`);
+  }
+}
+
+function capture(command: string, args: string[], cwd: string): string {
+  const { status, error, stdout } = spawnSync(command, args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"],
+  });
+  if (error) throw new Error(`${command}: ${error.message}`);
+  if (status !== 0) {
+    throw new Error(`${command} ${args.join(" ")} exited ${status}`);
+  }
+  return stdout;
 }
 
 function run(command: string, args: string[], cwd: string) {

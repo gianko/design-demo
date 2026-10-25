@@ -96,7 +96,7 @@ The single job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-ima
 
 ### Build-loop driver
 
-The build loop from `gianko/agent-quiz-app`, ported. It takes the first open, unblocked `build-loop` issue, runs one isolated headless session of `/build-component <Component>` (flags and allowlist as in [ADR 0006](adr/0006-one-gated-build-component-session-per-component.md)), and opens a PR that closes the issue, with the contact sheet linked. Each `GAPS.md` entry becomes a `needs-triage` issue that blocks the next `build-loop` issue. It stops when no `build-loop` issue is unblocked. The `/build-component` skill moves from the `prototype/build-component` branch to main, updated to run `pnpm gate` in the image.
+The build loop from `gianko/agent-quiz-app`, ported. It takes the first open, unblocked `build-loop` issue, runs one isolated headless session of `/build-component <Component>` (flags and allowlist as in [ADR 0006](adr/0006-one-gated-build-component-session-per-component.md)), and opens a PR that closes the issue, with the contact sheet linked. Each `GAPS.md` entry becomes a `needs-triage` issue that blocks the next `build-loop` issue. It stops when no `build-loop` issue is unblocked, and refuses to take one while a workflow's latest run on `main` failed. Session worktrees live under the main checkout's `.claude/worktrees`, and each run removes the clean ones whose branch has merged. The `/build-component` skill moves from the `prototype/build-component` branch to main, updated to run `pnpm gate` in the image.
 
 **Done when:** `--dry-run` prints the issue it would take; one real run on the Screen issue ends in a PR whose CI is green.
 

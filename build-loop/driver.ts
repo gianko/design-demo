@@ -16,6 +16,9 @@ export type PullRequest = { branch: string; title: string; body: string };
 export interface Tracker {
   // Every open issue labelled `build-loop`.
   buildLoopIssues(): Issue[];
+  // Each workflow whose latest finished run on main failed, as a line naming
+  // it and linking the run; empty while main is green.
+  mainFailures(): string[];
   // Assigns the issue, so the next iteration of the loop skips it.
   claim(issue: number): void;
   // Files an issue labelled `needs-triage`; returns its number.
@@ -60,6 +63,17 @@ export function drive(
     if (!issue) {
       log("No build-loop issue is unblocked.");
       return;
+    }
+    // A session builds on origin/main, so a red main fails its PR for reasons
+    // that aren't the component's.
+    const failures = tracker.mainFailures();
+    if (failures.length > 0) {
+      throw new Error(
+        [
+          `main is red, so #${issue.number} would be built on a broken base. Fix main first:`,
+          ...failures.map((failure) => `  ${failure}`),
+        ].join("\n")
+      );
     }
     const component = componentOf(issue);
     if (dryRun) {

@@ -94,6 +94,54 @@ describe("githubTracker", () => {
     ]);
   });
 
+  test("reports each workflow whose latest finished run on main failed", () => {
+    // Newest first, as `gh run list` prints them.
+    const runs = [
+      { workflowName: "CI", status: "in_progress", conclusion: "", url: "u5" },
+      {
+        workflowName: "CI",
+        status: "completed",
+        conclusion: "success",
+        url: "u4",
+      },
+      {
+        workflowName: "Gate e2e",
+        status: "completed",
+        conclusion: "failure",
+        url: "u3",
+      },
+      {
+        workflowName: "CI",
+        status: "completed",
+        conclusion: "failure",
+        url: "u2",
+      },
+      {
+        workflowName: "Deploy",
+        status: "completed",
+        conclusion: "cancelled",
+        url: "u1",
+      },
+    ];
+    const { gh, calls } = fakeGh([["run list", JSON.stringify(runs)]]);
+
+    expect(githubTracker(gh, "gianko/design-demo").mainFailures()).toEqual([
+      "Gate e2e: failure (u3)",
+    ]);
+    expect(calls[0]).toEqual([
+      "run",
+      "list",
+      "--repo",
+      "gianko/design-demo",
+      "--branch",
+      "main",
+      "--limit",
+      "100",
+      "--json",
+      "workflowName,status,conclusion,url",
+    ]);
+  });
+
   test("claims an issue by assigning it to the gh user", () => {
     const { gh, calls } = fakeGh([["issue edit", ""]]);
 

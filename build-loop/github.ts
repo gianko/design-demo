@@ -22,6 +22,16 @@ type RestIssue = {
   issue_dependencies_summary?: { blocked_by: number };
 };
 
+type Run = {
+  workflowName: string;
+  status: string;
+  conclusion: string;
+  url: string;
+};
+
+// The conclusions of a run that went red; `cancelled` and `skipped` didn't.
+const failed = new Set(["failure", "timed_out", "startup_failure"]);
+
 export function githubTracker(gh: Gh, repo: string): Tracker {
   return {
     buildLoopIssues() {
@@ -38,6 +48,34 @@ export function githubTracker(gh: Gh, repo: string): Tracker {
         .flat()
         .filter((issue) => issue.pull_request === undefined)
         .map(toIssue);
+    },
+
+    mainFailures() {
+      // Newest first. A workflow whose paths a push didn't touch has no run
+      // for it, so its latest run may be older than the others'.
+      const runs: Run[] = JSON.parse(
+        gh([
+          "run",
+          "list",
+          "--repo",
+          repo,
+          "--branch",
+          "main",
+          "--limit",
+          "100",
+          "--json",
+          "workflowName,status,conclusion,url",
+        ])
+      );
+      const latest = new Map<string, Run>();
+      for (const run of runs) {
+        if (run.status === "completed" && !latest.has(run.workflowName)) {
+          latest.set(run.workflowName, run);
+        }
+      }
+      return [...latest.values()]
+        .filter((run) => failed.has(run.conclusion))
+        .map((run) => `${run.workflowName}: ${run.conclusion} (${run.url})`);
     },
 
     claim(issue) {
