@@ -782,7 +782,7 @@
           }
         },
         {
-          "name": "color/bg/on-accent",
+          "name": "color/bg/progress",
           "type": "COLOR",
           "scopes": [
             "FRAME_FILL",
@@ -791,10 +791,10 @@
           "css": true,
           "valuesByMode": {
             "Light": {
-              "alias": "primitive/neutral/995"
+              "alias": "primitive/heather/820"
             },
             "Dark": {
-              "alias": "primitive/neutral/220"
+              "alias": "primitive/heather/480"
             }
           }
         },

@@ -13,18 +13,25 @@
 }
 
 /* and the sweep starts full and wraps around: the edge slides out to the
-   right and back in from the left, so nothing jumps. */
+   right and back in from the left, so nothing jumps. Every frame sets the
+   sweep's width and `translate`, replacing its rest values, so a sweep that is
+   narrower at rest (Button's has no width) is the full edge while it runs. Not
+   `translate: none` beside a `transform`: the production minifier drops it. */
 @keyframes progress-sweep {
   0% {
-    transform: translateX(0);
+    width: 100%;
+    translate: 0;
   }
   50% {
-    transform: translateX(100%);
+    width: 100%;
+    translate: 100%;
   }
   50.01% {
-    transform: translateX(-100%);
+    width: 100%;
+    translate: -100%;
   }
   100% {
-    transform: translateX(0);
+    width: 100%;
+    translate: 0;
   }
 }
