@@ -151,6 +151,30 @@ describe("drive, when a session fails", () => {
     );
   });
 
+  test.each([false, true])(
+    "refuses to take an issue while main is red (dry run: %s), naming each failing run",
+    (dryRun) => {
+      const world = fakeWorld(
+        [issue(54, "Build component: Text")],
+        {},
+        { mainFailures: ["Gate e2e: failure (https://github.com/run/1)"] }
+      );
+
+      expect(() => drive(world.ports, { dryRun })).toThrow(
+        "main is red, so #54 would be built on a broken base. Fix main first:\n  Gate e2e: failure (https://github.com/run/1)"
+      );
+      expect(world.writes).toEqual([]);
+    }
+  );
+
+  test("doesn't look at main when no issue is unblocked", () => {
+    const world = fakeWorld([], {}, { mainFailures: ["CI: failure (url)"] });
+
+    drive(world.ports, { dryRun: false });
+
+    expect(world.log).toEqual(["No build-loop issue is unblocked."]);
+  });
+
   // `/build-component text` would make a `text` folder no gate or lint
   // treats as a component.
   test("refuses a component name that isn't PascalCase", () => {
@@ -197,7 +221,8 @@ function issue(
 // issue. Every write, to either, lands in one log, in order.
 function fakeWorld(
   issues: Issue[],
-  sessions: Partial<Record<string, Partial<Build>>> = {}
+  sessions: Partial<Record<string, Partial<Build>>> = {},
+  { mainFailures = [] }: { mainFailures?: string[] } = {}
 ) {
   const writes: string[] = [];
   const log: string[] = [];
@@ -212,6 +237,7 @@ function fakeWorld(
     tracker: {
       buildLoopIssues: () =>
         issues.map((each) => ({ ...each, assignees: [...each.assignees] })),
+      mainFailures: () => mainFailures,
       claim(number) {
         writes.push(`claim #${number}`);
         find(number).assignees.push("me");
