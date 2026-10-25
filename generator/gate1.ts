@@ -8,7 +8,7 @@ import { z } from "zod";
 // The screen state every screen has besides the declared ones; a node's
 // `when` and an action's `to` may name it.
 import { defaultState } from "../src/components/Screen/default-state.ts";
-import type { RegistryEntry } from "../src/registry/entry.ts";
+import { type RegistryEntry, specProps } from "../src/registry/entry.ts";
 import type { Failure } from "./failure.ts";
 import { type UiNode, type UiSpec, wireSchema } from "./ui-spec.ts";
 
@@ -519,8 +519,9 @@ function propChecks(
 
   // A bound prop of the entry's is checked against the data it resolves to,
   // below; every other prop, a bound one the entry doesn't have included,
-  // parses here as written.
-  const shape = entry.props.shape;
+  // parses here as written. A code-only prop is one the node doesn't have:
+  // the code step sets it.
+  const shape = specProps(entry).shape;
   const bound = Object.entries(props).flatMap(([name, value]) => {
     const path = bindingPath(value);
     return path !== undefined && Object.hasOwn(shape, name)

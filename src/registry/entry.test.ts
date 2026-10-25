@@ -51,3 +51,29 @@ it("types a component's props as z.infer of its entry", () => {
     label: "Pay",
   });
 });
+
+const pendingButton = {
+  name: "Button",
+  use: "Starts an action.",
+  props: z.object({ label: z.string(), pending: z.boolean().optional() }),
+};
+
+it("keeps a code-only prop in the component's props type", () => {
+  const entry = defineEntry({ ...pendingButton, codeOnly: ["pending"] });
+
+  expectTypeOf<PropsOf<typeof entry>>().toEqualTypeOf<{
+    label: string;
+    pending?: boolean | undefined;
+  }>();
+  expect(entry.props.parse({ label: "Pay", pending: true })).toEqual({
+    label: "Pay",
+    pending: true,
+  });
+});
+
+it("refuses to mark a prop code-only that the entry doesn't have", () => {
+  expect(() =>
+    // @ts-expect-error: "pendng" isn't one of the entry's props.
+    defineEntry({ ...pendingButton, codeOnly: ["pendng"] })
+  ).toThrow(/Button marks "pendng" code-only, but has no such prop/);
+});

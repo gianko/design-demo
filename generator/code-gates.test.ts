@@ -88,6 +88,41 @@ export function Reminder() {
   }, 60_000);
 });
 
+// Button's pending is code-only (ADR 0011): no UI spec gives it, and the
+// code step sets it from useAction, so a screen that does still builds.
+describe("a generated screen that wires an action", () => {
+  it("passes gates 2 and 3 with its Button's pending set from useAction", async () => {
+    const { gates } = await codeGates(
+      file,
+      `import { Button, Screen, useAction, useFixtureData } from "../../index.ts";
+
+export function Reminder() {
+  const data = useFixtureData();
+  const sendReminder = useAction("sendReminder", {
+    success: "reminder-sent",
+    failure: "reminder-failed",
+  });
+  return (
+    <Screen audience="contractor">
+      {data.overdueInvoice && (
+        <Button
+          text="Send reminder"
+          intent="primary"
+          pending={sendReminder.pending}
+          onClick={() => sendReminder.run(data.overdueInvoice!.id)}
+        />
+      )}
+    </Screen>
+  );
+}
+`,
+      keptAt
+    );
+
+    expect([gates["gate 2"], gates["gate 3"]]).toEqual(["pass", "pass"]);
+  }, 60_000);
+});
+
 // A failure line names its gate as the attempt's results do, so a repair
 // turn's `gate 7 static` lines match the `gate 7 static` result (ADR 0010).
 describe("codeGates", () => {

@@ -1,8 +1,8 @@
-// The registry as the generator sees it (ADR 0004): serialized once into the
-// spec step's cached system prefix.
+// The registry as the generator sees it (ADR 0004): serialized once per step
+// into that step's cached system prefix.
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import type { RegistryEntry } from "./entry.ts";
+import { type RegistryEntry, specProps } from "./entry.ts";
 
 export function defineRegistry<const E extends readonly RegistryEntry[]>(
   entries: E
@@ -14,19 +14,35 @@ export function defineRegistry<const E extends readonly RegistryEntry[]>(
   if (duplicate !== undefined) {
     throw new Error(`"${duplicate}" is registered twice`);
   }
-  const serialized = JSON.stringify(
-    sorted.map((entry) => ({
-      name: entry.name,
-      use: entry.use,
-      props: propsSchema(entry.props),
-      slots: entry.slots ?? {},
-    })),
-    null,
-    2
-  );
-  // The registry version in every eval results file's version tuple. Zod
-  // refinements don't serialize, so changing one leaves the hash as it was.
-  const hash = createHash("sha256").update(serialized).digest("hex");
+  // Each step's view of the registry. The spec step's leaves out code-only
+  // props, so a UI spec can't give them; the code step's keeps them, listed
+  // under codeOnly, so it knows to set them itself.
+  const serialize = (rows: object[]) => JSON.stringify(rows, null, 2);
+  const serialized = {
+    spec: serialize(
+      sorted.map((entry) => ({
+        name: entry.name,
+        use: entry.use,
+        props: propsSchema(specProps(entry)),
+        slots: entry.slots ?? {},
+      }))
+    ),
+    code: serialize(
+      sorted.map((entry) => ({
+        name: entry.name,
+        use: entry.use,
+        props: propsSchema(entry.props),
+        ...(entry.codeOnly?.length ? { codeOnly: entry.codeOnly } : {}),
+        slots: entry.slots ?? {},
+      }))
+    ),
+  };
+  // The registry version in every eval results file's version tuple, over
+  // what both steps see. Zod refinements don't serialize, so changing one
+  // leaves the hash as it was.
+  const hash = createHash("sha256")
+    .update(JSON.stringify([serialized.spec, serialized.code]))
+    .digest("hex");
   // The wire schema's `component` field: only registered names parse.
   const component = z.enum(names as [E[number]["name"]]);
   // Gate 1 checks each node against its entry.
