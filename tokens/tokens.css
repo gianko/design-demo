@@ -67,7 +67,7 @@
   --ds-color-bg-accent: oklch(0.48 0.085 330);
   --ds-color-bg-accent-hover: oklch(0.43 0.085 330);
   --ds-color-bg-accent-pressed: oklch(0.39 0.08 330);
-  --ds-color-bg-on-accent: oklch(0.995 0.003 330);
+  --ds-color-bg-progress: oklch(0.82 0.06 330);
   --ds-color-bg-disabled: oklch(0.95 0.006 330);
   --ds-color-bg-scrim: oklch(0.27 0.025 330 / 0.4);
   --ds-color-bg-awaiting: oklch(0.95 0.05 85);
@@ -102,7 +102,7 @@
   --ds-color-bg-accent: oklch(0.82 0.06 330);
   --ds-color-bg-accent-hover: oklch(0.79 0.06 330);
   --ds-color-bg-accent-pressed: oklch(0.75 0.06 330);
-  --ds-color-bg-on-accent: oklch(0.22 0.03 330);
+  --ds-color-bg-progress: oklch(0.48 0.085 330);
   --ds-color-bg-disabled: oklch(0.27 0.025 330);
   --ds-color-bg-scrim: oklch(0.1 0.02 330 / 0.6);
   --ds-color-bg-awaiting: oklch(0.32 0.05 75);
@@ -177,7 +177,7 @@
   --background-color-accent: var(--ds-color-bg-accent);
   --background-color-accent-hover: var(--ds-color-bg-accent-hover);
   --background-color-accent-pressed: var(--ds-color-bg-accent-pressed);
-  --background-color-on-accent: var(--ds-color-bg-on-accent);
+  --background-color-progress: var(--ds-color-bg-progress);
   --background-color-disabled: var(--ds-color-bg-disabled);
   --background-color-scrim: var(--ds-color-bg-scrim);
   --background-color-awaiting: var(--ds-color-bg-awaiting);

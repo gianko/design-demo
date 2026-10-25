@@ -22,9 +22,9 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Button
 
 **Undecided:** the brief places the progress edge "along its button's bottom" but names no colour for it, and the tokens have no edge role.
 
-**Call:** on primary, `bg-on-accent`; on secondary and quiet, `bg-accent`. In light, the near-white edge on the heather fill reads as a notch cut from the bottom of the button more than as a line drawn on it (`components-button--pending--light-*`). In dark it reads as an underline.
+**Call:** on primary, `bg-progress`; on secondary and quiet, `bg-accent`. The first build used `bg-on-accent`, a near-white that matched the page (1.03:1 in light), so the edge read as a notch cut from the button. Review renamed that token `progress` and made it the other theme's accent: `heather.820` in light and `heather.480` in dark, both 3.82:1 against `accent`, so the edge reads as a heather line on the fill.
 
-**Alternative:** a `progress` colour role per theme, checked against `accent` and `surface` at 3:1 by the token build, so the edge reads the same on every intent.
+**Alternative:** one `progress` role checked against `accent` and `surface` at 3:1, so the edge is the same colour on every intent. No current primitive passes both in light.
 
 ## A UI spec can write `pending`
 

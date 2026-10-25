@@ -55,7 +55,7 @@ States, each distinct from rest:
 | | pending | `relative overflow-hidden` (the edge's box and its clip to the corners) |
 | `edge` | pending | `absolute inset-x-0 bottom-0 h-edge origin-left animate-progress-fill motion-reduce:animate-none` |
 | `sweep` | pending | `block size-full animate-progress-sweep motion-reduce:animate-none` |
-| | `primary` | `bg-on-accent` |
+| | `primary` | `bg-progress` |
 | | `secondary`, `quiet` | `bg-accent` |
 
 Only secondary has a border, and it keeps it, transparent, when disabled, so enabling it doesn't shift its width. (The first build gave every intent a transparent border so the three matched widths; the critique cut it as the one accessory, which also seats primary's edge on its bottom row.) Radius `rounded-control` (6px) is the radius table's "Buttons". Disabled quiet takes the disabled fill too: a disabled quiet button with no fill would read as plain muted text.

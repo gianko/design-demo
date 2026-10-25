@@ -17,7 +17,7 @@ export const button = tv({
   },
   variants: {
     intent: {
-      primary: { sweep: "bg-on-accent" },
+      primary: { sweep: "bg-progress" },
       // Bordered whether or not it's disabled, so enabling it doesn't
       // change its width.
       secondary: { root: "border", sweep: "bg-accent" },

@@ -11,9 +11,9 @@
       "accent": { "$value": "{primitive.heather.480}" },
       "accent-hover": { "$value": "{primitive.heather.430}" },
       "accent-pressed": { "$value": "{primitive.heather.390}" },
-      "on-accent": {
-        "$description": "The progress edge on a primary button.",
-        "$value": "{primitive.neutral.995}",
+      "progress": {
+        "$description": "The progress edge on a primary button: the other theme's accent, so it never matches the page.",
+        "$value": "{primitive.heather.820}",
         "$extensions": {
           "design-demo": {
             "contrast": { "min": 3, "against": ["{color.bg.accent}"] }
