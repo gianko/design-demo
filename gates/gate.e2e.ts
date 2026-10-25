@@ -134,12 +134,21 @@ export const RawValue = { render: () => <p className="bg-[#fff]">Raw</p> };
 describe("in CI", () => {
   // A story nobody approved.
   const [missing] = rendersOf("gatefixtures-onepixel--before");
+  // Only the stories this suite checks, so it doesn't grow with the library.
+  const targets = [
+    "Placeholder",
+    ...readdirSync(join(repo, "gates/fixtures")).map((file) =>
+      file
+        .replace(/\.stories\.tsx$/, "")
+        .replace(/(?:^|-)(\w)/g, (_, letter: string) => letter.toUpperCase())
+    ),
+  ];
   let run: Run;
 
   beforeAll(() => {
-    seed([]);
+    seed(targets);
     rmSync(baseline(missing!));
-    run = gate([], { ci: true });
+    run = gate(targets, { ci: true });
   });
 
   it("passes the placeholder story against its committed baselines", () => {

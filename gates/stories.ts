@@ -19,27 +19,36 @@ type IndexEntry = { type: string; id: string; title: string; tags?: string[] };
 // disabled) can't show it and it also gets a mid-animation shot.
 export const animatesWhileIdle = "animates-while-idle";
 
-// `pnpm gate <Component|screen>` names a story title's last segment, so
-// "Button" picks "Button" and "Library/Button" but not "ButtonGroup". With no
-// target, every story is gated. A target that matches nothing is an error, so
-// a typo can't pass by gating nothing.
+// Each target of `pnpm gate <Component|screen>...` names a story title's last
+// segment, so "Button" picks "Button" and "Library/Button" but not
+// "ButtonGroup". With no target, every story is gated. A target that matches
+// nothing is an error, so a typo can't pass by gating nothing.
 export function selectStories(
   index: { entries: Record<string, IndexEntry> },
-  target?: string
+  targets: string[] = []
 ): Story[] {
-  const stories = Object.values(index.entries)
-    .filter((entry) => entry.type === "story")
-    .filter((entry) => !target || entry.title.split("/").at(-1) === target)
-    .map(({ id, tags = [] }) => ({ id, tags }));
-  if (stories.length === 0) {
-    throw new Error(
-      target
-        ? `No story is titled "${target}" or ".../${target}".`
-        : "The Storybook build has no stories."
-    );
+  const entries = Object.values(index.entries).filter(
+    (entry) => entry.type === "story"
+  );
+  if (entries.length === 0) {
+    throw new Error("The Storybook build has no stories.");
   }
-  return stories;
+  const segment = (entry: IndexEntry) => entry.title.split("/").at(-1)!;
+  for (const target of targets) {
+    if (!entries.some((entry) => segment(entry) === target)) {
+      throw new Error(`No story is titled "${target}" or ".../${target}".`);
+    }
+  }
+  return entries
+    .filter((entry) => targets.length === 0 || targets.includes(segment(entry)))
+    .map(({ id, tags = [] }) => ({ id, tags }));
 }
+
+// How run.ts hands the targets to the Playwright pass in the image.
+export const targetsEnv = {
+  write: (targets: string[]) => targets.join(",") || undefined,
+  read: (value: string | undefined) => (value ? value.split(",") : []),
+};
 
 export function renders(stories: Story[]): Render[] {
   return stories.flatMap((story) =>
