@@ -210,14 +210,6 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --min-height-target: var(--ds-density-min-height-target);
   --size-icon: var(--ds-density-size-icon);
   --radius-surface: var(--ds-density-radius-surface);
-  --text-body: var(--ds-density-text-body-font-size);
-  --text-body--line-height: var(--ds-density-text-body-line-height);
-  --text-body--letter-spacing: var(--ds-density-text-body-letter-spacing);
-  --text-body--font-weight: var(--ds-density-text-body-font-weight);
-  --text-label: var(--ds-density-text-label-font-size);
-  --text-label--line-height: var(--ds-density-text-label-line-height);
-  --text-label--letter-spacing: var(--ds-density-text-label-letter-spacing);
-  --text-label--font-weight: var(--ds-density-text-label-font-weight);
   --spacing-0: var(--ds-space-0);
   --spacing-3xs: var(--ds-space-3xs);
   --spacing-2xs: var(--ds-space-2xs);
@@ -236,22 +228,6 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --radius-avatar: var(--ds-radius-avatar);
   --font-sans: var(--ds-type-family-sans);
   --default-font-family: var(--ds-type-family-sans);
-  --text-caption: var(--ds-type-caption-font-size);
-  --text-caption--line-height: var(--ds-type-caption-line-height);
-  --text-caption--letter-spacing: var(--ds-type-caption-letter-spacing);
-  --text-caption--font-weight: var(--ds-type-caption-font-weight);
-  --text-heading: var(--ds-type-heading-font-size);
-  --text-heading--line-height: var(--ds-type-heading-line-height);
-  --text-heading--letter-spacing: var(--ds-type-heading-letter-spacing);
-  --text-heading--font-weight: var(--ds-type-heading-font-weight);
-  --text-title: var(--ds-type-title-font-size);
-  --text-title--line-height: var(--ds-type-title-line-height);
-  --text-title--letter-spacing: var(--ds-type-title-letter-spacing);
-  --text-title--font-weight: var(--ds-type-title-font-weight);
-  --text-figure: var(--ds-type-figure-font-size);
-  --text-figure--line-height: var(--ds-type-figure-line-height);
-  --text-figure--letter-spacing: var(--ds-type-figure-letter-spacing);
-  --text-figure--font-weight: var(--ds-type-figure-font-weight);
   --ease-standard: var(--ds-motion-ease-standard);
   --ease-exit: var(--ds-motion-ease-exit);
   --ease-settle: var(--ds-motion-ease-settle);
@@ -263,7 +239,43 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --z-index-toast: var(--ds-z-toast);
 }
 
-/* Bare-value families get named utilities. */
+/* Bare-value families and text roles get named utilities. */
+@utility text-body {
+  font-size: var(--ds-density-text-body-font-size);
+  line-height: var(--ds-density-text-body-line-height);
+  letter-spacing: var(--ds-density-text-body-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-density-text-body-font-weight));
+}
+@utility text-label {
+  font-size: var(--ds-density-text-label-font-size);
+  line-height: var(--ds-density-text-label-line-height);
+  letter-spacing: var(--ds-density-text-label-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-density-text-label-font-weight));
+}
+@utility text-caption {
+  font-size: var(--ds-type-caption-font-size);
+  line-height: var(--ds-type-caption-line-height);
+  letter-spacing: var(--ds-type-caption-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-type-caption-font-weight));
+}
+@utility text-heading {
+  font-size: var(--ds-type-heading-font-size);
+  line-height: var(--ds-type-heading-line-height);
+  letter-spacing: var(--ds-type-heading-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-type-heading-font-weight));
+}
+@utility text-title {
+  font-size: var(--ds-type-title-font-size);
+  line-height: var(--ds-type-title-line-height);
+  letter-spacing: var(--ds-type-title-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-type-title-font-weight));
+}
+@utility text-figure {
+  font-size: var(--ds-type-figure-font-size);
+  line-height: var(--ds-type-figure-line-height);
+  letter-spacing: var(--ds-type-figure-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-type-figure-font-weight));
+}
 @utility duration-fast {
   transition-duration: var(--ds-motion-duration-fast);
   animation-duration: var(--ds-motion-duration-fast);

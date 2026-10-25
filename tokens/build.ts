@@ -790,15 +790,7 @@ function declarations(token: Resolved): [name: string, value: string][] {
 /** What the closed @theme maps for one token, or the @utility it gets instead. */
 function themeEntries(token: Token): string[] {
   const names = tokenNames(token.path);
-  if (!names.className) return [];
-  if (token.type === "typography") {
-    return [
-      `${names.themeKey}: var(${names.cssVar}-font-size);`,
-      `${names.themeKey}--line-height: var(${names.cssVar}-line-height);`,
-      `${names.themeKey}--letter-spacing: var(${names.cssVar}-letter-spacing);`,
-      `${names.themeKey}--font-weight: var(${names.cssVar}-font-weight);`,
-    ];
-  }
+  if (!names.className || token.type === "typography") return [];
   const entries = names.themeKey
     ? [`${names.themeKey}: ${names.codeSyntax};`]
     : [];
@@ -810,12 +802,30 @@ function themeEntries(token: Token): string[] {
 
 function utility(token: Token): string | undefined {
   const names = tokenNames(token.path);
+  if (token.type === "typography")
+    return textUtility(names.className!, names.cssVar);
   if (names.themeKey || !names.className) return undefined;
   const property = names.family === "delay" ? "delay" : "duration";
   return [
     `@utility ${names.className} {`,
     `  transition-${property}: ${names.codeSyntax};`,
     `  animation-${property}: ${names.codeSyntax};`,
+    `}`,
+  ].join("\n");
+}
+
+// A text role is an @utility, not an @theme --text-<role>: Tailwind compiles
+// the theme's line height and tracking behind --tw-leading and --tw-tracking,
+// and a capture binds a property by code syntax only on a plain var(--ds-*)
+// (#104). Weight keeps Tailwind's fallback; captures bind it by value to the
+// two shared weights (ADR 0007).
+function textUtility(className: string, cssVar: string): string {
+  return [
+    `@utility ${className} {`,
+    `  font-size: var(${cssVar}-font-size);`,
+    `  line-height: var(${cssVar}-line-height);`,
+    `  letter-spacing: var(${cssVar}-letter-spacing);`,
+    `  font-weight: var(--tw-font-weight, var(${cssVar}-font-weight));`,
     `}`,
   ].join("\n");
 }
@@ -875,7 +885,7 @@ function emitCss(files: Map<string, Resolved[]>, keyframes: string): string {
     ...themed.flatMap(themeEntries).map((line) => `  ${line}`),
     "}",
     "",
-    "/* Bare-value families get named utilities. */",
+    "/* Bare-value families and text roles get named utilities. */",
     ...themed.flatMap((token) => utility(token) ?? []),
     focusRingUtility(),
     "",
