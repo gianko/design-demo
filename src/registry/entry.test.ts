@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { tv } from "tailwind-variants/lite";
 import { expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
@@ -108,4 +109,19 @@ it("leaves a code-only prop out of what a UI spec node may give", () => {
   const entry = defineEntry({ ...pendingButton, codeOnly: ["pending"] });
 
   expect(Object.keys(specProps(entry).shape)).toEqual(["label"]);
+});
+
+it("types an entry with no props of its own as an empty object, so slot props can join it", () => {
+  const entry = defineEntry({
+    name: "Card",
+    use: "Groups the facts about one thing.",
+    props: z.object({}),
+    slots: { header: {} },
+  });
+
+  expectTypeOf<PropsOf<typeof entry>>().toEqualTypeOf<Record<never, never>>();
+  expectTypeOf<{ header: ReactNode }>().toExtend<
+    PropsOf<typeof entry> & { header?: ReactNode }
+  >();
+  expect(entry.props.parse({})).toEqual({});
 });

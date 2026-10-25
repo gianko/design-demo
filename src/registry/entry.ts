@@ -85,5 +85,10 @@ export function specProps(entry: RegistryEntry): z.ZodObject {
   return entry.props.omit(omitted as never);
 }
 
+// Keeps an object type's named keys, dropping a string index signature.
+type NamedKeys<T> = { [K in keyof T as string extends K ? never : K]: T[K] };
+
 // The component's props type, so the component and its entry can't drift.
-export type PropsOf<E extends RegistryEntry> = z.infer<E["props"]>;
+// Zod infers an empty props object as Record<string, never>, whose index
+// signature would forbid every slot prop, so only named keys are kept.
+export type PropsOf<E extends RegistryEntry> = NamedKeys<z.infer<E["props"]>>;
