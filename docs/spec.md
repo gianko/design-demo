@@ -146,13 +146,15 @@ The library's `ScreenHost`, its hooks `useScreenState`, `useAction` and `useFixt
 
 The generated one-call script and its thin driving skill, exactly as [ADR 0007](adr/0007-figma-sync-is-a-generated-one-call-script.md) shapes them, writing into [Dill Demo](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo).
 
-**Done when:** a sync reports created and updated counts; an immediate dry-run reports zero changes; a tampered script throws on its checksum and writes nothing.
+**Done when:** a sync reports created and updated counts and zero remaining changes; a tampered script throws on its checksum and writes nothing.
 
 ### Capture
 
 The capture script in `.storybook/preview-head.html` and the prompt that runs `generate_figma_design` against Storybook's standalone iframe ([ADR 0007](adr/0007-figma-sync-is-a-generated-one-call-script.md)), with Color and Density modes set explicitly.
 
 **Done when:** Dill Demo holds the kept payment-status screen in light and dark × its four states, and a read-only `boundVariables` walk reports colour, spacing, radius and type bound to variables.
+
+[#59](https://github.com/gianko/design-demo/issues/59) built the capture against the kept smoke screen, which has no rounded corners, so radius went unchecked. The payment-status capture above, after the component pieces, is what checks it.
 
 ## Component pieces
 
@@ -176,7 +178,7 @@ The slice is done when all of these hold:
 1. CI is green on main with all eight components and the kept payment-status screen, every story baselined in light/dark × admin/contractor.
 2. `pnpm generate evals/briefs/payment-status.md` ends `passed` with its pass criteria met in **3 of 3** separate runs.
 3. The stubbed Vitest tests show fail → repair turn → pass for each generator step.
-4. `figma:sync-tokens` dry-run reports zero changes after a sync.
+4. A `figma:sync-tokens` apply reports zero remaining changes.
 5. Dill Demo holds the bound captures from **Capture**.
 6. The smoke brief's kept screen, baselines and Figma frames are gone; the smoke brief remains.
 

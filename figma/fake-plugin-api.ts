@@ -14,7 +14,15 @@ type Effect = {
 
 const scopeless = ["TIMING", "EASING"];
 
-export function fakePluginApi(fonts: FontName[] = instrumentSans) {
+export function fakePluginApi(
+  fonts: FontName[] = instrumentSans,
+  {
+    ignoreWritesTo = [],
+  }: {
+    /** Variables whose setValueForMode silently keeps the old value. */
+    ignoreWritesTo?: string[];
+  } = {}
+) {
   let nextId = 1;
   const id = (prefix: string) => `${prefix}:${nextId++}`;
   const collections: Collection[] = [];
@@ -89,6 +97,7 @@ export function fakePluginApi(fonts: FontName[] = instrumentSans) {
       ) {
         throw new Error(`in setValueForMode: no variable ${alias.id}`);
       }
+      if (ignoreWritesTo.includes(this.name)) return;
       this.values[modeId] = structuredClone(value);
     }
     setVariableCodeSyntax(platform: string, value: string) {

@@ -28,13 +28,12 @@ Run `pnpm figma:sync-tokens`, adding `--prune <id>,<id>` for the IDs they named,
 
 Report `counts` and `pruned`. `unbound` lists style fields that didn't stay bound after the write: it should be empty, so if it isn't, show it to the human.
 
-## 4. Confirm with a dry run
-
-Repeat step 2. The sync is done when this dry run reports `counts.changes` 0. Anything else, show it to the human and stop.
+The apply diffs the file again after writing and returns that diff as `remaining`. The sync is done when the call returns: a `remaining` with changes would have thrown.
 
 ## When a call throws
 
 - **Checksum mismatch**: the `code` you passed didn't match the file byte for byte, so nothing was written. Read the file again and pass it unchanged.
 - **Over the 50,000-char limit**: `pnpm figma:sync-tokens` fails before you call anything. `--split` writes one script per collection plus one for styles, to run in order. Each is atomic, but the sync as a whole isn't, so ask the human first.
+- **After writing, a name still differs**: Figma took the call but didn't keep that value, and rolled everything back. Show the names to the human; a second apply would hit the same wall.
 - **A variable whose type changed**: the error names its ID. It is replaced only once pruned, so put the ID to the human as a prune.
 - **Anything else**: show the error. Figma rolled the call back.

@@ -51,6 +51,7 @@ type Report = {
   orphans: { kind: string; name: string; id: string }[];
   pruned: { kind: string; name: string; id: string }[];
   unbound: string[];
+  remaining?: Report["counts"];
 };
 
 describe("a sync into an empty file", () => {
@@ -115,6 +116,24 @@ describe("a sync into an empty file", () => {
 
     expect(dryRun!.created).toEqual(applied!.created);
     expect(dryRun!.dryRun).toBe(true);
+  });
+
+  // An apply diffs the file again after writing, so no confirming dry run
+  // has to be re-typed into use_figma (ADR 0007: no verification read).
+  it("reports what it left to change, which is nothing", async () => {
+    const file = fakePluginApi();
+
+    const [report] = await sync(file);
+
+    expect(report!.remaining).toMatchObject({ changes: 0 });
+  });
+
+  it("throws on a write that didn't stick, so Figma keeps none of it", async () => {
+    const file = fakePluginApi(undefined, { ignoreWritesTo: ["space/sm"] });
+
+    await expect(sync(file)).rejects.toThrow(
+      "figma:sync-tokens: after writing, space/sm (value:Value) still differs"
+    );
   });
 });
 

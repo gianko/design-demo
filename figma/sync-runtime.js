@@ -43,6 +43,24 @@ async function syncTokens(RUN, PAYLOAD, CHECKSUM) {
       `figma:sync-tokens: checksum mismatch, the data hashes to ${actual}, not ${CHECKSUM}. The script changed on its way here, so nothing was written; pass the generated file verbatim.`
     );
   }
+  const report = await syncPass(RUN, PAYLOAD);
+  if (RUN.dryRun) return report;
+
+  // An apply diffs the file again, so its own report proves the sync landed
+  // and no confirming dry run is needed. A difference throws, and use_figma
+  // rolls the whole call back.
+  const check = await syncPass({ dryRun: true, prune: [] }, PAYLOAD);
+  if (check.counts.changes) {
+    throw new Error(
+      `figma:sync-tokens: after writing, ${[...check.created, ...check.updated].join(", ")} still differs, so nothing was kept.`
+    );
+  }
+  report.remaining = check.counts;
+  return report;
+}
+
+// One diff of PAYLOAD against the file, writing what differs unless dry.
+async function syncPass(RUN, PAYLOAD) {
   const write = !RUN.dryRun;
   const report = {
     dryRun: RUN.dryRun,
