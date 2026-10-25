@@ -2,14 +2,6 @@
 
 Each entry is one place the brief, ADRs or tokens didn't decide something Button needed, the call made, and the alternative a human might prefer.
 
-## Quiet Button's hover barely shows on the light page
-
-**Undecided:** the brief gives a neutral control `surface-hover` and `surface-pressed`, but no quiet (unfilled) control. A quiet Button sits straight on `page`. In light, `surface-hover` (L 0.975) is one step from `page` (L 0.985), so its hover is barely visible in the contact sheet (`components-button--quiet--light-*--hover.png`). Dark is clearer.
-
-**Call:** quiet uses the same `surface-hover` and `surface-pressed` as secondary, so it has one neutral state ramp.
-
-**Alternative:** a deeper quiet hover, such as `surface-pressed` for hover and a new, deeper step for pressed, or a `surface-hover` that is darker in light mode for every neutral control.
-
 ## Quiet Button at rest looks like a label
 
 **Undecided:** the spec asks for a quiet intent, and the brief keeps the accent for primary actions only. With no fill, no border and ink text at 600, a quiet Button at rest looks the same as a level 3 Heading or a field label. Nothing tells the eye it can be pressed until hover.

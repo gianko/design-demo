@@ -26,6 +26,27 @@ it("leaves the committed outputs as a fresh build writes them", async () => {
   expect(await readFile(`${tokensDir}figma.json`, "utf8")).toBe(built.figma);
 });
 
+// A quiet control sits straight on `page`, a secondary one on `surface`; one
+// step of 0.01 lightness from either was invisible in the contact sheet (#133).
+it("deepens a light neutral control's hover visibly off page and surface, and pressed again", () => {
+  const light = blockOf(built.css, '[data-theme="light"]');
+  const lightness = (role: string) =>
+    Number(
+      light.match(new RegExp(`--ds-color-bg-${role}: oklch\\(([0-9.]+) `))?.[1]
+    );
+  const visible = 0.03;
+
+  expect(lightness("page") - lightness("surface-hover")).toBeGreaterThan(
+    visible
+  );
+  expect(lightness("surface") - lightness("surface-hover")).toBeGreaterThan(
+    visible
+  );
+  expect(
+    lightness("surface-hover") - lightness("surface-pressed")
+  ).toBeGreaterThan(visible);
+});
+
 describe("the naming chain", () => {
   // One token per family, as ADR 0005 spells the chain out.
   const examples: [path: string, mode: string][] = [
