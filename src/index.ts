@@ -11,4 +11,5 @@ export {
   type ScreenHostProps,
   type ScreenStateParameters,
 } from "./components/Screen/screen-state.tsx";
+export { Stack, type StackProps } from "./components/Stack/Stack.tsx";
 export { Text, type TextProps } from "./components/Text/Text.tsx";
