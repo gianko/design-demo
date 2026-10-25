@@ -27,7 +27,7 @@ export interface Tracker {
   block(issue: number, by: number): void;
   // Returns the PR's number.
   openPullRequest(pr: PullRequest): number;
-  // An open PR closes the issue.
+  // Some open PR will close the issue when it merges.
   hasOpenPullRequest(issue: number): boolean;
 }
 

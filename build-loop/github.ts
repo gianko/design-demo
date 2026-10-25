@@ -189,20 +189,26 @@ export function githubTracker(
     },
 
     block(issue, by) {
-      const id = call(["api", `repos/${repo}/issues/${by}`, "--jq", ".id"]);
+      const id = call([
+        "api",
+        `repos/${repo}/issues/${by}`,
+        "--jq",
+        ".id",
+      ]).trim();
       const edges = `repos/${repo}/issues/${issue}/dependencies/blocked_by`;
-      const blocked = () => {
+      const add = () => {
+        gh(["api", "--method", "POST", edges, "-F", `issue_id=${id}`]);
+        return true;
+      };
+      const added = () => {
         const blockers: { id: number }[] = JSON.parse(
           gh(["api", `${edges}?per_page=100`])
         );
-        return blockers.some((blocker) => String(blocker.id) === id.trim())
-          ? "{}"
-          : undefined;
+        return (
+          blockers.some((blocker) => String(blocker.id) === id) || undefined
+        );
       };
-      call(
-        ["api", "--method", "POST", edges, "-F", `issue_id=${id.trim()}`],
-        blocked
-      );
+      retrying(add, added);
     },
     openPullRequest({ branch, title, body }) {
       const opened = () => {
