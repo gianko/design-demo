@@ -54,7 +54,7 @@ States, each distinct from rest:
 | | disabled (any intent) | `bg-disabled text-disabled` (secondary keeps its `border`, as `border-transparent`), and no hover or pressed classes |
 | | pending | `relative overflow-hidden` (the edge's box and its clip to the corners) |
 | `edge` | pending | `absolute inset-x-0 bottom-0 h-edge origin-left animate-progress-fill motion-reduce:animate-none` |
-| `sweep` | pending | `block h-full w-1/3 translate-x-full animate-progress-sweep motion-reduce:animate-none` |
+| `sweep` | pending | `block h-full w-0 animate-progress-sweep motion-reduce:w-1/3 motion-reduce:translate-x-full motion-reduce:animate-none` |
 | | `primary` | `bg-progress` |
 | | `secondary`, `quiet` | `bg-accent` |
 
@@ -77,7 +77,7 @@ Only secondary has a border, and it keeps it, transparent, when disabled, so ena
 | starts an action (pending) | the edge fills once, left to right, over `slow` with `standard` (`animate-progress-fill`), then sweeps, one `loop` per pass, linear, until pending ends (`animate-progress-sweep`) |
 | result arrives | pending ends with the screen-state View Transition (ADR 0011); the edge leaves with it |
 
-Reduced motion: `motion-reduce:animate-none` on both edge parts leaves a static edge, as the brief says: the sweep's rest style, the middle third, so a still edge reads as busy rather than as a bottom border. The gate's rest shot shows the same frame. While the sweep runs, its keyframes set it to full width, and its `backwards` fill holds that during its delay. The colour transitions are already a `fast` crossfade. No `settle`: nothing the Button shows is a confirmed result.
+Reduced motion: `motion-reduce:animate-none` on both edge parts leaves a static edge, as the brief says: `motion-reduce:` sets the sweep to the middle third, so a still edge reads as busy rather than as a bottom border. Without reduced motion the sweep has no width at rest, so the gate's still shots (rest, focus, hover, pressed) show no line; only the mid-animation shot shows the edge, and no shot shows the reduced-motion edge. While the sweep runs, its keyframes set it to full width, and its `backwards` fill holds that during its delay. The colour transitions are already a `fast` crossfade. No `settle`: nothing the Button shows is a confirmed result.
 
 ## Against defaults
 

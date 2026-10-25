@@ -8,16 +8,17 @@ import type { buttonEntry } from "./Button.registry.ts";
 // replaces the intent's colours. Pending keeps the label and the rest colours
 // and adds the progress edge along the bottom: `edge` fills once, then
 // `sweep`, inside it, loops until pending ends. They are two elements so the
-// sweep slides within the box the fill scales. At rest the sweep is the middle
-// third of the edge, so a still edge (reduced motion, or the gate's rest shot)
-// reads as busy, not as a bottom border; its keyframes widen it to the full
-// edge while it runs.
+// sweep slides within the box the fill scales. At rest the sweep has no width,
+// so a still shot (the gate's rest shot) shows no line, and its keyframes widen
+// it to the full edge while it runs. Reduced motion stops the sweep and shows
+// the middle third instead: a static edge that reads as busy, not as a bottom
+// border.
 export const button = tv({
   slots: {
     root: "inline-flex h-control items-center justify-center rounded-control px-control text-label whitespace-nowrap transition-colors duration-fast ease-standard focus-visible:focus-ring",
     edge: "absolute inset-x-0 bottom-0 h-edge origin-left animate-progress-fill motion-reduce:animate-none",
     sweep:
-      "block h-full w-1/3 translate-x-full animate-progress-sweep motion-reduce:animate-none",
+      "block h-full w-0 animate-progress-sweep motion-reduce:w-1/3 motion-reduce:translate-x-full motion-reduce:animate-none",
   },
   variants: {
     intent: {
