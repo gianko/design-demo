@@ -5,10 +5,12 @@
 
 import { describe, expect, it } from "vitest";
 import { codePrompt, specPrompt } from "./prompts.ts";
-import type { LibraryRegistry } from "./registry.ts";
+import { type LibraryRegistry, loadRegistry } from "./registry.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
 
-const registry = { serialized: "[]" } as LibraryRegistry;
+const registry = {
+  serialized: { spec: "[]", code: '["code"]' },
+} as LibraryRegistry;
 
 const brief: ScreenBrief = {
   audience: "contractor",
@@ -28,6 +30,12 @@ const fixtures = {
 // ADR 0004: the code step wires data. Bound props and operation arguments
 // read the host's fixture variant through the library's hook.
 describe("codePrompt", () => {
+  it("embeds the code step's registry in its cached prefix", () => {
+    const { system } = codePrompt("# Design brief", registry);
+
+    expect(system.at(-1)!.text).toBe('<registry>\n["code"]\n</registry>');
+  });
+
   it("wires bound props and operation arguments through useFixtureData", () => {
     const [instructions] = codePrompt("# Design brief", registry).system;
 
@@ -73,5 +81,36 @@ describe("specPrompt", () => {
       "<wire_schema>\n{}\n</wire_schema>",
     ]);
     expect(changed.hash).not.toBe(prompt.hash);
+  });
+});
+
+// ADR 0011: the code step sets Button's pending from useAction, so only the
+// code step's registry has it.
+describe("Button's pending", () => {
+  type Entry = {
+    name: string;
+    props: { properties: object };
+    codeOnly?: string[];
+  };
+  // Button's entry in a prompt's <registry> block.
+  const button = (block: { text: string }) => {
+    const json = block.text.replace(/^<registry>\n|\n<\/registry>$/g, "");
+    return (JSON.parse(json) as Entry[]).find(({ name }) => name === "Button")!;
+  };
+
+  it("is left out of the spec step's registry", async () => {
+    const library = await loadRegistry();
+    const { system } = specPrompt("# Design brief", library, "{}", fixtures);
+
+    expect(button(system[2]!).props.properties).not.toHaveProperty("pending");
+    expect(button(system[2]!)).not.toHaveProperty("codeOnly");
+  });
+
+  it("is in the code step's registry, marked as set by the code step", async () => {
+    const library = await loadRegistry();
+    const { system } = codePrompt("# Design brief", library);
+
+    expect(button(system[2]!).props.properties).toHaveProperty("pending");
+    expect(button(system[2]!).codeOnly).toEqual(["pending"]);
   });
 });

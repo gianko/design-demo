@@ -35,13 +35,54 @@ export type RegistryEntry<
   // One line telling the spec step when to reach for this component.
   use: string;
   props: P;
+  // Props only the code step sets, such as Button's pending from useAction
+  // (ADR 0011). They stay in props, so the component's props type has them,
+  // but the spec step never sees them and gate 1 rejects them on a UI spec
+  // node like any prop the component doesn't take.
+  codeOnly?: readonly string[];
   slots?: Record<string, Slot>;
 };
 
+// An entry whose codeOnly names only its own props. The narrowing lives here
+// rather than in RegistryEntry, where `keyof` would keep a specific entry
+// from widening to RegistryEntry.
+type CodeOnlyOwnPropsEntry<
+  N extends string,
+  P extends z.ZodObject,
+> = RegistryEntry<N, P> & { codeOnly?: readonly (keyof P["shape"] & string)[] };
+
 export function defineEntry<const N extends string, P extends z.ZodObject>(
-  entry: RegistryEntry<N, P>
-): RegistryEntry<N, P> {
+  entry: CodeOnlyOwnPropsEntry<N, P>
+): CodeOnlyOwnPropsEntry<N, P> {
+  for (const name of entry.codeOnly ?? []) {
+    if (!Object.hasOwn(entry.props.shape, name)) {
+      throw new Error(
+        `${entry.name} marks "${name}" code-only, but has no such prop`
+      );
+    }
+    // specProps omits code-only props, and Zod 4 can't omit() from an object
+    // with a top-level refine, which reads the whole object.
+    if (entry.props.def.checks?.length) {
+      throw new Error(
+        `${entry.name} marks "${name}" code-only, but its props have a refinement, which Zod can't keep once a prop is omitted`
+      );
+    }
+  }
   return entry;
+}
+
+// The props a UI spec node may give: the entry's props without its
+// code-only ones.
+export function specProps(entry: RegistryEntry): z.ZodObject {
+  if (!entry.codeOnly?.length) {
+    return entry.props;
+  }
+  const omitted = Object.fromEntries(
+    entry.codeOnly.map((name) => [name, true] as const)
+  );
+  // omit() types its mask against a known shape, which a RegistryEntry's
+  // props don't have; defineEntry has already checked the names.
+  return entry.props.omit(omitted as never);
 }
 
 // The component's props type, so the component and its entry can't drift.

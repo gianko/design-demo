@@ -61,8 +61,8 @@
   --ds-color-bg-page: oklch(0.985 0.004 330);
   --ds-color-bg-surface: oklch(0.995 0.003 330);
   --ds-color-bg-surface-raised: oklch(0.97 0.006 330);
-  --ds-color-bg-surface-hover: oklch(0.975 0.006 330);
-  --ds-color-bg-surface-pressed: oklch(0.94 0.01 330);
+  --ds-color-bg-surface-hover: oklch(0.95 0.006 330);
+  --ds-color-bg-surface-pressed: oklch(0.9 0.012 330);
   --ds-color-bg-selected: oklch(0.95 0.025 330);
   --ds-color-bg-accent: oklch(0.48 0.085 330);
   --ds-color-bg-accent-hover: oklch(0.43 0.085 330);

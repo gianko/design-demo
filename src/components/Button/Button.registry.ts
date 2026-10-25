@@ -23,8 +23,9 @@ export const buttonEntry = defineEntry({
     pending: z
       .boolean()
       .optional()
-      .describe(
-        "The code step sets this from the running action; never write it in a UI spec."
-      ),
+      .describe("The running action's pending, from useAction."),
   }),
+  // The code step sets pending from useAction (ADR 0011); the UI spec names
+  // the pending node through actions[].pending instead.
+  codeOnly: ["pending"],
 });

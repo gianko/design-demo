@@ -28,7 +28,7 @@ const stubPanel = defineEntry({
 const baseline = defineRegistry([stubTag, stubPanel]);
 
 it("serializes names, use lines, JSON Schema props and slots", () => {
-  expect(baseline.serialized).toMatchInlineSnapshot(`
+  expect(baseline.serialized.spec).toMatchInlineSnapshot(`
       "[
         {
           "name": "Panel",
@@ -89,9 +89,61 @@ it("serializes names, use lines, JSON Schema props and slots", () => {
 });
 
 it("serializes the same entries the same way in any order", () => {
-  expect(defineRegistry([stubPanel, stubTag]).serialized).toBe(
+  expect(defineRegistry([stubPanel, stubTag]).serialized).toEqual(
     baseline.serialized
   );
+});
+
+it("shows both steps the same registry when no prop is code-only", () => {
+  expect(baseline.serialized.code).toBe(baseline.serialized.spec);
+});
+
+const stubButton = defineEntry({
+  name: "Button",
+  use: "Starts an action.",
+  props: z.object({
+    label: z.string(),
+    pending: z.boolean().optional().describe("Shows the running action."),
+  }),
+  codeOnly: ["pending"],
+});
+
+it("leaves a code-only prop out of the spec step's registry, and marks it in the code step's", () => {
+  const { serialized } = defineRegistry([stubButton]);
+
+  expect(JSON.parse(serialized.spec)).toEqual([
+    {
+      name: "Button",
+      use: "Starts an action.",
+      props: {
+        type: "object",
+        properties: { label: { type: "string" } },
+        required: ["label"],
+        additionalProperties: false,
+      },
+      slots: {},
+    },
+  ]);
+  expect(JSON.parse(serialized.code)).toEqual([
+    {
+      name: "Button",
+      use: "Starts an action.",
+      props: {
+        type: "object",
+        properties: {
+          label: { type: "string" },
+          pending: {
+            type: "boolean",
+            description: "Shows the running action.",
+          },
+        },
+        required: ["label"],
+        additionalProperties: false,
+      },
+      codeOnly: ["pending"],
+      slots: {},
+    },
+  ]);
 });
 
 it("keeps its hash while the entries stay the same", () => {
@@ -135,6 +187,9 @@ it.each([
     ],
   ],
   ["a name", [{ ...stubTag, name: "StatusTag" }, stubPanel]],
+  // Only the spec step's registry changes, and the code step's only by the
+  // mark.
+  ["a prop's code-only mark", [{ ...stubTag, codeOnly: ["label"] }, stubPanel]],
 ])("changes its hash when %s changes", (_, changed) => {
   expect(defineRegistry(changed).hash).not.toBe(baseline.hash);
 });

@@ -689,7 +689,7 @@
           "css": true,
           "valuesByMode": {
             "Light": {
-              "alias": "primitive/neutral/975"
+              "alias": "primitive/neutral/950"
             },
             "Dark": {
               "alias": "primitive/neutral/270"
@@ -706,7 +706,7 @@
           "css": true,
           "valuesByMode": {
             "Light": {
-              "alias": "primitive/neutral/940"
+              "alias": "primitive/neutral/900"
             },
             "Dark": {
               "alias": "primitive/neutral/310"

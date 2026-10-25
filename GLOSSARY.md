@@ -53,8 +53,12 @@ The typed JSON description of a screen, produced from a screen brief before any 
 _Avoid_: Spec (unqualified), schema, layout JSON
 
 **Registry**:
-The machine-readable list of library components, their props, slots and usage, that a UI spec is validated against; each component's props are defined by its registry entry.
+The machine-readable list of library components, their props, slots and usage, that a UI spec is validated against; each component's props are defined by its registry entry, and a UI spec may give any of them except the code-only ones.
 _Avoid_: Catalog, manifest
+
+**Code-only prop**:
+A registry prop that a UI spec never gives and the code step sets, e.g. Button's `pending`, which the code step takes from the running action.
+_Avoid_: Hidden prop, internal prop, runtime prop
 
 **Fixtures**:
 The one fixed, typed set of sample contractors, invoices and payments that every generated screen renders, including the variants its screen states use.
