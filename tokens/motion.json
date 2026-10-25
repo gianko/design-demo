@@ -71,7 +71,9 @@
           "timingFunction": "{motion.ease.linear}"
         },
         "$extensions": {
-          "design-demo": { "animation": { "iterations": "infinite" } }
+          "design-demo": {
+            "animation": { "iterations": "infinite", "fillMode": "backwards" }
+          }
         }
       }
     }
