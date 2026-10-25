@@ -20,7 +20,7 @@ Registry slots and their allow-lists (ADR 0004: "an allow-list where nonsense is
 | Slot | Allows | Why |
 |---|---|---|
 | `header` | Heading, Text, StatusTag, Stack | A title, maybe beside its status in a row. Money and actions don't go in a title. |
-| `body` | any | The card's content. Nested cards are taste lint's job (`nested-cards`). |
+| `body` | any | The card's content. Gate 1's `nested-cards` fails a Card anywhere beneath another Card, through any slot. |
 | `footer` | Button, Text, Stack | The card's action, or a short note under it. |
 
 Props: none besides the slots. Spec § Component pieces 8 asks for a surface and three named slots, and nothing else.

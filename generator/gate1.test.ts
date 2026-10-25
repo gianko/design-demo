@@ -65,6 +65,22 @@ const entries = [
     props: z.object({}),
     slots: { body: {} },
   }),
+  defineEntry({
+    name: "Card",
+    use: "A surface.",
+    props: z.object({}),
+    slots: {
+      header: { allow: ["Heading", "Tag", "Stack"] },
+      body: {},
+      footer: { allow: ["Button", "Stack"] },
+    },
+  }),
+  defineEntry({
+    name: "Stack",
+    use: "Lays out nodes.",
+    props: z.object({}),
+    slots: { body: {} },
+  }),
 ];
 
 // Two variants with the invoice, one without.
@@ -644,6 +660,78 @@ describe("gate 1", () => {
       );
 
       expect(check(spec)).toEqual([["action-bar-button", "idle-button"]]);
+    });
+  });
+
+  describe("nested cards", () => {
+    function withCard() {
+      const spec = clean();
+      spec.nodes.push(
+        node("card", "Card", "screen", "body"),
+        node("card-title", "Heading", "card", "header", {
+          text: "Invoice",
+          level: 2,
+        })
+      );
+      return spec;
+    }
+
+    it("fails a Card in another Card's body, naming the inner Card", () => {
+      const spec = withCard();
+      spec.nodes.push(node("inner", "Card", "card", "body"));
+
+      expect(check(spec)).toEqual([["nested-cards", "inner"]]);
+    });
+
+    it.each(["header", "body", "footer"])(
+      "fails a Card inside a Stack in another Card's %s",
+      (slot) => {
+        const spec = withCard();
+        spec.nodes.push(
+          node("row", "Stack", "card", slot),
+          node("inner", "Card", "row", "body")
+        );
+
+        expect(check(spec)).toEqual([["nested-cards", "inner"]]);
+      }
+    );
+
+    it("fails a Card two Stacks deep in another Card's footer", () => {
+      const spec = withCard();
+      spec.nodes.push(
+        node("column", "Stack", "card", "footer"),
+        node("row", "Stack", "column", "body"),
+        node("inner", "Card", "row", "body")
+      );
+
+      expect(check(spec)).toEqual([["nested-cards", "inner"]]);
+    });
+
+    it("passes Cards side by side under a Screen and in a Stack", () => {
+      const spec = withCard();
+      spec.nodes.push(
+        node("second", "Card", "screen", "body"),
+        node("row", "Stack", "screen", "body"),
+        node("third", "Card", "row", "body"),
+        node("fourth", "Card", "row", "body")
+      );
+
+      expect(check(spec)).toEqual([]);
+    });
+
+    it("ends its walk on Cards whose parents loop", () => {
+      const spec = withCard();
+      spec.nodes.push(
+        node("a", "Card", "b", "body"),
+        node("b", "Card", "a", "body")
+      );
+
+      expect(check(spec)).toEqual([
+        ["no-cycles", "a"],
+        ["no-cycles", "b"],
+        ["nested-cards", "a"],
+        ["nested-cards", "b"],
+      ]);
     });
   });
 
