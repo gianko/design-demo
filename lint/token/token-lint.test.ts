@@ -64,7 +64,7 @@ describe("token lint", () => {
       ["better-tailwindcss/no-restricted-classes", "h-px"],
       ["better-tailwindcss/no-restricted-classes", "bg-accent/50"],
       ["better-tailwindcss/no-restricted-classes", "opacity-0"],
-      ["better-tailwindcss/no-restricted-classes", "text-pretty"],
+      ["better-tailwindcss/no-restricted-classes", "hover:text-pretty"],
       ["better-tailwindcss/no-concatenated-classes", "gap-"],
       ["no-restricted-syntax", `style={{ color: "var(--ds-color-text-ink)" }}`],
       ["no-restricted-syntax", `stopColor="plum"`],

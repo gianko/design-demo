@@ -6,8 +6,8 @@ import type { buttonEntry } from "./Button.registry.ts";
 // An action. Intent sets the fill; hover and pressed deepen it one step each,
 // and only while the button can be pressed. Disabled keeps the intent's shape
 // and drains its colour: primary keeps a `disabled` fill, secondary its edge
-// in `disabled`, and quiet stays bare. Pending keeps the label and the rest colours
-// and adds the progress edge along the bottom: `edge` fills once, then
+// in `disabled`, and quiet stays bare. Pending keeps the label and the rest
+// colours and adds the progress edge along the bottom: `edge` fills once, then
 // `sweep`, inside it, loops until pending ends. They are two elements so the
 // sweep slides within the box the fill scales. At rest the sweep has no width,
 // so a still shot (the gate's rest shot) shows no line, and its keyframes widen

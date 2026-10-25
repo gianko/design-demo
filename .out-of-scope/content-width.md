@@ -1,6 +1,6 @@
 # A content width on Screen
 
-Screen sets no maximum content width, and Stack has no narrow-column option. Screen stays a plain padded block. The one component that bounds its own width is Card, which caps itself at `size.width.card` (#147).
+Screen sets no maximum content width, and Stack has no narrow-column option. Screen stays a plain padded block. The one component that bounds its own width is Card, which caps itself at `size.max-width.card` (#147).
 
 ## Why this is out of scope
 
