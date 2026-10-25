@@ -8,6 +8,21 @@
 @import "@fontsource/instrument-sans/400.css";
 @import "@fontsource/instrument-sans/600.css";
 
+/* Wrapping, set once here rather than in each component (lint/taste/RULES.md:
+   straggler, unbalanced-heading): a heading Heading renders balances its
+   lines, and a paragraph Text renders keeps its last word company. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
 /* Screen-state changes (ADR 0011). Every change is a View Transition, run by
    the library's useScreenState and useAction: a crossfade at `base`, the old
    view leaving at its exit duration and easing. `ease-settle` runs only under

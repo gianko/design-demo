@@ -53,6 +53,7 @@ describe("token lint", () => {
       await lint("library-violations.tsx", "src/fixture/Violations.tsx")
     ).toEqual([
       ["better-tailwindcss/no-restricted-classes", "hover:bg-[#fff]"],
+      ["better-tailwindcss/no-restricted-classes", "text-balance"],
       ["better-tailwindcss/no-unknown-classes", "bg-ink"],
       ["better-tailwindcss/no-unknown-classes", "text-surface"],
       ["better-tailwindcss/no-unknown-classes", "border-ink"],
@@ -63,6 +64,7 @@ describe("token lint", () => {
       ["better-tailwindcss/no-restricted-classes", "h-px"],
       ["better-tailwindcss/no-restricted-classes", "bg-accent/50"],
       ["better-tailwindcss/no-restricted-classes", "opacity-0"],
+      ["better-tailwindcss/no-restricted-classes", "text-pretty"],
       ["better-tailwindcss/no-concatenated-classes", "gap-"],
       ["no-restricted-syntax", `style={{ color: "var(--ds-color-text-ink)" }}`],
       ["no-restricted-syntax", `stopColor="plum"`],
