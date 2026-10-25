@@ -12,6 +12,8 @@ The same holds for a Stack `justify: between` row, whose label and value can end
 
 A deliberate layout width, such as a narrow column for a form, is a separate need from line length. File it when a generated screen shows it: for example, if `invoice-review` still puts a label and its value about 1,000px apart once Card exists.
 
+That has now happened: Card fills a Screen's column, so at 1280px its header puts a title and its StatusTag more than 1,000px apart. #147 reopens the layout width, on Card or as a layout that sets columns. Line length stays with Text.
+
 ## Prior requests
 
 - #86: "Screen gap: No maximum content width"
