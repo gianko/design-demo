@@ -4,9 +4,10 @@ import type { PropsOf } from "../../registry/entry.ts";
 import type { buttonEntry } from "./Button.registry.ts";
 
 // An action. Intent sets the fill; hover and pressed deepen it one step each,
-// and only while the button can be pressed. Disabled is a flat neutral that
-// replaces the intent's colours. Pending keeps the label and the rest colours
-// and adds the progress edge along the bottom: `edge` fills once, then
+// and only while the button can be pressed. Disabled keeps the intent's shape
+// and drains its colour: primary keeps a `disabled` fill, secondary its edge
+// in `disabled`, and quiet stays bare. Pending keeps the label and the rest
+// colours and adds the progress edge along the bottom: `edge` fills once, then
 // `sweep`, inside it, loops until pending ends. They are two elements so the
 // sweep slides within the box the fill scales. At rest the sweep has no width,
 // so a still shot (the gate's rest shot) shows no line, and its keyframes widen
@@ -28,7 +29,7 @@ export const button = tv({
       secondary: { root: "border", sweep: "bg-accent" },
       quiet: { sweep: "bg-accent" },
     },
-    disabled: { true: { root: "bg-disabled text-disabled" }, false: {} },
+    disabled: { true: { root: "text-disabled" }, false: {} },
     pending: { true: { root: "relative overflow-hidden" }, false: {} },
   },
   compoundVariants: [
@@ -42,10 +43,11 @@ export const button = tv({
       disabled: false,
       class: { root: "border-control bg-surface text-ink" },
     },
+    { intent: "primary", disabled: true, class: { root: "bg-disabled" } },
     {
       intent: "secondary",
       disabled: true,
-      class: { root: "border-transparent" },
+      class: { root: "border-disabled bg-surface" },
     },
     { intent: "quiet", disabled: false, class: { root: "text-ink" } },
     {

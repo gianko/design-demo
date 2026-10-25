@@ -37,7 +37,7 @@ States, each distinct from rest:
 | hover | fill deepens one step | "`accent-hover` … deepen the accent; `surface-hover` … deepen a neutral control" |
 | pressed | fill deepens again | "`accent-pressed`", "`surface-pressed`" |
 | focus-visible | 2px heather outline, 2px off | "The focus ring shows on keyboard focus only" |
-| disabled | flat `disabled` fill and text, no edge | "`disabled` and its text are a flat, quiet neutral"; "natively disabled and leaves the tab order" |
+| disabled | the intent's shape, its colour drained: `disabled` text; primary a `disabled` fill, secondary its `surface` fill and a `disabled` edge, quiet bare | "`disabled` and its text are a flat, quiet neutral"; "A disabled control keeps its intent's shape"; "natively disabled and leaves the tab order" |
 | pending | rest colours, the progress edge along the bottom, no hover or pressed change | "a pending action shows a progress edge along its button's bottom"; "keeps its label as written" |
 
 ## Token map
@@ -51,14 +51,17 @@ States, each distinct from rest:
 | | `secondary`, not pending | `hover:bg-surface-hover active:bg-surface-pressed` |
 | | `quiet` | `text-ink` |
 | | `quiet`, not pending | `hover:bg-surface-hover active:bg-surface-pressed` |
-| | disabled (any intent) | `bg-disabled text-disabled` (secondary keeps its `border`, as `border-transparent`), and no hover or pressed classes |
+| | disabled (any intent) | `text-disabled`, and no hover or pressed classes |
+| | `primary`, disabled | `bg-disabled` |
+| | `secondary`, disabled | `border border-disabled bg-surface` |
+| | `quiet`, disabled | none: no fill and no edge |
 | | pending | `relative overflow-hidden` (the edge's box and its clip to the corners) |
 | `edge` | pending | `absolute inset-x-0 bottom-0 h-edge origin-left animate-progress-fill motion-reduce:animate-none` |
 | `sweep` | pending | `block h-full w-0 animate-progress-sweep motion-reduce:w-1/3 motion-reduce:translate-x-full motion-reduce:animate-none` |
 | | `primary` | `bg-progress` |
 | | `secondary`, `quiet` | `bg-accent` |
 
-Only secondary has a border, and it keeps it, transparent, when disabled, so enabling it doesn't shift its width. (The first build gave every intent a transparent border so the three matched widths; the critique cut it as the one accessory, which also seats primary's edge on its bottom row.) Radius `rounded-control` (6px) is the radius table's "Buttons". Disabled quiet takes the disabled fill too: a disabled quiet button with no fill would read as plain muted text.
+Only secondary has a border, and it keeps it, in `disabled`, when disabled, so it still reads as a button and enabling it doesn't shift its width. (The first build gave every intent a transparent border so the three matched widths; the critique cut it as the one accessory, which also seats primary's edge on its bottom row.) Radius `rounded-control` (6px) is the radius table's "Buttons". Disabled quiet stays bare (#145): a `disabled` fill made it more prominent than an enabled quiet button at rest, and the same fill as a hovered one.
 
 ## A11y contract
 

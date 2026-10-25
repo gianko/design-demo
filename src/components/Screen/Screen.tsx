@@ -10,9 +10,15 @@ import { useCurrentScreenState } from "./screen-state.tsx";
 // variant itself adds no class. `status` is the screen's one live region,
 // visually hidden, filled through `announce` (./announce.ts). The current
 // screen state comes from the ScreenHost around the screen
-// (./screen-state.tsx), not a prop, so the UI spec never sets it.
+// (./screen-state.tsx), not a prop, so the UI spec never sets it. The root is
+// at least the dynamic viewport's height, so the page colour fills the window
+// below a short screen, with no scroll from mobile browser chrome; a keyword
+// utility, as no token can hold a viewport unit.
 export const screen = tv({
-  slots: { root: "bg-page p-page text-body text-ink", status: "sr-only" },
+  slots: {
+    root: "min-h-dvh bg-page p-page text-body text-ink",
+    status: "sr-only",
+  },
   variants: { audience: { admin: {}, contractor: {} } },
 });
 

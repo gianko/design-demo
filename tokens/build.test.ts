@@ -58,12 +58,15 @@ describe("the naming chain", () => {
     ["space.sm", ":root"],
     ["radius.control", ":root"],
     ["density.padding.page", '[data-density="contractor"]'],
+    ["density.padding.surface", '[data-density="contractor"]'],
     ["density.height.control", '[data-density="contractor"]'],
     ["density.min-height.target", '[data-density="contractor"]'],
+    ["density.max-width.measure", '[data-density="contractor"]'],
     ["density.size.icon", '[data-density="contractor"]'],
     ["density.radius.surface", '[data-density="contractor"]'],
     ["density.text.body", '[data-density="contractor"]'],
     ["size.width.sheet", ":root"],
+    ["size.max-width.card", ":root"],
     ["type.title", ":root"],
     ["type.family.sans", ":root"],
     ["motion.duration.base", ":root"],
@@ -217,7 +220,53 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(86);
+    expect(variables.filter((v) => v.css)).toHaveLength(90);
+  });
+
+  // ADR 0001 lists container padding among what density changes.
+  it("pads a surface by density: 20px admin, 24px contractor", () => {
+    expect(variable("Density", "density/padding/surface")).toMatchObject({
+      type: "FLOAT",
+      scopes: ["GAP"],
+      css: true,
+      valuesByMode: { Admin: 20, Contractor: 24 },
+    });
+  });
+
+  // One value for both densities: ADR 0001's list doesn't include width.
+  it("caps a Card's width at 560px, as a size and not a density", () => {
+    expect(variable("Size", "size/max-width/card")).toMatchObject({
+      type: "FLOAT",
+      scopes: ["WIDTH_HEIGHT"],
+      css: true,
+      valuesByMode: { Value: 560 },
+    });
+  });
+
+  // A disabled secondary keeps its edge (#145): its own role, though it
+  // shares line's values today.
+  it("gives a disabled bordered control its own edge role in each theme", () => {
+    expect(variable("Color", "color/border/disabled")).toEqual({
+      name: "color/border/disabled",
+      type: "COLOR",
+      scopes: ["STROKE_COLOR"],
+      css: true,
+      valuesByMode: {
+        Light: { alias: "primitive/neutral/900" },
+        Dark: { alias: "primitive/neutral/360" },
+      },
+    });
+  });
+
+  // About 65 characters of body copy at each density's body size (#95); 65ch
+  // would hold about 96, as Instrument Sans's "0" is wide.
+  it("bounds a line of body copy by density: 412px admin, 472px contractor", () => {
+    expect(variable("Density", "density/max-width/measure")).toMatchObject({
+      type: "FLOAT",
+      scopes: ["WIDTH_HEIGHT"],
+      css: true,
+      valuesByMode: { Admin: 412, Contractor: 472 },
+    });
   });
 
   it("converts a literal colour to sRGB 0–1 and keeps its alpha", () => {

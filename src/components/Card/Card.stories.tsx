@@ -67,6 +67,45 @@ export const BodyOnly: Story = {
   },
 };
 
+// One awaiting invoice as invoice-review has it, at admin density: its facts
+// as label–value rows and the one action. The rows are the ones a Card's
+// width ceiling keeps near enough to scan.
+export const Review: Story = {
+  args: {
+    header: (
+      <Stack direction="row" justify="between">
+        <Heading level={2} text="INV-0147" />
+        <StatusTag status="awaiting" />
+      </Stack>
+    ),
+    children: (
+      <Stack gap="2xs">
+        <Stack direction="row" justify="between">
+          <Text tone="muted" text="Amount" />
+          <Amount value={12480.5} currency="USD" display="table" />
+        </Stack>
+        <Stack direction="row" justify="between">
+          <Text tone="muted" text="Contractor" />
+          <Text text="Northwind Logistics" />
+        </Stack>
+        <Stack direction="row" justify="between">
+          <Text tone="muted" text="Invoice number" />
+          <Text text="INV-0147" />
+        </Stack>
+        <Stack direction="row" justify="between">
+          <Text tone="muted" text="Due" />
+          <Text text="Nov 3" />
+        </Stack>
+        <Stack direction="row" justify="between">
+          <Text tone="muted" text="Lines" />
+          <Text text="6" />
+        </Stack>
+      </Stack>
+    ),
+    footer: <Button intent="primary" text="Approve and pay" />,
+  },
+};
+
 // A note in the footer where there's no action yet: the invoice is waiting
 // on the client.
 export const FooterNote: Story = {

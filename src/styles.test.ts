@@ -117,3 +117,28 @@ describe("screen-state transitions", () => {
     }
   });
 });
+
+// The taste rules skip straggler and unbalanced-heading because base CSS
+// sets text-wrap once (lint/taste/RULES.md), on the elements Heading and
+// Text render, in the base layer so a component could still override it.
+describe("base text wrapping", () => {
+  function baseRules() {
+    const rules: Record<string, string> = {};
+    for (const rule of sheet()) {
+      if (!(rule instanceof CSSLayerBlockRule) || rule.name !== "base")
+        continue;
+      for (const inner of rule.cssRules) {
+        if (inner instanceof CSSStyleRule) {
+          const selectors = inner.selectorText.split(",").map((s) => s.trim());
+          rules[selectors.join(", ")] =
+            inner.style.getPropertyValue("text-wrap");
+        }
+      }
+    }
+    return rules;
+  }
+
+  it("balances the headings Heading renders and wraps paragraphs pretty", () => {
+    expect(baseRules()).toMatchObject({ "h1, h2, h3": "balance", p: "pretty" });
+  });
+});

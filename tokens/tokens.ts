@@ -7,7 +7,7 @@ export type BackgroundColor = (typeof backgroundColor)[number];
 export const textColor = ["ink", "ink-muted", "accent", "on-accent", "disabled", "awaiting", "overdue", "paid", "scheduled", "failed"] as const;
 export type TextColor = (typeof textColor)[number];
 
-export const borderColor = ["line", "control"] as const;
+export const borderColor = ["line", "control", "disabled"] as const;
 export type BorderColor = (typeof borderColor)[number];
 
 export const ringColor = ["focus"] as const;
@@ -16,7 +16,7 @@ export type RingColor = (typeof ringColor)[number];
 export const shadow = ["raised", "overlay"] as const;
 export type Shadow = (typeof shadow)[number];
 
-export const padding = ["page", "control"] as const;
+export const padding = ["page", "control", "surface"] as const;
 export type Padding = (typeof padding)[number];
 
 export const height = ["row", "control", "edge"] as const;
@@ -24,6 +24,9 @@ export type Height = (typeof height)[number];
 
 export const minHeight = ["target"] as const;
 export type MinHeight = (typeof minHeight)[number];
+
+export const maxWidth = ["measure", "card"] as const;
+export type MaxWidth = (typeof maxWidth)[number];
 
 export const size = ["icon"] as const;
 export type Size = (typeof size)[number];

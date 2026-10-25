@@ -10,6 +10,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Screen
 
 **Alternative:** add a `size.min-height.screen` token (`100dvh`) and give Screen `min-h-screen`, or have whatever hosts generated screens paint `body` with `bg-page`.
 
+**Decided (#85):** Screen owns it, not each host. Its root takes `min-h-dvh`, Tailwind's keyword utility for a dynamic-viewport minimum, with no token: the token build accepts `px` dimensions only, and Figma variables can't hold a viewport unit.
+
 ## 2. No maximum content width
 
 **Undecided:** the brief sets page padding per density but no content width. On a wide admin desktop a paragraph directly inside Screen runs past 100 characters (see the Admin story at 1280px), against `frontend-design`'s under-80-character line length. The contractor is often on a phone, where this doesn't arise.

@@ -30,6 +30,7 @@ const roleNamespaces: Record<string, string> = {
   padding: "p",
   height: "h",
   width: "w",
+  "max-width": "max-w",
   "min-height": "min-h",
   size: "size",
   radius: "rounded",

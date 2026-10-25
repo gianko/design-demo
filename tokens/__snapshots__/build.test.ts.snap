@@ -18,6 +18,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-space-4xl: 64px;
   --ds-size-height-edge: 2px;
   --ds-size-width-sheet: 420px;
+  --ds-size-max-width-card: 560px;
   --ds-radius-control: 6px;
   --ds-radius-tag: 4px;
   --ds-radius-avatar: 9999px;
@@ -90,6 +91,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-color-text-failed: oklch(0.995 0.003 330);
   --ds-color-border-line: oklch(0.9 0.012 330);
   --ds-color-border-control: oklch(0.62 0.02 330);
+  --ds-color-border-disabled: oklch(0.9 0.012 330);
   --ds-color-ring-focus: oklch(0.48 0.085 330);
   --ds-shadow-raised: 0px 1px 2px 0px oklch(0.27 0.025 330 / 0.06), 0px 4px 12px 0px oklch(0.27 0.025 330 / 0.08);
   --ds-shadow-overlay: 0px 8px 24px 0px oklch(0.27 0.025 330 / 0.12), 0px 24px 48px 0px oklch(0.27 0.025 330 / 0.14);
@@ -125,6 +127,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-color-text-failed: oklch(0.18 0.03 25);
   --ds-color-border-line: oklch(0.36 0.02 330);
   --ds-color-border-control: oklch(0.56 0.02 330);
+  --ds-color-border-disabled: oklch(0.36 0.02 330);
   --ds-color-ring-focus: oklch(0.82 0.06 330);
   --ds-shadow-raised: 0px 0px 0px 1px oklch(0.36 0.02 330);
   --ds-shadow-overlay: 0px 0px 0px 1px oklch(0.4 0.02 330), 0px 24px 48px 0px oklch(0.1 0.02 330 / 0.4);
@@ -134,9 +137,11 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
 [data-density="admin"] {
   --ds-density-padding-page: 28px;
   --ds-density-padding-control: 12px;
+  --ds-density-padding-surface: 20px;
   --ds-density-height-row: 46px;
   --ds-density-height-control: 32px;
   --ds-density-min-height-target: 24px;
+  --ds-density-max-width-measure: 412px;
   --ds-density-size-icon: 16px;
   --ds-density-radius-surface: 8px;
   --ds-density-text-body-font-size: 14px;
@@ -152,9 +157,11 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
 [data-density="contractor"] {
   --ds-density-padding-page: 36px;
   --ds-density-padding-control: 16px;
+  --ds-density-padding-surface: 24px;
   --ds-density-height-row: 60px;
   --ds-density-height-control: 44px;
   --ds-density-min-height-target: 44px;
+  --ds-density-max-width-measure: 472px;
   --ds-density-size-icon: 20px;
   --ds-density-radius-surface: 12px;
   --ds-density-text-body-font-size: 16px;
@@ -200,14 +207,17 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --text-color-failed: var(--ds-color-text-failed);
   --border-color-line: var(--ds-color-border-line);
   --border-color-control: var(--ds-color-border-control);
+  --border-color-disabled: var(--ds-color-border-disabled);
   --ring-color-focus: var(--ds-color-ring-focus);
   --shadow-raised: var(--ds-shadow-raised);
   --shadow-overlay: var(--ds-shadow-overlay);
   --padding-page: var(--ds-density-padding-page);
   --padding-control: var(--ds-density-padding-control);
+  --padding-surface: var(--ds-density-padding-surface);
   --height-row: var(--ds-density-height-row);
   --height-control: var(--ds-density-height-control);
   --min-height-target: var(--ds-density-min-height-target);
+  --max-width-measure: var(--ds-density-max-width-measure);
   --size-icon: var(--ds-density-size-icon);
   --radius-surface: var(--ds-density-radius-surface);
   --spacing-0: var(--ds-space-0);
@@ -223,6 +233,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --spacing-4xl: var(--ds-space-4xl);
   --height-edge: var(--ds-size-height-edge);
   --width-sheet: var(--ds-size-width-sheet);
+  --max-width-card: var(--ds-size-max-width-card);
   --radius-control: var(--ds-radius-control);
   --radius-tag: var(--ds-radius-tag);
   --radius-avatar: var(--ds-radius-avatar);
@@ -365,7 +376,7 @@ export type BackgroundColor = (typeof backgroundColor)[number];
 export const textColor = ["ink", "ink-muted", "accent", "on-accent", "disabled", "awaiting", "overdue", "paid", "scheduled", "failed"] as const;
 export type TextColor = (typeof textColor)[number];
 
-export const borderColor = ["line", "control"] as const;
+export const borderColor = ["line", "control", "disabled"] as const;
 export type BorderColor = (typeof borderColor)[number];
 
 export const ringColor = ["focus"] as const;
@@ -374,7 +385,7 @@ export type RingColor = (typeof ringColor)[number];
 export const shadow = ["raised", "overlay"] as const;
 export type Shadow = (typeof shadow)[number];
 
-export const padding = ["page", "control"] as const;
+export const padding = ["page", "control", "surface"] as const;
 export type Padding = (typeof padding)[number];
 
 export const height = ["row", "control", "edge"] as const;
@@ -382,6 +393,9 @@ export type Height = (typeof height)[number];
 
 export const minHeight = ["target"] as const;
 export type MinHeight = (typeof minHeight)[number];
+
+export const maxWidth = ["measure", "card"] as const;
+export type MaxWidth = (typeof maxWidth)[number];
 
 export const size = ["icon"] as const;
 export type Size = (typeof size)[number];
@@ -1537,6 +1551,22 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           }
         },
         {
+          "name": "color/border/disabled",
+          "type": "COLOR",
+          "scopes": [
+            "STROKE_COLOR"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Light": {
+              "alias": "primitive/neutral/900"
+            },
+            "Dark": {
+              "alias": "primitive/neutral/360"
+            }
+          }
+        },
+        {
           "name": "color/ring/focus",
           "type": "COLOR",
           "scopes": [
@@ -1841,6 +1871,18 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           }
         },
         {
+          "name": "density/padding/surface",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 20,
+            "Contractor": 24
+          }
+        },
+        {
           "name": "density/height/row",
           "type": "FLOAT",
           "scopes": [
@@ -1874,6 +1916,18 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "valuesByMode": {
             "Admin": 24,
             "Contractor": 44
+          }
+        },
+        {
+          "name": "density/max-width/measure",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 412,
+            "Contractor": 472
           }
         },
         {
@@ -2131,6 +2185,17 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "css": true,
           "valuesByMode": {
             "Value": 420
+          }
+        },
+        {
+          "name": "size/max-width/card",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 560
           }
         }
       ]

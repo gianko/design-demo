@@ -30,14 +30,14 @@ Props: none besides the slots. Spec § Component pieces 8 asks for a surface and
 None.
 
 - **No variants.** Spec 8 names one look: "a flat surface with a `line` hairline and the density's surface radius". The brief's elevation line puts cards at **flat**, so there's no `raised` or `elevated` option: "a shadow means 'this floats', never 'this is a box'". There's no tone or status-tinted card either: "status colours are their own set", and the StatusTag carries status. Every variant would be a choice a generated screen can get wrong.
-- **No size.** Density sets the radius (ADR 0001: surface radius is a density token). Padding is fixed (see gaps).
+- **No size.** Density sets the radius and the padding (ADR 0001: surface radius and container padding are density tokens).
 - **No states.** A Card isn't interactive: it has no hover, pressed, focus or disabled state, and the brief bans "hover lift on cards or rows". Its controls (a Button in the footer) carry their own states.
 
 ## Token map
 
 | Slot | Classes | Brief line behind it |
 |---|---|---|
-| `root` | `flex flex-col gap-md rounded-surface border border-line bg-surface p-lg` | Elevation: "flat (page and cards, separated by a `line` hairline)" sets `border border-line` and no shadow. Radius table: "Surfaces, admin 8px / contractor 12px" sets `rounded-surface`, a density token. Colour roles set `bg-surface` on `page`, a step lighter in dark ("surfaces get lighter as they rise"). `p-lg` (24px) and `gap-md` (20px) are on the 4px scale. |
+| `root` | `flex max-w-card flex-col gap-md rounded-surface border border-line bg-surface p-surface` | `max-w-card` caps the width at 560px at both densities (`size.max-width.card`; ADR 0001's list of what density changes doesn't include width), so a lone Card in a wide column sits at the start with its rows near enough to scan, and a narrower container still shrinks it. Elevation: "flat (page and cards, separated by a `line` hairline)" sets `border border-line` and no shadow. Radius table: "Surfaces, admin 8px / contractor 12px" sets `rounded-surface`, a density token. Colour roles set `bg-surface` on `page`, a step lighter in dark ("surfaces get lighter as they rise"). `p-surface` is the density's surface padding (20px admin, 24px contractor; ADR 0001's container padding). `gap-md` (20px) stays the same at both densities, since spacing between nodes isn't on ADR 0001's list. |
 | `header` | none | Content only. |
 | `body` | none | Content only. |
 | `footer` | none | Content only. A Button sits at the start, as left-aligned work surfaces have it. |

@@ -9,11 +9,15 @@ import type { textEntry } from "./Text.registry.ts";
 // ordinary one, and each time its screen state is entered (it mounts, or a
 // retry re-enters the state it shows in) it hands its copy to the Screen's
 // status region, which already exists, so the copy is announced as a change
-// to that region. It adds no class.
+// to that region. It adds no class. Body copy keeps a measure, a ceiling of
+// about 65 characters a line, so a long paragraph on a wide screen still reads.
 export const text = tv({
   slots: { root: "" },
   variants: {
-    size: { body: { root: "text-body" }, caption: { root: "text-caption" } },
+    size: {
+      body: { root: "max-w-measure text-body" },
+      caption: { root: "text-caption" },
+    },
     tone: { default: { root: "text-ink" }, muted: { root: "text-ink-muted" } },
   },
   defaultVariants: { size: "body", tone: "default" },

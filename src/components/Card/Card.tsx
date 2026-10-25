@@ -7,10 +7,11 @@ import type { cardEntry } from "./Card.registry.ts";
 // shadow, since a shadow means "this floats". It isn't interactive, so it has
 // no states and no motion of its own. The parts sit apart by one gap; the
 // body is wrapped so several children read as one part, and the header and
-// footer render only when given.
+// footer render only when given. Its width has a ceiling, so a lone Card in a
+// wide column sits at the start rather than spreading its rows across it.
 export const card = tv({
   slots: {
-    root: "flex flex-col gap-md rounded-surface border border-line bg-surface p-lg",
+    root: "flex max-w-card flex-col gap-md rounded-surface border border-line bg-surface p-surface",
     header: "",
     body: "",
     footer: "",

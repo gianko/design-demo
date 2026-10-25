@@ -37,6 +37,8 @@ it.each([
   ["density.size.icon", "--size-icon", "size-icon", "size"],
   ["density.radius.surface", "--radius-surface", "rounded-surface", "radius"],
   ["size.width.sheet", "--width-sheet", "w-sheet", "width"],
+  // Tailwind's max-w-* reads --max-width-*, not --width-*.
+  ["size.max-width.card", "--max-width-card", "max-w-card", "maxWidth"],
   ["size.height.edge", "--height-edge", "h-edge", "height"],
   ["type.family.sans", "--font-sans", "font-sans", "font"],
   ["motion.ease.settle", "--ease-settle", "ease-settle", "ease"],

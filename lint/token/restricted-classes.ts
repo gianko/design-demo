@@ -44,6 +44,13 @@ export const restrictedClasses = [
       "opacity-* is banned (ADR 0002). Disabled and muted states use colour roles.",
   },
   {
+    // Base CSS sets wrapping once on the elements Heading and Text render
+    // (lint/taste/RULES.md: straggler, unbalanced-heading).
+    pattern: `${variants}text-(balance|pretty)$`,
+    message:
+      "text-$1 is set once in base CSS (src/styles.css), not per component.",
+  },
+  {
     // `bg-accent/50`; a fraction such as `w-1/2` has a digit before the slash.
     pattern: String.raw`[a-z]\/(\d+(?:\.\d+)?)!?$`,
     message:

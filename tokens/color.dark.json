@@ -160,6 +160,10 @@
             }
           }
         }
+      },
+      "disabled": {
+        "$description": "The edge of a disabled bordered control, such as a disabled secondary button. Disabled controls are exempt from WCAG contrast.",
+        "$value": "{primitive.neutral.360}"
       }
     },
     "ring": {

@@ -7,6 +7,8 @@ const button = tv({
   variants: {
     // An arbitrary value behind a variant, inside a tv() variant.
     tone: { quiet: "hover:bg-[#fff]" },
+    // Wrapping a component sets itself, which base CSS sets once.
+    wrap: { balanced: "text-balance" },
   },
 });
 
@@ -25,6 +27,7 @@ export function Violations({ size }: { size: string }) {
       <p className="h-px">Bare pixel</p>
       <p className="bg-accent/50">Alpha modifier</p>
       <p className="opacity-0">Opacity</p>
+      <p className="hover:text-pretty">Pretty wrapping behind a variant</p>
       <p className={`gap-${size}`}>Concatenated</p>
       {/* Values set outside classes. */}
       <p style={{ color: "var(--ds-color-text-ink)" }}>Inline style</p>

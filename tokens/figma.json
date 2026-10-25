@@ -1116,6 +1116,22 @@
           }
         },
         {
+          "name": "color/border/disabled",
+          "type": "COLOR",
+          "scopes": [
+            "STROKE_COLOR"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Light": {
+              "alias": "primitive/neutral/900"
+            },
+            "Dark": {
+              "alias": "primitive/neutral/360"
+            }
+          }
+        },
+        {
           "name": "color/ring/focus",
           "type": "COLOR",
           "scopes": [
@@ -1420,6 +1436,18 @@
           }
         },
         {
+          "name": "density/padding/surface",
+          "type": "FLOAT",
+          "scopes": [
+            "GAP"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 20,
+            "Contractor": 24
+          }
+        },
+        {
           "name": "density/height/row",
           "type": "FLOAT",
           "scopes": [
@@ -1453,6 +1481,18 @@
           "valuesByMode": {
             "Admin": 24,
             "Contractor": 44
+          }
+        },
+        {
+          "name": "density/max-width/measure",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 412,
+            "Contractor": 472
           }
         },
         {
@@ -1710,6 +1750,17 @@
           "css": true,
           "valuesByMode": {
             "Value": 420
+          }
+        },
+        {
+          "name": "size/max-width/card",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 560
           }
         }
       ]

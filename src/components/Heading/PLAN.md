@@ -28,7 +28,7 @@ States: none. Heading isn't interactive, so rest is its only state; hover, press
 
 | Slot | Variant | Classes | Why |
 |---|---|---|---|
-| `root` | always | `text-ink` | "Text is a plum-tinted ink, never `#000`." No `text-balance`: RULES.md (`unbalanced-heading`) puts `text-wrap: balance` "in base CSS once", not in a component; the screenshot critique cut it (see GAPS.md). |
+| `root` | always | `text-ink` | "Text is a plum-tinted ink, never `#000`." No `text-balance`: RULES.md (`unbalanced-heading`) puts `text-wrap: balance` "in base CSS once", not in a component, and `src/styles.css` sets it on `h1`–`h3`. Token lint rejects `text-balance` on a component. |
 | | `level: 1` | `text-title` | Composite: 24/32, 600, −0.36px. |
 | | `level: 2` | `text-heading` | Composite: 20/28, 600. |
 | | `level: 3` | `text-label` | Composite: density label, 600. |
