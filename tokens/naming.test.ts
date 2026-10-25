@@ -36,10 +36,8 @@ it.each([
   ],
   ["density.size.icon", "--size-icon", "size-icon", "size"],
   ["density.radius.surface", "--radius-surface", "rounded-surface", "radius"],
-  ["density.text.body", "--text-body", "text-body", "text"],
   ["size.width.sheet", "--width-sheet", "w-sheet", "width"],
   ["size.height.edge", "--height-edge", "h-edge", "height"],
-  ["type.title", "--text-title", "text-title", "text"],
   ["type.family.sans", "--font-sans", "font-sans", "font"],
   ["motion.ease.settle", "--ease-settle", "ease-settle", "ease"],
   [
@@ -65,6 +63,25 @@ it("gives durations and delays named utilities rather than theme keys", () => {
   expect(tokenNames("motion.delay.stagger")).toMatchObject({
     className: "delay-stagger",
     family: "delay",
+  });
+});
+
+it("gives text roles named utilities rather than theme keys", () => {
+  expect(tokenNames("type.title")).toEqual({
+    figma: "type/title",
+    cssVar: "--ds-type-title",
+    codeSyntax: "var(--ds-type-title)",
+    className: "text-title",
+    role: "title",
+    family: "text",
+  });
+  expect(tokenNames("density.text.body")).toEqual({
+    figma: "density/text/body",
+    cssVar: "--ds-density-text-body",
+    codeSyntax: "var(--ds-density-text-body)",
+    className: "text-body",
+    role: "body",
+    family: "text",
   });
 });
 

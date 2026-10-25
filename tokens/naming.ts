@@ -1,6 +1,8 @@
 // The one naming function of ADR 0005. A token path gives its Figma variable,
-// its --ds-* variable and code syntax, its Tailwind theme key and class, and
-// the tokens.ts family it is listed under, so none of them can drift apart.
+// its --ds-* variable and code syntax, its Tailwind class and the theme key
+// behind it, and the tokens.ts family it is listed under, so none of them can
+// drift apart. Durations, delays and text roles have no theme key: they get
+// named utilities instead.
 
 export type TokenNames = {
   figma: string;
@@ -49,6 +51,8 @@ function mapping(segments: string[]): Mapping {
     case "size": {
       const prefix = roleNamespaces[second ?? ""];
       if (!prefix) return null;
+      // A text role is a named utility, not a theme key (#104).
+      if (second === "text") return { prefix, family: "text" };
       return { themeKey: second, prefix, family: camel(second!) };
     }
     case "shadow":
@@ -64,7 +68,7 @@ function mapping(segments: string[]): Mapping {
       if (second === "family") {
         return { themeKey: "font", prefix: "font", family: "font" };
       }
-      return { themeKey: "text", prefix: "text", family: "text" };
+      return { prefix: "text", family: "text" };
     case "motion":
       switch (second) {
         case "duration":

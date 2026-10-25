@@ -87,16 +87,17 @@ describe("the naming chain", () => {
   // Tailwind's --tw-leading or --tw-tracking it binds by value and can land
   // on another role (#104).
   it.each([
-    ["text-caption", "--ds-type-caption"],
-    ["text-label", "--ds-density-text-label"],
-    ["text-body", "--ds-density-text-body"],
-    ["text-heading", "--ds-type-heading"],
-    ["text-title", "--ds-type-title"],
-    ["text-figure", "--ds-type-figure"],
+    "type.caption",
+    "density.text.label",
+    "density.text.body",
+    "type.heading",
+    "type.title",
+    "type.figure",
   ])(
-    "compiles .%s once, with its own line height and tracking as plain variables",
-    (className, cssVar) => {
-      const css = utilities(className);
+    "compiles %s's class once, with its own line height and tracking as plain variables",
+    (path) => {
+      const { className, cssVar } = tokenNames(path);
+      const css = utilities(className!);
 
       expect(css.match(new RegExp(`\\.${className}\\s*\\{`, "g"))).toHaveLength(
         1

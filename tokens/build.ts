@@ -790,7 +790,7 @@ function declarations(token: Resolved): [name: string, value: string][] {
 /** What the closed @theme maps for one token, or the @utility it gets instead. */
 function themeEntries(token: Token): string[] {
   const names = tokenNames(token.path);
-  if (!names.className || token.type === "typography") return [];
+  if (!names.className) return [];
   const entries = names.themeKey
     ? [`${names.themeKey}: ${names.codeSyntax};`]
     : [];
@@ -800,11 +800,10 @@ function themeEntries(token: Token): string[] {
   return entries;
 }
 
-function utility(token: Token): string | undefined {
+function utility(token: Resolved): string | undefined {
   const names = tokenNames(token.path);
-  if (token.type === "typography")
-    return textUtility(names.className!, names.cssVar);
   if (names.themeKey || !names.className) return undefined;
+  if (token.type === "typography") return textUtility(token, names.className);
   const property = names.family === "delay" ? "delay" : "duration";
   return [
     `@utility ${names.className} {`,
@@ -817,17 +816,21 @@ function utility(token: Token): string | undefined {
 // A text role is an @utility, not an @theme --text-<role>: Tailwind compiles
 // the theme's line height and tracking behind --tw-leading and --tw-tracking,
 // and a capture binds a property by code syntax only on a plain var(--ds-*)
-// (#104). Weight keeps Tailwind's fallback; captures bind it by value to the
-// two shared weights (ADR 0007).
-function textUtility(className: string, cssVar: string): string {
-  return [
-    `@utility ${className} {`,
-    `  font-size: var(${cssVar}-font-size);`,
-    `  line-height: var(${cssVar}-line-height);`,
-    `  letter-spacing: var(${cssVar}-letter-spacing);`,
-    `  font-weight: var(--tw-font-weight, var(${cssVar}-font-weight));`,
-    `}`,
-  ].join("\n");
+// (#104). Each sub-variable the role declares is named for the CSS property it
+// sets. Weight keeps its --tw-font-weight fallback, so it compiles as Tailwind
+// compiled it from the theme. Binding it plainly too could retire ADR 0007's
+// two shared weight variables, which reopens that ADR (out of scope in #104).
+function textUtility(token: Resolved, className: string): string {
+  const { cssVar } = tokenNames(token.path);
+  const lines = declarations(token).map(([variable]) => {
+    const property = variable.slice(cssVar.length + 1);
+    const value =
+      property === "font-weight"
+        ? `var(--tw-font-weight, var(${variable}))`
+        : `var(${variable})`;
+    return `  ${property}: ${value};`;
+  });
+  return [`@utility ${className} {`, ...lines, "}"].join("\n");
 }
 
 // The keyboard focus ring is one class: Tailwind's outline and ring widths
