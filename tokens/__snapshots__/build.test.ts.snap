@@ -18,6 +18,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-space-4xl: 64px;
   --ds-size-height-edge: 2px;
   --ds-size-width-sheet: 420px;
+  --ds-size-max-width-card: 560px;
   --ds-radius-control: 6px;
   --ds-radius-tag: 4px;
   --ds-radius-avatar: 9999px;
@@ -226,6 +227,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --spacing-4xl: var(--ds-space-4xl);
   --height-edge: var(--ds-size-height-edge);
   --width-sheet: var(--ds-size-width-sheet);
+  --max-width-card: var(--ds-size-max-width-card);
   --radius-control: var(--ds-radius-control);
   --radius-tag: var(--ds-radius-tag);
   --radius-avatar: var(--ds-radius-avatar);
@@ -400,6 +402,9 @@ export type Spacing = (typeof spacing)[number];
 
 export const width = ["sheet"] as const;
 export type Width = (typeof width)[number];
+
+export const maxWidth = ["card"] as const;
+export type MaxWidth = (typeof maxWidth)[number];
 
 export const font = ["sans"] as const;
 export type Font = (typeof font)[number];
@@ -2146,6 +2151,17 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "css": true,
           "valuesByMode": {
             "Value": 420
+          }
+        },
+        {
+          "name": "size/max-width/card",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 560
           }
         }
       ]

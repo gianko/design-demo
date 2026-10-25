@@ -40,6 +40,9 @@ export type Spacing = (typeof spacing)[number];
 export const width = ["sheet"] as const;
 export type Width = (typeof width)[number];
 
+export const maxWidth = ["card"] as const;
+export type MaxWidth = (typeof maxWidth)[number];
+
 export const font = ["sans"] as const;
 export type Font = (typeof font)[number];
 

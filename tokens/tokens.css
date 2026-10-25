@@ -15,6 +15,7 @@
   --ds-space-4xl: 64px;
   --ds-size-height-edge: 2px;
   --ds-size-width-sheet: 420px;
+  --ds-size-max-width-card: 560px;
   --ds-radius-control: 6px;
   --ds-radius-tag: 4px;
   --ds-radius-avatar: 9999px;
@@ -223,6 +224,7 @@
   --spacing-4xl: var(--ds-space-4xl);
   --height-edge: var(--ds-size-height-edge);
   --width-sheet: var(--ds-size-width-sheet);
+  --max-width-card: var(--ds-size-max-width-card);
   --radius-control: var(--ds-radius-control);
   --radius-tag: var(--ds-radius-tag);
   --radius-avatar: var(--ds-radius-avatar);

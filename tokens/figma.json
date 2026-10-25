@@ -1723,6 +1723,17 @@
           "valuesByMode": {
             "Value": 420
           }
+        },
+        {
+          "name": "size/max-width/card",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 560
+          }
         }
       ]
     },

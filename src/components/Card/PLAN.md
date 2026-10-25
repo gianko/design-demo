@@ -37,7 +37,7 @@ None.
 
 | Slot | Classes | Brief line behind it |
 |---|---|---|
-| `root` | `flex flex-col gap-md rounded-surface border border-line bg-surface p-surface` | Elevation: "flat (page and cards, separated by a `line` hairline)" sets `border border-line` and no shadow. Radius table: "Surfaces, admin 8px / contractor 12px" sets `rounded-surface`, a density token. Colour roles set `bg-surface` on `page`, a step lighter in dark ("surfaces get lighter as they rise"). `p-surface` is the density's surface padding (20px admin, 24px contractor; ADR 0001's container padding). `gap-md` (20px) stays the same at both densities, since spacing between nodes isn't on ADR 0001's list. |
+| `root` | `flex max-w-card flex-col gap-md rounded-surface border border-line bg-surface p-surface` | `max-w-card` caps the width at 560px at both densities (`size.max-width.card`; ADR 0001's list of what density changes doesn't include width), so a lone Card in a wide column sits at the start with its rows near enough to scan, and a narrower container still shrinks it. Elevation: "flat (page and cards, separated by a `line` hairline)" sets `border border-line` and no shadow. Radius table: "Surfaces, admin 8px / contractor 12px" sets `rounded-surface`, a density token. Colour roles set `bg-surface` on `page`, a step lighter in dark ("surfaces get lighter as they rise"). `p-surface` is the density's surface padding (20px admin, 24px contractor; ADR 0001's container padding). `gap-md` (20px) stays the same at both densities, since spacing between nodes isn't on ADR 0001's list. |
 | `header` | none | Content only. |
 | `body` | none | Content only. |
 | `footer` | none | Content only. A Button sits at the start, as left-aligned work surfaces have it. |

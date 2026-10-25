@@ -12,6 +12,12 @@
         "$description": "With max-w-full on a phone.",
         "$value": { "value": 420, "unit": "px" }
       }
+    },
+    "max-width": {
+      "card": {
+        "$description": "A ceiling on a Card's width, so a lone Card in a wide column keeps its rows near enough to scan. A narrower container still shrinks it.",
+        "$value": { "value": 560, "unit": "px" }
+      }
     }
   }
 }

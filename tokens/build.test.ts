@@ -65,6 +65,7 @@ describe("the naming chain", () => {
     ["density.radius.surface", '[data-density="contractor"]'],
     ["density.text.body", '[data-density="contractor"]'],
     ["size.width.sheet", ":root"],
+    ["size.max-width.card", ":root"],
     ["type.title", ":root"],
     ["type.family.sans", ":root"],
     ["motion.duration.base", ":root"],
@@ -218,7 +219,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(87);
+    expect(variables.filter((v) => v.css)).toHaveLength(88);
   });
 
   // ADR 0001 lists container padding among what density changes.
@@ -228,6 +229,16 @@ describe("the Figma payload", () => {
       scopes: ["GAP"],
       css: true,
       valuesByMode: { Admin: 20, Contractor: 24 },
+    });
+  });
+
+  // One value for both densities: ADR 0001's list doesn't include width.
+  it("caps a Card's width at 560px, as a size and not a density", () => {
+    expect(variable("Size", "size/max-width/card")).toMatchObject({
+      type: "FLOAT",
+      scopes: ["WIDTH_HEIGHT"],
+      css: true,
+      valuesByMode: { Value: 560 },
     });
   });
 
