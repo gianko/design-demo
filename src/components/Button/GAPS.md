@@ -26,14 +26,6 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Button
 
 **Alternative:** one `progress` role checked against `accent` and `surface` at 3:1, so the edge is the same colour on every intent. No current primitive passes both in light.
 
-## A UI spec can write `pending`
-
-**Undecided:** pending is the code step's to set from `useAction` (ADR 0011), but Button's props come only from its registry entry, so `pending` is in the registry. The spec step could write `pending: true` as a literal, and gate 1 would accept a Button frozen in pending.
-
-**Call:** `pending` is an optional boolean whose description says the code step sets it and a UI spec never writes it.
-
-**Alternative:** a gate 1 rule that rejects a literal `pending` on any node, or a registry field for props that only the code step sets, left out of the serialized registry.
-
 ## Button fills a column Stack's width
 
 **Undecided:** Stack's column stretches its children by default, so a Button placed directly in a column Stack is as wide as the column. The brief doesn't say whether a lone action is full width (common on a phone) or sized to its label.

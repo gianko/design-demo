@@ -34,7 +34,8 @@ const entries = [
   defineEntry({
     name: "Button",
     use: "Runs an action.",
-    props: z.object({ label: z.string() }),
+    props: z.object({ label: z.string(), pending: z.boolean().optional() }),
+    codeOnly: ["pending"],
   }),
   defineEntry({
     name: "Figure",
@@ -341,6 +342,31 @@ describe("gate 1", () => {
 
     expect(check(spec)).toEqual([["props-parse", "panel"]]);
   });
+
+  // The code step sets a code-only prop, such as Button's pending from
+  // useAction (ADR 0011), so a UI spec that gives one fails as if the
+  // component didn't have it.
+  it.each([
+    ["written as a literal", true],
+    ["bound", bind("invoice.client")],
+  ])(
+    "fails a code-only prop %s, naming it as one Button doesn't take",
+    (_, value) => {
+      const spec = clean();
+      const unknown = clean();
+      setProp(nodeOf(spec, "remind-button"), "pending", value);
+      setProp(nodeOf(unknown, "remind-button"), "tone", value);
+
+      const failures = gate1(spec, context);
+      expect(failures.map(({ rule, location }) => [rule, location])).toEqual([
+        ["props-parse", "remind-button"],
+      ]);
+      expect(failures[0]!.message).toBe(
+        gate1(unknown, context)[0]!.message.replace("tone", "pending")
+      );
+      expect(failures[0]!.message).toContain('"pending"');
+    }
+  );
 
   it("fails a required prop that's missing, naming the node", () => {
     const spec = clean();
