@@ -962,9 +962,12 @@ export type FigmaPayload = {
 
 const title = (name: string) => name[0]!.toUpperCase() + name.slice(1);
 const toRgb = converter("rgb");
-/** A colour channel, clamped to Figma's 0–1 and rounded. */
+/**
+ * A colour channel, clamped to Figma's 0–1 and rounded to the 8-bit step the
+ * browser paints: a capture binds a fill only when the values match (#59).
+ */
 const channel = (value: number) =>
-  Number(Math.min(1, Math.max(0, value)).toFixed(4));
+  Number((Math.round(Math.min(1, Math.max(0, value)) * 255) / 255).toFixed(6));
 
 function rgba(value: ColorValue): Rgba {
   const { r, g, b } = toRgb(oklch(value));
@@ -972,7 +975,8 @@ function rgba(value: ColorValue): Rgba {
     r: channel(r),
     g: channel(g),
     b: channel(b),
-    a: channel(value.alpha ?? 1),
+    // Captures never bind alpha, so it keeps its authored precision.
+    a: Number(Math.min(1, Math.max(0, value.alpha ?? 1)).toFixed(4)),
   };
 }
 

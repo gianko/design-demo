@@ -185,6 +185,29 @@ describe("the Figma payload", () => {
     expect(Light).toMatchObject({ a: 0.4 });
   });
 
+  // A capture binds a fill only when Figma's value is the colour the browser
+  // painted, so every channel sits on the 8-bit step the browser rounds to.
+  it("gives each colour the 8-bit sRGB value the browser paints", () => {
+    const eightBit = ({ r, g, b }: { r: number; g: number; b: number }) =>
+      [r, g, b].map((channel) => Math.round(channel * 255));
+    // Dark's page: oklch(0.19 0.018 330) paints 24,17,24; red is 24.496.
+    const page = variable("Primitives", "primitive/neutral/190").valuesByMode
+      .Value as { r: number; g: number; b: number };
+    expect(eightBit(page)).toEqual([24, 17, 24]);
+
+    const channels = payload.collections
+      .flatMap(({ variables }) => variables)
+      .filter(({ type }) => type === "COLOR")
+      .flatMap(({ valuesByMode }) => Object.values(valuesByMode))
+      .filter((value) => typeof value === "object" && "r" in value)
+      .flatMap(({ r, g, b }) => [r, g, b] as number[]);
+    for (const channel of channels) {
+      expect(Math.abs(channel * 255 - Math.round(channel * 255))).toBeLessThan(
+        1e-3
+      );
+    }
+  });
+
   it("pads each theme's shadow to the same layer count and binds every field", () => {
     const raised = payload.effectStyles.find(
       (s) => s.name === "shadow/raised"
