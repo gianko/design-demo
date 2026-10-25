@@ -102,6 +102,10 @@ _Avoid_: Detector, heuristic
 The approved screenshot of one story in one theme and density that visual regression compares against; only the human changes one.
 _Avoid_: Snapshot, golden
 
+**Style expectation**:
+A story's own check of a computed style in one or more of its renders, stated as a value, unlike a taste rule, which holds every story to the same check.
+_Avoid_: Assertion, style test, contract
+
 **Repair loop**:
 Feeding a generator step's hard-gate failures back to that same step, with the original screen brief, for another attempt; a step never sends work back to an earlier one.
 _Avoid_: Retry, fix loop
