@@ -14,4 +14,8 @@ export {
   type ScreenStateParameters,
 } from "./components/Screen/screen-state.tsx";
 export { Stack, type StackProps } from "./components/Stack/Stack.tsx";
+export {
+  StatusTag,
+  type StatusTagProps,
+} from "./components/StatusTag/StatusTag.tsx";
 export { Text, type TextProps } from "./components/Text/Text.tsx";
