@@ -1,10 +1,18 @@
 // @vitest-environment node
 // The code step's gate 2 holds a generated screen to ADR 0011: one that keeps
 // its own state, or runs a mock operation itself, fails under the rule's id.
+// A screen that wires an action passes, along with the UI spec it came from.
 
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { codeGates } from "./code-gates.ts";
+import { gate1 } from "./gate1.ts";
+import { loadRegistry } from "./registry.ts";
+import {
+  fixtureVariant,
+  operationNames,
+  variantNames,
+} from "../src/fixtures/fixtures.ts";
 import { repo } from "../repo.ts";
 
 const file = join(
@@ -88,9 +96,67 @@ export function Reminder() {
   }, 60_000);
 });
 
-// Button's pending is code-only (ADR 0011): no UI spec gives it, and the
-// code step sets it from useAction, so a screen that does still builds.
+// Button's pending is code-only (ADR 0011): the UI spec names the pending
+// node through actions[].pending and gives no pending prop, and the code step
+// sets it from useAction. Both halves pass their gates against the real
+// registry and fixtures.
 describe("a generated screen that wires an action", () => {
+  const uiSpec = {
+    audience: "contractor",
+    nodes: [
+      {
+        id: "screen",
+        component: "Screen",
+        parent: null,
+        slot: null,
+        props: [{ name: "audience", value: '"contractor"' }],
+        when: [],
+        action: null,
+      },
+      {
+        id: "remind-button",
+        component: "Button",
+        parent: "screen",
+        slot: "body",
+        props: [
+          { name: "text", value: '"Send reminder"' },
+          { name: "intent", value: '"primary"' },
+        ],
+        when: [],
+        action: "remind",
+      },
+    ],
+    states: [
+      { name: "reminder-sent", fixture: "payment-status/reminder-sent" },
+      { name: "reminder-failed", fixture: "payment-status/reminder-failed" },
+    ],
+    actions: [
+      {
+        name: "remind",
+        operation: "sendReminder",
+        pending: "remind-button",
+        to: { success: "reminder-sent", failure: "reminder-failed" },
+      },
+    ],
+  };
+
+  it("passes gate 1 with a Button as its pending node and no pending prop", async () => {
+    const { entries } = await loadRegistry();
+
+    expect(
+      gate1(JSON.stringify(uiSpec), {
+        entries,
+        audience: "contractor",
+        fixtures: {
+          variants: Object.fromEntries(
+            variantNames.map((name) => [name, fixtureVariant(name).data])
+          ),
+          operations: operationNames,
+        },
+      })
+    ).toEqual([]);
+  });
+
   it("passes gates 2 and 3 with its Button's pending set from useAction", async () => {
     const { gates } = await codeGates(
       file,
