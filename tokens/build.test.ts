@@ -61,6 +61,7 @@ describe("the naming chain", () => {
     ["density.padding.surface", '[data-density="contractor"]'],
     ["density.height.control", '[data-density="contractor"]'],
     ["density.min-height.target", '[data-density="contractor"]'],
+    ["density.max-width.measure", '[data-density="contractor"]'],
     ["density.size.icon", '[data-density="contractor"]'],
     ["density.radius.surface", '[data-density="contractor"]'],
     ["density.text.body", '[data-density="contractor"]'],
@@ -219,7 +220,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(89);
+    expect(variables.filter((v) => v.css)).toHaveLength(90);
   });
 
   // ADR 0001 lists container padding among what density changes.
@@ -254,6 +255,17 @@ describe("the Figma payload", () => {
         Light: { alias: "primitive/neutral/900" },
         Dark: { alias: "primitive/neutral/360" },
       },
+    });
+  });
+
+  // About 65 characters of body copy at each density's body size (#95); 65ch
+  // would hold about 96, as Instrument Sans's "0" is wide.
+  it("bounds a line of body copy by density: 412px admin, 472px contractor", () => {
+    expect(variable("Density", "density/max-width/measure")).toMatchObject({
+      type: "FLOAT",
+      scopes: ["WIDTH_HEIGHT"],
+      css: true,
+      valuesByMode: { Admin: 412, Contractor: 472 },
     });
   });
 

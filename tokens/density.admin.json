@@ -28,6 +28,13 @@
         "$value": { "value": 24, "unit": "px" }
       }
     },
+    "max-width": {
+      "$type": "dimension",
+      "measure": {
+        "$description": "A line of body copy: about 65 characters at the body size.",
+        "$value": { "value": 412, "unit": "px" }
+      }
+    },
     "size": {
       "$type": "dimension",
       "icon": { "$value": { "value": 16, "unit": "px" } }

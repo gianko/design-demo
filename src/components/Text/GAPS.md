@@ -20,6 +20,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Text n
 
 **Alternative:** a `size.width.measure` token (about 65ch, or per density in px) that Text's `body` size applies, or a content width on Screen or Card instead.
 
+**Decided (#95):** a `density.max-width.measure` token, 412px admin and 472px contractor, that Text's `body` size applies as `max-w-measure`; caption stays unbounded. It's `px` per density, not `65ch`: dimensions are `px` only and Figma can't hold `ch` (ADR 0005), and in Instrument Sans `65ch` holds about 96 characters, as its "0" is wide. 412px and 472px hold about 65 at each density's body size.
+
 ## No error or success tone
 
 **Undecided:** the spec gives Text a `tone`, but the brief names no error or success text role. A failure Text such as the `reminder-failed` result has no colour of its own. The status text roles (`text-overdue`, `text-failed`) are for status tags. `text-failed` is the light text that sits on the solid red fill, so it would be invisible on the page.

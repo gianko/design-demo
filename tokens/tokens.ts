@@ -25,6 +25,9 @@ export type Height = (typeof height)[number];
 export const minHeight = ["target"] as const;
 export type MinHeight = (typeof minHeight)[number];
 
+export const maxWidth = ["measure", "card"] as const;
+export type MaxWidth = (typeof maxWidth)[number];
+
 export const size = ["icon"] as const;
 export type Size = (typeof size)[number];
 
@@ -39,9 +42,6 @@ export type Spacing = (typeof spacing)[number];
 
 export const width = ["sheet"] as const;
 export type Width = (typeof width)[number];
-
-export const maxWidth = ["card"] as const;
-export type MaxWidth = (typeof maxWidth)[number];
 
 export const font = ["sans"] as const;
 export type Font = (typeof font)[number];

@@ -24,7 +24,7 @@ States: none. Text is not interactive, so rest is its only state; hover, pressed
 
 | Slot | Variant | Classes | Why |
 |---|---|---|---|
-| `root` | `size: body` | `text-body` | Composite: 14/20 admin, 16/24 contractor, weight 400. |
+| `root` | `size: body` | `max-w-measure text-body` | Composite: 14/20 admin, 16/24 contractor, weight 400. `max-w-measure` caps a line at about 65 characters (412px admin, 472px contractor; #95), a ceiling, so a narrower container still sets the width. |
 | | `size: caption` | `text-caption` | Composite: 12/16, weight 400, at both densities. |
 | | `tone: default` | `text-ink` | "Text is a plum-tinted ink, never `#000`." |
 | | `tone: muted` | `text-ink-muted` | The quieter neutral; AA is checked on ink-muted at build time. |
@@ -55,4 +55,4 @@ How this one differs:
 - **No built-in margin.** Spacing is Stack's (ADR 0002), so a Text never pushes its neighbours by its own rule.
 - **A live region is a prop, not a separate Alert.** Spec: Text's `live` "confirms an action's result". shadcn reaches for an `Alert` box with an icon and a coloured border; here the result is a plain sentence, warm in its words rather than its chrome. Brief: "Warmth lives in colour, copy and softened corners".
 - **No error or success tone.** shadcn adds `text-destructive`; the brief has no error text role, and an error "says what happened and what to do next" in words. See GAPS.md.
-- **Matches the default** in being a bare paragraph with no max-width, where the brief is silent on line length (see GAPS.md).
+- **A measure on body copy.** The default paragraph has no max-width; this one stops at about 65 characters a line (see GAPS.md, #95).
