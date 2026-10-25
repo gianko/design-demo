@@ -16,7 +16,8 @@ export type Render = Story & { theme: Theme; density: Density };
 type IndexEntry = { type: string; id: string; title: string; tags?: string[] };
 
 // A story tagged this way animates while idle, so the rest shot (animations
-// disabled) can't show it and it also gets a mid-animation shot.
+// disabled) can't show it. It also gets a mid-animation shot and a
+// reduced-motion shot, each held to a baseline of its own.
 export const animatesWhileIdle = "animates-while-idle";
 
 // Each target of `pnpm gate <Component|screen>...` names a story title's last
@@ -76,6 +77,7 @@ export const shots = [
   "hover",
   "pressed",
   "mid-animation",
+  "reduced-motion",
 ] as const;
 
 export type Shot = (typeof shots)[number];

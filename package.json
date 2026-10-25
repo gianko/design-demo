@@ -12,6 +12,7 @@
     "figma:sync-tokens": "node figma/sync-tokens.ts",
     "figma:walk-capture": "node figma/walk-capture.ts",
     "gate": "node gates/run.ts",
+    "gate:measure": "node gates/measure.ts",
     "build-component": "node build-loop/build-component.ts",
     "build-loop": "node build-loop/build-loop.ts",
     "generate": "tsx generator/bin/generate.ts",
