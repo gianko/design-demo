@@ -1,7 +1,7 @@
 import { tv } from "tailwind-variants/lite";
 import { expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
-import { defineEntry, type PropsOf, variantEnum } from "./entry.ts";
+import { defineEntry, type PropsOf, specProps, variantEnum } from "./entry.ts";
 
 const button = tv({
   slots: { root: "", label: "" },
@@ -76,4 +76,36 @@ it("refuses to mark a prop code-only that the entry doesn't have", () => {
     // @ts-expect-error: "pendng" isn't one of the entry's props.
     defineEntry({ ...pendingButton, codeOnly: ["pendng"] })
   ).toThrow(/Button marks "pendng" code-only, but has no such prop/);
+});
+
+// A cross-prop rule, as a top-level refine. Zod 4 can't omit() a prop from a
+// refined object, so a refined entry can't hide one from the spec step.
+const refinedProps = z
+  .object({ label: z.string(), pending: z.boolean().optional() })
+  .refine(({ label }) => label !== "", { message: "label is empty" });
+
+it("gives a UI spec node all of a refined entry's props when none is code-only", () => {
+  const entry = defineEntry({ ...pendingButton, props: refinedProps });
+
+  const props = specProps(entry);
+  expect(Object.keys(props.shape)).toEqual(["label", "pending"]);
+  expect(props.safeParse({ label: "" }).success).toBe(false);
+});
+
+it("refuses a code-only prop on an entry whose props are refined", () => {
+  expect(() =>
+    defineEntry({
+      ...pendingButton,
+      props: refinedProps,
+      codeOnly: ["pending"],
+    })
+  ).toThrow(
+    /Button marks "pending" code-only, but its props have a refinement/
+  );
+});
+
+it("leaves a code-only prop out of what a UI spec node may give", () => {
+  const entry = defineEntry({ ...pendingButton, codeOnly: ["pending"] });
+
+  expect(Object.keys(specProps(entry).shape)).toEqual(["label"]);
 });

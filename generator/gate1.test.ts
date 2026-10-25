@@ -353,17 +353,40 @@ describe("gate 1", () => {
     "fails a code-only prop %s, naming it as one Button doesn't take",
     (_, value) => {
       const spec = clean();
-      const unknown = clean();
+      const withTone = clean();
       setProp(nodeOf(spec, "remind-button"), "pending", value);
-      setProp(nodeOf(unknown, "remind-button"), "tone", value);
+      setProp(nodeOf(withTone, "remind-button"), "tone", value);
 
       const failures = gate1(spec, context);
       expect(failures.map(({ rule, location }) => [rule, location])).toEqual([
         ["props-parse", "remind-button"],
       ]);
       expect(failures[0]!.message).toBe(
-        gate1(unknown, context)[0]!.message.replace("tone", "pending")
+        gate1(withTone, context)[0]!.message.replace("tone", "pending")
       );
+      expect(failures[0]!.message).toContain('"pending"');
+    }
+  );
+
+  // A Button passed as another component's slot prop, in a DataTable row,
+  // rather than one in a body slot.
+  it.each([
+    ["written as a literal", true],
+    ["bound to the row", bind("row.client")],
+  ])(
+    "fails a code-only prop %s on a Button in a named slot, naming the node",
+    (_, value) => {
+      const spec = clean();
+      const rowButton = node("row-button", "Button", "table", "cell", {
+        label: "Remind",
+      });
+      setProp(rowButton, "pending", value);
+      spec.nodes.push(rowButton);
+
+      const failures = gate1(spec, context);
+      expect(failures.map(({ rule, location }) => [rule, location])).toEqual([
+        ["props-parse", "row-button"],
+      ]);
       expect(failures[0]!.message).toContain('"pending"');
     }
   );

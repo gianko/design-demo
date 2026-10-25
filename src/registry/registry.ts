@@ -17,26 +17,13 @@ export function defineRegistry<const E extends readonly RegistryEntry[]>(
   // Each step's view of the registry. The spec step's leaves out code-only
   // props, so a UI spec can't give them; the code step's keeps them, listed
   // under codeOnly, so it knows to set them itself.
-  const serialize = (rows: object[]) => JSON.stringify(rows, null, 2);
-  const serialized = {
-    spec: serialize(
-      sorted.map((entry) => ({
-        name: entry.name,
-        use: entry.use,
-        props: propsSchema(specProps(entry)),
-        slots: entry.slots ?? {},
-      }))
-    ),
-    code: serialize(
-      sorted.map((entry) => ({
-        name: entry.name,
-        use: entry.use,
-        props: propsSchema(entry.props),
-        ...(entry.codeOnly?.length ? { codeOnly: entry.codeOnly } : {}),
-        slots: entry.slots ?? {},
-      }))
-    ),
-  };
+  const serialize = (step: "spec" | "code") =>
+    JSON.stringify(
+      sorted.map((entry) => row(entry, step)),
+      null,
+      2
+    );
+  const serialized = { spec: serialize("spec"), code: serialize("code") };
   // The registry version in every eval results file's version tuple, over
   // what both steps see. Zod refinements don't serialize, so changing one
   // leaves the hash as it was.
@@ -47,6 +34,18 @@ export function defineRegistry<const E extends readonly RegistryEntry[]>(
   const component = z.enum(names as [E[number]["name"]]);
   // Gate 1 checks each node against its entry.
   return { entries: sorted, serialized, hash, component };
+}
+
+// One entry as a step sees it.
+function row(entry: RegistryEntry, step: "spec" | "code") {
+  const code = step === "code" && entry.codeOnly?.length;
+  return {
+    name: entry.name,
+    use: entry.use,
+    props: propsSchema(step === "spec" ? specProps(entry) : entry.props),
+    ...(code ? { codeOnly: entry.codeOnly } : {}),
+    slots: entry.slots ?? {},
+  };
 }
 
 // The output schema, the one PropsOf infers, so a defaulted prop is required
