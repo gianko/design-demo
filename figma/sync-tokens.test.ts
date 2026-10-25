@@ -4,7 +4,11 @@ import { readFile } from "node:fs/promises";
 import { beforeAll, describe, expect, it } from "vitest";
 import { repo } from "../repo.ts";
 import type { FigmaPayload } from "../tokens/build.ts";
-import { fakePluginApi, type FakePluginApi } from "./fake-plugin-api.ts";
+import {
+  fakePluginApi,
+  runScript,
+  type FakePluginApi,
+} from "./fake-plugin-api.ts";
 import { codeLimit, syncScripts, type SyncOptions } from "./sync-tokens.ts";
 
 let payload: FigmaPayload;
@@ -20,14 +24,8 @@ beforeAll(async () => {
   );
 });
 
-const AsyncFunction = (async () => {}).constructor as new (
-  ...args: string[]
-) => (figma: unknown) => Promise<unknown>;
-
-/** Runs one script the way use_figma does: its body, with `figma` in scope. */
-function run(code: string, file: FakePluginApi) {
-  return new AsyncFunction("figma", code)(file.figma) as Promise<Report>;
-}
+const run = (code: string, file: FakePluginApi) =>
+  runScript(code, file) as Promise<Report>;
 
 /** Writes the scripts for `options` and runs them in order. */
 async function sync(

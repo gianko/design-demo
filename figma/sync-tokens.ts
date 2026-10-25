@@ -4,12 +4,12 @@
 // returns the diff instead of writing, `--prune <id,…>` also deletes those
 // orphans, and `--split` writes one script per collection, then one for styles.
 
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { transform } from "esbuild";
 import { repo } from "../repo.ts";
 import { figmaPayloadFile, type FigmaPayload } from "../tokens/build.ts";
+import { embeddedRuntime, outDir } from "./scripts.ts";
 
 /** use_figma's maxLength for `code`. */
 export const codeLimit = 50_000;
@@ -21,12 +21,7 @@ export type SyncOptions = {
 };
 export type Script = { name: string; code: string };
 
-// The agent re-types every byte into use_figma, so the runtime goes in without
-// its comments and indentation. Names stay, so its errors still read.
-const { code: runtime } = await transform(
-  await readFile(join(import.meta.dirname, "sync-runtime.js"), "utf8"),
-  { minifyWhitespace: true }
-);
+const runtime = await embeddedRuntime("sync-runtime.js");
 
 // The runtime's own copy hashes the data the same way.
 function fnv1a(text: string): string {
@@ -51,7 +46,7 @@ function script(part: Part, options: SyncOptions): string {
     `const RUN = ${JSON.stringify(run)};`,
     `const PAYLOAD = ${JSON.stringify(part)};`,
     `const CHECKSUM = "${fnv1a(JSON.stringify([run, part]))}";`,
-    runtime.trimEnd(),
+    runtime,
     "return await syncTokens(RUN, PAYLOAD, CHECKSUM);",
     "",
   ].join("\n");
@@ -96,9 +91,6 @@ export function syncScripts(
 
 // ── CLI ───────────────────────────────────────────────────────────────────
 
-/** Where the scripts are written; the agent reads them from here. */
-export const outDir = join(repo, "figma", "out");
-
 async function main(args: string[]): Promise<number> {
   const prune = args.includes("--prune")
     ? (args[args.indexOf("--prune") + 1] ?? "").split(",").filter(Boolean)
@@ -133,8 +125,12 @@ async function main(args: string[]): Promise<number> {
     return 1;
   }
 
-  await rm(outDir, { recursive: true, force: true });
+  // Earlier sync scripts go, so a split run leaves no stale part behind; the
+  // other scripts sharing the directory stay.
   await mkdir(outDir, { recursive: true });
+  for (const stale of await readdir(outDir)) {
+    if (stale.startsWith("sync-tokens.")) await rm(join(outDir, stale));
+  }
   const mode = options.dryRun ? "dry-run" : "apply";
   for (const [index, { name, code }] of scripts.entries()) {
     const file = join(

@@ -1,0 +1,13 @@
+<!--
+  Figma's capture script, for the figma-capture skill (ADR 0007). It loads
+  only on a capture URL (#figmacapture=…): the gates abort every request that
+  leaves Storybook, so loading it on every render would fail them.
+-->
+<script>
+  if (/[#&]figmacapture=/.test(location.hash)) {
+    const script = document.createElement("script");
+    script.src = "https://mcp.figma.com/mcp/html-to-design/capture.js";
+    script.async = true;
+    document.head.append(script);
+  }
+</script>
