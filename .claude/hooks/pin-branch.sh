@@ -21,9 +21,15 @@ case "$1" in
     record
     ;;
   follow-switch)
-    # The session's own switch moves its pin.
-    if grep -Eq '(^|[;&|[:space:]])git[[:space:]]+(switch|checkout)([[:space:]]|$)' <<<"$command"; then
-      record
+    # The session's own switch moves its pin, whether run bare or as
+    # `git -C <path> switch` aimed at this same checkout.
+    switch='(^|[;&|[:space:]])git[[:space:]]+(-C[[:space:]]+("[^"]*"|[^[:space:]]+)[[:space:]]+)?(switch|checkout)([[:space:]]|$)'
+    if [[ $command =~ $switch ]]; then
+      target=${BASH_REMATCH[3]//\"/}
+      if [ -z "$target" ] ||
+        [ "$(git -C "$cwd" -C "$target" rev-parse --absolute-git-dir 2>/dev/null)" = "$git_dir" ]; then
+        record
+      fi
     fi
     ;;
   check-commit)

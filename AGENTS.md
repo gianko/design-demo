@@ -14,6 +14,8 @@ Issues live in GitHub Issues for `gianko/design-demo`, managed with the `gh` CLI
 
 Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
 
+To triage an issue, including a `<Component> gap:` issue, follow `.claude/skills/triage/SKILL.md`. It's user-invoked, so read the file rather than calling the Skill tool.
+
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
