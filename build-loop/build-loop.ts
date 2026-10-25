@@ -1,7 +1,8 @@
 // `pnpm build-loop [--dry-run]`: the build loop (spec § Build-loop driver).
 // Each iteration takes the first open, unblocked `build-loop` issue, builds its
 // component in one headless `/build-component` session, files the session's
-// gaps and opens the PR; it stops when no `build-loop` issue is unblocked.
+// gaps and opens the PR; it stops when no `build-loop` issue is unblocked, and
+// fails if a claimed one has no PR, as a failed step after a session leaves it.
 // `--dry-run` prints the issue it would take, and writes nothing.
 
 import { parseArgs } from "node:util";

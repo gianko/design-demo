@@ -1,19 +1,51 @@
 import { describe, expect, test } from "vitest";
-import { githubTracker } from "./github.ts";
+import { GhError, githubTracker } from "./github.ts";
 
 // A `gh` that answers from a script, keyed by the call's first arguments, and
-// records every call.
-function fakeGh(answers: [prefix: string, output: string][]) {
+// records every call. An answer may be a function, which can throw.
+function fakeGh(
+  answers: [prefix: string, output: string | ((args: string[]) => string)][]
+) {
   const calls: string[][] = [];
   const gh = (args: string[]) => {
     calls.push(args);
     const line = args.join(" ");
     const answer = answers.find(([prefix]) => line.startsWith(prefix));
     if (!answer) throw new Error(`Unexpected gh ${line}`);
-    return answer[1];
+    const [, output] = answer;
+    return typeof output === "string" ? output : output(args);
   };
   return { gh, calls };
 }
+
+// Answers that fail with these stderr texts, one per call, then give output.
+function failing(stderrs: string[], output: string) {
+  let calls = 0;
+  return (args: string[]) => {
+    const stderr = stderrs[calls++];
+    if (stderr !== undefined) throw new GhError(args, stderr);
+    return output;
+  };
+}
+
+const refused =
+  'Post "https://api.github.com/graphql": dial tcp 140.82.112.6:443: connect: connection refused\n';
+const reset =
+  "read tcp 10.0.0.2:51234->140.82.112.6:443: read: connection reset by peer\n";
+
+// The pauses between attempts, recorded instead of slept.
+function tracker(gh: (args: string[]) => string) {
+  const pauses: number[] = [];
+  return {
+    tracker: githubTracker(gh, "gianko/design-demo", {
+      wait: (ms) => pauses.push(ms),
+    }),
+    pauses,
+  };
+}
+
+const commands = (calls: string[][]) =>
+  calls.map((args) => args.slice(0, 2).join(" "));
 
 describe("githubTracker", () => {
   test("lists open build-loop issues across pages, with open blockers and assignees, and no PRs", () => {
@@ -245,5 +277,162 @@ describe("githubTracker", () => {
         "issue_id=5971779616",
       ],
     ]);
+  });
+
+  // `Closes #N` in the PR body links it. GitHub lists a merged PR there too,
+  // which is how #62 still showed one.
+  test.each([
+    [["MERGED", "OPEN"], true],
+    [["MERGED", "CLOSED"], false],
+    [[], false],
+  ])(
+    "asks GitHub for the PRs that close an issue, counting only open ones (%j)",
+    (states, open) => {
+      const response = {
+        data: {
+          repository: {
+            issue: {
+              closedByPullRequestsReferences: {
+                nodes: states.map((state) => ({ state })),
+              },
+            },
+          },
+        },
+      };
+      const { gh, calls } = fakeGh([["api graphql", JSON.stringify(response)]]);
+
+      expect(
+        githubTracker(gh, "gianko/design-demo").hasOpenPullRequest(62)
+      ).toBe(open);
+      expect(calls[0]).toEqual(
+        expect.arrayContaining([
+          "-f",
+          "owner=gianko",
+          "-f",
+          "name=design-demo",
+          "-F",
+          "number=62",
+        ])
+      );
+      expect(calls[0]!.join(" ")).toContain("closedByPullRequestsReferences");
+    }
+  );
+});
+
+describe("githubTracker, when a gh call fails", () => {
+  test("retries a refused connection after a pause, and creates the issue once", () => {
+    const { gh, calls } = fakeGh([
+      [
+        "issue create",
+        failing(
+          [refused],
+          "https://github.com/gianko/design-demo/issues/201\n"
+        ),
+      ],
+      ["issue list", "[]"],
+    ]);
+    const { tracker: github, pauses } = tracker(gh);
+
+    expect(
+      github.fileTriageIssue({ title: "Text gap: No prose width", body: "…" })
+    ).toBe(201);
+    expect(commands(calls)).toEqual([
+      "issue create",
+      "issue list",
+      "issue create",
+    ]);
+    expect(pauses).toEqual([1000]);
+  });
+
+  test.each([
+    [
+      "a validation error",
+      "HTTP 422: Validation Failed (https://api.github.com/…)\n",
+    ],
+    ["a missing issue", "HTTP 404: Not Found (https://api.github.com/…)\n"],
+    ["no auth", "HTTP 401: Bad credentials (https://api.github.com/…)\n"],
+  ])("throws %s on the first attempt", (_, stderr) => {
+    const { gh, calls } = fakeGh([["api", failing([stderr], "{}")]]);
+    const { tracker: github, pauses } = tracker(gh);
+
+    expect(() => github.block(61, 201)).toThrow(stderr.trim());
+    expect(calls).toHaveLength(1);
+    expect(pauses).toEqual([]);
+  });
+
+  test("returns the issue a lost response already filed, and files no second one", () => {
+    const { gh, calls } = fakeGh([
+      ["issue create", failing([reset], "unreachable")],
+      [
+        "issue list",
+        JSON.stringify([
+          { number: 199, title: "Text gap: Muted text on tinted surfaces" },
+          { number: 201, title: "Text gap: No prose width" },
+        ]),
+      ],
+    ]);
+    const { tracker: github } = tracker(gh);
+
+    expect(
+      github.fileTriageIssue({ title: "Text gap: No prose width", body: "…" })
+    ).toBe(201);
+    expect(commands(calls)).toEqual(["issue create", "issue list"]);
+    expect(calls[1]).toEqual(
+      expect.arrayContaining(["--label", "needs-triage", "--state", "open"])
+    );
+  });
+
+  test("returns the PR a lost response already opened from the branch", () => {
+    const { gh, calls } = fakeGh([
+      ["pr create", failing(["HTTP 502: Bad Gateway\n"], "unreachable")],
+      ["pr list", JSON.stringify([{ number: 120 }])],
+    ]);
+    const { tracker: github } = tracker(gh);
+
+    expect(
+      github.openPullRequest({
+        branch: "build-component-heading",
+        title: "Build component: Heading",
+        body: "Closes #62",
+      })
+    ).toBe(120);
+    expect(commands(calls)).toEqual(["pr create", "pr list"]);
+    expect(calls[1]).toEqual(
+      expect.arrayContaining(["--head", "build-component-heading"])
+    );
+  });
+
+  test("counts a blocking edge a lost response already added as added", () => {
+    const { gh, calls } = fakeGh([
+      ["api repos/gianko/design-demo/issues/201 ", "5971779616\n"],
+      [
+        "api --method POST",
+        failing(["net/http: TLS handshake timeout\n"], "{}"),
+      ],
+      [
+        "api repos/gianko/design-demo/issues/61/dependencies/blocked_by",
+        JSON.stringify([{ id: 5971779616 }]),
+      ],
+    ]);
+    const { tracker: github } = tracker(gh);
+
+    github.block(61, 201);
+
+    expect(calls.map((args) => args.slice(0, 3).join(" "))).toEqual([
+      "api repos/gianko/design-demo/issues/201 --jq",
+      "api --method POST",
+      "api repos/gianko/design-demo/issues/61/dependencies/blocked_by?per_page=100",
+    ]);
+  });
+
+  test("gives up after a few transient failures, pausing longer each time", () => {
+    const { gh, calls } = fakeGh([
+      ["issue edit", failing([refused, refused, refused, refused], "")],
+    ]);
+    const { tracker: github, pauses } = tracker(gh);
+
+    expect(() => github.claim(54)).toThrow("connection refused");
+    expect(calls).toHaveLength(4);
+    expect(pauses).toEqual([1000, 2000, 4000]);
   });
 });
