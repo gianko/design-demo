@@ -15,9 +15,11 @@ import {
   type Rate,
   type RepResult,
   type ResultsFile,
+  counted,
   latestResults,
   tally,
 } from "./results.ts";
+import { dollars, escapeHtml } from "../format.ts";
 import { repo } from "../repo.ts";
 
 export type ReportDeps = {
@@ -142,7 +144,7 @@ export function loadRun(path: string, screenshots: boolean): ReportRun {
 }
 
 const shotKey = (rep: RepResult, attempt: Attempt) =>
-  `${rep.brief}-${rep.rep}/attempt-${attempt.attempt}-${attempt.step}`;
+  `${rep.slug}-${rep.rep}/attempt-${attempt.attempt}-${attempt.step}`;
 
 const failed = (attempt: Attempt) =>
   Object.values(attempt.gates).includes("fail");
@@ -217,6 +219,7 @@ type StorybookIndex = {
   entries: Record<string, { id: string; exportName?: string }>;
 };
 
+// The light theme, always: ADR 0002 has no automatic OS following in P0.
 export function reportHtml(runs: ReportRun[]): string {
   const title = runs.length === 1 ? "Eval run report" : "Eval comparison";
   return `<!doctype html>
@@ -224,24 +227,19 @@ export function reportHtml(runs: ReportRun[]): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escape(title)}</title>
-<script>
-// The reader's colour scheme picks the theme.
-if (matchMedia("(prefers-color-scheme: dark)").matches)
-  document.documentElement.dataset.theme = "dark";
-</script>
+<title>${escapeHtml(title)}</title>
 <style>
 ${styles()}
 </style>
 </head>
 <body>
 <main>
-<h1>${escape(title)}</h1>
+<h1>${escapeHtml(title)}</h1>
 ${legend(runs)}
 ${briefSetsDiffer(runs)}
 <section>
 <h2>Screen briefs</h2>
-<p class="note">Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate.</p>
+<p class="note">${runs.length > 1 ? "Each cell reads run A → run B, and – marks a screen brief a run doesn't cover." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate.</p>
 ${summary(runs)}
 </section>
 ${runs.map((run, index) => repsSection(run, runs.length > 1 ? letter(index) : null)).join("\n")}
@@ -261,7 +259,7 @@ const gates: GateName[] = [
   "gate 7 render",
 ];
 
-const overall = "All briefs";
+const overall = "All screen briefs";
 
 // What each run is: its results file and its version tuple. In a
 // comparison, a field the runs disagree on is marked.
@@ -300,7 +298,7 @@ function legend(runs: ReportRun[]) {
   const head = runs
     .map(
       (run, index) =>
-        `<th scope="col">${compare ? `<span class="letter">${letter(index)}</span> ` : ""}${escape(run.name)}</th>`
+        `<th scope="col">${compare ? `<span class="letter">${letter(index)}</span> ` : ""}${escapeHtml(run.name)}</th>`
     )
     .join("");
   const body = rows
@@ -308,8 +306,8 @@ function legend(runs: ReportRun[]) {
       const values = runs.map(value);
       const differs =
         compare && !identity.has(label) && new Set(values).size > 1;
-      return `<tr${differs ? ' class="differs"' : ""}><th scope="row">${escape(label)}</th>${values
-        .map((each) => `<td>${escape(each)}</td>`)
+      return `<tr${differs ? ' class="differs"' : ""}><th scope="row">${escapeHtml(label)}</th>${values
+        .map((each) => `<td>${escapeHtml(each)}</td>`)
         .join("")}</tr>`;
     })
     .join("\n");
@@ -341,20 +339,23 @@ function briefSetsDiffer(runs: ReportRun[]) {
       ? `<li>only in ${name}: ${slugs.map(escape).join(", ")}</li>`
       : "";
   return `<aside class="brief-sets-differ" role="note">
-<p><strong>These runs cover different screen briefs</strong>, so their overall counts aren't over the same briefs.</p>
+<p><strong>These runs cover different screen briefs</strong>, so their overall counts aren't over the same screen briefs.</p>
 <ul>${only("A", onlyA)}${only("B", onlyB)}</ul>
 </aside>`;
 }
 
-// One row per screen brief, and per run in a comparison, then the overall
-// row: counts, not percentages, with no claim of significance at K≈3.
+// One row per screen brief, then the overall row: counts, not percentages,
+// with no claim of significance at K≈3. A run report's passes read first
+// attempt → final; in a comparison every cell reads run A → run B (ADR 0008),
+// with – for a screen brief a run doesn't cover.
 function summary(runs: ReportRun[]) {
   const briefs = [...new Set(runs.flatMap((run) => run.file.briefSlugs))];
   const compare = runs.length > 1;
   const head = [
     "Screen brief",
-    ...(compare ? ["Run"] : []),
-    "Passed (first attempt → final)",
+    ...(compare
+      ? ["Passed (final)", "Passed (first attempt)"]
+      : ["Passed (first attempt → final)"]),
     "Errors",
     "Skipped",
     "Mean attempts (spec · code)",
@@ -362,36 +363,39 @@ function summary(runs: ReportRun[]) {
     "Wall time",
     ...gates,
   ];
-  const row = (
-    brief: string,
-    run: ReportRun,
-    index: number,
-    reps: RepResult[]
-  ) => {
-    const runCell = compare ? `<td>${letter(index)}</td>` : "";
-    if (brief !== overall && !run.file.briefSlugs.includes(brief))
-      return `<tr><th scope="row">${escape(brief)}</th>${runCell}<td colspan="${head.length - (compare ? 2 : 1)}">not in this run</td></tr>`;
+  // One run's cells for a screen brief, or null if the run doesn't cover it.
+  const cells = (run: ReportRun, brief: string): string[] | null => {
+    if (brief !== overall && !run.file.briefSlugs.includes(brief)) return null;
+    const reps =
+      brief === overall
+        ? run.file.reps
+        : run.file.reps.filter((rep) => rep.slug === brief);
     const counts = tally(reps);
     const failures = gateFailures(reps);
-    return `<tr${brief === overall ? ' class="overall"' : ""}><th scope="row">${escape(brief)}</th>${runCell}<td>${rate(counts.firstAttempt)} → ${rate(counts.final)}</td><td>${counts.error}</td><td>${counts.skipped}</td><td>${meanAttempts(reps)}</td><td>${dollars(counts.cost)}</td><td>${duration(counts.wallMs)}</td>${gates
-      .map((gate) => `<td>${failures[gate]}</td>`)
+    return [
+      ...(compare
+        ? [rate(counts.final), rate(counts.firstAttempt)]
+        : [`${rate(counts.firstAttempt)} → ${rate(counts.final)}`]),
+      String(counts.error),
+      String(counts.skipped),
+      meanAttempts(reps),
+      dollars(counts.cost),
+      duration(counts.wallMs),
+      ...gates.map((gate) => String(failures[gate])),
+    ];
+  };
+  const row = (brief: string) => {
+    const [a, b] = runs.map((run) => cells(run, brief));
+    const values = compare
+      ? head.slice(1).map((_, i) => `${a?.[i] ?? "–"} → ${b?.[i] ?? "–"}`)
+      : a!;
+    return `<tr${brief === overall ? ' class="overall"' : ""}><th scope="row">${escapeHtml(brief)}</th>${values
+      .map((value) => `<td>${escapeHtml(value)}</td>`)
       .join("")}</tr>`;
   };
-  const body = [
-    ...briefs.flatMap((brief) =>
-      runs.map((run, index) =>
-        row(
-          brief,
-          run,
-          index,
-          run.file.reps.filter((rep) => rep.brief === brief)
-        )
-      )
-    ),
-    ...runs.map((run, index) => row(overall, run, index, run.file.reps)),
-  ];
+  const body = [...briefs, overall].map(row);
   return `<div class="table"><table class="summary">
-<thead><tr>${head.map((cell) => `<th scope="col">${escape(cell)}</th>`).join("")}</tr></thead>
+<thead><tr>${head.map((cell) => `<th scope="col">${escapeHtml(cell)}</th>`).join("")}</tr></thead>
 <tbody>
 ${body.join("\n")}
 </tbody>
@@ -404,12 +408,12 @@ ${body.join("\n")}
 function repsSection(run: ReportRun, name: string | null) {
   const briefs = run.file.briefSlugs.map((brief) => {
     const reps = run.file.reps
-      .filter((rep) => rep.brief === brief)
+      .filter((rep) => rep.slug === brief)
       .sort((a, b) => a.rep - b.rep)
       .map((rep) => repDetails(run, rep))
       .join("\n");
     return `<section class="brief">
-<h3>${escape(brief)}</h3>
+<h3>${escapeHtml(brief)}</h3>
 ${reps}
 </section>`;
   });
@@ -428,12 +432,12 @@ function repDetails(run: ReportRun, rep: RepResult) {
       const gateList = Object.entries(attempt.gates)
         .map(
           ([gate, result]) =>
-            `<li class="gate ${escape(result)}">${escape(gate)} ${escape(result)}</li>`
+            `<li class="gate ${escapeHtml(result)}">${escapeHtml(gate)} ${escapeHtml(result)}</li>`
         )
         .join("");
       const failures = attempt.failures.length
         ? `<ul class="failures">${attempt.failures
-            .map((line) => `<li><code>${escape(line)}</code></li>`)
+            .map((line) => `<li><code>${escapeHtml(line)}</code></li>`)
             .join("")}</ul>`
         : "";
       const shots = run.shots?.get(shotKey(rep, attempt)) ?? [];
@@ -441,15 +445,15 @@ function repDetails(run: ReportRun, rep: RepResult) {
         ? `<div class="shots">${shots
             .map(
               (each) =>
-                `<figure><img src="${each.src}" alt="${escape(`${rep.brief} rep ${rep.rep}, ${attempt.step} attempt ${attempt.attempt}, ${each.theme} · ${each.state}`)}" loading="lazy"><figcaption>${escape(`${each.theme} · ${each.state}`)}</figcaption></figure>`
+                `<figure><img src="${each.src}" alt="${escapeHtml(`${rep.slug} rep ${rep.rep}, ${attempt.step} attempt ${attempt.attempt}, ${each.theme} · ${each.state}`)}" loading="lazy"><figcaption>${escapeHtml(`${each.theme} · ${each.state}`)}</figcaption></figure>`
             )
             .join("")}</div>`
         : "";
-      return `<li class="attempt"><p>${escape(attempt.step)} attempt ${attempt.attempt} · ${dollars(attempt.cost)}</p><ul class="gates">${gateList}</ul>${failures}${gallery}</li>`;
+      return `<li class="attempt"><p>${escapeHtml(attempt.step)} attempt ${attempt.attempt} · ${dollars(attempt.cost)}</p><ul class="gates">${gateList}</ul>${failures}${gallery}</li>`;
     })
     .join("");
-  return `<details class="rep ${escape(rep.outcome)}"${rep.outcome === "pass" ? "" : " open"}>
-<summary>rep ${rep.rep} · <strong>${escape(rep.outcome)}</strong> · ${escape(rep.endReason)} · ${dollars(rep.cost)} · ${duration(rep.wallMs)}</summary>
+  return `<details class="rep ${escapeHtml(rep.outcome)}"${rep.outcome === "pass" ? "" : " open"}>
+<summary>rep ${rep.rep} · <strong>${escapeHtml(rep.outcome)}</strong> · ${escapeHtml(rep.endReason)} · ${dollars(rep.cost)} · ${duration(rep.wallMs)}</summary>
 ${missing}
 <ol class="attempts">${attempts}</ol>
 </details>`;
@@ -457,12 +461,10 @@ ${missing}
 
 // Attempts per step, over the reps a pass rate counts that ran the step.
 function meanAttempts(reps: RepResult[]) {
-  const counted = reps.filter(
-    (rep) => rep.outcome === "pass" || rep.outcome === "fail"
-  );
   return (["spec", "code"] as const)
     .map((step) => {
-      const perRep = counted
+      const perRep = reps
+        .filter(counted)
         .map((rep) => rep.attempts.filter((each) => each.step === step).length)
         .filter((n) => n > 0);
       return perRep.length
@@ -492,10 +494,6 @@ function rate({ passed, of }: Rate) {
   return `${passed}/${of}`;
 }
 
-function dollars(usd: number) {
-  return `$${usd.toFixed(2)}`;
-}
-
 function duration(ms: number) {
   const seconds = Math.round(ms / 1000);
   return seconds < 60
@@ -504,8 +502,11 @@ function duration(ms: number) {
 }
 
 // tokens.css as the library ships it (its Tailwind-only blocks are at-rules
-// a browser skips), the brief's typeface inline, then the page's own rules,
-// which use nothing but its variables.
+// a browser skips), the design brief's typeface inline, then the page's own
+// rules. Those take every colour, space, radius, type and size from its
+// variables. The few raw values left have no token: the 1px hairline (the
+// library draws its own with Tailwind's `border`), the page's 1200px width
+// and the screenshot column's 240px minimum, besides zeros and keywords.
 function styles() {
   return [
     readFileSync(join(repo, "tokens", "tokens.css"), "utf8"),
@@ -573,7 +574,7 @@ h3 {
   font-weight: var(--ds-density-text-label-font-weight);
 }
 .note {
-  max-width: 72ch;
+  max-width: var(--ds-density-max-width-measure);
   color: var(--ds-color-text-ink-muted);
 }
 .table {
@@ -587,10 +588,9 @@ table {
   border-collapse: collapse;
 }
 .overall > * {
-  border-top: 2px solid var(--ds-color-border-control);
+  border-top: var(--ds-size-height-edge) solid var(--ds-color-border-control);
   font-weight: var(--ds-type-weight-semibold);
 }
-.overall ~ .overall > * { border-top: 0; }
 th, td {
   padding: var(--ds-space-2xs) var(--ds-space-xs);
   border-bottom: 1px solid var(--ds-color-border-line);
@@ -605,10 +605,6 @@ tbody tr:last-child > * { border-bottom: 0; }
 .summary td {
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-.summary td[colspan] {
-  text-align: left;
-  color: var(--ds-color-text-ink-muted);
 }
 .runs .differs > * {
   background: var(--ds-color-bg-awaiting);
@@ -687,11 +683,3 @@ figcaption {
   line-height: var(--ds-type-caption-line-height);
 }
 `;
-
-function escape(text: string) {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}

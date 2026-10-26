@@ -56,8 +56,8 @@ describe("fixtures", () => {
     expect(data.invoices).toContainEqual(data.overdueInvoice);
   });
 
-  it("shares one dataset of 8 invoices across 5 contractors", () => {
-    const { invoices, you } = fixtureVariant("default").data;
+  it("shares one dataset of 8 invoices across 5 contractors, each named by its id", () => {
+    const { invoices } = fixtureVariant("default").data;
 
     expect(invoices.map((invoice) => invoice.id)).toEqual([
       "INV-0142",
@@ -69,15 +69,26 @@ describe("fixtures", () => {
       "INV-0149",
       "INV-0151",
     ]);
-    expect(new Set(invoices.map((invoice) => invoice.contractor)).size).toBe(5);
-    expect(
-      invoices
-        .filter((invoice) => invoice.contractor === you.name)
-        .map((invoice) => [invoice.id, invoice.status])
-    ).toEqual([
-      ["INV-0142", "overdue"],
-      ["INV-0151", "scheduled"],
-    ]);
+    const contractors = new Map(
+      invoices.map((invoice) => [invoice.contractorId, invoice.contractor])
+    );
+    expect(contractors.size).toBe(5);
+    expect(new Set(contractors.values()).size).toBe(5);
+  });
+
+  it("gives the contractor screens your invoices, matched by your id", () => {
+    const { invoices, you, yourInvoices } = fixtureVariant("default").data;
+
+    expect(you).toEqual({ id: "ines-duarte", name: "Ines Duarte" });
+    expect(yourInvoices.map((invoice) => [invoice.id, invoice.status])).toEqual(
+      [
+        ["INV-0142", "overdue"],
+        ["INV-0151", "scheduled"],
+      ]
+    );
+    expect(yourInvoices).toEqual(
+      invoices.filter((invoice) => invoice.contractorId === you.id)
+    );
   });
 
   it("carries a label beside every ISO date", () => {
@@ -167,9 +178,12 @@ describe("fixtures", () => {
     const { data } = fixtureVariant("payment-status/empty");
 
     expect(data.overdueInvoice).toBeNull();
+    expect(data.yourInvoices).toEqual([]);
     expect(
-      data.invoices.filter((invoice) => invoice.contractor === data.you.name)
+      data.invoices.filter((invoice) => invoice.contractorId === data.you.id)
     ).toEqual([]);
+    // The other contractors' invoices are still in the admin's queue.
+    expect(data.invoices).toHaveLength(6);
     expect(data.nextPayment).toBeNull();
     expect(data.lastPayment).toBeNull();
     expect(data.paidThisYear).toBeNull();

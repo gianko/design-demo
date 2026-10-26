@@ -81,7 +81,7 @@ const ok = { met: true, missing: [] };
 
 function rep(
   runId: string,
-  brief: string,
+  slug: string,
   n: number,
   outcome: RepOutcome,
   wallSeconds: number,
@@ -89,7 +89,7 @@ function rep(
   at: At
 ): RepResult {
   return {
-    brief,
+    slug,
     rep: n,
     outcome,
     endReason:
@@ -108,7 +108,7 @@ function rep(
     workDir:
       outcome === "skipped"
         ? null
-        : relative(repo, join(at.runsDir, runId, `${brief}-${n}`)),
+        : relative(repo, join(at.runsDir, runId, `${slug}-${n}`)),
     attempts,
   };
 }
@@ -180,7 +180,7 @@ export function runA(at: At, briefSlugs = ["invoice-queue", "payment-status"]) {
       [attempt("spec", 1, "gate 1"), attempt("spec", 2), attempt("code", 1)],
       at
     ),
-  ].filter((each) => briefSlugs.includes(each.brief));
+  ].filter((each) => briefSlugs.includes(each.slug));
   return results(runId, "before", briefSlugs, reps);
 }
 
@@ -245,7 +245,7 @@ function results(
     perBrief: Object.fromEntries(
       briefSlugs.map((slug) => [
         slug,
-        tally(reps.filter((each) => each.brief === slug)),
+        tally(reps.filter((each) => each.slug === slug)),
       ])
     ),
     reps,

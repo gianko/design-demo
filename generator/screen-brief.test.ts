@@ -122,10 +122,23 @@ describe.each(briefFiles)("the screen brief %s", (file) => {
     expect(brief(file).slug).toBe(file.replace(/\.md$/, ""));
   });
 
-  it("names every state and action id its pass criteria check, verbatim", () => {
+  // Spec § Rules every brief follows: every id a `requires.*` key checks,
+  // components included. A component is named as a word ("Card", not only
+  // "Cards"), and the table's "Screen state" heading doesn't name Screen; a
+  // state or action id is backticked.
+  it("names every component, state and action id its pass criteria check, verbatim", () => {
     const { requires, text } = brief(file);
-    const ids = [...requires.states, ...requires.actions];
-    expect(ids.filter((id) => !body(text).includes(`\`${id}\``))).toEqual([]);
+    const prose = body(text).replace(/^\| Screen state \|.*$/m, "");
+    expect(
+      requires.components.filter(
+        (id) => !new RegExp(`(?<![\\w-])${id}(?![\\w-])`).test(prose)
+      )
+    ).toEqual([]);
+    expect(
+      [...requires.states, ...requires.actions].filter(
+        (id) => !prose.includes(`\`${id}\``)
+      )
+    ).toEqual([]);
   });
 
   it("tables the default and each required state", () => {

@@ -8,7 +8,7 @@ requires:
 
 # Payment overview
 
-A contractor checks on their money: what's coming next, what came last, and what they've been paid this year. Title the screen with a Heading, then show three Cards: **Next payment**, **Last payment** and **Paid this year**. The screen is read-only, with no actions.
+A contractor checks on their money: what's coming next, what came last, and what they've been paid this year. Title the `Screen` with a Heading, then show three Cards: **Next payment**, **Last payment** and **Paid this year**. The screen is read-only, with no actions.
 
 Each Card binds one of the fixtures' named paths. Next payment is `nextPayment`: bind its `amount`, `currency` and `status`, and keep "Arrives " before its `dateLabel` as literal copy. Last payment is `lastPayment`: bind its `amount`, `currency` and `status`, with "Arrived " before its `dateLabel`. Paid this year is `paidThisYear`, a total: bind its `amount` and `currency`. It has no status, so it has no StatusTag.
 

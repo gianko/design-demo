@@ -17,7 +17,9 @@ export type Contractor = { id: string; name: string };
 export type Invoice = {
   id: string;
   number: string;
-  // Who sent the invoice and is paid for it.
+  // Who sent the invoice and is paid for it: the `Contractor.id` that says
+  // whose it is, and the name a screen shows.
+  contractorId: string;
   contractor: string;
   // Who pays it: Northwind, for every invoice.
   client: string;
@@ -68,6 +70,8 @@ export type FixtureData = {
   invoices: readonly Invoice[];
   // The contractor the contractor screens are for.
   you: Contractor;
+  // Your invoices, by number: empty for a contractor who hasn't invoiced yet.
+  yourInvoices: readonly Invoice[];
   // Your one overdue invoice, or null when there's none.
   overdueInvoice: Invoice | null;
   // Your payment in the next run, your latest paid one, and what you've been
@@ -88,13 +92,20 @@ export type OperationName = (typeof operationNames)[number];
 export const operationDelayMs = 1800;
 
 const you: Contractor = { id: "ines-duarte", name: "Ines Duarte" };
+const lea: Contractor = { id: "lea-brandt", name: "Lea Brandt" };
+const tomas: Contractor = { id: "tomas-herrera", name: "Tomás Herrera" };
+const jonah: Contractor = {
+  id: "jonah-whitfield-abernathy",
+  name: "Jonah Whitfield-Abernathy",
+};
+const priya: Contractor = { id: "priya-raman", name: "Priya Raman" };
 // Long on purpose, for the text-overflow taste rule.
 const northwind = "Northwind Logistics & Freight Holdings Ltd.";
 const run = { date: "2026-10-24", dateLabel: "Oct 24" };
 
 function invoice(
   number: string,
-  contractor: string,
+  contractor: Contractor,
   amount: number,
   status: InvoiceStatus,
   [dueDate, dueLabel]: [string, string],
@@ -103,7 +114,8 @@ function invoice(
   return {
     id: number,
     number,
-    contractor,
+    contractorId: contractor.id,
+    contractor: contractor.name,
     client: northwind,
     amount,
     currency: "USD",
@@ -121,56 +133,14 @@ function counted(count: number, noun: string) {
 
 // By number. INV-0142 is payment-status's invoice, as it was.
 const invoices: readonly Invoice[] = [
-  invoice("INV-0142", you.name, 4800, "overdue", ["2026-10-08", "Oct 8"], 2),
-  invoice(
-    "INV-0144",
-    "Lea Brandt",
-    3100,
-    "overdue",
-    ["2026-10-12", "Oct 12"],
-    3
-  ),
-  invoice(
-    "INV-0145",
-    "Tomás Herrera",
-    2750,
-    "scheduled",
-    ["2026-10-21", "Oct 21"],
-    1
-  ),
-  invoice(
-    "INV-0146",
-    "Jonah Whitfield-Abernathy",
-    1620,
-    "failed",
-    ["2026-10-15", "Oct 15"],
-    2
-  ),
-  invoice(
-    "INV-0147",
-    "Tomás Herrera",
-    1250,
-    "awaiting",
-    ["2026-10-30", "Oct 30"],
-    1
-  ),
-  invoice(
-    "INV-0148",
-    "Priya Raman",
-    6375.5,
-    "awaiting",
-    ["2026-11-02", "Nov 2"],
-    4
-  ),
-  invoice(
-    "INV-0149",
-    "Jonah Whitfield-Abernathy",
-    980,
-    "awaiting",
-    ["2026-11-05", "Nov 5"],
-    2
-  ),
-  invoice("INV-0151", you.name, 2400, "scheduled", ["2026-10-22", "Oct 22"], 1),
+  invoice("INV-0142", you, 4800, "overdue", ["2026-10-08", "Oct 8"], 2),
+  invoice("INV-0144", lea, 3100, "overdue", ["2026-10-12", "Oct 12"], 3),
+  invoice("INV-0145", tomas, 2750, "scheduled", ["2026-10-21", "Oct 21"], 1),
+  invoice("INV-0146", jonah, 1620, "failed", ["2026-10-15", "Oct 15"], 2),
+  invoice("INV-0147", tomas, 1250, "awaiting", ["2026-10-30", "Oct 30"], 1),
+  invoice("INV-0148", priya, 6375.5, "awaiting", ["2026-11-02", "Nov 2"], 4),
+  invoice("INV-0149", jonah, 980, "awaiting", ["2026-11-05", "Nov 5"], 2),
+  invoice("INV-0151", you, 2400, "scheduled", ["2026-10-22", "Oct 22"], 1),
 ];
 
 // Your payments before these invoices, which no invoice here accounts for.
@@ -190,13 +160,14 @@ const history: History = {
 // The invoice invoice-review shows.
 const reviewed = "INV-0148";
 
-// The dataset over these invoices. Every view is read from them, so a variant
-// that changes an invoice changes each screen that shows it alike.
-function dataset(over: readonly Invoice[], past = history): FixtureData {
-  const yours = over.filter((each) => each.contractor === you.name);
+// The dataset of every contractor's invoices as a variant has them. Every
+// view is read from them, so a variant that changes an invoice changes each
+// screen that shows it alike.
+function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
+  const yours = allInvoices.filter((each) => each.contractorId === you.id);
   const next = yours.find((each) => each.status === "scheduled");
   const group = (status: InvoiceStatus): RunGroup | null => {
-    const inGroup = over.filter((each) => each.status === status);
+    const inGroup = allInvoices.filter((each) => each.status === status);
     if (inGroup.length === 0) return null;
     return {
       status,
@@ -207,8 +178,9 @@ function dataset(over: readonly Invoice[], past = history): FixtureData {
     };
   };
   return {
-    invoices: over,
+    invoices: allInvoices,
     you,
+    yourInvoices: yours,
     overdueInvoice: yours.find((each) => each.status === "overdue") ?? null,
     nextPayment: next
       ? {
@@ -220,7 +192,7 @@ function dataset(over: readonly Invoice[], past = history): FixtureData {
         }
       : null,
     ...past,
-    reviewInvoice: over.find((each) => each.id === reviewed) ?? null,
+    reviewInvoice: allInvoices.find((each) => each.id === reviewed) ?? null,
     paymentRun: {
       ...run,
       dueInRun: group("scheduled"),
@@ -242,7 +214,7 @@ function scheduled(ids: readonly string[]) {
 const shared = dataset(invoices);
 // A contractor who hasn't invoiced yet: none of your invoices or payments.
 const newContractor = dataset(
-  invoices.filter((each) => each.contractor !== you.name),
+  invoices.filter((each) => each.contractorId !== you.id),
   { lastPayment: null, paidThisYear: null }
 );
 // No contractor has an invoice in.

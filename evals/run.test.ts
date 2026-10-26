@@ -471,7 +471,7 @@ describe("pnpm eval", () => {
     expect(readdirSync(runDir).sort()).toEqual([...folders].sort());
 
     const rep = file.reps.find(
-      (each) => each.brief === "alpha" && each.rep === 1
+      (each) => each.slug === "alpha" && each.rep === 1
     )!;
     expect(rep).toMatchObject({
       outcome: "pass",
@@ -551,7 +551,9 @@ describe("pnpm eval", () => {
   describe("the estimate", () => {
     // Two earlier runs on one day. The later one's reps that ran cost $0.1,
     // $0.5 and $0.9 (median $0.5); with its skipped rep counted the median
-    // would be $0.3. The earlier one's cost $5 each.
+    // would be $0.3. The earlier one's cost $5 each. The later one sorts
+    // first by name and is written first, so only its start time says it's
+    // the latest: a runner that went by name or by write order would read $5.
     function earlierRuns(at: Run) {
       const file = (startedAt: string, reps: [string, number][]) =>
         JSON.stringify({
@@ -560,7 +562,7 @@ describe("pnpm eval", () => {
         });
       mkdirSync(at.resultsDir, { recursive: true });
       writeFileSync(
-        join(at.resultsDir, "2026-10-20-later.json"),
+        join(at.resultsDir, "2026-10-20-afternoon.json"),
         file("2026-10-20T12:00:00.000Z", [
           ["pass", 0.1],
           ["fail", 0.9],
@@ -569,7 +571,7 @@ describe("pnpm eval", () => {
         ])
       );
       writeFileSync(
-        join(at.resultsDir, "2026-10-20-earlier.json"),
+        join(at.resultsDir, "2026-10-20-morning.json"),
         file("2026-10-20T08:00:00.000Z", [
           ["pass", 5],
           ["pass", 5],
@@ -582,7 +584,7 @@ describe("pnpm eval", () => {
       beta: Array.from({ length: 3 }, plans.firstTry),
     });
 
-    it("is briefs × K × the latest results file's median rep cost, and over budget it asks, and a no stops the run", async () => {
+    it("is screen briefs × K × the latest results file's median rep cost, and over budget it asks, and a no stops the run", async () => {
       const at = setup("alpha", "beta");
       earlierRuns(at);
 
@@ -592,15 +594,16 @@ describe("pnpm eval", () => {
         { plans: twoBriefs(), confirm: false }
       );
 
-      // 2 briefs × 3 reps × $0.50.
       expect(questions).toHaveLength(1);
       expect(questions[0]).toContain("$3.00");
-      expect(output).toContain("$3.00");
+      expect(output).toContain(
+        "estimate: $3.00 (2 screen briefs × 3 reps × $0.50 median rep cost)"
+      );
       expect(code).toBe(1);
       expect(started).toEqual([]);
       expect(readdirSync(at.resultsDir).sort()).toEqual([
-        "2026-10-20-earlier.json",
-        "2026-10-20-later.json",
+        "2026-10-20-afternoon.json",
+        "2026-10-20-morning.json",
       ]);
     });
 

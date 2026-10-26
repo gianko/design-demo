@@ -8,7 +8,7 @@ requires:
 
 # Invoice queue
 
-An admin works through the invoices contractors have sent in. Under a PageHeader titled "Invoices", show them in a selectable DataTable, one row per invoice: its number, the contractor, the amount, the due date and its status. Selecting rows enters `rows-selected`. An **Approve and pay** Button sits in the PageHeader's `actions` slot, shown only `when: [rows-selected]`, and pays the selected invoices.
+An admin works through the invoices contractors have sent in. On one `Screen`, under a PageHeader titled "Invoices", show them in a selectable DataTable, one row per invoice: its number, the contractor, the amount as an `Amount`, the due date and its status as a `StatusTag`. Selecting rows enters `rows-selected`. An **Approve and pay** Button sits in the PageHeader's `actions` slot, shown only `when: [rows-selected]`, and pays the selected invoices.
 
 The rows are the fixtures' `invoices`: bind the DataTable's rows to it, and its cells to each row's `number`, `contractor`, `amount` and `currency`, `dueLabel` and `status`. The `approve-and-pay` action runs the `payInvoices` operation on the selected rows' ids; it enters `payment-scheduled` when the payment is scheduled and `payment-failed` when it isn't.
 
