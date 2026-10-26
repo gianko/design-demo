@@ -15,9 +15,11 @@ import {
   type Rate,
   type RepResult,
   type ResultsFile,
+  counted,
   latestResults,
   tally,
 } from "./results.ts";
+import { dollars, escapeHtml } from "../format.ts";
 import { repo } from "../repo.ts";
 
 export type ReportDeps = {
@@ -142,7 +144,7 @@ export function loadRun(path: string, screenshots: boolean): ReportRun {
 }
 
 const shotKey = (rep: RepResult, attempt: Attempt) =>
-  `${rep.brief}-${rep.rep}/attempt-${attempt.attempt}-${attempt.step}`;
+  `${rep.slug}-${rep.rep}/attempt-${attempt.attempt}-${attempt.step}`;
 
 const failed = (attempt: Attempt) =>
   Object.values(attempt.gates).includes("fail");
@@ -225,14 +227,14 @@ export function reportHtml(runs: ReportRun[]): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escape(title)}</title>
+<title>${escapeHtml(title)}</title>
 <style>
 ${styles()}
 </style>
 </head>
 <body>
 <main>
-<h1>${escape(title)}</h1>
+<h1>${escapeHtml(title)}</h1>
 ${legend(runs)}
 ${briefSetsDiffer(runs)}
 <section>
@@ -296,7 +298,7 @@ function legend(runs: ReportRun[]) {
   const head = runs
     .map(
       (run, index) =>
-        `<th scope="col">${compare ? `<span class="letter">${letter(index)}</span> ` : ""}${escape(run.name)}</th>`
+        `<th scope="col">${compare ? `<span class="letter">${letter(index)}</span> ` : ""}${escapeHtml(run.name)}</th>`
     )
     .join("");
   const body = rows
@@ -304,8 +306,8 @@ function legend(runs: ReportRun[]) {
       const values = runs.map(value);
       const differs =
         compare && !identity.has(label) && new Set(values).size > 1;
-      return `<tr${differs ? ' class="differs"' : ""}><th scope="row">${escape(label)}</th>${values
-        .map((each) => `<td>${escape(each)}</td>`)
+      return `<tr${differs ? ' class="differs"' : ""}><th scope="row">${escapeHtml(label)}</th>${values
+        .map((each) => `<td>${escapeHtml(each)}</td>`)
         .join("")}</tr>`;
     })
     .join("\n");
@@ -367,7 +369,7 @@ function summary(runs: ReportRun[]) {
     const reps =
       brief === overall
         ? run.file.reps
-        : run.file.reps.filter((rep) => rep.brief === brief);
+        : run.file.reps.filter((rep) => rep.slug === brief);
     const counts = tally(reps);
     const failures = gateFailures(reps);
     return [
@@ -387,13 +389,13 @@ function summary(runs: ReportRun[]) {
     const values = compare
       ? head.slice(1).map((_, i) => `${a?.[i] ?? "–"} → ${b?.[i] ?? "–"}`)
       : a!;
-    return `<tr${brief === overall ? ' class="overall"' : ""}><th scope="row">${escape(brief)}</th>${values
-      .map((value) => `<td>${escape(value)}</td>`)
+    return `<tr${brief === overall ? ' class="overall"' : ""}><th scope="row">${escapeHtml(brief)}</th>${values
+      .map((value) => `<td>${escapeHtml(value)}</td>`)
       .join("")}</tr>`;
   };
   const body = [...briefs, overall].map(row);
   return `<div class="table"><table class="summary">
-<thead><tr>${head.map((cell) => `<th scope="col">${escape(cell)}</th>`).join("")}</tr></thead>
+<thead><tr>${head.map((cell) => `<th scope="col">${escapeHtml(cell)}</th>`).join("")}</tr></thead>
 <tbody>
 ${body.join("\n")}
 </tbody>
@@ -406,12 +408,12 @@ ${body.join("\n")}
 function repsSection(run: ReportRun, name: string | null) {
   const briefs = run.file.briefSlugs.map((brief) => {
     const reps = run.file.reps
-      .filter((rep) => rep.brief === brief)
+      .filter((rep) => rep.slug === brief)
       .sort((a, b) => a.rep - b.rep)
       .map((rep) => repDetails(run, rep))
       .join("\n");
     return `<section class="brief">
-<h3>${escape(brief)}</h3>
+<h3>${escapeHtml(brief)}</h3>
 ${reps}
 </section>`;
   });
@@ -430,12 +432,12 @@ function repDetails(run: ReportRun, rep: RepResult) {
       const gateList = Object.entries(attempt.gates)
         .map(
           ([gate, result]) =>
-            `<li class="gate ${escape(result)}">${escape(gate)} ${escape(result)}</li>`
+            `<li class="gate ${escapeHtml(result)}">${escapeHtml(gate)} ${escapeHtml(result)}</li>`
         )
         .join("");
       const failures = attempt.failures.length
         ? `<ul class="failures">${attempt.failures
-            .map((line) => `<li><code>${escape(line)}</code></li>`)
+            .map((line) => `<li><code>${escapeHtml(line)}</code></li>`)
             .join("")}</ul>`
         : "";
       const shots = run.shots?.get(shotKey(rep, attempt)) ?? [];
@@ -443,15 +445,15 @@ function repDetails(run: ReportRun, rep: RepResult) {
         ? `<div class="shots">${shots
             .map(
               (each) =>
-                `<figure><img src="${each.src}" alt="${escape(`${rep.brief} rep ${rep.rep}, ${attempt.step} attempt ${attempt.attempt}, ${each.theme} · ${each.state}`)}" loading="lazy"><figcaption>${escape(`${each.theme} · ${each.state}`)}</figcaption></figure>`
+                `<figure><img src="${each.src}" alt="${escapeHtml(`${rep.slug} rep ${rep.rep}, ${attempt.step} attempt ${attempt.attempt}, ${each.theme} · ${each.state}`)}" loading="lazy"><figcaption>${escapeHtml(`${each.theme} · ${each.state}`)}</figcaption></figure>`
             )
             .join("")}</div>`
         : "";
-      return `<li class="attempt"><p>${escape(attempt.step)} attempt ${attempt.attempt} · ${dollars(attempt.cost)}</p><ul class="gates">${gateList}</ul>${failures}${gallery}</li>`;
+      return `<li class="attempt"><p>${escapeHtml(attempt.step)} attempt ${attempt.attempt} · ${dollars(attempt.cost)}</p><ul class="gates">${gateList}</ul>${failures}${gallery}</li>`;
     })
     .join("");
-  return `<details class="rep ${escape(rep.outcome)}"${rep.outcome === "pass" ? "" : " open"}>
-<summary>rep ${rep.rep} · <strong>${escape(rep.outcome)}</strong> · ${escape(rep.endReason)} · ${dollars(rep.cost)} · ${duration(rep.wallMs)}</summary>
+  return `<details class="rep ${escapeHtml(rep.outcome)}"${rep.outcome === "pass" ? "" : " open"}>
+<summary>rep ${rep.rep} · <strong>${escapeHtml(rep.outcome)}</strong> · ${escapeHtml(rep.endReason)} · ${dollars(rep.cost)} · ${duration(rep.wallMs)}</summary>
 ${missing}
 <ol class="attempts">${attempts}</ol>
 </details>`;
@@ -459,12 +461,10 @@ ${missing}
 
 // Attempts per step, over the reps a pass rate counts that ran the step.
 function meanAttempts(reps: RepResult[]) {
-  const counted = reps.filter(
-    (rep) => rep.outcome === "pass" || rep.outcome === "fail"
-  );
   return (["spec", "code"] as const)
     .map((step) => {
-      const perRep = counted
+      const perRep = reps
+        .filter(counted)
         .map((rep) => rep.attempts.filter((each) => each.step === step).length)
         .filter((n) => n > 0);
       return perRep.length
@@ -492,10 +492,6 @@ function letter(index: number) {
 
 function rate({ passed, of }: Rate) {
   return `${passed}/${of}`;
-}
-
-function dollars(usd: number) {
-  return `$${usd.toFixed(2)}`;
 }
 
 function duration(ms: number) {
@@ -687,11 +683,3 @@ figcaption {
   line-height: var(--ds-type-caption-line-height);
 }
 `;
-
-function escape(text: string) {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}

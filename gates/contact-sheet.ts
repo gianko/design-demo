@@ -14,6 +14,7 @@ import type {
   TestResult,
 } from "@playwright/test/reporter";
 import { annotation, shots, type Shot } from "./stories.ts";
+import { escapeHtml } from "../format.ts";
 
 type ShotFile = { name: Shot; file: string; path?: string; body?: Buffer };
 
@@ -96,7 +97,7 @@ function page(rows: Row[], src: Src): string {
   }
   const sections = [...stories].map(
     ([story, renders]) =>
-      `<section><h2>${escape(story)}</h2>${renders.map((row) => render(row, src)).join("")}</section>`
+      `<section><h2>${escapeHtml(story)}</h2>${renders.map((row) => render(row, src)).join("")}</section>`
   );
   const newCount = rows.filter((row) => row.isNew).length;
   return `<!doctype html>
@@ -131,15 +132,8 @@ function render(row: Row, src: Src): string {
   const shots = row.shots
     .map(
       (shot) =>
-        `<figure><img src="${escape(src(shot))}" alt="${escape(`${row.name} ${shot.name}`)}"><figcaption>${escape(shot.name)}</figcaption></figure>`
+        `<figure><img src="${escapeHtml(src(shot))}" alt="${escapeHtml(`${row.name} ${shot.name}`)}"><figcaption>${escapeHtml(shot.name)}</figcaption></figure>`
     )
     .join("");
-  return `<h3>${escape(row.render)}${flags}</h3><div class="shots">${shots}</div>`;
-}
-
-function escape(text: string): string {
-  return text.replace(
-    /[&<>"]/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!
-  );
+  return `<h3>${escapeHtml(row.render)}${flags}</h3><div class="shots">${shots}</div>`;
 }

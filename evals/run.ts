@@ -17,12 +17,12 @@ import {
   type ScreenBrief,
 } from "../generator/screen-brief.ts";
 import {
-  type AttemptResult,
   type RepResult,
   type ResultsFile,
   latestResults,
   tally,
 } from "./results.ts";
+import { day, dollars, stamp } from "../format.ts";
 import { repo } from "../repo.ts";
 
 export type EvalDeps = {
@@ -159,7 +159,7 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
     perBrief: Object.fromEntries(
       briefs.map((brief) => [
         brief.slug,
-        tally(reps.filter((rep) => rep.brief === brief.slug)),
+        tally(reps.filter((rep) => rep.slug === brief.slug)),
       ])
     ),
     reps,
@@ -177,46 +177,62 @@ async function runRep(
   workDir: string,
   spend: (cost: number) => void
 ): Promise<RepResult> {
-  const attempts: AttemptResult[] = [];
+  const attempts: Attempt[] = [];
   const started = performance.now();
-  const base = { brief: brief.slug, rep, workDir: relative(repo, workDir) };
-  let trace: RepTrace;
+  let ending: Ending;
   try {
-    trace = await deps.generate(brief, {
+    const trace = await deps.generate(brief, {
       workDir,
       onAttempt: (attempt) => {
         attempts.push(attempt);
         spend(attempt.cost);
       },
     });
+    const criteria = checkPassCriteria(brief.requires, trace.uiSpec);
+    ending =
+      trace.outcome === "pass" && !criteria.met
+        ? { outcome: "fail", endReason: "criteria-not-met", criteria }
+        : { outcome: trace.outcome, endReason: trace.endReason, criteria };
   } catch (error) {
     console.error(error);
-    return {
-      ...base,
-      outcome: "error",
-      endReason: "error:crash",
-      firstAttempt: false,
-      criteria: null,
-      cost: sum(attempts),
-      wallMs: performance.now() - started,
-      attempts,
-    };
+    ending = { outcome: "error", endReason: "error:crash", criteria: null };
   }
-  const wallMs = performance.now() - started;
-  const criteria = checkPassCriteria(brief.requires, trace.uiSpec);
-  const passed = trace.outcome === "pass" && criteria.met;
-  return {
-    ...base,
-    outcome: trace.outcome === "pass" && !criteria.met ? "fail" : trace.outcome,
-    endReason:
-      trace.outcome === "pass" && !criteria.met
-        ? "criteria-not-met"
-        : trace.endReason,
-    firstAttempt: passed && attempts.every((attempt) => attempt.attempt === 1),
-    criteria,
-    cost: sum(attempts),
-    wallMs,
+  return repResult(brief, rep, ending, {
+    wallMs: performance.now() - started,
+    workDir: relative(repo, workDir),
     attempts,
+  });
+}
+
+function skipped(brief: ScreenBrief, rep: number): RepResult {
+  return repResult(
+    brief,
+    rep,
+    { outcome: "skipped", endReason: "skipped:budget", criteria: null },
+    { wallMs: 0, workDir: null, attempts: [] }
+  );
+}
+
+// How a rep ended, and its pass criteria if it got as far as a UI spec.
+type Ending = Pick<RepResult, "outcome" | "endReason" | "criteria">;
+
+// A rep's result. Whether it passed first time and what it cost follow from
+// its ending and attempts.
+function repResult(
+  brief: ScreenBrief,
+  rep: number,
+  ending: Ending,
+  ran: Pick<RepResult, "wallMs" | "workDir" | "attempts">
+): RepResult {
+  return {
+    slug: brief.slug,
+    rep,
+    ...ending,
+    firstAttempt:
+      ending.outcome === "pass" &&
+      ran.attempts.every((attempt) => attempt.attempt === 1),
+    cost: ran.attempts.reduce((total, attempt) => total + attempt.cost, 0),
+    ...ran,
   };
 }
 
@@ -233,21 +249,6 @@ function latestMedianRepCost(resultsDir: string): number | null {
   return costs.length % 2
     ? costs[middle]!
     : (costs[middle - 1]! + costs[middle]!) / 2;
-}
-
-function skipped(brief: ScreenBrief, rep: number): RepResult {
-  return {
-    brief: brief.slug,
-    rep,
-    outcome: "skipped",
-    endReason: "skipped:budget",
-    firstAttempt: false,
-    criteria: null,
-    cost: 0,
-    wallMs: 0,
-    workDir: null,
-    attempts: [],
-  };
 }
 
 type Args = {
@@ -292,29 +293,6 @@ function parse(argv: string[]): Args | string {
   };
 }
 
-function sum(attempts: AttemptResult[]) {
-  return attempts.reduce((total, attempt) => total + attempt.cost, 0);
-}
-
 function repLine(rep: RepResult) {
-  return `${rep.brief} · rep ${rep.rep} · ${rep.outcome} · ${rep.endReason} · ${dollars(rep.cost)} · ${(rep.wallMs / 1000).toFixed(1)}s`;
-}
-
-function dollars(usd: number) {
-  return `$${usd.toFixed(2)}`;
-}
-
-const pad = (n: number) => String(n).padStart(2, "0");
-
-// Local date, YYYY-MM-DD.
-function day(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-// Local time, YYYYMMDD-HHMMSS.
-function stamp(date: Date) {
-  return (
-    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-` +
-    `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
-  );
+  return `${rep.slug} · rep ${rep.rep} · ${rep.outcome} · ${rep.endReason} · ${dollars(rep.cost)} · ${(rep.wallMs / 1000).toFixed(1)}s`;
 }

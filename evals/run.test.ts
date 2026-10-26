@@ -471,7 +471,7 @@ describe("pnpm eval", () => {
     expect(readdirSync(runDir).sort()).toEqual([...folders].sort());
 
     const rep = file.reps.find(
-      (each) => each.brief === "alpha" && each.rep === 1
+      (each) => each.slug === "alpha" && each.rep === 1
     )!;
     expect(rep).toMatchObject({
       outcome: "pass",

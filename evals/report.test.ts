@@ -272,7 +272,7 @@ describe("pnpm eval:report", () => {
       const file = runA(at);
       // invoice-queue rep 2: code attempt 1 fails gate 3, attempt 2 passes.
       const repaired = file.reps.find(
-        (each) => each.brief === "invoice-queue" && each.rep === 2
+        (each) => each.slug === "invoice-queue" && each.rep === 2
       )!;
       scratch(at, repaired.workDir!, [1, 2]);
       const a = write(at, "2026-10-26-before.json", file);
@@ -322,7 +322,7 @@ describe("pnpm eval:report", () => {
       const at = setup();
       const file = runA(at);
       const repaired = file.reps.find(
-        (each) => each.brief === "invoice-queue" && each.rep === 2
+        (each) => each.slug === "invoice-queue" && each.rep === 2
       )!;
       scratch(at, repaired.workDir!, [1, 2]);
       const a = write(at, "2026-10-26-before.json", file);

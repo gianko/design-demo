@@ -7,8 +7,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { StepConfig } from "../generator/config.ts";
-import type { Attempt, EndReason } from "../generator/generate.ts";
+import type { Attempt, EndReason, Versions } from "../generator/generate.ts";
 import type { CriteriaResult } from "../generator/pass-criteria.ts";
 
 // How a rep ends (glossary: Rep). Errors and skips are counted but left out
@@ -22,11 +21,9 @@ export type RepEndReason =
   // The budget ran out before the rep could start.
   | "skipped:budget";
 
-// One attempt as generate() logged it (ADR 0010).
-export type AttemptResult = Attempt;
-
 export type RepResult = {
-  brief: string;
+  // The screen brief's slug.
+  slug: string;
   // Counted within its screen brief, from 1.
   rep: number;
   outcome: RepOutcome;
@@ -39,13 +36,19 @@ export type RepResult = {
   cost: number;
   wallMs: number;
   // The rep's scratch folder, relative to the repo, or null if it never
-  // started: `evals/runs/<run-id>/<brief>-<rep>/`.
+  // started: `evals/runs/<run-id>/<slug>-<rep>/`.
   workDir: string | null;
-  attempts: AttemptResult[];
+  // Each attempt as generate() logged it (ADR 0010).
+  attempts: Attempt[];
 };
 
-// A count out of the reps a pass rate counts: those that passed or failed.
+// A count out of the reps a pass rate counts.
 export type Rate = { passed: number; of: number };
+
+// Whether a pass rate counts the rep: it passed or failed. Errors and skips
+// say nothing about the generator (ADR 0008).
+export const counted = (rep: RepResult) =>
+  rep.outcome === "pass" || rep.outcome === "fail";
 
 export type Tally = {
   reps: number;
@@ -63,13 +66,8 @@ export type ResultsFile = {
   runId: string;
   startedAt: string;
   finishedAt: string;
-  // The version tuple (ADR 0008).
-  versions: {
-    registryHash: string;
-    specPromptHash: string;
-    codePromptHash: string;
-    spec: StepConfig;
-    code: StepConfig;
+  // The version tuple (ADR 0008): the generator's half, then the run's.
+  versions: Versions & {
     gitSha: string;
     // The tree had uncommitted changes, allowed by `--allow-dirty`.
     dirty: boolean;
@@ -122,7 +120,7 @@ export function tally(reps: RepResult[]): Tally {
   const count = (outcome: RepOutcome) =>
     reps.filter((rep) => rep.outcome === outcome).length;
   const pass = count("pass");
-  const of = pass + count("fail");
+  const of = reps.filter(counted).length;
   return {
     reps: reps.length,
     pass,
