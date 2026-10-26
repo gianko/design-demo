@@ -146,6 +146,33 @@ it("leaves a code-only prop out of the spec step's registry, and marks it in the
   ]);
 });
 
+const stubTick = defineEntry({
+  name: "Tick",
+  use: "The row selector a table renders.",
+  props: z.object({ label: z.string() }),
+  internal: true,
+});
+
+it("leaves an internal entry out of the spec step's registry and component enum, and marks it in the code step's", () => {
+  const { serialized, component } = defineRegistry([stubTag, stubTick]);
+
+  expect(serialized.spec).toBe(defineRegistry([stubTag]).serialized.spec);
+  expect(JSON.parse(serialized.code)).toContainEqual({
+    name: "Tick",
+    use: "The row selector a table renders.",
+    props: {
+      type: "object",
+      properties: { label: { type: "string" } },
+      required: ["label"],
+      additionalProperties: false,
+    },
+    internal: true,
+    slots: {},
+  });
+  expect(component.safeParse("Tag").success).toBe(true);
+  expect(component.safeParse("Tick").success).toBe(false);
+});
+
 it("keeps its hash while the entries stay the same", () => {
   const again = defineEntry({ ...stubTag, props: stubTag.props.clone() });
 
@@ -190,6 +217,9 @@ it.each([
   // Only the spec step's registry changes, and the code step's only by the
   // mark.
   ["a prop's code-only mark", [{ ...stubTag, codeOnly: ["label"] }, stubPanel]],
+  // Only the code step's registry changes by the mark, and the spec step's
+  // loses the entry.
+  ["an entry's internal mark", [{ ...stubTag, internal: true }, stubPanel]],
 ])("changes its hash when %s changes", (_, changed) => {
   expect(defineRegistry(changed).hash).not.toBe(baseline.hash);
 });

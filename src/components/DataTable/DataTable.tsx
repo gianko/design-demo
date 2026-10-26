@@ -1,24 +1,20 @@
-import {
-  Children,
-  Fragment,
-  isValidElement,
-  useState,
-  type ReactNode,
-} from "react";
+import { Children, Fragment, isValidElement, type ReactNode } from "react";
 import { tv } from "tailwind-variants/lite";
 import type { PropsOf } from "../../registry/entry.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Checkbox } from "../Checkbox/Checkbox.tsx";
 import { defaultState } from "../Screen/default-state.ts";
-import { useScreenState } from "../Screen/screen-state.tsx";
+import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
 import type { dataTableEntry } from "./DataTable.registry.ts";
 
 // The screen's list: a native table on a flat surface, one row per item, each
-// with a Checkbox first. DataTable owns selection (ADR 0011): the first tick
-// enters `rows-selected` and unticking the last returns to the default state,
-// and when the screen leaves `rows-selected` some other way (an action
-// settled) the selection clears in the same update. A selected row fills with
-// `selected` and its box is ticked, so the state never rests on colour alone.
+// with a Checkbox first. DataTable owns ticking rows and the ScreenHost holds
+// the selection (ADR 0011): a tick that leaves rows ticked enters
+// `rows-selected` if the screen isn't in it, after a failure too, and one
+// that leaves none returns to the default state, each in the same update. A
+// confirmed action clears the selection and a failed one keeps it, both in
+// the host. A selected row fills with `selected` and its box is ticked, so
+// the state never rests on colour alone.
 // Rows don't answer hover: nothing in them opens yet. A column whose cell is
 // an Amount puts its header at the end edge, above the cents.
 export const dataTable = tv({
@@ -26,7 +22,8 @@ export const dataTable = tv({
     root: "overflow-x-auto rounded-surface border border-line bg-surface",
     table: "w-full border-collapse",
     headerRow: "h-row",
-    header: "px-xs align-middle text-caption whitespace-nowrap text-ink-muted",
+    header:
+      "px-xs align-middle text-column-header whitespace-nowrap text-ink-muted",
     row: "h-row border-t border-line transition-colors duration-base ease-standard motion-reduce:duration-fast",
     // One line per row, so every row keeps the density's height; a long name
     // widens its column, and a narrow screen scrolls the table sideways. The
@@ -74,27 +71,15 @@ function cellsOf(node: ReactNode) {
 export function DataTable<R extends Row>({
   rows,
   columns,
-  selected: initial,
   cell,
 }: DataTableProps<R>) {
-  const { state, enter } = useScreenState();
-  const [selected, setSelected] = useState<ReadonlySet<string>>(
-    () => new Set(initial)
-  );
-  // The screen state the last render saw. Leaving `rows-selected` clears the
-  // selection during the render that leaves it, which is inside the state's
-  // View Transition.
-  const [seen, setSeen] = useState(state);
-  if (seen !== state) {
-    setSeen(state);
-    if (seen === rowsSelected) setSelected(new Set());
-  }
+  const { state } = useScreenState();
+  const selection = useSelection();
+  const selected: ReadonlySet<string> = new Set(selection.selected);
 
   const select = (next: ReadonlySet<string>) => {
-    if (next.size > 0 !== selected.size > 0) {
-      enter(next.size > 0 ? rowsSelected : defaultState);
-    }
-    setSelected(next);
+    const target = next.size > 0 ? rowsSelected : defaultState;
+    selection.select([...next], state === target ? undefined : target);
   };
   const toggle = (id: string, on: boolean) => {
     const next = new Set(selected);

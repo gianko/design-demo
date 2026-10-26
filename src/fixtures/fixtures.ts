@@ -219,10 +219,20 @@ const newContractor = dataset(
 );
 // No contractor has an invoice in.
 const noInvoices = dataset([]);
-// The awaiting ones, which invoice-queue's "3 invoices scheduled" selects.
+// The awaiting ones: what invoice-queue's rows-selected and payment-failed
+// start with selected, and what its "3 invoices scheduled" schedules.
 const awaiting = invoices
   .filter((each) => each.status === "awaiting")
   .map((each) => each.id);
+
+// A variant is the data its screen state shows, the operations that fail
+// under it, and the rows selected when it starts (ADR 0011). The selection
+// sits outside the data, so no UI spec can bind it.
+type Variant = {
+  data: FixtureData;
+  fails: readonly OperationName[];
+  selected?: readonly string[];
+};
 
 const variants = {
   default: { data: shared, fails: [] },
@@ -231,19 +241,24 @@ const variants = {
   "payment-status/reminder-failed": { data: shared, fails: ["sendReminder"] },
   "payment-overview/empty": { data: newContractor, fails: [] },
   "invoice-queue/empty": { data: noInvoices, fails: [] },
-  "invoice-queue/rows-selected": { data: shared, fails: [] },
+  "invoice-queue/rows-selected": {
+    data: shared,
+    fails: [],
+    selected: awaiting,
+  },
   "invoice-queue/payment-scheduled": { data: scheduled(awaiting), fails: [] },
-  "invoice-queue/payment-failed": { data: shared, fails: ["payInvoices"] },
+  "invoice-queue/payment-failed": {
+    data: shared,
+    fails: ["payInvoices"],
+    selected: awaiting,
+  },
   "invoice-review/payment-scheduled": {
     data: scheduled([reviewed]),
     fails: [],
   },
   "invoice-review/payment-failed": { data: shared, fails: ["payInvoices"] },
   "payment-run/empty": { data: noInvoices, fails: [] },
-} satisfies Record<
-  string,
-  { data: FixtureData; fails: readonly OperationName[] }
->;
+} satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;
 export const variantNames = Object.keys(variants) as VariantName[];
@@ -258,6 +273,8 @@ export type FixtureVariant = {
   data: FixtureData;
   // The mock operations as they settle under this variant.
   operations: Operations;
+  // The ids of the rows selected when a screen starts in it.
+  selected: readonly string[];
 };
 
 export function fixtureVariant(name: string): FixtureVariant {
@@ -266,7 +283,7 @@ export function fixtureVariant(name: string): FixtureVariant {
       `No fixture variant "${name}"; the variants are ${variantNames.join(", ")}.`
     );
   }
-  const { data, fails } = variants[name];
+  const { data, fails, selected = [] }: Variant = variants[name];
   const failing = new Set<OperationName>(fails);
   const settle = (operation: OperationName, subject: string) =>
     new Promise<void>((resolve, reject) => {
@@ -285,6 +302,7 @@ export function fixtureVariant(name: string): FixtureVariant {
   return {
     name,
     data,
+    selected,
     operations: {
       sendReminder: (invoiceId) => settle("sendReminder", invoiceId),
       payInvoices: (invoiceIds) => settle("payInvoices", invoiceIds.join(", ")),

@@ -66,6 +66,11 @@ export type RegistryEntry<
   // but the spec step never sees them and gate 1 rejects them on a UI spec
   // node like any prop the component doesn't take.
   codeOnly?: readonly string[];
+  // A component only another component renders, such as Checkbox inside
+  // DataTable. The spec step never sees the entry and gate 1 rejects a UI
+  // spec node naming it as unregistered; the code step still sees it, marked
+  // internal.
+  internal?: boolean;
   slots?: Record<string, Slot>;
 };
 

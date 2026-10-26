@@ -807,4 +807,22 @@ describe("gate 1 against the library's registry", () => {
       ["heading-one", "heading-2"],
     ]);
   });
+
+  // DataTable renders Checkbox; a UI spec never places one (#179).
+  it("fails a Checkbox placed in a UI spec as unregistered", async () => {
+    const spec = headings("1");
+    spec.nodes.push(
+      node("tick", "Checkbox", "column", "body", { label: "Select all" })
+    );
+    const { entries } = await loadRegistry();
+
+    expect(gate1(spec, { ...library, entries })).toEqual([
+      {
+        gate: "gate 1",
+        rule: "registered-component",
+        location: "tick",
+        message: '"Checkbox" isn\'t a registered component.',
+      },
+    ]);
+  });
 });

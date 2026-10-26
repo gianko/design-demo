@@ -8,6 +8,7 @@
 import { createHash } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Step } from "./config.ts";
+import { rowSlots } from "./gate1.ts";
 import type { LibraryRegistry } from "./registry.ts";
 import { repairWording } from "./repair.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
@@ -32,9 +33,10 @@ const codeInstructions = `You turn a UI spec into one React screen: a whole TSX 
 - Export one function component with the name you're given, taking no props, and export nothing else.
 - Render each node as its component with exactly the props it gives, each value as its JSON says. Don't add, drop or reword nodes, props or copy. The one exception is a prop the registry lists under its component's codeOnly: no UI spec gives it, and you set it yourself, as below.
 - A prop whose value is {"bind":"<path>"} reads that path from the fixture data, which you get with const data = useFixtureData(): {"bind":"overdueInvoice.dueLabel"} is data.overdueInvoice.dueLabel. Where the path runs through a value that can be null, render the node only once it's there, as in {data.overdueInvoice && <Text text={data.overdueInvoice.dueLabel} />}. Never write fixture values in as literals.
-- A node in its parent's body slot is one of the parent's children; a node in any other slot is passed as the parent's prop named after that slot. Siblings keep their order in the node list.
+- A node in its parent's body slot is one of the parent's children; a node in any other slot, except a DataTable's row slots, is passed as the parent's prop named after that slot. Siblings keep their order in the node list.
+- A node in a DataTable's ${rowSlots.join(" or ")} slot is passed as a function of the row: the slot's nodes, in order, are what it returns, as in cell={(row) => <><Text text={row.number} /><Amount … /></>}. Inside it, a {"bind":"row.<path>"} prop reads row.<path> from that function's argument, not from the fixture data; every other bound path still reads data.<path>.
 - No intrinsic elements (div, span, p and the rest), no className and no style: the library does all the styling.
-- The screen holds no state of its own; the library's hooks change it, so every change is a View Transition. Read the screen state with const { state } = useScreenState(); it is "default" until an action settles, and a node with a non-empty when renders only while state is one of those states. Wire each declared action as const <action> = useAction("<operation>", { success: "<to.success>", failure: "<to.failure>" }): the node that runs it calls <action>.run(…) with the operation's arguments, read from the fixture data like a bound prop (sendReminder takes the invoice's id, as in sendReminder.run(data.overdueInvoice.id)), and its pending node, a Button, takes its codeOnly pending prop as pending={<action>.pending}. Never call useState, useReducer, startViewTransition or an operation yourself, and never render a ScreenHost: whatever hosts the screen does.`;
+- The screen holds no state of its own; the library's hooks change it, so every change is a View Transition. Read the screen state with const { state } = useScreenState(); it is "default" until an action settles, and a node with a non-empty when renders only while state is one of those states. Wire each declared action as const <action> = useAction("<operation>", { success: "<to.success>", failure: "<to.failure>" }): the node that runs it calls <action>.run(…) with the operation's arguments, read from the fixture data like a bound prop (sendReminder takes the invoice's id, as in sendReminder.run(data.overdueInvoice.id)), except that payInvoices takes the selected rows' ids: call const selected = useSelectedRows() at the top of the screen and pass selected to the action's run, as in payInvoices.run(selected). Its pending node, a Button, takes its codeOnly pending prop as pending={<action>.pending}. Never call useState, useReducer, startViewTransition or an operation yourself, and never render a ScreenHost: whatever hosts the screen does.`;
 
 // The user turns, as templates, so their words hash the same under any
 // runtime.

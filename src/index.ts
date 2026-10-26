@@ -22,6 +22,7 @@ export {
   useAction,
   useFixtureData,
   useScreenState,
+  useSelectedRows,
   type Action,
   type HostedState,
   type ScreenHostProps,

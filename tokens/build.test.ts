@@ -107,11 +107,27 @@ describe("the naming chain", () => {
     );
   });
 
+  // The brief's table header style, one fixed role at both densities (#185).
+  it("gives column headers a 12px, weight 600 role outside the density modes", () => {
+    const root = blockOf(built.css, ":root");
+
+    expect(root).toContain("--ds-type-column-header-font-size: 12px;");
+    expect(root).toContain("--ds-type-column-header-line-height: 16px;");
+    expect(root).toContain(
+      "--ds-type-column-header-font-weight: var(--ds-type-weight-semibold);"
+    );
+    expect(built.css).not.toMatch(/--ds-density-text-column-header/);
+    expect(utilities("text-column-header")).toContain(
+      "font-size: var(--ds-type-column-header-font-size);"
+    );
+  });
+
   // A capture binds a property only through a plain var(--ds-*); behind
   // Tailwind's --tw-leading or --tw-tracking it binds by value and can land
   // on another role (#104).
   it.each([
     "type.caption",
+    "type.column-header",
     "density.text.label",
     "density.text.body",
     "type.heading",
@@ -220,7 +236,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(90);
+    expect(variables.filter((v) => v.css)).toHaveLength(93);
   });
 
   // ADR 0001 lists container padding among what density changes.

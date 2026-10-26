@@ -29,6 +29,10 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-type-caption-line-height: 16px;
   --ds-type-caption-letter-spacing: 0px;
   --ds-type-caption-font-weight: var(--ds-type-weight-regular);
+  --ds-type-column-header-font-size: 12px;
+  --ds-type-column-header-line-height: 16px;
+  --ds-type-column-header-letter-spacing: 0px;
+  --ds-type-column-header-font-weight: var(--ds-type-weight-semibold);
   --ds-type-heading-font-size: 20px;
   --ds-type-heading-line-height: 28px;
   --ds-type-heading-letter-spacing: 0px;
@@ -269,6 +273,12 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   letter-spacing: var(--ds-type-caption-letter-spacing);
   font-weight: var(--tw-font-weight, var(--ds-type-caption-font-weight));
 }
+@utility text-column-header {
+  font-size: var(--ds-type-column-header-font-size);
+  line-height: var(--ds-type-column-header-line-height);
+  letter-spacing: var(--ds-type-column-header-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-type-column-header-font-weight));
+}
 @utility text-heading {
   font-size: var(--ds-type-heading-font-size);
   line-height: var(--ds-type-heading-line-height);
@@ -403,7 +413,7 @@ export type Size = (typeof size)[number];
 export const radius = ["surface", "control", "tag", "avatar"] as const;
 export type Radius = (typeof radius)[number];
 
-export const text = ["body", "label", "caption", "heading", "title", "figure"] as const;
+export const text = ["body", "label", "caption", "column-header", "heading", "title", "figure"] as const;
 export type Text = (typeof text)[number];
 
 export const spacing = ["0", "3xs", "2xs", "xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl"] as const;
@@ -2316,6 +2326,39 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           }
         },
         {
+          "name": "type/column-header/font-size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 12
+          }
+        },
+        {
+          "name": "type/column-header/line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 16
+          }
+        },
+        {
+          "name": "type/column-header/letter-spacing",
+          "type": "FLOAT",
+          "scopes": [
+            "LETTER_SPACING"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 0
+          }
+        },
+        {
           "name": "type/heading/font-size",
           "type": "FLOAT",
           "scopes": [
@@ -2583,6 +2626,16 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         "fontSize": "type/caption/font-size",
         "lineHeight": "type/caption/line-height",
         "letterSpacing": "type/caption/letter-spacing"
+      }
+    },
+    {
+      "name": "column-header",
+      "bind": {
+        "fontFamily": "type/family/sans",
+        "fontWeight": "type/weight/semibold",
+        "fontSize": "type/column-header/font-size",
+        "lineHeight": "type/column-header/line-height",
+        "letterSpacing": "type/column-header/letter-spacing"
       }
     },
     {
