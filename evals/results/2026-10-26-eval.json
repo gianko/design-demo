@@ -1,0 +1,1877 @@
+{
+  "runId": "20261026-114227-eval",
+  "startedAt": "2026-10-26T11:42:27.135Z",
+  "finishedAt": "2026-10-26T11:47:10.258Z",
+  "versions": {
+    "registryHash": "cb6324dfa51c0bafdb142b138416f9353a4ccec8426c8c31d09d8ff9c5f87a27",
+    "specPromptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce",
+    "codePromptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+    "spec": {
+      "model": "claude-opus-5-5",
+      "effort": "medium",
+      "maxTokens": 32000,
+      "attempts": 3
+    },
+    "code": {
+      "model": "claude-opus-5-5",
+      "effort": "high",
+      "maxTokens": 64000,
+      "attempts": 3
+    },
+    "gitSha": "ce3d3b5e346fd713e4feaa53a84d4e4733ab25d6",
+    "dirty": false,
+    "label": "eval"
+  },
+  "briefs": "evals/briefs/*.md",
+  "k": 3,
+  "budget": null,
+  "concurrency": 3,
+  "briefSlugs": [
+    "invoice-queue",
+    "invoice-review",
+    "payment-overview",
+    "payment-run",
+    "payment-status"
+  ],
+  "totals": {
+    "reps": 15,
+    "pass": 15,
+    "fail": 0,
+    "error": 0,
+    "skipped": 0,
+    "firstAttempt": { "passed": 10, "of": 15 },
+    "final": { "passed": 15, "of": 15 },
+    "cost": 3.9799096,
+    "wallMs": 749544.1727509998
+  },
+  "perBrief": {
+    "invoice-queue": {
+      "reps": 3,
+      "pass": 3,
+      "fail": 0,
+      "error": 0,
+      "skipped": 0,
+      "firstAttempt": { "passed": 3, "of": 3 },
+      "final": { "passed": 3, "of": 3 },
+      "cost": 0.755286,
+      "wallMs": 122457.78616699998
+    },
+    "invoice-review": {
+      "reps": 3,
+      "pass": 3,
+      "fail": 0,
+      "error": 0,
+      "skipped": 0,
+      "firstAttempt": { "passed": 0, "of": 3 },
+      "final": { "passed": 3, "of": 3 },
+      "cost": 0.9211128,
+      "wallMs": 187908.761374
+    },
+    "payment-overview": {
+      "reps": 3,
+      "pass": 3,
+      "fail": 0,
+      "error": 0,
+      "skipped": 0,
+      "firstAttempt": { "passed": 3, "of": 3 },
+      "final": { "passed": 3, "of": 3 },
+      "cost": 0.7617715999999999,
+      "wallMs": 132081.193709
+    },
+    "payment-run": {
+      "reps": 3,
+      "pass": 3,
+      "fail": 0,
+      "error": 0,
+      "skipped": 0,
+      "firstAttempt": { "passed": 2, "of": 3 },
+      "final": { "passed": 3, "of": 3 },
+      "cost": 0.7901696,
+      "wallMs": 158429.928668
+    },
+    "payment-status": {
+      "reps": 3,
+      "pass": 3,
+      "fail": 0,
+      "error": 0,
+      "skipped": 0,
+      "firstAttempt": { "passed": 2, "of": 3 },
+      "final": { "passed": 3, "of": 3 },
+      "cost": 0.7515695999999998,
+      "wallMs": 148666.50283299998
+    }
+  },
+  "reps": [
+    {
+      "slug": "invoice-queue",
+      "rep": 1,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.31977,
+      "wallMs": 50328.360833,
+      "workDir": "evals/runs/20261026-114227-eval/invoice-queue-1",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 34175,
+            "output": 2399,
+            "cacheRead": 0,
+            "cacheWrite": 11412
+          },
+          "cost": 0.24174,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnft91XBiEoW5o7h5ni",
+          "wallMs": { "model": 22030.244708, "gates": 17.83324999999968 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 2415,
+            "output": 1239,
+            "cacheRead": 0,
+            "cacheWrite": 8718
+          },
+          "cost": 0.07803,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnhVwav9AhBMFG95kmd",
+          "wallMs": {
+            "model": 10841.277374999998,
+            "gates": 17431.851625000003
+          },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "rows-selected",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "rows-selected",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "invoice-review",
+      "rep": 1,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": false,
+      "cost": 0.3740696,
+      "wallMs": 67747.92725,
+      "workDir": "evals/runs/20261026-114227-eval/invoice-review-1",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 34007,
+            "output": 2467,
+            "cacheRead": 0,
+            "cacheWrite": 11412
+          },
+          "cost": 0.242428,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnft9FiBfN82YvPZ7oC",
+          "wallMs": { "model": 20677.482, "gates": 29.07224999999744 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "fail",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [
+            "gate 3 · TS18047 · L33:30 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L34:34 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L43:51 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L50:22 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L51:25 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L54:25 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L57:27 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L59:25 · 'data.reviewInvoice' is possibly 'null'."
+          ],
+          "usage": {
+            "input": 2354,
+            "output": 1628,
+            "cacheRead": 0,
+            "cacheWrite": 8718
+          },
+          "cost": 0.085566,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnhQJFMf139DxGcT5Fz",
+          "wallMs": {
+            "model": 14991.441874999997,
+            "gates": 13527.889624999996
+          },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        },
+        {
+          "step": "code",
+          "attempt": 2,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 4368,
+            "output": 1343,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0460756,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnjWY6TirST1JMjYDQy",
+          "wallMs": { "model": 11256.242541, "gates": 7256.627499999995 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-overview",
+      "rep": 1,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.2867356,
+      "wallMs": 47986.157792,
+      "workDir": "evals/runs/20261026-114227-eval/payment-overview-1",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33859,
+            "output": 2899,
+            "cacheRead": 0,
+            "cacheWrite": 11412
+          },
+          "cost": 0.250476,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnftCE2kjXinUckYeU6",
+          "wallMs": { "model": 24101.008708, "gates": 13.453332999997656 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 2814,
+            "output": 1163,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.036259599999999996,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnheq7ZGHUQauQzu7Hk",
+          "wallMs": {
+            "model": 10150.454458999997,
+            "gates": 13711.293958000002
+          },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-run",
+      "rep": 1,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.249286,
+      "wallMs": 48002.944917,
+      "workDir": "evals/runs/20261026-114227-eval/payment-run-1",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33832,
+            "output": 3407,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.2057504,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnjRAtfctrdzqicwXyK",
+          "wallMs": { "model": 28806.210375000002, "gates": 11.66729199999827 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 3213,
+            "output": 1447,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0435356,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnmYB8hJCVPiFVd6J9q",
+          "wallMs": { "model": 11809.259582999992, "gates": 7358.734958000001 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-status",
+      "rep": 1,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.24132599999999998,
+      "wallMs": 48192.181916999994,
+      "workDir": "evals/runs/20261026-114227-eval/payment-status-1",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33977,
+            "output": 2988,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.1979504,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnjb2yBBNcmABH8eZTf",
+          "wallMs": { "model": 25166.613417, "gates": 22.21875 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 2493,
+            "output": 1583,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0433756,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnmSbmZB3fNAAxusfGR",
+          "wallMs": {
+            "model": 15211.568082999991,
+            "gates": 7781.6759579999925
+          },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "reminder-sent",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "reminder-sent",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "reminder-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "reminder-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "invoice-queue",
+      "rep": 2,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.217526,
+      "wallMs": 36873.687667000006,
+      "workDir": "evals/runs/20261026-114227-eval/invoice-queue-2",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 34175,
+            "output": 2210,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.1831824,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnksb9njxn4gqCjjck8",
+          "wallMs": { "model": 18922.83245799999, "gates": 16.775875000006636 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 2310,
+            "output": 1168,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0343436,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnnGM9f8tDXEADQ5i6c",
+          "wallMs": { "model": 10026.616750000001, "gates": 7898.399040999997 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "rows-selected",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "rows-selected",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "invoice-review",
+      "rep": 2,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": false,
+      "cost": 0.2725976,
+      "wallMs": 61087.859458000006,
+      "workDir": "evals/runs/20261026-114227-eval/invoice-review-2",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 34007,
+            "output": 2387,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.1860504,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnnxMT5eB1qLFSeKv5e",
+          "wallMs": { "model": 19603.992916999996, "gates": 9.486499999999069 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "fail",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [
+            "gate 3 · TS18047 · L31:30 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L32:34 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L41:51 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L48:22 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L49:25 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L52:25 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L55:27 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L57:25 · 'data.reviewInvoice' is possibly 'null'."
+          ],
+          "usage": {
+            "input": 2353,
+            "output": 1503,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0412156,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnpQ2pPKiDF71WymukM",
+          "wallMs": { "model": 13352.445833999998, "gates": 9648.538375000004 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        },
+        {
+          "step": "code",
+          "attempt": 2,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 4242,
+            "output": 1331,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0453316,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnr6c8vFqVomeZB6svs",
+          "wallMs": { "model": 11326.406416999991, "gates": 7131.803709 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-overview",
+      "rep": 2,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.23477399999999998,
+      "wallMs": 41333.758917,
+      "workDir": "evals/runs/20261026-114227-eval/payment-overview-2",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33859,
+            "output": 2968,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.1970784,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQno92tvjFFXCdemoEZy",
+          "wallMs": {
+            "model": 23962.790000000008,
+            "gates": 15.084792000008747
+          },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 2923,
+            "output": 1213,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.037695599999999996,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnpuS97oQ6USJHEYLen",
+          "wallMs": { "model": 10222.955667000002, "gates": 7124.619040999998 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-run",
+      "rep": 2,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": false,
+      "cost": 0.2937416,
+      "wallMs": 63838.80533399999,
+      "workDir": "evals/runs/20261026-114227-eval/payment-run-2",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33832,
+            "output": 3400,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.2056104,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnobGEKZXztUedZGror",
+          "wallMs": {
+            "model": 29584.160459000006,
+            "gates": 3.5359999999927823
+          },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "fail",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [
+            "gate 3 · TS18047 · L31:38 · 'data.paymentRun.dueInRun' is possibly 'null'.",
+            "gate 3 · TS18047 · L37:26 · 'data.paymentRun.dueInRun' is possibly 'null'.",
+            "gate 3 · TS18047 · L38:29 · 'data.paymentRun.dueInRun' is possibly 'null'.",
+            "gate 3 · TS18047 · L41:29 · 'data.paymentRun.dueInRun' is possibly 'null'.",
+            "gate 3 · TS18047 · L48:38 · 'data.paymentRun.overdue' is possibly 'null'.",
+            "gate 3 · TS18047 · L54:26 · 'data.paymentRun.overdue' is possibly 'null'.",
+            "gate 3 · TS18047 · L55:29 · 'data.paymentRun.overdue' is possibly 'null'.",
+            "gate 3 · TS18047 · L58:29 · 'data.paymentRun.overdue' is possibly 'null'.",
+            "gate 3 · TS18047 · L65:38 · 'data.paymentRun.awaitingApproval' is possibly 'null'.",
+            "gate 3 · TS18047 · L71:26 · 'data.paymentRun.awaitingApproval' is possibly 'null'.",
+            "gate 3 · TS18047 · L72:29 · 'data.paymentRun.awaitingApproval' is possibly 'null'.",
+            "gate 3 · TS18047 · L75:29 · 'data.paymentRun.awaitingApproval' is possibly 'null'."
+          ],
+          "usage": {
+            "input": 3162,
+            "output": 1408,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0425516,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnqmoXoHKo77ufVQjqC",
+          "wallMs": { "model": 11529.2555, "gates": 7067.722624999995 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        },
+        {
+          "step": "code",
+          "attempt": 2,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 5164,
+            "output": 1159,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0455796,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQns9gCiTK8W8vza3BXX",
+          "wallMs": { "model": 9478.409583, "gates": 6162.4573329999985 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-status",
+      "rep": 2,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.23518999999999998,
+      "wallMs": 42677.64420800001,
+      "workDir": "evals/runs/20261026-114227-eval/payment-status-2",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33977,
+            "output": 2728,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.1927504,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnrBjwfcvGfnTTGNBSS",
+          "wallMs": { "model": 22210.731165999983, "gates": 17.80166699999245 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 2459,
+            "output": 1543,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0424396,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnspfjsxT1uK1ZS6JvM",
+          "wallMs": { "model": 13559.982416999992, "gates": 6876.899749999982 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "reminder-sent",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "reminder-sent",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "reminder-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "reminder-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "invoice-queue",
+      "rep": 3,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.21799,
+      "wallMs": 35255.73766699998,
+      "workDir": "evals/runs/20261026-114227-eval/invoice-queue-3",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 34175,
+            "output": 2315,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.18528239999999999,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnsTTYMKPjzTw2tSxNj",
+          "wallMs": { "model": 19286.599958000006, "gates": 2.796249999984866 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 2391,
+            "output": 1070,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.032707599999999996,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQntspGs3aLx9o1pieNF",
+          "wallMs": { "model": 8399.883124999993, "gates": 7554.860124999977 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "rows-selected",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "rows-selected",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "invoice-review",
+      "rep": 3,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": false,
+      "cost": 0.2744456,
+      "wallMs": 59072.974665999995,
+      "workDir": "evals/runs/20261026-114227-eval/invoice-review-3",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 34007,
+            "output": 2631,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.1909304,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQntJBCu4E1kaWChYGTa",
+          "wallMs": {
+            "model": 21450.910375000007,
+            "gates": 14.244500000000698
+          },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "fail",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [
+            "gate 3 · TS18047 · L33:30 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L34:34 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L61:22 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L62:25 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L65:25 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L68:27 · 'data.reviewInvoice' is possibly 'null'.",
+            "gate 3 · TS18047 · L70:25 · 'data.reviewInvoice' is possibly 'null'."
+          ],
+          "usage": {
+            "input": 2405,
+            "output": 1486,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0410836,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnusqXxVx1oXauDSJeB",
+          "wallMs": { "model": 12398.492957999988, "gates": 8543.790500000003 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        },
+        {
+          "step": "code",
+          "attempt": 2,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 4237,
+            "output": 1187,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0424316,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnwRcGrcTUgFjPEAVGL",
+          "wallMs": { "model": 9470.204417, "gates": 7181.987708000001 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-scheduled",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "payment-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-overview",
+      "rep": 3,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.240262,
+      "wallMs": 42761.277,
+      "workDir": "evals/runs/20261026-114227-eval/payment-overview-3",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33859,
+            "output": 3055,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.1988184,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnuLLU9GQXSSKERwnQK",
+          "wallMs": {
+            "model": 24210.875333000004,
+            "gates": 13.602209000004223
+          },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 2845,
+            "output": 1416,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0414436,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnw7svL6oJwcMbcVj2m",
+          "wallMs": { "model": 11491.145500000013, "gates": 7032.515875000012 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-run",
+      "rep": 3,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": true,
+      "cost": 0.247142,
+      "wallMs": 46588.17841700002,
+      "workDir": "evals/runs/20261026-114227-eval/payment-run-3",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33832,
+            "output": 3139,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.2003904,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnv4Dsztsq8Ygp5kTSk",
+          "wallMs": { "model": 26640.81995799998, "gates": 2.381874999991851 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 3092,
+            "output": 1632,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0467516,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnx24CZCqsMGSRWFYb8",
+          "wallMs": { "model": 13497.162791999988, "gates": 6438.295124999975 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "admin",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-status",
+      "rep": 3,
+      "outcome": "pass",
+      "endReason": "passed",
+      "criteria": { "met": true, "missing": [] },
+      "firstAttempt": false,
+      "cost": 0.27505359999999995,
+      "wallMs": 57796.676707999985,
+      "workDir": "evals/runs/20261026-114227-eval/payment-status-3",
+      "attempts": [
+        {
+          "step": "spec",
+          "attempt": 1,
+          "gates": { "gate 1": "pass" },
+          "failures": [],
+          "usage": {
+            "input": 33977,
+            "output": 2800,
+            "cacheRead": 11412,
+            "cacheWrite": 0
+          },
+          "cost": 0.19419039999999999,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnxV5ADrs484muLrqPb",
+          "wallMs": { "model": 22002.37045799999, "gates": 14.120750000001863 },
+          "promptHash": "a7960f857720d19de4b8f4aec9b426e74711108693233ef016f5c846e62fccce"
+        },
+        {
+          "step": "code",
+          "attempt": 1,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "fail",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [
+            "gate 3 · TS18047 · L58:53 · 'data.overdueInvoice' is possibly 'null'."
+          ],
+          "usage": {
+            "input": 2641,
+            "output": 1326,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0388276,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQnz7Pyykipg66FQUvo7",
+          "wallMs": { "model": 11104.463749999995, "gates": 7781.298959000007 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "reminder-sent",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "reminder-sent",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "reminder-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "reminder-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        },
+        {
+          "step": "code",
+          "attempt": 2,
+          "gates": {
+            "gate 2": "pass",
+            "gate 3": "pass",
+            "gate 7 static": "pass",
+            "gate 4": "pass",
+            "gate 7 render": "pass"
+          },
+          "failures": [],
+          "usage": {
+            "input": 4073,
+            "output": 1200,
+            "cacheRead": 8718,
+            "cacheWrite": 0
+          },
+          "cost": 0.0420356,
+          "stopReason": "end_turn",
+          "requestId": "req_011CgQo1Vy5B4aChF5Qwcx2p",
+          "wallMs": { "model": 9964.206542, "gates": 6915.906416999991 },
+          "promptHash": "5de3255ecdb6d60c6facc024f3f70a5ab0c4b1bcca7f4d5c348b816e1134ee64",
+          "renders": [
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "default",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "empty",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "reminder-sent",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "reminder-sent",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "light",
+              "density": "contractor",
+              "state": "reminder-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            },
+            {
+              "theme": "dark",
+              "density": "contractor",
+              "state": "reminder-failed",
+              "gates": { "gate 4": "pass", "gate 7 render": "pass" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
