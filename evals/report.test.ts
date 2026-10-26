@@ -46,7 +46,7 @@ function written(at: At) {
   };
 }
 
-// The summary table's rows for one screen brief ("All briefs" for the
+// The summary table's rows for one screen brief ("All screen briefs" for the
 // overall row), each keyed by its column heading.
 function rows(doc: Document, brief: string) {
   const table = doc.querySelector("table.summary")!;
@@ -134,7 +134,7 @@ describe("pnpm eval:report", () => {
         "gate 3": "0",
       }),
     ]);
-    expect(rows(doc, "All briefs")).toEqual([
+    expect(rows(doc, "All screen briefs")).toEqual([
       expect.objectContaining({
         "Passed (first attempt → final)": "3/6 → 5/6",
         "Mean attempts (spec · code)": "1.2 · 1.5",
@@ -184,7 +184,7 @@ describe("pnpm eval:report", () => {
         "Passed (first attempt)": "2/3 → 3/3",
       }),
     ]);
-    expect(rows(doc, "All briefs")).toEqual([
+    expect(rows(doc, "All screen briefs")).toEqual([
       expect.objectContaining({
         "Passed (final)": "5/6 → 6/6",
         "Passed (first attempt)": "3/6 → 6/6",
@@ -213,6 +213,7 @@ describe("pnpm eval:report", () => {
     const flag = doc.querySelector(".brief-sets-differ")?.textContent ?? "";
     expect(flag).toMatch(/only in A: payment-status/);
     expect(flag).toMatch(/only in B: payment-run/);
+    expect(flag).toMatch(/aren't over the same screen briefs/);
     // A brief a run never had reads as absent, not as 0/0.
     expect(rows(doc, "payment-run")).toEqual([
       expect.objectContaining({ "Passed (final)": "– → 3/3", Errors: "– → 0" }),

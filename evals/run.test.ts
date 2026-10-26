@@ -582,7 +582,7 @@ describe("pnpm eval", () => {
       beta: Array.from({ length: 3 }, plans.firstTry),
     });
 
-    it("is briefs × K × the latest results file's median rep cost, and over budget it asks, and a no stops the run", async () => {
+    it("is screen briefs × K × the latest results file's median rep cost, and over budget it asks, and a no stops the run", async () => {
       const at = setup("alpha", "beta");
       earlierRuns(at);
 
@@ -592,10 +592,11 @@ describe("pnpm eval", () => {
         { plans: twoBriefs(), confirm: false }
       );
 
-      // 2 briefs × 3 reps × $0.50.
       expect(questions).toHaveLength(1);
       expect(questions[0]).toContain("$3.00");
-      expect(output).toContain("$3.00");
+      expect(output).toContain(
+        "estimate: $3.00 (2 screen briefs × 3 reps × $0.50 median rep cost)"
+      );
       expect(code).toBe(1);
       expect(started).toEqual([]);
       expect(readdirSync(at.resultsDir).sort()).toEqual([

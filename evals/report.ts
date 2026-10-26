@@ -257,7 +257,7 @@ const gates: GateName[] = [
   "gate 7 render",
 ];
 
-const overall = "All briefs";
+const overall = "All screen briefs";
 
 // What each run is: its results file and its version tuple. In a
 // comparison, a field the runs disagree on is marked.
@@ -337,7 +337,7 @@ function briefSetsDiffer(runs: ReportRun[]) {
       ? `<li>only in ${name}: ${slugs.map(escape).join(", ")}</li>`
       : "";
   return `<aside class="brief-sets-differ" role="note">
-<p><strong>These runs cover different screen briefs</strong>, so their overall counts aren't over the same briefs.</p>
+<p><strong>These runs cover different screen briefs</strong>, so their overall counts aren't over the same screen briefs.</p>
 <ul>${only("A", onlyA)}${only("B", onlyB)}</ul>
 </aside>`;
 }

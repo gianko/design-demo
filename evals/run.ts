@@ -95,7 +95,7 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
     log("estimate: none, no earlier results file");
   } else {
     const estimate = briefs.length * args.k * median;
-    const line = `estimate: ${dollars(estimate)} (${briefs.length} briefs × ${args.k} reps × ${dollars(median)} median rep cost), budget ${args.budget === null ? "none" : dollars(args.budget)}`;
+    const line = `estimate: ${dollars(estimate)} (${briefs.length} screen brief${briefs.length === 1 ? "" : "s"} × ${args.k} reps × ${dollars(median)} median rep cost), budget ${args.budget === null ? "none" : dollars(args.budget)}`;
     log(line);
     if (
       args.budget !== null &&
