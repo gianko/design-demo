@@ -510,8 +510,11 @@ function duration(ms: number) {
 }
 
 // tokens.css as the library ships it (its Tailwind-only blocks are at-rules
-// a browser skips), the brief's typeface inline, then the page's own rules,
-// which use nothing but its variables.
+// a browser skips), the design brief's typeface inline, then the page's own
+// rules. Those take every colour, space, radius, type and size from its
+// variables. The few raw values left have no token: the 1px hairline (the
+// library draws its own with Tailwind's `border`), the page's 1200px width
+// and the screenshot column's 240px minimum, besides zeros and keywords.
 function styles() {
   return [
     readFileSync(join(repo, "tokens", "tokens.css"), "utf8"),
@@ -579,7 +582,7 @@ h3 {
   font-weight: var(--ds-density-text-label-font-weight);
 }
 .note {
-  max-width: 72ch;
+  max-width: var(--ds-density-max-width-measure);
   color: var(--ds-color-text-ink-muted);
 }
 .table {
@@ -593,7 +596,7 @@ table {
   border-collapse: collapse;
 }
 .overall > * {
-  border-top: 2px solid var(--ds-color-border-control);
+  border-top: var(--ds-size-height-edge) solid var(--ds-color-border-control);
   font-weight: var(--ds-type-weight-semibold);
 }
 th, td {
