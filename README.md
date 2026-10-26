@@ -1,10 +1,10 @@
 # design-demo
 
-An AI-built design system, and the guardrails that keep AI-generated screens on it.
+An AI-built design system, and the guardrails that keep AI-generated screens on it. Built in public.
 
-I've spent 15 years making designers' work ship at award level. This repo encodes that craft as a system: a one-page design brief I wrote, a component library Claude Code built against it, and the gates and evals that keep AI output production-ready.
+I've spent 15 years making designers' work ship at award level. This repo encodes that craft as a system: a one-page design brief I wrote, a component library Claude Code builds against it, and the gates and evals that keep AI output production-ready.
 
-**[Storybook](https://gianko.github.io/design-demo/)** · **[Eval report](https://gianko.github.io/design-demo/evals/)** · **[Figma file](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo)** · **[Design brief](docs/design-brief.md)**
+**[Storybook](https://gianko.github.io/design-demo/)** · **[Eval report](https://gianko.github.io/design-demo/evals/)** · **[Figma file](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo)** · **[Design brief](docs/design-brief.md)** · **[Where it stands](#where-it-stands)**
 
 | A generated screen, kept and gated | A library component at admin density |
 |---|---|
@@ -15,11 +15,42 @@ I've spent 15 years making designers' work ship at award level. This repo encode
 The domain is contractor payroll and invoicing: an admin who clears dozens of invoices a day, and a contractor who checks on their money a few times a month.
 
 1. **A human-written design brief** is the source of taste: [`docs/design-brief.md`](docs/design-brief.md). It sets tone, density by audience, type, colour roles, spacing, radius, elevation and motion, and bans the generic AI defaults (no Inter, no Tailwind palette, no pills, no bounce easing).
-2. **Claude Code builds the design system against it.** DTCG tokens become CSS variables, TypeScript types and Figma variables. Each of the 11 components was built by one headless `/build-component` session that has to pass every gate. A human approves its baselines, and triages what the session wrote up as gaps.
+2. **Claude Code builds the design system against it.** DTCG tokens become CSS variables, TypeScript types and Figma variables. Each component is built by one headless `/build-component` session that has to pass every gate. A human approves its baselines, and triages what the session wrote up as gaps.
 3. **A generator turns a plain-language screen brief into a screen** in two steps: a typed UI spec (Zod-validated JSON that can only name registered components and props), then real React/TSX from that spec. It uses only library components and tokens, never raw elements or values.
-4. **Gates pass or fail the output**, and each step repairs itself from the failures, up to 3 attempts.
-5. **An eval suite** runs a fixed set of screen briefs K times and reports pass rates, attempts and cost, comparable across prompt and registry versions.
-6. **Figma is an output.** Tokens sync into Figma variables with light/dark and admin/contractor modes, and kept screens are captured as layers bound to those variables, through Figma's official MCP server. Code is the source of truth.
+4. **Motion comes from the library, not the model.** The UI spec has no motion vocabulary: every screen-state change is a View Transition the library owns, so a confirmed action settles and a failed one doesn't, whatever the model wrote.
+5. **Gates pass or fail the output**, and each step repairs itself from the failures, up to 3 attempts.
+6. **An eval suite** runs a fixed set of screen briefs K times and reports pass rates, attempts and cost, compared across prompt and registry versions.
+7. **Figma is an output.** Tokens sync into Figma variables with light/dark and admin/contractor modes, and screens are captured as layers bound to those variables, through Figma's official MCP server. Code is the source of truth.
+
+## Where it stands
+
+✅ shipped · 🚧 in progress · ○ planned
+
+| Part | | |
+|---|---|---|
+| Design brief | ✅ | |
+| Tokens → CSS, TypeScript and Figma variables | ✅ | |
+| Component library in Storybook | ✅ | 11 components |
+| Two-step generator with repair | ✅ | |
+| Gates 1–4, 6 and 8 | ✅ | [The gates](#the-gates) |
+| Taste lint (gate 7) | 🚧 | 5 of 16 rules |
+| Eval runner and report | ✅ | [First full run](#results-first-full-eval-run) |
+| Eval set | 🚧 | 5 of 15–20 screen briefs |
+| Comparison across prompt versions | 🚧 | The report compares runs; the second run comes with the first prompt fix |
+| Figma: variables with modes, screen captures | ✅ | |
+| Motion: screen-state View Transitions | ✅ | |
+| Motion: Toast, Sheet, bar-to-toast, row-to-sheet | ○ | [ADR 0011](docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) |
+| Brief conformance (gate 5) | ○ | |
+| An agent-run screen brief: the repair loop as UI | ○ | [#198](https://github.com/gianko/design-demo/issues/198) |
+| Figma: component frames | ○ | |
+| Case study | ○ | Including what a designer should change |
+
+## Building in public
+
+Every change lands as a pull request, every eval run's results file is committed, and the [eval report](https://gianko.github.io/design-demo/evals/) is redeployed from `main`. The record of how the system gets better is the comparison between runs, not a claim in this README.
+
+**Latest:** 2026-10-26, the first full eval run, 15 of 15.
+**Next:** stop the code step dereferencing nullable bindings, and run again to compare.
 
 ## Results: first full eval run
 
@@ -34,7 +65,7 @@ Five screen briefs, K = 3, Opus 5.5, on a clean tree at `ce3d3b5` ([results file
 | [payment-status](evals/briefs/payment-status.md) | contractor | 3 / 3 | 2 / 3 | $0.75 |
 | **All** | | **15 / 15** | **10 / 15** | **$3.98** |
 
-Every first-attempt failure was the same one: the code step read a fixture binding that is `null` in the empty state, and TypeScript (gate 3) caught it. One repair turn fixed each. It's a prompt fix, and the next run will show whether it worked.
+Every first-attempt failure was the same one: the code step read a fixture binding that is `null` in the empty state, and TypeScript (gate 3) caught it. One repair turn fixed each.
 
 ## The gates
 
@@ -46,9 +77,9 @@ Gates run on generated screens and on the design system itself, so the library i
 | 2 | ESLint: no raw colour, spacing, radius or font values; library imports only; screen state only through the library | ✅ |
 | 3 | TypeScript and build | ✅ |
 | 4 | Accessibility: axe-core, serious or critical fails | ✅ |
-| 5 | Brief conformance: a rendered screen judged against the brief | Not built |
+| 5 | Brief conformance: a rendered screen judged against the brief | ○ |
 | 6 | Visual regression: zero differing pixels against committed baselines | ✅ |
-| 7 | Taste lint: our own rules, static and rendered ([`RULES.md`](lint/taste/RULES.md)) | 5 of 16 rules |
+| 7 | Taste lint: our own rules, static and rendered ([`RULES.md`](lint/taste/RULES.md)) | 🚧 5 of 16 |
 | 8 | Style expectations: a story's own assertions on computed style | ✅ |
 
 The taste rules are a triage of [impeccable](https://github.com/pbakaus/impeccable)'s 61 detector rules (kept, adapted or skipped, each with a reason), plus rules the brief demands that impeccable doesn't have, such as tabular figures on money and motion only through tokens. No code is copied.
@@ -75,17 +106,6 @@ Each one is an ADR in [`docs/adr/`](docs/adr/):
 10. [Each generator step repairs itself from normalised gate failures](docs/adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)
 11. [Motion follows declared state changes, owned by the library](docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)
 12. [Style expectations are read-only play functions, run by gate 8](docs/adr/0012-style-expectations-are-read-only-play-functions-run-by-gate-8.md)
-
-## Status
-
-Done: the design brief, the tokens pipeline, 11 components in Storybook, the two-step generator with repair, gates 1–4 and 6–8, five screen briefs with a full eval run, Figma variables and a bound screen capture, and CI that deploys Storybook and the latest eval report.
-
-Next:
-
-- The motion signature: Toast, Sheet and the transitions that go with them ([ADR 0011](docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)).
-- 15–20 screen briefs, every component in at least two, and runs compared across prompt versions.
-- The other 11 taste rules, then gate 5.
-- Component frames in Figma, and a case study with a section on what a designer should change.
 
 ## Run it
 

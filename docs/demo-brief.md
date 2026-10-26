@@ -99,7 +99,7 @@ Priority:
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | P0  | Design brief; tokens pipeline; component library + Storybook (AI-built, gated); spec→code agent; gates 1–4; repair loop; 5 screen briefs in evals; taste lint (first 5 rules) |
 | P1  | Motion in generated screens; full brief set; eval comparison across versions; Figma: variables with modes + screen captures; taste lint complete                              |
-| P2  | Brief-conformance gate; Figma: component frames; case study; Loom; deployed Storybook; README eval table auto-generated                                                       |
+| P2  | Brief-conformance gate; Figma: component frames; case study; Loom; deployed Storybook; README eval table auto-generated; an agent-run screen brief, the repair loop as UI ([#198](https://github.com/gianko/design-demo/issues/198)) |
 
 ## 9. Open questions (investigation tickets)
 
