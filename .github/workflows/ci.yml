@@ -42,6 +42,14 @@ jobs:
       # ESLint, tsc, the Storybook build and the Playwright pass in the pinned
       # image. CI is set, so a missing baseline fails instead of being written.
       - run: pnpm gate
+      # The Storybook build `pnpm gate` just gated, for the Pages deploy. With
+      # no status function in its `if`, a failed step above skips it.
+      - uses: actions/upload-artifact@v7
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          name: storybook-static
+          path: storybook-static/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
@@ -68,3 +76,44 @@ jobs:
         run: |
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none \
             --body "**Contact sheet** for $SHA: $URL"
+
+  # The second job of ADR 0009 (spec § Pages deploy): on a push to main, once
+  # the gate job passes, the gated Storybook at the Pages root and the newest
+  # results file's report at /evals/. `needs` skips it after a red gate job.
+  pages:
+    needs: gate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      # The report inlines tokens.css and the font files from node_modules.
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: storybook-static
+          path: _site
+      # The checkout holds only committed results files, and --latest takes
+      # the run that started last. Screenshots live only in local scratch.
+      # With no results file it writes nothing and exits 0, so Storybook
+      # still deploys.
+      - run: pnpm eval:report --latest --no-screenshots --out _site/evals/index.html
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v5
