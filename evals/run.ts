@@ -7,14 +7,7 @@
 // and every rep's attempts. A failing rep is data, so the run exits 0 once
 // that file is written.
 
-import {
-  existsSync,
-  globSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, globSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import type { Attempt, RepTrace, Versions } from "../generator/generate.ts";
@@ -27,6 +20,7 @@ import {
   type AttemptResult,
   type RepResult,
   type ResultsFile,
+  latestResults,
   tally,
 } from "./results.ts";
 import { repo } from "../repo.ts";
@@ -230,23 +224,7 @@ async function runRep(
 // last, or null if there's none. A skipped rep cost nothing and says nothing
 // about what a rep costs.
 function latestMedianRepCost(resultsDir: string): number | null {
-  if (!existsSync(resultsDir)) return null;
-  const files = readdirSync(resultsDir)
-    .filter((name) => name.endsWith(".json"))
-    .map(
-      (name) =>
-        JSON.parse(readFileSync(join(resultsDir, name), "utf8")) as Partial<
-          Pick<ResultsFile, "startedAt" | "reps">
-        >
-    )
-    .filter(
-      (file): file is Pick<ResultsFile, "startedAt" | "reps"> =>
-        typeof file.startedAt === "string" && Array.isArray(file.reps)
-    );
-  const latest = files.sort((a, b) =>
-    a.startedAt < b.startedAt ? 1 : a.startedAt > b.startedAt ? -1 : 0
-  )[0];
-  const costs = (latest?.reps ?? [])
+  const costs = (latestResults(resultsDir)?.file.reps ?? [])
     .filter((rep) => rep.outcome !== "skipped")
     .map((rep) => rep.cost)
     .sort((a, b) => a - b);
