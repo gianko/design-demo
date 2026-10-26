@@ -2,8 +2,9 @@
 // prefix shared by every rep; the screen brief, and for the code step the UI
 // spec, ride in the user turn after it. A prompt's hash covers its own words,
 // its repair turn's (repair.ts), the design brief and, for the spec step, the
-// fixture paths: the registry has its own hash (ADR 0004), and both sit in
-// the version tuple (ADR 0008). There are no example UI specs.
+// fixture paths, or for the code step, the fixture types: the registry has its
+// own hash (ADR 0004), and both sit in the version tuple (ADR 0008). There are
+// no example UI specs.
 
 import { createHash } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
@@ -32,7 +33,7 @@ const codeInstructions = `You turn a UI spec into one React screen: a whole TSX 
 - Import every component from the library barrel, exactly as: import { … } from "../../index.ts";
 - Export one function component with the name you're given, taking no props, and export nothing else.
 - Render each node as its component with exactly the props it gives, each value as its JSON says. Don't add, drop or reword nodes, props or copy. The one exception is a prop the registry lists under its component's codeOnly: no UI spec gives it, and you set it yourself, as below.
-- A prop whose value is {"bind":"<path>"} reads that path from the fixture data, which you get with const data = useFixtureData(): {"bind":"overdueInvoice.dueLabel"} is data.overdueInvoice.dueLabel. Where the path runs through a value that can be null, render the node only once it's there, as in {data.overdueInvoice && <Text text={data.overdueInvoice.dueLabel} />}. Never write fixture values in as literals.
+- A prop whose value is {"bind":"<path>"} reads that path from the fixture data, which you get with const data = useFixtureData(): {"bind":"overdueInvoice.dueLabel"} is data.overdueInvoice.dueLabel. Where the path runs through a value its type in <fixture_types> allows to be null, render the node only once it's there, even when every state in the screen brief has it, since TypeScript checks the screen against that type, as in {data.overdueInvoice && <Text text={data.overdueInvoice.dueLabel} />}. Never write fixture values in as literals.
 - A node in its parent's body slot is one of the parent's children; a node in any other slot, except a DataTable's row slots, is passed as the parent's prop named after that slot. Siblings keep their order in the node list.
 - A node in a DataTable's ${rowSlots.join(" or ")} slot is passed as a function of the row: the slot's nodes, in order, are what it returns, as in cell={(row) => <><Text text={row.number} /><Amount … /></>}. Inside it, a {"bind":"row.<path>"} prop reads row.<path> from that function's argument, not from the fixture data; every other bound path still reads data.<path>.
 - No intrinsic elements (div, span, p and the rest), no className and no style: the library does all the styling.
@@ -102,15 +103,19 @@ function bindable(value: unknown, path = ""): string[] {
   );
 }
 
+// `fixtureTypes` is src/fixtures/types.ts as written: the type gate 3 checks
+// the screen's reads against, so the step knows which paths can be null.
 export function codePrompt(
   designBrief: string,
-  registry: LibraryRegistry
+  registry: LibraryRegistry,
+  fixtureTypes: string
 ): StepPrompt<[ScreenBrief, string, UiSpec]> {
   return {
     system: cached([
       codeInstructions,
       `<design_brief>\n${designBrief}\n</design_brief>`,
       `<registry>\n${registry.serialized.code}\n</registry>`,
+      `<fixture_types>\n${fixtureTypes}\n</fixture_types>`,
     ]),
     user: (brief, name, uiSpec) =>
       fill(codeUser, {
@@ -118,7 +123,13 @@ export function codePrompt(
         name,
         uiSpec: JSON.stringify(uiSpec),
       }),
-    hash: hash(codeInstructions, designBrief, codeUser, repairWords("code")),
+    hash: hash(
+      codeInstructions,
+      designBrief,
+      codeUser,
+      fixtureTypes,
+      repairWords("code")
+    ),
   };
 }
 

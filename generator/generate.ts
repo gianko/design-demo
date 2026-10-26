@@ -282,7 +282,11 @@ function prompts(registry: LibraryRegistry) {
     JSON.stringify(schema, null, 2),
     fixtures.variants
   );
-  const code = codePrompt(designBrief, registry);
+  const code = codePrompt(
+    designBrief,
+    registry,
+    readFileSync(resolve(repo, "src/fixtures/types.ts"), "utf8")
+  );
   const versions: Versions = {
     registryHash: registry.hash,
     specPromptHash: spec.hash,
