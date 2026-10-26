@@ -28,17 +28,53 @@ const fixtures = {
   "payment-status/empty": { invoices: [], overdueInvoice: null },
 };
 
+const fixtureTypes =
+  "export type FixtureData = { reviewInvoice: Invoice | null };";
+
 // ADR 0004: the code step wires data. Bound props and operation arguments
 // read the host's fixture variant through the library's hook.
 describe("codePrompt", () => {
   it("embeds the code step's registry in its cached prefix", () => {
-    const { system } = codePrompt("# Design brief", registry);
+    const { system } = codePrompt("# Design brief", registry, fixtureTypes);
 
-    expect(system.at(-1)!.text).toBe('<registry>\n["code"]\n</registry>');
+    expect(system[2]!.text).toBe('<registry>\n["code"]\n</registry>');
+  });
+
+  // The first eval run: every first-attempt failure was gate 3 finding a read
+  // through a value FixtureData allows to be null, in screens whose states
+  // never show it null. The code step saw neither the type nor the variants.
+  it("carries the fixture data's types in its cached prefix, and in the prompt hash", () => {
+    const prompt = codePrompt("# Design brief", registry, fixtureTypes);
+    const changed = codePrompt(
+      "# Design brief",
+      registry,
+      "export type FixtureData = { reviewInvoice: Invoice };"
+    );
+
+    expect(prompt.system.at(-1)!.text).toBe(
+      `<fixture_types>\n${fixtureTypes}\n</fixture_types>`
+    );
+    expect(changed.hash).not.toBe(prompt.hash);
+  });
+
+  it("guards a read through a value its type allows to be null, whatever the states", () => {
+    const [instructions] = codePrompt(
+      "# Design brief",
+      registry,
+      fixtureTypes
+    ).system;
+
+    expect(instructions!.text).toContain(
+      "Where the path runs through a value its type in <fixture_types> allows to be null, render the node only once it's there, even when every state in the screen brief has it"
+    );
   });
 
   it("wires bound props and operation arguments through useFixtureData", () => {
-    const [instructions] = codePrompt("# Design brief", registry).system;
+    const [instructions] = codePrompt(
+      "# Design brief",
+      registry,
+      fixtureTypes
+    ).system;
 
     expect(instructions!.text).toContain("const data = useFixtureData()");
     expect(instructions!.text).toContain(
@@ -48,7 +84,11 @@ describe("codePrompt", () => {
 
   // ADR 0011: the host holds the selection, not the fixture data (#188).
   it("passes payInvoices the selection from useSelectedRows", () => {
-    const [instructions] = codePrompt("# Design brief", registry).system;
+    const [instructions] = codePrompt(
+      "# Design brief",
+      registry,
+      fixtureTypes
+    ).system;
 
     expect(instructions!.text).toContain(
       "payInvoices takes the selected rows' ids: call const selected = useSelectedRows() at the top of the screen and pass selected to the action's run"
@@ -59,7 +99,11 @@ describe("codePrompt", () => {
 // ADR 0004: a DataTable's row slots render once per row, so in code they're
 // a function of the row, and their row.* paths read its argument (#186).
 describe("the code step's row slots", () => {
-  const [instructions] = codePrompt("# Design brief", registry).system;
+  const [instructions] = codePrompt(
+    "# Design brief",
+    registry,
+    fixtureTypes
+  ).system;
   const text = instructions!.text;
 
   it("passes a row slot as a function of the row, returning its nodes", () => {
@@ -152,7 +196,7 @@ describe("Button's pending", () => {
 
   it("is in the code step's registry, marked as set by the code step", async () => {
     const library = await loadRegistry();
-    const { system } = codePrompt("# Design brief", library);
+    const { system } = codePrompt("# Design brief", library, fixtureTypes);
 
     expect(button(system[2]!).props.properties).toHaveProperty("pending");
     expect(button(system[2]!).codeOnly).toEqual(["pending"]);
