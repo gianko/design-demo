@@ -88,6 +88,18 @@ describe("pnpm eval:report", () => {
     expect(html).not.toMatch(/url\(\s*["']?(?!data:)/);
   });
 
+  it("renders in the light theme, never following the OS colour scheme (ADR 0002: none in P0)", async () => {
+    const at = setup();
+    const a = write(at, "2026-10-26-before.json", runA(at));
+
+    await report(at, [a]);
+
+    const { html, doc } = written(at);
+    expect(doc.documentElement.dataset.theme).toBe("light");
+    expect(doc.querySelectorAll("script")).toHaveLength(0);
+    expect(html).not.toMatch(/prefers-color-scheme/);
+  });
+
   it("counts passes as first attempt → final per screen brief and overall, beside mean attempts, cost, wall time and per-gate failure counts", async () => {
     const at = setup();
     const a = write(at, "2026-10-26-before.json", runA(at));

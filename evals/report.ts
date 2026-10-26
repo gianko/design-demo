@@ -217,6 +217,7 @@ type StorybookIndex = {
   entries: Record<string, { id: string; exportName?: string }>;
 };
 
+// The light theme, always: ADR 0002 has no automatic OS following in P0.
 export function reportHtml(runs: ReportRun[]): string {
   const title = runs.length === 1 ? "Eval run report" : "Eval comparison";
   return `<!doctype html>
@@ -225,11 +226,6 @@ export function reportHtml(runs: ReportRun[]): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(title)}</title>
-<script>
-// The reader's colour scheme picks the theme.
-if (matchMedia("(prefers-color-scheme: dark)").matches)
-  document.documentElement.dataset.theme = "dark";
-</script>
 <style>
 ${styles()}
 </style>
