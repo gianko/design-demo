@@ -4,6 +4,10 @@ export { Amount, type AmountProps } from "./components/Amount/Amount.tsx";
 export { Button, type ButtonProps } from "./components/Button/Button.tsx";
 export { Card, type CardProps } from "./components/Card/Card.tsx";
 export { Heading, type HeadingProps } from "./components/Heading/Heading.tsx";
+export {
+  PageHeader,
+  type PageHeaderProps,
+} from "./components/PageHeader/PageHeader.tsx";
 export { Screen, type ScreenProps } from "./components/Screen/Screen.tsx";
 export {
   ScreenHost,
