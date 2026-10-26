@@ -136,7 +136,7 @@ describe("pnpm eval:report", () => {
     ]);
   });
 
-  it("turns two results files into a comparison, the runs side by side per screen brief and overall", async () => {
+  it("turns two results files into a comparison, each count reading run A → run B per screen brief and overall", async () => {
     const at = setup();
     const a = write(at, "2026-10-26-before.json", runA(at));
     const b = write(at, "2026-10-27-after.json", runB(at));
@@ -147,18 +147,36 @@ describe("pnpm eval:report", () => {
     const { name, doc } = written(at);
     expect(name).toBe("2026-10-26-before-vs-2026-10-27-after.html");
     expect(doc.querySelector("h1")?.textContent).toMatch(/comparison/i);
-    const passed = (brief: string) =>
-      rows(doc, brief).map((row) => [
-        row["Run"],
-        row["Passed (first attempt → final)"],
-      ]);
-    expect(passed("invoice-queue")).toEqual([
-      ["A", "1/3 → 2/3"],
-      ["B", "3/3 → 3/3"],
+    // ADR 0008: `2/3 → 3/3` is run A's final passes → run B's.
+    expect(rows(doc, "invoice-queue")).toEqual([
+      {
+        "Screen brief": "invoice-queue",
+        "Passed (final)": "2/3 → 3/3",
+        "Passed (first attempt)": "1/3 → 3/3",
+        Errors: "0 → 0",
+        Skipped: "0 → 0",
+        "Mean attempts (spec · code)": "1.0 · 2.0 → 1.0 · 1.0",
+        Cost: "$0.90 → $0.60",
+        "Wall time": "3m 30s → 1m 30s",
+        "gate 1": "0 → 0",
+        "gate 2": "0 → 0",
+        "gate 3": "2 → 0",
+        "gate 7 static": "0 → 0",
+        "gate 4": "2 → 0",
+        "gate 7 render": "1 → 0",
+      },
     ]);
-    expect(passed("All briefs")).toEqual([
-      ["A", "3/6 → 5/6"],
-      ["B", "6/6 → 6/6"],
+    expect(rows(doc, "payment-status")).toEqual([
+      expect.objectContaining({
+        "Passed (final)": "3/3 → 3/3",
+        "Passed (first attempt)": "2/3 → 3/3",
+      }),
+    ]);
+    expect(rows(doc, "All briefs")).toEqual([
+      expect.objectContaining({
+        "Passed (final)": "5/6 → 6/6",
+        "Passed (first attempt)": "3/6 → 6/6",
+      }),
     ]);
     // Each run is named by its results file.
     const legend = doc.querySelector(".runs")?.textContent ?? "";
@@ -184,14 +202,11 @@ describe("pnpm eval:report", () => {
     expect(flag).toMatch(/only in A: payment-status/);
     expect(flag).toMatch(/only in B: payment-run/);
     // A brief a run never had reads as absent, not as 0/0.
-    expect(
-      rows(doc, "payment-run").map((row) => [
-        row["Run"],
-        row["Passed (first attempt → final)"],
-      ])
-    ).toEqual([
-      ["A", "not in this run"],
-      ["B", "3/3 → 3/3"],
+    expect(rows(doc, "payment-run")).toEqual([
+      expect.objectContaining({ "Passed (final)": "– → 3/3", Errors: "– → 0" }),
+    ]);
+    expect(rows(doc, "payment-status")).toEqual([
+      expect.objectContaining({ "Passed (final)": "3/3 → –" }),
     ]);
   });
 

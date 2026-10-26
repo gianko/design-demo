@@ -241,7 +241,7 @@ ${legend(runs)}
 ${briefSetsDiffer(runs)}
 <section>
 <h2>Screen briefs</h2>
-<p class="note">Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate.</p>
+<p class="note">${runs.length > 1 ? "Each cell reads run A → run B, and – marks a screen brief a run doesn't cover." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate.</p>
 ${summary(runs)}
 </section>
 ${runs.map((run, index) => repsSection(run, runs.length > 1 ? letter(index) : null)).join("\n")}
@@ -346,15 +346,18 @@ function briefSetsDiffer(runs: ReportRun[]) {
 </aside>`;
 }
 
-// One row per screen brief, and per run in a comparison, then the overall
-// row: counts, not percentages, with no claim of significance at K≈3.
+// One row per screen brief, then the overall row: counts, not percentages,
+// with no claim of significance at K≈3. A run report's passes read first
+// attempt → final; in a comparison every cell reads run A → run B (ADR 0008),
+// with – for a screen brief a run doesn't cover.
 function summary(runs: ReportRun[]) {
   const briefs = [...new Set(runs.flatMap((run) => run.file.briefSlugs))];
   const compare = runs.length > 1;
   const head = [
     "Screen brief",
-    ...(compare ? ["Run"] : []),
-    "Passed (first attempt → final)",
+    ...(compare
+      ? ["Passed (final)", "Passed (first attempt)"]
+      : ["Passed (first attempt → final)"]),
     "Errors",
     "Skipped",
     "Mean attempts (spec · code)",
@@ -362,34 +365,37 @@ function summary(runs: ReportRun[]) {
     "Wall time",
     ...gates,
   ];
-  const row = (
-    brief: string,
-    run: ReportRun,
-    index: number,
-    reps: RepResult[]
-  ) => {
-    const runCell = compare ? `<td>${letter(index)}</td>` : "";
-    if (brief !== overall && !run.file.briefSlugs.includes(brief))
-      return `<tr><th scope="row">${escape(brief)}</th>${runCell}<td colspan="${head.length - (compare ? 2 : 1)}">not in this run</td></tr>`;
+  // One run's cells for a screen brief, or null if the run doesn't cover it.
+  const cells = (run: ReportRun, brief: string): string[] | null => {
+    if (brief !== overall && !run.file.briefSlugs.includes(brief)) return null;
+    const reps =
+      brief === overall
+        ? run.file.reps
+        : run.file.reps.filter((rep) => rep.brief === brief);
     const counts = tally(reps);
     const failures = gateFailures(reps);
-    return `<tr${brief === overall ? ' class="overall"' : ""}><th scope="row">${escape(brief)}</th>${runCell}<td>${rate(counts.firstAttempt)} → ${rate(counts.final)}</td><td>${counts.error}</td><td>${counts.skipped}</td><td>${meanAttempts(reps)}</td><td>${dollars(counts.cost)}</td><td>${duration(counts.wallMs)}</td>${gates
-      .map((gate) => `<td>${failures[gate]}</td>`)
+    return [
+      ...(compare
+        ? [rate(counts.final), rate(counts.firstAttempt)]
+        : [`${rate(counts.firstAttempt)} → ${rate(counts.final)}`]),
+      String(counts.error),
+      String(counts.skipped),
+      meanAttempts(reps),
+      dollars(counts.cost),
+      duration(counts.wallMs),
+      ...gates.map((gate) => String(failures[gate])),
+    ];
+  };
+  const row = (brief: string) => {
+    const [a, b] = runs.map((run) => cells(run, brief));
+    const values = compare
+      ? head.slice(1).map((_, i) => `${a?.[i] ?? "–"} → ${b?.[i] ?? "–"}`)
+      : a!;
+    return `<tr${brief === overall ? ' class="overall"' : ""}><th scope="row">${escape(brief)}</th>${values
+      .map((value) => `<td>${escape(value)}</td>`)
       .join("")}</tr>`;
   };
-  const body = [
-    ...briefs.flatMap((brief) =>
-      runs.map((run, index) =>
-        row(
-          brief,
-          run,
-          index,
-          run.file.reps.filter((rep) => rep.brief === brief)
-        )
-      )
-    ),
-    ...runs.map((run, index) => row(overall, run, index, run.file.reps)),
-  ];
+  const body = [...briefs, overall].map(row);
   return `<div class="table"><table class="summary">
 <thead><tr>${head.map((cell) => `<th scope="col">${escape(cell)}</th>`).join("")}</tr></thead>
 <tbody>
@@ -590,7 +596,6 @@ table {
   border-top: 2px solid var(--ds-color-border-control);
   font-weight: var(--ds-type-weight-semibold);
 }
-.overall ~ .overall > * { border-top: 0; }
 th, td {
   padding: var(--ds-space-2xs) var(--ds-space-xs);
   border-bottom: 1px solid var(--ds-color-border-line);
@@ -605,10 +610,6 @@ tbody tr:last-child > * { border-bottom: 0; }
 .summary td {
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-.summary td[colspan] {
-  text-align: left;
-  color: var(--ds-color-text-ink-muted);
 }
 .runs .differs > * {
   background: var(--ds-color-bg-awaiting);
