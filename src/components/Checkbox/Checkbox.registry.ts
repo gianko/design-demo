@@ -1,0 +1,28 @@
+import { z } from "zod";
+import { defineEntry } from "../../registry/entry.ts";
+
+// Checkbox has no look variant (one row selector, PLAN.md); `checked` takes
+// the WAI-ARIA values, a boolean or "mixed", which no tv() enum can spell.
+export const checkboxEntry = defineEntry({
+  name: "Checkbox",
+  use: "The row selector DataTable renders, one per row and one in its header; never place it in a UI spec yourself. To act on selected rows use a Button, for a status StatusTag.",
+  props: z.object({
+    label: z
+      .string()
+      .describe(
+        "What ticking it selects, read by screen readers and not shown, such as Select INV-0142."
+      ),
+    checked: z
+      .union([z.boolean(), z.literal("mixed")])
+      .optional()
+      .describe(
+        'true when selected; "mixed" on the header when only some rows are.'
+      ),
+    disabled: z
+      .boolean()
+      .optional()
+      .describe(
+        "This row can't be selected now; the checkbox leaves the tab order."
+      ),
+  }),
+});
