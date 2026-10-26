@@ -10,6 +10,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 **Alternative:** a `header` (or `column-header`) type role in `type.json`: 12px, 16px line height, weight 600, so `text-header` gives the brief's style in one class. DataTable's header slot then swaps `text-caption` for it.
 
+**Decided (#185):** the alternative, named `column-header`: 12px, 16px line height, weight 600, no tracking, at both densities. The headers use `text-column-header text-ink-muted`, and the stories' style expectations assert weight 600.
+
 ## The cell slot is a function of the row, not a ReactNode
 
 **Undecided:** a slot other than `body` is a `ReactNode` prop named after it (spec § Registry core), and the code step's prompt says so. A `ReactNode` can't read a row, so it can't hold `row.*` bindings that render once per row (ADR 0004).
@@ -17,6 +19,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 **Call:** `cell` is `(row) => ReactNode`, giving one node per column for that row, usually a fragment, as `cell={(row) => <><Text text={row.number} /><Amount … /></>}`. DataTable splits the nodes into columns in order and throws if the count doesn't match `columns`. The registry `use` line tells the code step, since it reads that line.
 
 **Alternative:** a line in the code step's prompt (`generator/prompts.ts`) for row-scoped slots, so the contract lives where the code step's other rules do, or a `rowScoped: true` flag on a registry slot that both the prompt and gate 1's `rowSlots` read.
+
+**Decided (#186):** the prompt line. The code step's instructions pass a node in a DataTable's row slot as a function of the row and read its `row.*` paths from that function's argument, naming the slots from gate 1's exported `rowSlots`, so the two can't drift. The registry `use` line no longer tells the code step how to pass `cell`.
 
 ## Leaving rows-selected clears the selection, after a failure too
 
@@ -26,6 +30,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 **Alternative:** ScreenHost exposes the type of the last transition (or `useAction` clears a library-held selection on success only), so DataTable keeps the rows after `fail` and the Button can stay for a retry.
 
+**Decided (#188, for #187):** the `ScreenHost` holds the selection and clears it inside a `confirm` transition's update; a `fail` keeps it. After a failure, ticking or unticking a row brings the screen back to `rows-selected`.
+
 ## A generated screen can't read the selected rows' ids
 
 **Undecided:** invoice-queue's `approve-and-pay` runs `payInvoices` "on the selected rows' ids", but DataTable holds its selection inside itself, and a generated screen may not hold state (`screen-state-via-library`), so it has no way to get the ids to pass to `run`.
@@ -34,6 +40,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 **Alternative:** a library hook, such as `useSelectedRows()`, backed by the ScreenHost so DataTable and the screen's action read one selection, plus a line in the code step's prompt saying to call `run(useSelectedRows())`. That is a change to Screen's host, outside this component.
 
+**Decided (#188):** the alternative. DataTable reads and writes the selection through the `ScreenHost`, a generated screen reads it with `useSelectedRows()`, and the code step's instructions pass that to `payInvoices`.
+
 ## The rows-selected fixture variant doesn't say which rows are selected
 
 **Undecided:** a story or kept screen rendered straight into `rows-selected` (fixture `invoice-queue/rows-selected`) should show rows ticked, but the variant's data has nothing naming them; only a comment says the awaiting ones are meant.
@@ -41,6 +49,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 **Call:** a `selected` prop, the ids selected when the table first renders. DataTable's own stories set it by hand to the three awaiting invoices. A UI spec has nothing to bind it to, and writing the ids as a literal would copy fixture data, so a generated rows-selected render will show the Button with no row ticked.
 
 **Alternative:** a `selectedInvoiceIds` list in every fixture variant (empty except in `invoice-queue/rows-selected`), which the UI spec binds `selected` to.
+
+**Decided (#188, for #189):** a fixture variant names its starting selection beside its `fails`, outside its `data`, so no UI spec binds it, and the host starts with it. `invoice-queue/rows-selected` and `invoice-queue/payment-failed` name the three awaiting invoices. The `selected` prop is gone.
 
 ## Row checkboxes are named from the row's id
 

@@ -10,6 +10,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Checkb
 
 **Alternative:** a registry flag (say `internal: true`) that leaves an entry out of the spec step's view and the wire schema's `component` enum, so gate 1 rejects a Checkbox node as an unknown component, while the code step still sees it.
 
+**Decided (#179):** the alternative. A registry entry's `internal: true` leaves it out of the spec step's registry and the wire schema's `component` enum, gate 1 fails a node naming it as unregistered, and the code step's registry lists it marked `internal`. Checkbox's entry sets it, and its `use` line no longer says "never place it in a UI spec yourself".
+
 ## The tick and dash are drawn inline, not Phosphor
 
 **Undecided:** the brief names Phosphor, regular weight, for icons, but the icon map arrives with the first component that needs an icon (spec § After P0), and Phosphor isn't installed. A checkbox needs a tick and a dash.

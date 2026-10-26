@@ -66,7 +66,7 @@ The DTCG source files, `tokens/build.ts`, `tokens/keyframes.css` and the three c
 
 ### Registry core
 
-The pieces every `*.registry.ts` entry uses ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)): a helper to define an entry (props schema, `use` line, slots with optional allow-lists; a slot named `body` is the component's `children`, and every other slot is a `ReactNode` prop named after it, such as Card's `header` and `footer`, which is how the code step renders a node in each), reading variant enums from a component's `tv()` config, serializing the registry for the spec step's system prefix, its content hash, and the wire schema's generated `component` enum.
+The pieces every `*.registry.ts` entry uses ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)): a helper to define an entry (props schema, `use` line, slots with optional allow-lists; a slot named `body` is the component's `children`, and every other slot is a `ReactNode` prop named after it, such as Card's `header` and `footer`, which is how the code step renders a node in each, except a DataTable's row slots, `cell` and `detail`, each a function of the row), an `internal` flag for an entry only another component renders, such as Checkbox, which the spec step never sees, reading variant enums from a component's `tv()` config, serializing the registry for the spec step's system prefix, its content hash, and the wire schema's generated `component` enum.
 
 **Done when:** Vitest, against two stub entries, shows that serialization is stable, the hash changes when and only when an entry changes, variants come from `tv()`, and the props type is `z.infer` of the entry.
 
@@ -244,7 +244,7 @@ Each is done as a [component piece](#component-pieces) is. What P0 needs from ea
 
 - **PageHeader**'s `actions` slot allow-list is Button alone, until IconButton exists ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
 - **DataTable** takes its rows through a bound prop, and each column's `cell` slot holds one template node whose `row.*` bindings render once per row ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
-- **DataTable** owns selection. Selecting rows enters `rows-selected` through `useScreenState`'s `enter`, and an action's success clears the selection ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)).
+- **DataTable** owns ticking rows, and the `ScreenHost` holds the selection. Ticking rows enters `rows-selected` through the host, an action's success clears the selection and its failure keeps it, and a generated screen reads the ticked ids with `useSelectedRows()` ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)).
 - **DataTable**'s money cells end-align (`tabular-numerals`). Its `detail` slot and the Sheet wait for P1.
 
 ### The first full eval run

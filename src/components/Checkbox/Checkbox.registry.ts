@@ -5,7 +5,9 @@ import { defineEntry } from "../../registry/entry.ts";
 // the WAI-ARIA values, a boolean or "mixed", which no tv() enum can spell.
 export const checkboxEntry = defineEntry({
   name: "Checkbox",
-  use: "The row selector DataTable renders, one per row and one in its header; never place it in a UI spec yourself. To act on selected rows use a Button, for a status StatusTag.",
+  use: "The row selector DataTable renders, one per row and one in its header. To act on selected rows use a Button, for a status StatusTag.",
+  // DataTable renders it; the spec step never sees it (#179).
+  internal: true,
   props: z.object({
     label: z
       .string()

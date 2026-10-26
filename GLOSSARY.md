@@ -69,7 +69,7 @@ A named condition of one generated screen (empty, loading, error, rows selected)
 _Avoid_: View, mode, variant
 
 **Selection**:
-The rows of a screen's table that the user has ticked, which an action such as approve and pay acts on. A confirmed action clears it, and a failed one keeps it.
+The rows of a screen's table that the user has ticked, which an action such as approve and pay acts on. The ScreenHost holds it, beside the screen state; a confirmed action clears it, and a failed one keeps it.
 _Avoid_: Checked rows, picked items
 
 **Signature transition**:

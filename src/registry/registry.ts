@@ -14,12 +14,14 @@ export function defineRegistry<const E extends readonly RegistryEntry[]>(
   if (duplicate !== undefined) {
     throw new Error(`"${duplicate}" is registered twice`);
   }
-  // Each step's view of the registry. The spec step's leaves out code-only
-  // props, so a UI spec can't give them; the code step's keeps them, listed
-  // under codeOnly, so it knows to set them itself.
+  // The entries a UI spec may name: every one but the internal ones.
+  const spec = sorted.filter((entry) => !entry.internal);
+  // Each step's view of the registry. The spec step's leaves out internal
+  // entries and code-only props, so a UI spec can't name or give them; the
+  // code step's keeps them, marked, so it knows they're its own.
   const serialize = (step: "spec" | "code") =>
     JSON.stringify(
-      sorted.map((entry) => row(entry, step)),
+      (step === "spec" ? spec : sorted).map((entry) => row(entry, step)),
       null,
       2
     );
@@ -30,8 +32,10 @@ export function defineRegistry<const E extends readonly RegistryEntry[]>(
   const hash = createHash("sha256")
     .update(JSON.stringify([serialized.spec, serialized.code]))
     .digest("hex");
-  // The wire schema's `component` field: only registered names parse.
-  const component = z.enum(names as [E[number]["name"]]);
+  // The wire schema's `component` field: only names a UI spec may give parse.
+  const component = z.enum(
+    spec.map((entry) => entry.name) as [E[number]["name"]]
+  );
   // Gate 1 checks each node against its entry.
   return { entries: sorted, serialized, hash, component };
 }
@@ -44,6 +48,7 @@ function row(entry: RegistryEntry, step: "spec" | "code") {
     use: entry.use,
     props: propsSchema(step === "spec" ? specProps(entry) : entry.props),
     ...(code ? { codeOnly: entry.codeOnly } : {}),
+    ...(step === "code" && entry.internal ? { internal: true } : {}),
     slots: entry.slots ?? {},
   };
 }

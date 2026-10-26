@@ -94,6 +94,55 @@ export function Reminder() {
 `)
     ).toEqual({ result: "pass", rules: [] });
   }, 60_000);
+
+  // The host holds the selection (ADR 0011, #188), so reading it isn't the
+  // screen holding state.
+  it("passes a generated screen that pays the selection from useSelectedRows", async () => {
+    const { gates } = await codeGates(
+      file,
+      `import {
+  Button,
+  DataTable,
+  Screen,
+  Text,
+  useAction,
+  useFixtureData,
+  useScreenState,
+  useSelectedRows,
+} from "../../index.ts";
+
+export function Reminder() {
+  const data = useFixtureData();
+  const selected = useSelectedRows();
+  const { state } = useScreenState();
+  const approveAndPay = useAction("payInvoices", {
+    success: "payment-scheduled",
+    failure: "payment-failed",
+  });
+  return (
+    <Screen audience="admin">
+      {state === "rows-selected" && (
+        <Button
+          text="Approve and pay"
+          intent="primary"
+          pending={approveAndPay.pending}
+          onClick={() => approveAndPay.run(selected)}
+        />
+      )}
+      <DataTable
+        rows={data.invoices}
+        columns={["Invoice"]}
+        cell={(row) => <Text text={row.number} />}
+      />
+    </Screen>
+  );
+}
+`,
+      keptAt
+    );
+
+    expect([gates["gate 2"], gates["gate 3"]]).toEqual(["pass", "pass"]);
+  }, 60_000);
 });
 
 // Button's pending is code-only (ADR 0011): the UI spec names the pending

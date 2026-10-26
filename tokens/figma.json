@@ -1881,6 +1881,39 @@
           }
         },
         {
+          "name": "type/column-header/font-size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 12
+          }
+        },
+        {
+          "name": "type/column-header/line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 16
+          }
+        },
+        {
+          "name": "type/column-header/letter-spacing",
+          "type": "FLOAT",
+          "scopes": [
+            "LETTER_SPACING"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Value": 0
+          }
+        },
+        {
           "name": "type/heading/font-size",
           "type": "FLOAT",
           "scopes": [
@@ -2148,6 +2181,16 @@
         "fontSize": "type/caption/font-size",
         "lineHeight": "type/caption/line-height",
         "letterSpacing": "type/caption/letter-spacing"
+      }
+    },
+    {
+      "name": "column-header",
+      "bind": {
+        "fontFamily": "type/family/sans",
+        "fontWeight": "type/weight/semibold",
+        "fontSize": "type/column-header/font-size",
+        "lineHeight": "type/column-header/line-height",
+        "letterSpacing": "type/column-header/letter-spacing"
       }
     },
     {

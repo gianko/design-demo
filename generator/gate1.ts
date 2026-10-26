@@ -29,8 +29,9 @@ export type Gate1Context = {
 
 const whole = "(ui spec)";
 // A DataTable's slots whose template node renders once per row, where `row.*`
-// paths resolve (ADR 0004, ADR 0011).
-const rowSlots = ["cell", "detail"];
+// paths resolve (ADR 0004, ADR 0011). The code step's instructions name the
+// same list, as the slots it passes as a function of the row.
+export const rowSlots: readonly string[] = ["cell", "detail"];
 
 export function gate1(raw: unknown, context: Gate1Context): Failure[] {
   let input = raw;
@@ -56,7 +57,14 @@ export function gate1(raw: unknown, context: Gate1Context): Failure[] {
 
 function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
   const failures: Failure[] = [];
-  const entryOf = new Map(entries.map((entry) => [entry.name, entry]));
+  // An internal entry is one a UI spec never names, so it reads as
+  // unregistered here, even on a spec that didn't come through the wire
+  // schema.
+  const entryOf = new Map(
+    entries
+      .filter((entry) => !entry.internal)
+      .map((entry) => [entry.name, entry])
+  );
   const byId = new Map<string, UiNode>();
 
   // Ids are unique.

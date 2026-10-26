@@ -24,7 +24,8 @@ import { defaultState } from "./default-state.ts";
 // lives in the ScreenHost around the generated screen, so the screen's own
 // hooks and the Screen it renders see the same one. The host also holds the
 // fixture variant, whose data `useFixtureData` reads for bound props and
-// operation arguments (ADR 0004).
+// operation arguments (ADR 0004), and the selection: the rows DataTable has
+// ticked, which `useSelectedRows` reads for an action's argument.
 
 export { defaultState };
 
@@ -43,6 +44,10 @@ type ScreenStateContext = {
   enter: (name: string, type?: TransitionType, alongside?: () => void) => void;
   data: FixtureData;
   operations: Operations;
+  // The ids of the ticked rows, in the order they were ticked.
+  selected: readonly string[];
+  // Sets the selection, entering `state` in the same update when given.
+  select: (ids: readonly string[], state?: string) => void;
 };
 
 const HostContext = createContext<ScreenStateContext | null>(null);
@@ -59,27 +64,39 @@ export type ScreenStateParameters = { screenState?: HostedState };
 export type ScreenHostProps = {
   // The default state, in the default variant, when not given.
   screenState?: HostedState;
+  // The selection the host starts with, such as a story's every row; the
+  // fixture variant's when not given.
+  selected?: readonly string[];
   children?: ReactNode;
 };
 
 // What hosts a generated screen: a story, the gate harness or an app. It
-// holds the screen state and the fixture variant.
-export function ScreenHost({ screenState, children }: ScreenHostProps) {
+// holds the screen state, the fixture variant and the selection.
+export function ScreenHost({
+  screenState,
+  selected: seeded,
+  children,
+}: ScreenHostProps) {
   const initial = screenState?.name ?? defaultState;
   const variant = screenState?.fixture ?? "default";
-  const [{ state, entries }, setEntered] = useState({
+  const fixture = useMemo(() => fixtureVariant(variant), [variant]);
+  const { data, operations } = fixture;
+  const [{ state, entries, selected }, setEntered] = useState(() => ({
     state: initial,
     entries: 0,
-  });
-  const { data, operations } = useMemo(
-    () => fixtureVariant(variant),
-    [variant]
-  );
+    selected: seeded ?? fixture.selected,
+  }));
   const enter = useCallback(
     (name: string, type?: TransitionType, alongside?: () => void) => {
       const update = () =>
         flushSync(() => {
-          setEntered((last) => ({ state: name, entries: last.entries + 1 }));
+          // A confirmed action has acted on the selection, so it clears in
+          // the same update; a failed one keeps it for a retry.
+          setEntered((last) => ({
+            state: name,
+            entries: last.entries + 1,
+            selected: type === "confirm" ? [] : last.selected,
+          }));
           alongside?.();
         });
       if (typeof document.startViewTransition !== "function") {
@@ -90,9 +107,17 @@ export function ScreenHost({ screenState, children }: ScreenHostProps) {
     },
     []
   );
+  const select = useCallback(
+    (ids: readonly string[], name?: string) => {
+      const hold = () => setEntered((last) => ({ ...last, selected: ids }));
+      if (name === undefined) hold();
+      else enter(name, undefined, hold);
+    },
+    [enter]
+  );
   const value = useMemo(
-    () => ({ state, entries, enter, data, operations }),
-    [state, entries, enter, data, operations]
+    () => ({ state, entries, enter, data, operations, selected, select }),
+    [state, entries, enter, data, operations, selected, select]
   );
   return <HostContext value={value}>{children}</HostContext>;
 }
@@ -118,6 +143,20 @@ export function useScreenState() {
 // `{ "bind": "<path>" }` props and its operations' arguments read.
 export function useFixtureData(): FixtureData {
   return useHost("useFixtureData").data;
+}
+
+// The ids of the rows ticked in the screen's DataTable: what an action such
+// as payInvoices acts on.
+export function useSelectedRows(): string[] {
+  const { selected } = useHost("useSelectedRows");
+  return useMemo(() => [...selected], [selected]);
+}
+
+// DataTable's read and write of the selection: `select(ids, state)` changes
+// it, entering `state` in the same update when given.
+export function useSelection() {
+  const { selected, select } = useHost("DataTable");
+  return { selected, select };
 }
 
 // Screen's own read of the state, for its data attribute. A Screen outside a

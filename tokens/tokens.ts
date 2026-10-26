@@ -34,7 +34,7 @@ export type Size = (typeof size)[number];
 export const radius = ["surface", "control", "tag", "avatar"] as const;
 export type Radius = (typeof radius)[number];
 
-export const text = ["body", "label", "caption", "heading", "title", "figure"] as const;
+export const text = ["body", "label", "caption", "column-header", "heading", "title", "figure"] as const;
 export type Text = (typeof text)[number];
 
 export const spacing = ["0", "3xs", "2xs", "xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl"] as const;
