@@ -79,16 +79,20 @@ export type EndReason =
   | "code-attempts-exhausted"
   | `error:${string}`;
 
+// What a rep was generated with (ADR 0008's version tuple, less the git SHA
+// and label, which only an eval run has).
+export type Versions = {
+  registryHash: string;
+  specPromptHash: string;
+  codePromptHash: string;
+  spec: StepConfig;
+  code: StepConfig;
+};
+
 export type RepTrace = {
   slug: string;
   workDir: string;
-  versions: {
-    registryHash: string;
-    specPromptHash: string;
-    codePromptHash: string;
-    spec: StepConfig;
-    code: StepConfig;
-  };
+  versions: Versions;
   attempts: Attempt[];
   outcome: Outcome;
   endReason: EndReason;
@@ -130,29 +134,12 @@ export async function generate(
   mkdirSync(dir, { recursive: true });
 
   const registry = given ?? (await loadRegistry());
-  const designBrief = readFileSync(
-    resolve(repo, "docs/design-brief.md"),
-    "utf8"
-  );
-  const { type, schema } = zodOutputFormat(wireSchema(registry.component));
-  const spec = specPrompt(
-    designBrief,
-    registry,
-    JSON.stringify(schema, null, 2),
-    fixtures.variants
-  );
-  const code = codePrompt(designBrief, registry);
+  const { type, schema, spec, code, versions } = prompts(registry);
 
   const trace: RepTrace = {
     slug: brief.slug,
     workDir: dir,
-    versions: {
-      registryHash: registry.hash,
-      specPromptHash: spec.hash,
-      codePromptHash: code.hash,
-      spec: stepConfig.spec,
-      code: stepConfig.code,
-    },
+    versions,
     attempts: [],
     outcome: "pass",
     endReason: "passed",
@@ -271,6 +258,39 @@ export async function generate(
   });
   if ("error" in codeStep) return finish(`error:${codeStep.error}`);
   return finish(codeStep.output ? "passed" : "code-attempts-exhausted");
+}
+
+// The version tuple every rep records, for a caller that needs it before any
+// rep runs: an eval run's results file holds it once (ADR 0008).
+export async function generatorVersions(
+  registry?: LibraryRegistry
+): Promise<Versions> {
+  return prompts(registry ?? (await loadRegistry())).versions;
+}
+
+// Both steps' prompts, the spec step's output format, and the version tuple
+// their hashes and the per-step config make up.
+function prompts(registry: LibraryRegistry) {
+  const designBrief = readFileSync(
+    resolve(repo, "docs/design-brief.md"),
+    "utf8"
+  );
+  const { type, schema } = zodOutputFormat(wireSchema(registry.component));
+  const spec = specPrompt(
+    designBrief,
+    registry,
+    JSON.stringify(schema, null, 2),
+    fixtures.variants
+  );
+  const code = codePrompt(designBrief, registry);
+  const versions: Versions = {
+    registryHash: registry.hash,
+    specPromptHash: spec.hash,
+    codePromptHash: code.hash,
+    spec: stepConfig.spec,
+    code: stepConfig.code,
+  };
+  return { type, schema, spec, code, versions };
 }
 
 type Rep = {

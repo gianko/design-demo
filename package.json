@@ -17,6 +17,8 @@
     "build-loop": "node build-loop/build-loop.ts",
     "generate": "tsx generator/bin/generate.ts",
     "keep": "tsx generator/bin/keep.ts",
+    "eval": "tsx evals/bin/eval.ts",
+    "eval:report": "tsx evals/bin/report.ts",
     "test": "vitest run",
     "test:gate": "vitest run --config gates/e2e.config.ts",
     "lint": "eslint .",

@@ -12,6 +12,7 @@ import type { GateName } from "./failure.ts";
 import type { Model } from "./model.ts";
 import type { RenderPass } from "./render-gates.ts";
 import { readScreenBrief } from "./screen-brief.ts";
+import { dollars, stamp } from "../format.ts";
 import { repo } from "../repo.ts";
 
 export type CliDeps = {
@@ -55,7 +56,7 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
   log(attemptTable(trace.attempts));
   const total = trace.attempts.reduce((sum, { cost }) => sum + cost, 0);
   log(
-    `cost: ${dollars(total)} over ${trace.attempts.length} attempt${trace.attempts.length === 1 ? "" : "s"}`
+    `cost: ${dollars(total, 4)} over ${trace.attempts.length} attempt${trace.attempts.length === 1 ? "" : "s"}`
   );
   log(`outcome: ${trace.outcome} · end reason ${trace.endReason}`);
   return trace.endReason === "passed" && criteria.met ? 0 : 1;
@@ -90,7 +91,7 @@ function attemptTable(attempts: Attempt[]) {
       String(attempt.usage.output),
       String(attempt.usage.cacheRead),
       String(attempt.usage.cacheWrite),
-      dollars(attempt.cost),
+      dollars(attempt.cost, 4),
       seconds(attempt.wallMs.model),
       seconds(attempt.wallMs.gates),
     ]),
@@ -106,10 +107,6 @@ function attemptTable(attempts: Attempt[]) {
         .trimEnd()
     )
     .join("\n");
-}
-
-function dollars(usd: number) {
-  return `$${usd.toFixed(4)}`;
 }
 
 function seconds(ms: number) {
@@ -135,13 +132,4 @@ function attemptLines(attempt: Attempt) {
     ...renders,
     ...attempt.failures.map((line) => `  ${line}`),
   ].join("\n");
-}
-
-// Local time, YYYYMMDD-HHMMSS.
-function stamp(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-` +
-    `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
-  );
 }

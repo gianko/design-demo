@@ -8,7 +8,7 @@ requires:
 
 # Payment status
 
-A contractor checks on one overdue invoice. Show it as a card: the amount, its status, the due date, the client and the invoice number, and a **Send reminder** action that asks the client to pay.
+A contractor checks on one overdue invoice. On one `Screen`, show it in a `Card`: the amount as an `Amount`, its status as a `StatusTag`, the due date, the client and the invoice number, and a **Send reminder** action that asks the client to pay.
 
 The invoice is the fixtures' `overdueInvoice`: bind its `amount`, `currency`, `status`, `dueLabel`, `client` and `number`, and keep "Due " before the due date as literal copy. The `send-reminder` action runs the `sendReminder` operation; it enters `reminder-sent` when the reminder goes out and `reminder-failed` when it doesn't.
 

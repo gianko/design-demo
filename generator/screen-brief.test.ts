@@ -1,16 +1,29 @@
 // @vitest-environment node
-// The payment-status screen brief (spec § The screen brief): its frontmatter
-// pass criteria and its screen-state table are the spec's, and each state's
-// fixture variant is one the fixtures module has.
+// The eval screen briefs (spec § Eval screen briefs): the P0 five carry the
+// spec's audience and pass criteria, and every file in evals/briefs/ parses
+// as a screen brief, names each id its pass criteria check verbatim, and
+// tables each screen state with a fixture variant the fixtures module has.
 
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { fixtureVariant } from "../src/fixtures/fixtures.ts";
 import { readScreenBrief } from "./screen-brief.ts";
 
-const brief = readScreenBrief(
-  join(import.meta.dirname, "../evals/briefs/payment-status.md")
+const briefsDir = join(import.meta.dirname, "../evals/briefs");
+const briefFiles = readdirSync(briefsDir).filter((file) =>
+  file.endsWith(".md")
 );
+
+function brief(file: string) {
+  return readScreenBrief(join(briefsDir, file));
+}
+
+// The brief without its frontmatter, where the pass criteria already list
+// every id.
+function body(text: string) {
+  return text.replace(/^---\n[\s\S]*?\n---\n/, "");
+}
 
 // The screen-state table's rows as { state, fixture, shows }, backticks off
 // the state id and the fixture cell reduced to its variant name.
@@ -32,22 +45,125 @@ function stateTable(text: string) {
     });
 }
 
-describe("the payment-status screen brief", () => {
-  it("carries the spec's audience and pass criteria", () => {
-    expect(brief).toMatchObject({
-      slug: "payment-status",
-      audience: "contractor",
-      requires: {
-        components: ["Screen", "Card", "StatusTag", "Amount", "Button"],
-        states: ["empty", "reminder-sent", "reminder-failed"],
-        actions: ["send-reminder"],
-      },
-    });
+// Spec § The P0 five, its pass-criteria table.
+const p0Five = [
+  {
+    slug: "payment-status",
+    audience: "contractor",
+    requires: {
+      components: ["Screen", "Card", "StatusTag", "Amount", "Button"],
+      states: ["empty", "reminder-sent", "reminder-failed"],
+      actions: ["send-reminder"],
+    },
+  },
+  {
+    slug: "payment-overview",
+    audience: "contractor",
+    requires: {
+      components: ["Screen", "Heading", "Card", "Amount", "StatusTag"],
+      states: ["empty"],
+      actions: [],
+    },
+  },
+  {
+    slug: "invoice-queue",
+    audience: "admin",
+    requires: {
+      components: [
+        "Screen",
+        "PageHeader",
+        "DataTable",
+        "StatusTag",
+        "Amount",
+        "Button",
+      ],
+      states: ["empty", "rows-selected", "payment-scheduled", "payment-failed"],
+      actions: ["approve-and-pay"],
+    },
+  },
+  {
+    slug: "invoice-review",
+    audience: "admin",
+    requires: {
+      components: [
+        "Screen",
+        "PageHeader",
+        "Card",
+        "Amount",
+        "StatusTag",
+        "Button",
+      ],
+      states: ["payment-scheduled", "payment-failed"],
+      actions: ["approve-and-pay"],
+    },
+  },
+  {
+    slug: "payment-run",
+    audience: "admin",
+    requires: {
+      components: ["Screen", "PageHeader", "Card", "Amount", "StatusTag"],
+      states: ["empty"],
+      actions: [],
+    },
+  },
+];
+
+describe("the P0 five", () => {
+  it.each(p0Five)(
+    "$slug carries the spec's audience and pass criteria",
+    (expected) => {
+      expect(brief(`${expected.slug}.md`)).toMatchObject(expected);
+    }
+  );
+});
+
+describe.each(briefFiles)("the screen brief %s", (file) => {
+  it("parses as a screen brief", () => {
+    expect(brief(file).slug).toBe(file.replace(/\.md$/, ""));
   });
 
-  it("tables the default and each required state, with its fixture variant", () => {
+  // Spec § Rules every brief follows: every id a `requires.*` key checks,
+  // components included. A component is named as a word ("Card", not only
+  // "Cards"), and the table's "Screen state" heading doesn't name Screen; a
+  // state or action id is backticked.
+  it("names every component, state and action id its pass criteria check, verbatim", () => {
+    const { requires, text } = brief(file);
+    const prose = body(text).replace(/^\| Screen state \|.*$/m, "");
     expect(
-      stateTable(brief.text).map(({ state, fixture }) => [state, fixture])
+      requires.components.filter(
+        (id) => !new RegExp(`(?<![\\w-])${id}(?![\\w-])`).test(prose)
+      )
+    ).toEqual([]);
+    expect(
+      [...requires.states, ...requires.actions].filter(
+        (id) => !prose.includes(`\`${id}\``)
+      )
+    ).toEqual([]);
+  });
+
+  it("tables the default and each required state", () => {
+    const { requires, text } = brief(file);
+    expect(stateTable(text).map(({ state }) => state)).toEqual([
+      "default",
+      ...requires.states,
+    ]);
+  });
+
+  it("names a fixture variant the fixtures module has for each state", () => {
+    for (const { state, fixture } of stateTable(brief(file).text)) {
+      expect(fixture, `${state}'s fixture variant`).toBeDefined();
+      expect(fixtureVariant(fixture!).name).toBe(fixture);
+    }
+  });
+});
+
+describe("the payment-status screen brief", () => {
+  it("tables each state's fixture variant", () => {
+    expect(
+      stateTable(brief("payment-status.md").text).map(({ state, fixture }) => [
+        state,
+        fixture,
+      ])
     ).toEqual([
       ["default", "default"],
       ["empty", "payment-status/empty"],
@@ -56,16 +172,13 @@ describe("the payment-status screen brief", () => {
     ]);
   });
 
-  it("names only fixture variants the fixtures module has", () => {
-    for (const { fixture } of stateTable(brief.text)) {
-      expect(fixtureVariant(fixture!).name).toBe(fixture);
-    }
-  });
-
   it("says what shows in each state as the spec does", () => {
     expect(
       Object.fromEntries(
-        stateTable(brief.text).map(({ state, shows }) => [state, shows])
+        stateTable(brief("payment-status.md").text).map(({ state, shows }) => [
+          state,
+          shows,
+        ])
       )
     ).toEqual({
       default: "the card, the Button enabled",
