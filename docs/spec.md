@@ -6,7 +6,7 @@ What gets built first, in what order, and how each piece is known to be done. Ev
 
 One screen brief goes end to end: the [design brief](design-brief.md) → tokens → eight library components, each built by a gated build-loop session → the generator turns `evals/briefs/payment-status.md` into a UI spec, then TSX, repairing itself against gates 1–4 and the five P0 taste rules → the passing screen is kept → tokens and the kept screen are pushed into Figma. CI gates every PR from the first component on.
 
-The slice is P0 minus the eval runner and the other four screen briefs (see [After the slice](#after-the-slice)).
+The slice is P0 minus the eval runner, the other four screen briefs and the three components they need. [P0 widening](#p0-widening) builds those.
 
 ## The screen brief
 
@@ -188,13 +188,84 @@ A natural first-attempt failure for the Loom is collected from whichever real ru
 
 Everything in the [map's Out of scope](https://github.com/gianko/design-demo/issues/1), plus, for the slice: Toast, DataTable (it joins [after the slice](#library-widening)) and every other component in demo brief §4 not listed above; gate 5; the signature transitions (P1, [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)); component frames in Figma (P2); example UI specs in prompts.
 
-## After the slice
+## P0 widening
 
-The widening, each already decided:
+The rest of P0, built on the finished slice: the eval runner and its report ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)), the other four screen briefs and their fixtures ([Eval screen briefs](#eval-screen-briefs)), PageHeader, Checkbox and DataTable ([Library widening](#library-widening)), and the GitHub Pages deploy ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)). Every decision behind these is already made; this section adds only the order and how each piece is known to be done.
 
-- `pnpm eval` and `pnpm eval:report`, and the other four P0 screen briefs ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)), as [Eval screen briefs](#eval-screen-briefs) sets them out. The payment-status brief joins unchanged.
-- Three more `build-loop` issues, after Card, each blocked by the one before: **PageHeader**, **Checkbox**, **DataTable** ([below](#library-widening)).
-- The GitHub Pages deploy of Storybook and the newest eval report ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
+### Widening build order
+
+Tracer bullets, cut in [P0 widening](https://github.com/gianko/design-demo/issues/161), with the same three labels as the [slice's build order](#build-order). The tickets hold the blocking edges.
+
+1. **Data:** Fixtures for the P0 five → The four new screen briefs.
+2. **Evals:** Eval runner → Eval report → Pages deploy.
+3. **Library:** PageHeader → Checkbox → DataTable, as `build-loop` issues the driver takes, each blocked by the one before.
+4. **Finish line** (`ready-for-human`): the first full eval run, blocked by all of the above.
+
+### Fixtures for the P0 five
+
+The fixtures module widened to the one shared dataset that [Fixtures](#fixtures) describes: each new brief's `<brief>/<state>` variants, and `payInvoices(invoiceIds)` beside `sendReminder`, settling the same way. payment-status's variants keep their names and the data its kept screen binds.
+
+**Done when:** the module typechecks; a Vitest test shows `payInvoices` succeeding and failing deterministically by variant; and `pnpm gate payment-status` passes with no baseline rewritten.
+
+### The four new screen briefs
+
+`payment-overview`, `invoice-queue`, `invoice-review` and `payment-run` in `evals/briefs/`, each as its row of [The P0 five](#the-p0-five) asks and following [Rules every brief follows](#rules-every-brief-follows), with its pass criteria in the frontmatter.
+
+**Done when:** a Vitest test over every file in `evals/briefs/`, payment-status included, shows that each one parses as a screen brief, that every id its `requires.*` keys list appears verbatim in its body, and that every fixture variant its screen-state table names exists.
+
+### Eval runner
+
+`pnpm eval`, exactly as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it, calling the slice's `generate()` in-process. CI only typechecks it and runs its unit tests against a stubbed `generate()` ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
+
+**Done when:** Vitest, with a stubbed `generate()` whose usage is priced the way real usage is, shows:
+
+- each rep ends as pass, fail, error or skipped as ADR 0008 defines them, with the pass criteria checked once, on the final UI spec;
+- first-attempt and final pass rates per screen brief, with errors and skips left out;
+- at the budget, no new rep starts and the in-flight ones finish, and `--budget none` never skips;
+- the estimate comes from the latest results file's median rep cost, and the runner asks to confirm only when the estimate is over budget;
+- a dirty tree is refused without `--allow-dirty` and recorded with it;
+- the results file holds the version tuple, `--briefs`, `--k` and the per-rep and per-attempt fields ADR 0008 lists, and each rep's scratch lands in its own `evals/runs/<run-id>/` folder.
+
+### Eval report
+
+`pnpm eval:report <a.json> [b.json]`, as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it.
+
+**Done when:** from hand-written results files, a Vitest test shows that one file gives a run report and two give a comparison, as a single HTML file styled by `tokens.css` that references nothing outside itself; that counts read `2/3 → 3/3` per screen brief and overall, beside mean attempts, cost, wall time and per-gate failure counts; that a comparison flags runs whose brief sets differ; and that screenshots are embedded when the run's scratch folder exists and left out when it doesn't.
+
+### Pages deploy
+
+The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. Turning Pages on, with GitHub Actions as its source, is the human's job.
+
+**Done when:** a push to main publishes Storybook at the Pages URL; `/evals/` serves the newest results file's report once one is committed, and Storybook still deploys while there isn't one; and a red gate job publishes nothing.
+
+### PageHeader, Checkbox and DataTable
+
+Each is done as a [component piece](#component-pieces) is. What P0 needs from each is in [Library widening](#library-widening), plus the following from the ADRs:
+
+- **PageHeader**'s `actions` slot allow-list is Button alone, until IconButton exists ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
+- **DataTable** takes its rows through a bound prop, and each column's `cell` slot holds one template node whose `row.*` bindings render once per row ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
+- **DataTable** owns selection. Selecting rows enters `rows-selected` through `useScreenState`'s `enter`, and an action's success clears the selection ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)).
+- **DataTable**'s money cells end-align (`tabular-numerals`). Its `detail` slot and the Sheet wait for P1.
+
+### The first full eval run
+
+The human runs `pnpm eval` with the API key: all five briefs, K = 3, on a clean tree, raising `--budget` if the estimate asks for it. They commit the results file. A brief that passes 0 of 3 points at a gap in the library or in gate 1; the gap gets an issue and a fix, then the run is repeated.
+
+### P0 done
+
+P0 is done when all of these hold:
+
+1. CI is green on main with all eleven components and the kept payment-status screen, every story baselined in light/dark × admin/contractor.
+2. The five screen briefs are in `evals/briefs/` and pass the test in [The four new screen briefs](#the-four-new-screen-briefs).
+3. The full eval run's results file is committed. No rep in it ended in error or was skipped, and every brief, invoice-queue included, passed at least 1 of 3.
+4. The Pages site serves Storybook, and `/evals/` serves that run's report.
+
+payment-status stays the only kept screen. The new briefs are judged by evals alone, not by gate 6 or a Figma capture.
+
+## After P0
+
+Each already decided, and none part of P0:
+
 - The shared Phosphor icon map, with the first component that needs an icon, probably IconButton.
 - A Date component, once a screen brief needs relative dates or sorting by date.
 - The remaining eleven taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)).
