@@ -5,6 +5,8 @@
 // report (`pnpm eval:report`) reads these files, and the runner reads the
 // latest one for its estimate.
 
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { StepConfig } from "../generator/config.ts";
 import type { Attempt, EndReason } from "../generator/generate.ts";
 import type { CriteriaResult } from "../generator/pass-criteria.ts";
@@ -85,6 +87,35 @@ export type ResultsFile = {
   perBrief: Record<string, Tally>;
   reps: RepResult[];
 };
+
+// The results file in `dir` that started last, or null if there's none: the
+// one the runner's estimate reads, and the one the Pages deploy reports on.
+export function latestResults(
+  dir: string
+): { path: string; file: ResultsFile } | null {
+  if (!existsSync(dir)) return null;
+  const files = readdirSync(dir)
+    .filter((name) => name.endsWith(".json"))
+    .map((name) => {
+      const path = join(dir, name);
+      return {
+        path,
+        file: JSON.parse(readFileSync(path, "utf8")) as Partial<ResultsFile>,
+      };
+    })
+    .filter(
+      (each): each is { path: string; file: ResultsFile } =>
+        typeof each.file.startedAt === "string" && Array.isArray(each.file.reps)
+    );
+  files.sort((a, b) =>
+    a.file.startedAt < b.file.startedAt
+      ? 1
+      : a.file.startedAt > b.file.startedAt
+        ? -1
+        : 0
+  );
+  return files[0] ?? null;
+}
 
 // Counts, pass rates, cost and wall time over some reps.
 export function tally(reps: RepResult[]): Tally {
