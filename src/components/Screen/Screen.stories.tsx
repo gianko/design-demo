@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
 import { Text } from "../Text/Text.tsx";
 import { Screen } from "./Screen.tsx";
 import {
@@ -13,9 +14,18 @@ import {
 // density whatever the toolbar's density global is: the root's scope wins over
 // the one around it. The content is plain token-classed elements until Heading
 // and Text exist.
-const meta = { title: "Components/Screen", component: Screen } satisfies Meta<
-  typeof Screen
->;
+const meta = {
+  title: "Components/Screen",
+  component: Screen,
+  // A style expectation (ADR 0012): the root is at least the viewport's
+  // height, so the page colour fills the window below a short screen.
+  play: async ({ canvasElement }) => {
+    const root = canvasElement.querySelector('[data-component="Screen"]')!;
+    await expect(getComputedStyle(root).minHeight).toBe(
+      `${window.innerHeight}px`
+    );
+  },
+} satisfies Meta<typeof Screen>;
 
 export default meta;
 

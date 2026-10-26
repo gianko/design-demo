@@ -185,6 +185,37 @@ describe("in CI", () => {
     }
   });
 
+  // Style expectations (ADR 0012). Each fixture's `play` settles only after
+  // an async wait.
+  it("fails a failing style expectation as gate 8 alone, naming the story, theme and density", () => {
+    for (const render of rendersOf("gatefixtures-styleexpectation--fails")) {
+      expectFailed(
+        run,
+        render,
+        /gate 8: style expectations[\s\S]*expected '\d+px' to be '13px'/
+      );
+      // Not script-error, and not a story that failed to render: the other
+      // gates ran, and passed.
+      expect(run.outcome(render)?.errors).toHaveLength(1);
+    }
+  });
+
+  it("waits for a style expectation that passes after an async wait", () => {
+    for (const render of rendersOf(
+      "gatefixtures-styleexpectation--passes-after-wait"
+    )) {
+      expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+    }
+  });
+
+  it("renders a story tagged phone 360px wide, with baselines named like any other's", () => {
+    // Its `play` expects a 360px-wide viewport.
+    for (const render of rendersOf("gatefixtures-styleexpectation--phone")) {
+      expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+      expect(existsSync(baseline(render))).toBe(true);
+    }
+  });
+
   it("shoots an idle animation midway without freezing the control's transitions", () => {
     const instant = rendersOf("gatefixtures-idleanimation--instant");
     rendersOf("gatefixtures-idleanimation--eased").forEach((eased, i) => {

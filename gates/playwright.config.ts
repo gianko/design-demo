@@ -36,5 +36,10 @@ export default defineConfig({
     browserName: "chromium",
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 1,
+    // A tile repainted after its first raster is otherwise rastered only
+    // where it changed, and antialiased edges there (a Card's rounded
+    // corners) blend one level off a full raster's. Which one a shot gets
+    // depends on timing, so gate 6 flaked under load.
+    launchOptions: { args: ["--disable-partial-raster"] },
   },
 });

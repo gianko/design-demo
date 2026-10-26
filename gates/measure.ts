@@ -10,6 +10,7 @@
 
 import { chromium } from "@playwright/test";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import {
@@ -18,9 +19,11 @@ import {
   type Density,
   type Theme,
 } from "../.storybook/globals.ts";
+import { phone, selectStories } from "./stories.ts";
 import {
   openStory,
   pauseAnimationsAtQuarter,
+  phoneViewport,
   root,
   serveStorybook,
 } from "./storybook-page.ts";
@@ -63,14 +66,22 @@ if (!values["no-build"]) {
   if (status !== 0) process.exit(status ?? 1);
 }
 
+// A story tagged `phone` renders at the gate's phone width.
+const storybookStatic = resolve(repo, "storybook-static");
+const story = selectStories(
+  JSON.parse(readFileSync(resolve(storybookStatic, "index.json"), "utf8"))
+).find((candidate) => candidate.id === id);
+if (!story) fail(`No story has the id "${id}".`);
+
 const browser = await chromium.launch();
 try {
   const context = await browser.newContext({
     reducedMotion: values["reduced-motion"] ? "reduce" : "no-preference",
+    ...(story.tags.includes(phone) && { viewport: phoneViewport }),
   });
-  await serveStorybook(context, resolve(repo, "storybook-static"));
+  await serveStorybook(context, storybookStatic);
   const page = await context.newPage();
-  await openStory(page, { id: id!, theme, density });
+  await openStory(page, { id: story.id, theme, density });
   if (values["mid-animation"]) await pauseAnimationsAtQuarter(page);
   console.log(await measure(page));
 } finally {

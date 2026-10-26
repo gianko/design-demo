@@ -1,7 +1,8 @@
 // The Playwright pass of `pnpm gate`. It renders every selected story in each
 // theme × density from the built Storybook and holds it to gate 4 (axe), gate
-// 6 (zero-pixel baselines) and gate 7 (render-time taste rules), then takes
-// the shots the critique and the contact sheet read (ADR 0006, ADR 0009).
+// 6 (zero-pixel baselines), gate 7 (render-time taste rules) and gate 8 (the
+// story's own style expectations), then takes the shots the critique and the
+// contact sheet read (ADR 0006, ADR 0009, ADR 0012).
 // The generator's render pass runs it too, on one generated screen's own
 // build, at its audience's density and with no baselines (ADR 0008): see
 // generator/render.config.ts.
@@ -12,8 +13,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { renderRules } from "./render-rules.ts";
 import {
+  logsPlayError,
   openStory,
   pauseAnimationsAtQuarter,
+  phoneViewport,
   playAnimations,
   root,
   serveStorybook,
@@ -21,6 +24,7 @@ import {
 import {
   animatesWhileIdle,
   annotation,
+  phone,
   renderTitle,
   renders,
   selectStories,
@@ -68,18 +72,27 @@ for (const story of stories) {
         },
         async ({ page }, testInfo) => {
           // script-error (lint/taste/RULES.md): a render throws nothing and
-          // logs no console error, from load to the last shot.
-          const scriptErrors: string[] = [];
+          // logs no console error, from load to the last shot. Storybook logs
+          // what a failing `play` threw, which is gate 8's to report.
+          const pageErrors: string[] = [];
+          const consoleErrors: string[] = [];
           page.on("pageerror", (error) =>
-            scriptErrors.push(`pageerror: ${error.message}`)
+            pageErrors.push(`pageerror: ${error.message}`)
           );
           page.on("console", (message) => {
-            if (message.type() === "error") {
-              scriptErrors.push(`console error: ${message.text()}`);
-            }
+            if (message.type() === "error") consoleErrors.push(message.text());
           });
+          const scriptErrors = () => [
+            ...pageErrors,
+            ...consoleErrors
+              .filter((text) => !logsPlayError(text, playError))
+              .map((text) => `console error: ${text}`),
+          ];
 
-          await openStory(page, render);
+          if (render.tags.includes(phone)) {
+            await page.setViewportSize(phoneViewport);
+          }
+          const { playError } = await openStory(page, render);
 
           // Gate 4. A story is a fragment, not a page, so axe's rule that
           // all content sits in a landmark doesn't apply.
@@ -115,6 +128,15 @@ for (const story of stories) {
               .toEqual([]);
           }
 
+          // Gate 8: the story's `play` function, which the generator never
+          // writes (ADR 0012), so the render pass's checks leave it out.
+          expect
+            .soft(
+              playError ? [`${playError.name}: ${playError.message}`] : [],
+              "gate 8: style expectations"
+            )
+            .toEqual([]);
+
           // What the generator's render pass reads back.
           await testInfo.attach(annotation.checks, {
             body: JSON.stringify({
@@ -133,7 +155,7 @@ for (const story of stories) {
 
           if (renderOnly) {
             await shoot(page, "rest");
-            expect.soft(scriptErrors, "script-error").toEqual([]);
+            expect.soft(scriptErrors(), "script-error").toEqual([]);
             return;
           }
 
@@ -149,7 +171,7 @@ for (const story of stories) {
           }
           await shootStates(page);
 
-          expect.soft(scriptErrors, "script-error").toEqual([]);
+          expect.soft(scriptErrors(), "script-error").toEqual([]);
         }
       );
     }

@@ -20,6 +20,11 @@ type IndexEntry = { type: string; id: string; title: string; tags?: string[] };
 // reduced-motion shot, each held to a baseline of its own.
 export const animatesWhileIdle = "animates-while-idle";
 
+// A story tagged this way renders on a phone-width viewport, 360×800, in
+// place of 1280×800 (ADR 0012). Its id differs from the wide story's, so its
+// baselines are named like any other's.
+export const phone = "phone";
+
 // Each target of `pnpm gate <Component|screen>...` names a story title's last
 // segment, so "Button" picks "Button" and "Library/Button" but not
 // "ButtonGroup". With no target, every story is gated. A target that matches
