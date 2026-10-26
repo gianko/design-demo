@@ -68,6 +68,10 @@ _Avoid_: Mock data, seed data, sample data
 A named condition of one generated screen (empty, loading, error, rows selected) that the UI spec declares and each eval run renders; distinct from an invoice's status, which comes from the data.
 _Avoid_: View, mode, variant
 
+**Selection**:
+The rows of a screen's table that the user has ticked, which an action such as approve and pay acts on. A confirmed action clears it, and a failed one keeps it.
+_Avoid_: Checked rows, picked items
+
 **Signature transition**:
 One of the design brief's two named transitions, the pay confirmation (bar → stagger → toast) and row → sheet. A generated screen shows one by including the components and screen states that carry it, never by describing the motion.
 _Avoid_: Animation, effect, hero motion
