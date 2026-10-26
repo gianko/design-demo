@@ -46,8 +46,8 @@ type ScreenStateContext = {
   operations: Operations;
   // The ids of the ticked rows, in the order they were ticked.
   selected: readonly string[];
-  // Sets the selection, entering `state` in the same update when given.
-  select: (ids: readonly string[], state?: string) => void;
+  // Sets the selection, entering `name` in the same update when given.
+  select: (ids: readonly string[], name?: string) => void;
 };
 
 const HostContext = createContext<ScreenStateContext | null>(null);
@@ -74,7 +74,7 @@ export type ScreenHostProps = {
 // holds the screen state, the fixture variant and the selection.
 export function ScreenHost({
   screenState,
-  selected: seeded,
+  selected: startSelected,
   children,
 }: ScreenHostProps) {
   const initial = screenState?.name ?? defaultState;
@@ -84,7 +84,7 @@ export function ScreenHost({
   const [{ state, entries, selected }, setEntered] = useState(() => ({
     state: initial,
     entries: 0,
-    selected: seeded ?? fixture.selected,
+    selected: startSelected ?? fixture.selected,
   }));
   const enter = useCallback(
     (name: string, type?: TransitionType, alongside?: () => void) => {
@@ -109,9 +109,10 @@ export function ScreenHost({
   );
   const select = useCallback(
     (ids: readonly string[], name?: string) => {
-      const hold = () => setEntered((last) => ({ ...last, selected: ids }));
-      if (name === undefined) hold();
-      else enter(name, undefined, hold);
+      const setSelected = () =>
+        setEntered((last) => ({ ...last, selected: ids }));
+      if (name === undefined) setSelected();
+      else enter(name, undefined, setSelected);
     },
     [enter]
   );
@@ -126,7 +127,7 @@ function useHost(hook: string) {
   const host = useContext(HostContext);
   if (!host) {
     throw new Error(
-      `${hook} needs a ScreenHost around the screen, which holds its screen state and fixture variant.`
+      `${hook} needs a ScreenHost around the screen, which holds its screen state, fixture variant and selection.`
     );
   }
   return host;
@@ -152,10 +153,10 @@ export function useSelectedRows(): string[] {
   return useMemo(() => [...selected], [selected]);
 }
 
-// DataTable's read and write of the selection: `select(ids, state)` changes
-// it, entering `state` in the same update when given.
+// DataTable's read and write of the selection: `select(ids, name)` changes
+// it, entering `name` in the same update when given.
 export function useSelection() {
-  const { selected, select } = useHost("DataTable");
+  const { selected, select } = useHost("useSelection");
   return { selected, select };
 }
 

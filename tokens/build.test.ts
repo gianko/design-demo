@@ -107,9 +107,6 @@ describe("the naming chain", () => {
     );
   });
 
-  // A capture binds a property only through a plain var(--ds-*); behind
-  // Tailwind's --tw-leading or --tw-tracking it binds by value and can land
-  // on another role (#104).
   // The brief's table header style, one fixed role at both densities (#185).
   it("gives column headers a 12px, weight 600 role outside the density modes", () => {
     const root = blockOf(built.css, ":root");
@@ -125,6 +122,9 @@ describe("the naming chain", () => {
     );
   });
 
+  // A capture binds a property only through a plain var(--ds-*); behind
+  // Tailwind's --tw-leading or --tw-tracking it binds by value and can land
+  // on another role (#104).
   it.each([
     "type.caption",
     "type.column-header",

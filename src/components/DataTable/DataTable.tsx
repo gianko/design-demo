@@ -74,12 +74,12 @@ export function DataTable<R extends Row>({
   cell,
 }: DataTableProps<R>) {
   const { state } = useScreenState();
-  const held = useSelection();
-  const selected: ReadonlySet<string> = new Set(held.selected);
+  const selection = useSelection();
+  const selected: ReadonlySet<string> = new Set(selection.selected);
 
   const select = (next: ReadonlySet<string>) => {
-    const into = next.size > 0 ? rowsSelected : defaultState;
-    held.select([...next], state === into ? undefined : into);
+    const target = next.size > 0 ? rowsSelected : defaultState;
+    selection.select([...next], state === target ? undefined : target);
   };
   const toggle = (id: string, on: boolean) => {
     const next = new Set(selected);

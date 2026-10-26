@@ -53,8 +53,12 @@ The typed JSON description of a screen, produced from a screen brief before any 
 _Avoid_: Spec (unqualified), schema, layout JSON
 
 **Registry**:
-The machine-readable list of library components, their props, slots and usage, that a UI spec is validated against; each component's props are defined by its registry entry, and a UI spec may give any of them except the code-only ones.
+The machine-readable list of library components, their props, slots and usage, that a UI spec is validated against; each component's props are defined by its registry entry, and a UI spec may give any of them except the code-only ones, and name any component but an internal entry.
 _Avoid_: Catalog, manifest
+
+**Internal entry**:
+A registry entry for a component only another component renders, e.g. Checkbox, which DataTable renders; the spec step never sees it and gate 1 rejects a UI spec node naming it, while the code step sees it marked internal.
+_Avoid_: Private component, hidden component
 
 **Code-only prop**:
 A registry prop that a UI spec never gives and the code step sets, e.g. Button's `pending`, which the code step takes from the running action.
