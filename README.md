@@ -2,7 +2,7 @@
 
 An AI-built design system, and the guardrails that keep AI-generated screens on it.
 
-I'm not a designer. I've spent 15 years making designers' work ship at award level. This repo encodes that craft as a system: a one-page design brief I wrote, a component library Claude Code built against it, and the gates and evals that keep AI output production-ready.
+I've spent 15 years making designers' work ship at award level. This repo encodes that craft as a system: a one-page design brief I wrote, a component library Claude Code built against it, and the gates and evals that keep AI output production-ready.
 
 **[Storybook](https://gianko.github.io/design-demo/)** · **[Eval report](https://gianko.github.io/design-demo/evals/)** · **[Figma file](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo)** · **[Design brief](docs/design-brief.md)**
 
@@ -57,7 +57,7 @@ The taste rules are a triage of [impeccable](https://github.com/pbakaus/impeccab
 
 - **Human:** the design brief, the architecture and every decision in [`docs/adr/`](docs/adr/), the screen briefs, and the triage of each component's gaps (accepted gaps are recorded in [`.out-of-scope/`](.out-of-scope/)).
 - **AI:** the components, their stories and baselines, every generated screen, and most of the code, written by Claude Code against the brief and the ADRs.
-- **Not a designer's:** the visual decisions came from the brief and an AI build session, not a designer's eye. A designer should review them before anything here ships.
+- **Open for review:** the visual decisions follow from the brief through AI build sessions. They're the first thing a designer on the team should review before anything here ships.
 
 ## Decisions
 
