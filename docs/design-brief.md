@@ -39,7 +39,7 @@ One quiet family; hierarchy comes from size and weight, not from a second face.
 - **Instrument Sans** for everything, titles and amounts included, weights 400 and 600 only. _Why: neutral and precise, so colour, copy and motion carry the warmth; two weights keep hierarchy honest._
 - Titles (24px and up) and a single large figure use 600 with slightly tightened tracking (about −0.015em, −0.02em for the figure). There is no display face.
 - Scale on a 14px base, ratio about 1.2: 12, 14, 16, 20, 24, 32. Nothing off the scale.
-- Sentence case everywhere. No ALL-CAPS labels or table headers; headers are 12px, 600, `ink-muted`.
+- Sentence case everywhere. No ALL-CAPS labels or table headers; headers are the body size, 600, `ink-muted`, so weight and colour set them apart, not size.
 - **Amounts** always use tabular figures, show cents, and right-align in tables. In tables: `4,800.00 USD`. On a single-currency card: `$4,800.00`. _Why: multi-currency lists must be impossible to misread, and digits must line up._
 
 ## Colour

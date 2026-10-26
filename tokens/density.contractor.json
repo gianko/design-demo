@@ -62,6 +62,16 @@
           "letterSpacing": { "value": 0, "unit": "px" },
           "lineHeight": 1.5
         }
+      },
+      "column-header": {
+        "$description": "A table's column headers, in ink-muted: the body size, so only weight and colour set them apart.",
+        "$value": {
+          "fontFamily": "{type.family.sans}",
+          "fontSize": { "value": 16, "unit": "px" },
+          "fontWeight": "{type.weight.semibold}",
+          "letterSpacing": { "value": 0, "unit": "px" },
+          "lineHeight": 1.5
+        }
       }
     }
   }

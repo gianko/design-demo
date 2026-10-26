@@ -27,17 +27,6 @@
         "lineHeight": 1.3333
       }
     },
-    "column-header": {
-      "$type": "typography",
-      "$description": "A table's column headers, in ink-muted.",
-      "$value": {
-        "fontFamily": "{type.family.sans}",
-        "fontSize": { "value": 12, "unit": "px" },
-        "fontWeight": "{type.weight.semibold}",
-        "letterSpacing": { "value": 0, "unit": "px" },
-        "lineHeight": 1.3333
-      }
-    },
     "heading": {
       "$type": "typography",
       "$value": {
