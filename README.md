@@ -96,7 +96,7 @@ pnpm install
 pnpm storybook                         # the library
 pnpm gate                              # every gate over every story and kept screen
 pnpm test                              # unit tests
-ANTHROPIC_API_KEY=… pnpm eval          # the eval suite; prints a cost estimate first
+pnpm eval                              # the eval suite; reads ANTHROPIC_API_KEY from .env, prints a cost estimate first
 pnpm eval:report --latest              # the HTML report for the newest run
 ```
 
