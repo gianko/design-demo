@@ -7,6 +7,10 @@ export {
   Checkbox,
   type CheckboxProps,
 } from "./components/Checkbox/Checkbox.tsx";
+export {
+  DataTable,
+  type DataTableProps,
+} from "./components/DataTable/DataTable.tsx";
 export { Heading, type HeadingProps } from "./components/Heading/Heading.tsx";
 export {
   PageHeader,
