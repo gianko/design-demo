@@ -8,7 +8,7 @@ requires:
 
 # Payment run
 
-An admin checks what the next payment run holds. Put the run's date in the PageHeader, then show three Cards: **Due in this run**, **Overdue** and **Awaiting approval**, each with its total as a `display: card` Amount, its StatusTag and how many invoices it holds. The screen is read-only, with no actions.
+An admin checks what the next payment run holds. On one `Screen`, put the run's date in the PageHeader, then show three Cards: **Due in this run**, **Overdue** and **Awaiting approval**, each with its total as a `display: card` Amount, its StatusTag and how many invoices it holds. The screen is read-only, with no actions.
 
 The run is the fixtures' `paymentRun`, and its date is `paymentRun.dateLabel`. Each Card binds one of its groups: `dueInRun`, `overdue` and `awaitingApproval`. Bind each group's `amount`, `currency`, `status` and `countLabel`.
 

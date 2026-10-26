@@ -8,7 +8,7 @@ requires:
 
 # Invoice review
 
-An admin reviews one invoice before paying it. Under a PageHeader titled "Review invoice", show it as a card: the amount, its status, the contractor, the invoice number, the due date and the line count, and an **Approve and pay** action that schedules it into the next payment run. It is the only action.
+An admin reviews one invoice before paying it. On one `Screen`, under a PageHeader titled "Review invoice", show it in a `Card`: the amount as an `Amount`, its status as a `StatusTag`, the contractor, the invoice number, the due date and the line count, and an **Approve and pay** action that schedules it into the next payment run. It is the only action.
 
 The invoice is the fixtures' `reviewInvoice`: bind its `amount`, `currency`, `status`, `contractor`, `number`, `dueLabel` and `lineCountLabel`, and keep "Due " before the due date as literal copy. The `approve-and-pay` action runs the `payInvoices` operation on this one invoice's `id`; it enters `payment-scheduled` when the payment is scheduled and `payment-failed` when it isn't.
 
