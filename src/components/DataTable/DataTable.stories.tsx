@@ -33,17 +33,18 @@ function InvoiceQueue() {
 }
 
 // Style expectations (ADR 0012) every story holds: rows are the density's
-// row height, headers are 12px at weight 600 (#185), and the money column's
-// header ends where its amounts do.
+// row height, headers are the body size at weight 600 (#185), and the money
+// column's header ends where its amounts do.
 async function holdsRowsAndHeaders(canvas: HTMLElement, density: string) {
   const root = canvas.querySelector('[data-component="DataTable"]')!;
   const height = density === "contractor" ? 60 : 46;
+  const size = density === "contractor" ? "16px" : "14px";
   for (const row of root.querySelectorAll("tr")) {
     await expect(row.getBoundingClientRect().height).toBe(height);
   }
   const headers = [...root.querySelectorAll<HTMLElement>("th")].slice(1);
   for (const header of headers) {
-    await expect(getComputedStyle(header).fontSize).toBe("12px");
+    await expect(getComputedStyle(header).fontSize).toBe(size);
     await expect(getComputedStyle(header).fontWeight).toBe("600");
   }
   const amount = headers.find((header) => header.textContent === "Amount")!;

@@ -29,10 +29,6 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-type-caption-line-height: 16px;
   --ds-type-caption-letter-spacing: 0px;
   --ds-type-caption-font-weight: var(--ds-type-weight-regular);
-  --ds-type-column-header-font-size: 12px;
-  --ds-type-column-header-line-height: 16px;
-  --ds-type-column-header-letter-spacing: 0px;
-  --ds-type-column-header-font-weight: var(--ds-type-weight-semibold);
   --ds-type-heading-font-size: 20px;
   --ds-type-heading-line-height: 28px;
   --ds-type-heading-letter-spacing: 0px;
@@ -156,6 +152,10 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-density-text-label-line-height: 20px;
   --ds-density-text-label-letter-spacing: 0px;
   --ds-density-text-label-font-weight: var(--ds-type-weight-semibold);
+  --ds-density-text-column-header-font-size: 14px;
+  --ds-density-text-column-header-line-height: 20px;
+  --ds-density-text-column-header-letter-spacing: 0px;
+  --ds-density-text-column-header-font-weight: var(--ds-type-weight-semibold);
 }
 
 [data-density="contractor"] {
@@ -176,6 +176,10 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-density-text-label-line-height: 24px;
   --ds-density-text-label-letter-spacing: 0px;
   --ds-density-text-label-font-weight: var(--ds-type-weight-semibold);
+  --ds-density-text-column-header-font-size: 16px;
+  --ds-density-text-column-header-line-height: 24px;
+  --ds-density-text-column-header-letter-spacing: 0px;
+  --ds-density-text-column-header-font-weight: var(--ds-type-weight-semibold);
 }
 
 /* The closed theme: Tailwind's defaults are gone, and only these classes compile
@@ -267,17 +271,17 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   letter-spacing: var(--ds-density-text-label-letter-spacing);
   font-weight: var(--tw-font-weight, var(--ds-density-text-label-font-weight));
 }
+@utility text-column-header {
+  font-size: var(--ds-density-text-column-header-font-size);
+  line-height: var(--ds-density-text-column-header-line-height);
+  letter-spacing: var(--ds-density-text-column-header-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-density-text-column-header-font-weight));
+}
 @utility text-caption {
   font-size: var(--ds-type-caption-font-size);
   line-height: var(--ds-type-caption-line-height);
   letter-spacing: var(--ds-type-caption-letter-spacing);
   font-weight: var(--tw-font-weight, var(--ds-type-caption-font-weight));
-}
-@utility text-column-header {
-  font-size: var(--ds-type-column-header-font-size);
-  line-height: var(--ds-type-column-header-line-height);
-  letter-spacing: var(--ds-type-column-header-letter-spacing);
-  font-weight: var(--tw-font-weight, var(--ds-type-column-header-font-weight));
 }
 @utility text-heading {
   font-size: var(--ds-type-heading-font-size);
@@ -413,7 +417,7 @@ export type Size = (typeof size)[number];
 export const radius = ["surface", "control", "tag", "avatar"] as const;
 export type Radius = (typeof radius)[number];
 
-export const text = ["body", "label", "caption", "column-header", "heading", "title", "figure"] as const;
+export const text = ["body", "label", "column-header", "caption", "heading", "title", "figure"] as const;
 export type Text = (typeof text)[number];
 
 export const spacing = ["0", "3xs", "2xs", "xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl"] as const;
@@ -2035,6 +2039,42 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "Admin": 0,
             "Contractor": 0
           }
+        },
+        {
+          "name": "density/text/column-header/font-size",
+          "type": "FLOAT",
+          "scopes": [
+            "FONT_SIZE"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 14,
+            "Contractor": 16
+          }
+        },
+        {
+          "name": "density/text/column-header/line-height",
+          "type": "FLOAT",
+          "scopes": [
+            "LINE_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 20,
+            "Contractor": 24
+          }
+        },
+        {
+          "name": "density/text/column-header/letter-spacing",
+          "type": "FLOAT",
+          "scopes": [
+            "LETTER_SPACING"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 0,
+            "Contractor": 0
+          }
         }
       ]
     },
@@ -2326,39 +2366,6 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           }
         },
         {
-          "name": "type/column-header/font-size",
-          "type": "FLOAT",
-          "scopes": [
-            "FONT_SIZE"
-          ],
-          "css": true,
-          "valuesByMode": {
-            "Value": 12
-          }
-        },
-        {
-          "name": "type/column-header/line-height",
-          "type": "FLOAT",
-          "scopes": [
-            "LINE_HEIGHT"
-          ],
-          "css": true,
-          "valuesByMode": {
-            "Value": 16
-          }
-        },
-        {
-          "name": "type/column-header/letter-spacing",
-          "type": "FLOAT",
-          "scopes": [
-            "LETTER_SPACING"
-          ],
-          "css": true,
-          "valuesByMode": {
-            "Value": 0
-          }
-        },
-        {
           "name": "type/heading/font-size",
           "type": "FLOAT",
           "scopes": [
@@ -2619,6 +2626,16 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
       }
     },
     {
+      "name": "column-header",
+      "bind": {
+        "fontFamily": "type/family/sans",
+        "fontWeight": "type/weight/semibold",
+        "fontSize": "density/text/column-header/font-size",
+        "lineHeight": "density/text/column-header/line-height",
+        "letterSpacing": "density/text/column-header/letter-spacing"
+      }
+    },
+    {
       "name": "caption",
       "bind": {
         "fontFamily": "type/family/sans",
@@ -2626,16 +2643,6 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
         "fontSize": "type/caption/font-size",
         "lineHeight": "type/caption/line-height",
         "letterSpacing": "type/caption/letter-spacing"
-      }
-    },
-    {
-      "name": "column-header",
-      "bind": {
-        "fontFamily": "type/family/sans",
-        "fontWeight": "type/weight/semibold",
-        "fontSize": "type/column-header/font-size",
-        "lineHeight": "type/column-header/line-height",
-        "letterSpacing": "type/column-header/letter-spacing"
       }
     },
     {

@@ -107,18 +107,21 @@ describe("the naming chain", () => {
     );
   });
 
-  // The brief's table header style, one fixed role at both densities (#185).
-  it("gives column headers a 12px, weight 600 role outside the density modes", () => {
-    const root = blockOf(built.css, ":root");
+  // The brief's table header style: the body size at weight 600 (#185).
+  it("gives column headers the body's size at weight 600 in each density mode", () => {
+    const admin = blockOf(built.css, '[data-density="admin"]');
+    const contractor = blockOf(built.css, '[data-density="contractor"]');
 
-    expect(root).toContain("--ds-type-column-header-font-size: 12px;");
-    expect(root).toContain("--ds-type-column-header-line-height: 16px;");
-    expect(root).toContain(
-      "--ds-type-column-header-font-weight: var(--ds-type-weight-semibold);"
+    expect(admin).toContain("--ds-density-text-column-header-font-size: 14px;");
+    expect(contractor).toContain(
+      "--ds-density-text-column-header-font-size: 16px;"
     );
-    expect(built.css).not.toMatch(/--ds-density-text-column-header/);
+    expect(contractor).toContain(
+      "--ds-density-text-column-header-font-weight: var(--ds-type-weight-semibold);"
+    );
+    expect(built.css).not.toMatch(/--ds-type-column-header/);
     expect(utilities("text-column-header")).toContain(
-      "font-size: var(--ds-type-column-header-font-size);"
+      "font-size: var(--ds-density-text-column-header-font-size);"
     );
   });
 
@@ -127,8 +130,8 @@ describe("the naming chain", () => {
   // on another role (#104).
   it.each([
     "type.caption",
-    "type.column-header",
     "density.text.label",
+    "density.text.column-header",
     "density.text.body",
     "type.heading",
     "type.title",

@@ -26,10 +26,6 @@
   --ds-type-caption-line-height: 16px;
   --ds-type-caption-letter-spacing: 0px;
   --ds-type-caption-font-weight: var(--ds-type-weight-regular);
-  --ds-type-column-header-font-size: 12px;
-  --ds-type-column-header-line-height: 16px;
-  --ds-type-column-header-letter-spacing: 0px;
-  --ds-type-column-header-font-weight: var(--ds-type-weight-semibold);
   --ds-type-heading-font-size: 20px;
   --ds-type-heading-line-height: 28px;
   --ds-type-heading-letter-spacing: 0px;
@@ -153,6 +149,10 @@
   --ds-density-text-label-line-height: 20px;
   --ds-density-text-label-letter-spacing: 0px;
   --ds-density-text-label-font-weight: var(--ds-type-weight-semibold);
+  --ds-density-text-column-header-font-size: 14px;
+  --ds-density-text-column-header-line-height: 20px;
+  --ds-density-text-column-header-letter-spacing: 0px;
+  --ds-density-text-column-header-font-weight: var(--ds-type-weight-semibold);
 }
 
 [data-density="contractor"] {
@@ -173,6 +173,10 @@
   --ds-density-text-label-line-height: 24px;
   --ds-density-text-label-letter-spacing: 0px;
   --ds-density-text-label-font-weight: var(--ds-type-weight-semibold);
+  --ds-density-text-column-header-font-size: 16px;
+  --ds-density-text-column-header-line-height: 24px;
+  --ds-density-text-column-header-letter-spacing: 0px;
+  --ds-density-text-column-header-font-weight: var(--ds-type-weight-semibold);
 }
 
 /* The closed theme: Tailwind's defaults are gone, and only these classes compile
@@ -264,17 +268,17 @@
   letter-spacing: var(--ds-density-text-label-letter-spacing);
   font-weight: var(--tw-font-weight, var(--ds-density-text-label-font-weight));
 }
+@utility text-column-header {
+  font-size: var(--ds-density-text-column-header-font-size);
+  line-height: var(--ds-density-text-column-header-line-height);
+  letter-spacing: var(--ds-density-text-column-header-letter-spacing);
+  font-weight: var(--tw-font-weight, var(--ds-density-text-column-header-font-weight));
+}
 @utility text-caption {
   font-size: var(--ds-type-caption-font-size);
   line-height: var(--ds-type-caption-line-height);
   letter-spacing: var(--ds-type-caption-letter-spacing);
   font-weight: var(--tw-font-weight, var(--ds-type-caption-font-weight));
-}
-@utility text-column-header {
-  font-size: var(--ds-type-column-header-font-size);
-  line-height: var(--ds-type-column-header-line-height);
-  letter-spacing: var(--ds-type-column-header-letter-spacing);
-  font-weight: var(--tw-font-weight, var(--ds-type-column-header-font-weight));
 }
 @utility text-heading {
   font-size: var(--ds-type-heading-font-size);

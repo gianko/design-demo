@@ -12,6 +12,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 **Decided (#185):** the alternative, named `column-header`: 12px, 16px line height, weight 600, no tracking, at both densities. The headers use `text-column-header text-ink-muted`, and the stories' style expectations assert weight 600.
 
+**Revised:** at 12px the headers read small beside 16px contractor cells. MUI and shadcn set headers at the cells' size and tell them apart by weight alone, so `column-header` is now a density token at the body's size (14px admin, 16px contractor), still 600, and the brief says so. Weight and `ink-muted` do the work the smaller size did.
+
 ## The cell slot is a function of the row, not a ReactNode
 
 **Undecided:** a slot other than `body` is a `ReactNode` prop named after it (spec § Registry core), and the code step's prompt says so. A `ReactNode` can't read a row, so it can't hold `row.*` bindings that render once per row (ADR 0004).
