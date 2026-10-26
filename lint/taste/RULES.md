@@ -51,7 +51,7 @@ These are taste concerns that another gate, the token build, or the test harness
 | `settle` overshoots once, by ≤ ~5% | Token build validation | Same as above. |
 | Elevation shadows are neutral (impeccable's `dark-glow`) | Token build validation | Same as above. |
 | No banned font family (impeccable's `overused-font` + the brief's list) | Token build validation | Same as above. |
-| `script-error` | Playwright harness | Every run asserts no `pageerror` or console error. |
+| `script-error` | Playwright harness | Every run asserts no `pageerror` or console error. The error Storybook logs for a failing `play` is gate 8's ([ADR 0012](../../docs/adr/0012-style-expectations-are-read-only-play-functions-run-by-gate-8.md)). |
 | "Never `settle` on anything the system starts"; radius matches its role; concentric nested corners | Component review | A lint can't see intent or role. |
 
 ## Later

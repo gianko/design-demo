@@ -31,10 +31,62 @@ export async function serveStorybook(context: BrowserContext, dir: string) {
   });
 }
 
+// The phone width a story tagged `phone` renders at, in place of the
+// config's 1280×800 (ADR 0012).
+export const phoneViewport = { width: 360, height: 800 };
+
+// What a story's `play` function threw, as Storybook serialises it.
+export type PlayError = { name: string; message: string; stack?: string };
+
+// What the page records of the play phase, on `window.__gatePlay`.
+type PlayState = { settled: boolean; error?: PlayError };
+type Played = { __gatePlay: PlayState };
+
+// Storybook's render phases from the end of `play` on. A story without
+// `play` goes from rendering straight to completing.
+const settledPhases = [
+  "played",
+  "errored",
+  "completing",
+  "completed",
+  "afterEach",
+  "finished",
+  "aborted",
+];
+
+// Opens a story and waits until its `play` function, if any, has finished or
+// failed (ADR 0012). Storybook shows a story before its play phase runs, and
+// a failing `play` leaves the story shown: the error only reaches the
+// channel, and the console. So the page records the channel's events from
+// the start, and this returns what `play` threw.
 export async function openStory(
   page: Page,
   { id, theme, density }: { id: string; theme: Theme; density: Density }
-) {
+): Promise<{ playError?: PlayError }> {
+  await page.addInitScript((settled) => {
+    const play: PlayState = { settled: false };
+    Object.assign(window, { __gatePlay: play } satisfies Played);
+    // Storybook installs its channel here before it renders anything.
+    let channel: {
+      on: (event: string, listener: (payload: never) => void) => void;
+    };
+    Object.defineProperty(window, "__STORYBOOK_ADDONS_CHANNEL__", {
+      configurable: true,
+      get: () => channel,
+      set(next: typeof channel) {
+        channel = next;
+        next?.on(
+          "storyRenderPhaseChanged",
+          ({ newPhase }: { newPhase: string }) => {
+            if (settled.includes(newPhase)) play.settled = true;
+          }
+        );
+        next?.on("playFunctionThrewException", (error: PlayError) => {
+          play.error = error;
+        });
+      },
+    });
+  }, settledPhases);
   await page.goto(
     `${origin}/iframe.html?id=${id}&viewMode=story&globals=theme:${theme};density:${density}`
   );
@@ -54,6 +106,21 @@ export async function openStory(
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
+  await page.waitForFunction(
+    () => (window as unknown as Played).__gatePlay.settled
+  );
+  const playError = await page.evaluate(
+    () => (window as unknown as Played).__gatePlay.error
+  );
+  return playError ? { playError } : {};
+}
+
+// Whether a console error is Storybook logging what `play` threw, which gate
+// 8 reports in place of script-error.
+export function logsPlayError(text: string, error: PlayError | undefined) {
+  return (
+    error !== undefined && text.startsWith(`${error.name}: ${error.message}`)
+  );
 }
 
 // Pauses each CSS animation a quarter into its first iteration, so a frame of

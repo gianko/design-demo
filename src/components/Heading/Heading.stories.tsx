@@ -1,9 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
 import { Heading } from "./Heading.tsx";
 
-const meta = { title: "Components/Heading", component: Heading } satisfies Meta<
-  typeof Heading
->;
+const meta = {
+  title: "Components/Heading",
+  component: Heading,
+  // A style expectation (ADR 0012): every level balances its lines.
+  play: async ({ canvasElement }) => {
+    const heading = canvasElement.querySelector('[data-component="Heading"]')!;
+    await expect(
+      getComputedStyle(heading).getPropertyValue("text-wrap-style")
+    ).toBe("balance");
+  },
+} satisfies Meta<typeof Heading>;
 
 export default meta;
 

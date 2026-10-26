@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button } from "../Button/Button.tsx";
 import { Heading } from "../Heading/Heading.tsx";
@@ -7,11 +8,37 @@ import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { Card } from "./Card.tsx";
 
+const card = (canvas: HTMLElement) =>
+  canvas.querySelector<HTMLElement>('[data-component="Card"]')!;
+
+// The `max-w-card` ceiling.
+const ceiling = 560;
+
+// Style expectations (ADR 0012) every story holds: the density's surface
+// padding on each side, and a width no wider than the ceiling, which the
+// wide viewport would otherwise stretch it to.
+async function holdsPaddingAndCeiling(canvas: HTMLElement, density: string) {
+  const style = getComputedStyle(card(canvas));
+  const padding = density === "contractor" ? "24px" : "20px";
+  await expect([
+    style.paddingTop,
+    style.paddingRight,
+    style.paddingBottom,
+    style.paddingLeft,
+  ]).toEqual([padding, padding, padding, padding]);
+  await expect(card(canvas).getBoundingClientRect().width).toBeLessThanOrEqual(
+    ceiling
+  );
+}
+
 // Card has no variants or states, so each story shows which slots it fills,
 // with the content of the screen briefs that use it.
-const meta = { title: "Components/Card", component: Card } satisfies Meta<
-  typeof Card
->;
+const meta = {
+  title: "Components/Card",
+  component: Card,
+  play: ({ canvasElement, globals }) =>
+    holdsPaddingAndCeiling(canvasElement, globals.density),
+} satisfies Meta<typeof Card>;
 
 export default meta;
 
@@ -129,5 +156,18 @@ export const FooterNote: Story = {
         text="You'll get an email when Northwind approves it."
       />
     ),
+  },
+};
+
+// Full on a phone, a contractor's usual device: the ceiling only caps the
+// width, so the card narrows with the screen.
+export const Phone: Story = {
+  args: Full.args,
+  tags: ["phone"],
+  play: async ({ canvasElement, globals }) => {
+    await holdsPaddingAndCeiling(canvasElement, globals.density);
+    await expect(
+      card(canvasElement).getBoundingClientRect().width
+    ).toBeLessThan(ceiling);
   },
 };
