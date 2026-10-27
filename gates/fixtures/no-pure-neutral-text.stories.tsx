@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 // no-pure-neutral-text (lint/taste/RULES.md). Fail sets no colour off the
-// tokens itself; the browser does: a paragraph with no text colour is black,
-// a disabled button greys its label, a field with no value shows the
-// placeholder grey, and one with a value is black. Pass gives each the same
-// element its token colour, all tinted toward plum.
+// tokens itself; the defaults under the tokens do. With no text colour, a
+// paragraph and a button inherit the browser's black, Tailwind's preflight
+// greys a placeholder by mixing that black half with transparent, and a
+// field's value stays black. Pass sets the text colour once, which the
+// paragraph, the button and the field all take, and gives the placeholder
+// its token, all tinted toward plum.
 const meta = {
   title: "GateFixtures/NoPureNeutralText",
   args: { fail: false },
@@ -15,8 +17,7 @@ const meta = {
       <p>Ada Lovelace</p>
       <button
         type="button"
-        disabled
-        className={`rounded-control bg-disabled px-control text-label ${fail ? "" : "text-disabled"}`}
+        className="rounded-control bg-surface px-control text-label"
       >
         Approve and pay
       </button>
@@ -28,7 +29,7 @@ const meta = {
       <input
         aria-label="Invoice"
         defaultValue="Invoice 1042"
-        className={`rounded-control border border-control px-control text-body ${fail ? "" : "text-ink"}`}
+        className="rounded-control border border-control px-control text-body"
       />
     </div>
   ),
