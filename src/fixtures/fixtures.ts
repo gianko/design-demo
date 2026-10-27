@@ -77,6 +77,12 @@ const invoices: readonly Invoice[] = [
   invoice("INV-0151", you, 2400, "scheduled", ["2026-10-22", "Oct 22"], 1),
 ];
 
+// The invoices awaiting approval before any is paid: bulk-pay's queue,
+// which keeps them once they're scheduled.
+const toPay: ReadonlySet<string> = new Set(
+  invoices.filter((each) => each.status === "awaiting").map((each) => each.id)
+);
+
 // Your payments before these invoices, which no invoice here accounts for.
 type History = Pick<FixtureData, "lastPayment" | "paidThisYear">;
 const history: History = {
@@ -133,6 +139,7 @@ function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
       overdue: group("overdue"),
       awaitingApproval: group("awaiting"),
     },
+    payQueue: allInvoices.filter((each) => toPay.has(each.id)),
   };
 }
 
@@ -192,6 +199,14 @@ const variants = {
   },
   "invoice-review/payment-failed": { data: shared, fails: ["payInvoices"] },
   "payment-run/empty": { data: noInvoices, fails: [] },
+  "bulk-pay/empty": { data: noInvoices, fails: [] },
+  "bulk-pay/rows-selected": { data: shared, fails: [], selected: awaiting },
+  "bulk-pay/payment-scheduled": { data: scheduled(awaiting), fails: [] },
+  "bulk-pay/payment-failed": {
+    data: shared,
+    fails: ["payInvoices"],
+    selected: awaiting,
+  },
 } satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;
