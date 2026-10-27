@@ -1,4 +1,4 @@
-// The P0 taste rules (lint/taste/RULES.md), each listed once. A rule's module
+// The 16 taste rules (lint/taste/RULES.md), each listed once. A rule's module
 // exports its `id`, and `lint` for its static half, `render` for its render
 // half, or both.
 
