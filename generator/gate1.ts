@@ -161,9 +161,12 @@ function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
       );
       continue;
     }
-    const parent = node.parent === null ? undefined : byId.get(node.parent);
+    const parent = parentOf(node, byId);
     const parentEntry = parent && entryOf.get(parent.component);
     if (parentEntry) failures.push(...slotChecks(node, parentEntry));
+    if (parent?.component === "Stack") {
+      failures.push(...stackedAllowChecks(node, parent, byId, entryOf));
+    }
     failures.push(...propChecks(node, entry, screen));
   }
   failures.push(...stateChecks(spec, byId, fixtures));
@@ -561,6 +564,44 @@ function slotChecks(node: UiNode, parent: RegistryEntry): Failure[] {
         `${parent.name}'s ${node.slot} slot takes only ${slot.allow.join(", ")}, not ${node.component}.`
       ),
     ];
+  }
+  return [];
+}
+
+// A Stack is layout, not content, so a slot's allow-list holds through any
+// chain of Stacks below it: a node whose parent is a Stack is checked against
+// the nearest enclosing slot, above the Stacks, that has an allow-list. The
+// walk stops at the first component that isn't a Stack, whose own slots
+// apply their own lists.
+function stackedAllowChecks(
+  node: UiNode,
+  parent: UiNode,
+  byId: Map<string, UiNode>,
+  entryOf: Map<string, RegistryEntry>
+): Failure[] {
+  // Each step reads the slot `child` sits in on `owner`; the first step's is
+  // the node's own slot, which slotChecks has already held it to.
+  let child = node;
+  for (const owner of ancestors(node, byId)) {
+    const entry = entryOf.get(owner.component);
+    if (!entry || child.slot === null) break;
+    const slots = entry.slots ?? {};
+    const slot = Object.hasOwn(slots, child.slot)
+      ? slots[child.slot]
+      : undefined;
+    if (slot?.allow) {
+      return child === node || slot.allow.includes(node.component)
+        ? []
+        : [
+            fail(
+              "slot-allow",
+              node.id,
+              `${entry.name}'s ${child.slot} slot takes only ${slot.allow.join(", ")}, not ${node.component} (inside the Stack "${parent.id}").`
+            ),
+          ];
+    }
+    if (owner.component !== "Stack") break;
+    child = owner;
   }
   return [];
 }
