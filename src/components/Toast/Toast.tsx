@@ -27,7 +27,14 @@ export function Toast({ text: copy, tone }: ToastProps) {
     announce(copy);
   }, [copy, announce, entry]);
   return (
-    <div data-component="Toast" data-tone={tone} className={slots.root()}>
+    // Focusable from script only: when a confirmed result removes the bar's
+    // focused Button, focus lands on the Toast the bar became (ADR 0011).
+    <div
+      data-component="Toast"
+      data-tone={tone}
+      tabIndex={-1}
+      className={slots.root()}
+    >
       <p className={slots.text()}>{copy}</p>
     </div>
   );

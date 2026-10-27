@@ -280,6 +280,21 @@ describe("view transitions in one place", () => {
     );
     expect(text).toMatch(block);
   });
+
+  // Screen's focus follows a name by reading it off a `vt-*` class where no
+  // styles compute (src/components/Screen/focus.ts), so each class names
+  // the transition name it sets.
+  it("names every vt-* utility after the view transition name it sets", () => {
+    const text = readFileSync(join(src, "styles.css"), "utf8");
+    const utilities = [
+      ...text.matchAll(/@utility\s+vt-([\w-]+)\s*\{([^}]*)\}/g),
+    ].map(([, suffix, body]) => ({
+      suffix,
+      name: /view-transition-name:\s*([\w-]+)/.exec(body!)?.[1],
+    }));
+    expect(utilities.length).toBeGreaterThan(0);
+    for (const { suffix, name } of utilities) expect(name).toBe(suffix);
+  });
 });
 
 // The taste rules skip straggler and unbalanced-heading because base CSS

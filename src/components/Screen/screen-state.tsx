@@ -16,6 +16,7 @@ import {
   type VariantName,
 } from "../../fixtures/fixtures.ts";
 import { defaultState } from "./default-state.ts";
+import { keepingFocus } from "./focus.ts";
 import { inViewTransition } from "./view-transition.ts";
 
 // Screen states change only through the library (ADR 0011). A generated
@@ -121,7 +122,9 @@ export function ScreenHost({
   const data = useMemo(() => fixtureVariant(shown).data, [shown]);
   const enter = useCallback(
     (name: string, type?: TransitionType, alongside?: () => void) => {
-      const update = () =>
+      // Once the update has run, focus follows the view transition name of
+      // whatever the update removed (./focus.ts).
+      const update = keepingFocus(() =>
         flushSync(() => {
           // A confirmed action has acted on the selection, so it clears in
           // the same update, and has changed the data, so the state it
@@ -138,7 +141,8 @@ export function ScreenHost({
             shown: entered?.fixture ?? last.shown,
           }));
           alongside?.();
-        });
+        })
+      );
       void inViewTransition(update, type ? [type] : []);
     },
     [states]

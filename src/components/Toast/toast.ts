@@ -4,10 +4,12 @@ import { tv } from "tailwind-variants/lite";
 // without loading Toast.tsx and React: the generator loads entries under tsx
 // on node. Each tone carries its view transition name (ADR 0011): a success
 // Toast ActionBar's, so the bar becomes the toast, and a failure Toast one of
-// its own, so it enters while the bar stays.
+// its own, so it enters while the bar stays. Focus can land on a Toast (the
+// one a bar holding focus became), but it is no control, so it shows no
+// focus ring.
 export const toast = tv({
   slots: {
-    root: "sticky bottom-sm z-toast ms-auto flex w-fit max-w-measure items-center rounded-surface px-surface py-2xs shadow-raised",
+    root: "sticky bottom-sm z-toast ms-auto flex w-fit max-w-measure items-center rounded-surface px-surface py-2xs shadow-raised outline-hidden",
     text: "flex min-h-control items-center text-body",
   },
   variants: {
