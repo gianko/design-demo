@@ -35,6 +35,7 @@ run(
       CI: ci ? "1" : undefined,
       GATE_TARGETS: targetsEnv.write(targets),
       GATE_BASELINES: process.env.GATE_BASELINES || undefined,
+      GATE_SEED: process.env.GATE_SEED || undefined,
     }
   )
 );
