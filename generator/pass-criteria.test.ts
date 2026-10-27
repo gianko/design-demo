@@ -20,8 +20,9 @@ function node(
 }
 
 // The pay confirmation and the row sheet, as ADR 0011 lays them out: the
-// bar shows while rows are selected and after a failure, and the success
-// state shows the Toast in its place.
+// bar shows while rows are selected and after a failure, holding the failure
+// Toast above its Button then (#243), and the success state shows the
+// success Toast in the bar's place.
 function queue(): UiSpec {
   return {
     audience: "admin",
@@ -36,9 +37,12 @@ function queue(): UiSpec {
         "rows-selected",
         "payment-failed",
       ]),
+      {
+        ...node("failed", "Toast", "bar", "body", ["payment-failed"]),
+        props: [{ name: "tone", value: '"failure"' }],
+      },
       node("pay", "Button", "bar", "body", [], "pay"),
       node("scheduled", "Toast", "column", "body", ["payment-scheduled"]),
-      node("failed", "Toast", "column", "body", ["payment-failed"]),
     ],
     states: [
       { name: "rows-selected", fixture: "invoice-queue/rows-selected" },

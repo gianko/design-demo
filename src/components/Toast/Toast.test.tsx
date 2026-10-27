@@ -1,7 +1,7 @@
 // The pay confirmation's result (ADR 0011): a Toast shows in the state an
 // action enters and is that state's announcement through Screen's one status
 // region. A confirmed payment's success Toast takes the ActionBar's place; a
-// failed one's failure Toast enters beside the bar, which stays. jsdom has no
+// failed one's failure Toast enters inside the bar, which stays. jsdom has no
 // View Transitions, so `document.startViewTransition` is stubbed as the
 // browser's boundary: it runs the update and records each transition's types.
 
@@ -32,7 +32,7 @@ const failed =
 
 // bulk-pay as its generated screen wires it: the bar in rows-selected and in
 // the failure state, a success Toast where the bar was, and a failure Toast
-// right before the bar.
+// inside the bar, above its Button (#243).
 function BulkPay() {
   const { state } = useScreenState();
   const selected = useSelectedRows();
@@ -46,9 +46,9 @@ function BulkPay() {
       {state === "payment-scheduled" && (
         <Toast tone="success" text={scheduled} />
       )}
-      {state === "payment-failed" && <Toast tone="failure" text={failed} />}
       {(state === "rows-selected" || state === "payment-failed") && (
         <ActionBar>
+          {state === "payment-failed" && <Toast tone="failure" text={failed} />}
           <Button
             text="Approve and pay"
             intent="primary"
@@ -117,7 +117,7 @@ it("shows the success Toast in the bar's place once the payment is confirmed, an
   expect(region().textContent).toBe(scheduled);
 });
 
-it("enters the failure Toast beside the bar, which stays, once the payment fails, and announces it", async () => {
+it("enters the failure Toast inside the bar, which stays, once the payment fails, and announces it", async () => {
   host("invoice-queue/payment-failed");
 
   await pay();

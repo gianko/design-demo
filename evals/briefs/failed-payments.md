@@ -19,6 +19,6 @@ The rows are the fixtures' `failedPayments`: bind the DataTable's rows to it, an
 | `empty` | no bounced payments (`failed-payments/empty`) | the PageHeader and an EmptyState: "No failed payments", and that a payment a bank sends back shows up here |
 | `rows-selected` | rows selected (`failed-payments/rows-selected`) | the DataTable with rows selected, and the ActionBar with the Retry payments Button |
 | `payments-retried` | retry scheduled (`failed-payments/payments-retried`) | the DataTable with the retried rows now scheduled and none selected, and a success Toast where the ActionBar was: "Payments retried in the Oct 24 run." |
-| `retry-failed` | retry failed (`failed-payments/retry-failed`) | the DataTable with the rows as they were and still selected, a failure Toast saying what happened and what to do next, and the ActionBar still there to retry |
+| `retry-failed` | retry failed (`failed-payments/retry-failed`) | the DataTable with the rows as they were and still selected, and the ActionBar still there to retry, with a failure Toast inside it, above its Button, saying what happened and what to do next |
 
 Pending is not a screen state: it is the Button's own state while `retry-payments` runs.

@@ -25,6 +25,7 @@ import {
   useSelectedRows,
 } from "../Screen/screen-state.tsx";
 import { Text } from "../Text/Text.tsx";
+import { Toast } from "../Toast/Toast.tsx";
 import { ActionBar } from "./ActionBar.tsx";
 
 // bulk-pay as its generated screen wires it: the bar shows in rows-selected
@@ -145,4 +146,25 @@ it("keeps the bar, its Button back at rest, and the rows selected when the payme
     "Select INV-0148",
     "Select INV-0149",
   ]);
+});
+
+// A failure Toast in the bar is its first row, above a row of its Buttons
+// (#243), wherever the screen puts it among them, fragments included.
+it("puts a Toast it holds in a row of its own, before the row of its Buttons", () => {
+  render(
+    <ActionBar>
+      <>
+        <Button text="Send reminders" intent="secondary" />
+        <Toast tone="failure" text="Reminders not sent." />
+      </>
+      <Button text="Approve and pay" intent="primary" />
+    </ActionBar>
+  );
+
+  const [first, second, ...rest] = [...bar()!.children];
+  expect(rest).toEqual([]);
+  expect(first!.getAttribute("data-component")).toBe("Toast");
+  expect([...second!.children].map((each) => each.textContent?.trim())).toEqual(
+    ["Send reminders", "Approve and pay"]
+  );
 });

@@ -671,6 +671,24 @@ describe("gate 1", () => {
 
       expect(check(spec)).toEqual([["action-bar-button", "idle-button"]]);
     });
+
+    // Only a failure Toast sits in a bar (#243). This library's Toast has no
+    // tone, so a Toast nested a level down in the bar, out of sight of a
+    // check that reads only the bar's own children, has none either.
+    it("fails a Toast in an ActionBar whose tone isn't failure, naming it", () => {
+      const spec = clean();
+      nodeOf(spec, "bar").when = ["default", "sent"];
+      spec.nodes = spec.nodes.filter((n) => n.id !== "sent-toast");
+      spec.nodes.push(
+        node("bar-panel", "Panel", "bar", "body", { title: "More" }),
+        shownIn(
+          node("bar-toast", "Toast", "bar-panel", "body", { text: "Sent" }),
+          "sent"
+        )
+      );
+
+      expect(check(spec)).toEqual([["bar-toast-tone", "bar-toast"]]);
+    });
   });
 
   describe("nested cards", () => {
@@ -941,15 +959,17 @@ describe("gate 1 against the library's registry", () => {
           }),
           node("number", "Text", "table", "cell", { text: bind("row.number") }),
           shownIn(
-            node("failed", "Toast", "column", "body", {
+            node("bar", "ActionBar", "column", "body"),
+            "rows-selected",
+            "payment-failed"
+          ),
+          // The failure Toast sits in the bar, above its Button, so the two
+          // stick as one (#243).
+          shownIn(
+            node("failed", "Toast", "bar", "body", {
               text: "The payment didn't go through. Nothing was paid; try again.",
               tone: "failure",
             }),
-            "payment-failed"
-          ),
-          shownIn(
-            node("bar", "ActionBar", "column", "body"),
-            "rows-selected",
             "payment-failed"
           ),
           runs(
@@ -1048,6 +1068,54 @@ describe("gate 1 against the library's registry", () => {
       nodeOf(spec, "scheduled").when = ["rows-selected"];
 
       expect(await checkQueue(spec)).toEqual([["toast-state", "scheduled"]]);
+    });
+
+    it("fails a success Toast inside the bar, naming it", async () => {
+      const spec = payConfirmation();
+      setProp(nodeOf(spec, "failed"), "tone", "success");
+
+      expect(await checkQueue(spec)).toEqual([["bar-toast-tone", "failed"]]);
+    });
+
+    it("fails a failure Toast beside the bar its state shows, naming it", async () => {
+      const spec = payConfirmation();
+      nodeOf(spec, "failed").parent = "column";
+
+      expect(await checkQueue(spec)).toEqual([
+        ["failure-toast-in-bar", "failed"],
+      ]);
+    });
+
+    it("passes a failure Toast in a state that shows no ActionBar", async () => {
+      const spec = payConfirmation();
+      nodeOf(spec, "bar").when = ["rows-selected"];
+      nodeOf(spec, "failed").parent = "column";
+
+      expect(await checkQueue(spec)).toEqual([]);
+    });
+
+    it("names the fix in each repair message", async () => {
+      const success = payConfirmation();
+      setProp(nodeOf(success, "failed"), "tone", "success");
+      const beside = payConfirmation();
+      nodeOf(beside, "failed").parent = "column";
+      const { entries } = await loadRegistry();
+      const fixtures = {
+        variants: Object.fromEntries(
+          variantNames.map((name) => [name, fixtureVariant(name).data])
+        ),
+        operations: operationNames,
+      };
+      const messages = [success, beside].flatMap((spec) =>
+        gate1(spec, { audience: "admin", entries, fixtures }).map(
+          ({ message }) => message
+        )
+      );
+
+      expect(messages).toEqual([
+        expect.stringMatching(/Give it tone failure/),
+        expect.stringMatching(/Move it into the ActionBar "bar"'s body slot/),
+      ]);
     });
 
     it("fails a Button in the bar that runs no action", async () => {
