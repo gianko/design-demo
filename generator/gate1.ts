@@ -11,6 +11,7 @@ import { defaultState } from "../src/components/Screen/default-state.ts";
 import { type RegistryEntry, specProps } from "../src/registry/entry.ts";
 import type { Failure } from "./failure.ts";
 import { type UiNode, type UiSpec, wireSchema } from "./ui-spec.ts";
+import { visibility } from "./visibility.ts";
 
 export type Gate1Fixtures = {
   // Each fixture variant's data by name; the default state renders the one
@@ -656,27 +657,7 @@ function screenModel(
   for (const { name, fixture } of spec.states) {
     if (!variantOf.has(name)) variantOf.set(name, fixture);
   }
-  const states = [...variantOf.keys()];
-  const parentOf = (node: UiNode) =>
-    node.parent === null ? undefined : byId.get(node.parent);
-
-  const visibility = new Map<UiNode, string[]>();
-  const visibleIn = (node: UiNode, seen = new Set<UiNode>()): string[] => {
-    const known = visibility.get(node);
-    if (known) return known;
-    seen.add(node);
-    let shown =
-      node.when.length === 0
-        ? states
-        : states.filter((state) => node.when.includes(state));
-    const parent = parentOf(node);
-    if (parent && !seen.has(parent)) {
-      const above = visibleIn(parent, seen);
-      shown = shown.filter((state) => above.includes(state));
-    }
-    visibility.set(node, shown);
-    return shown;
-  };
+  const { states, parentOf, visibleIn } = visibility(spec, byId);
 
   const rowTable = (node: UiNode) => {
     const seen = new Set<UiNode>();

@@ -313,6 +313,118 @@ describe("pnpm eval", () => {
     expect(reps[0]!.criteria).toEqual({ met: true, missing: [] });
   });
 
+  // ADR 0011's two structural patterns, checked on the final UI spec like
+  // the other requires keys.
+  describe("requires.transitions", () => {
+    const transitionBrief = (transition: string) => `---
+audience: admin
+requires:
+  components: [Screen]
+  transitions: [${transition}]
+---
+
+# The \`${transition}\` transition
+`;
+
+    // An admin queue whose pay action hands its ActionBar off to a Toast,
+    // and whose rows open a Sheet, or one without either pattern: the Button
+    // sits in a Card, the success state shows no Toast, and the DataTable
+    // has no detail slot.
+    function queueSpec({ patterns }: { patterns: boolean }): UiSpec {
+      const node = (
+        id: string,
+        component: string,
+        parent: string | null,
+        slot: string | null,
+        when: string[] = [],
+        action: string | null = null
+      ) => ({ id, component, parent, slot, props: [], when, action });
+      return {
+        audience: "admin",
+        nodes: [
+          node("screen", "Screen", null, null),
+          node("table", "DataTable", "screen", "body"),
+          node("number", "Text", "table", "cell"),
+          ...(patterns
+            ? [
+                node("sheet", "Sheet", "table", "detail"),
+                node("bar", "ActionBar", "screen", "body", [
+                  "rows-selected",
+                  "payment-failed",
+                ]),
+                node("pay", "Button", "bar", "body", [], "pay"),
+                node("toast", "Toast", "screen", "body", ["payment-scheduled"]),
+              ]
+            : [
+                node("card", "Card", "screen", "body", ["rows-selected"]),
+                node("pay", "Button", "card", "footer", [], "pay"),
+              ]),
+        ],
+        states: [
+          { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
+          {
+            name: "payment-scheduled",
+            fixture: "invoice-queue/payment-scheduled",
+          },
+          { name: "payment-failed", fixture: "invoice-queue/payment-failed" },
+        ],
+        actions: [
+          {
+            name: "pay",
+            operation: "payInvoices",
+            pending: "pay",
+            to: { success: "payment-scheduled", failure: "payment-failed" },
+          },
+        ],
+      };
+    }
+
+    const passingWith = (uiSpec: UiSpec): Plan => ({
+      ...plans.firstTry(),
+      uiSpec,
+    });
+
+    it.each(["bar-to-toast", "row-to-sheet"])(
+      "fails a rep whose final UI spec lacks %s, and passes one that has it",
+      async (transition) => {
+        const at = setup();
+        writeFileSync(
+          join(at.dir, "briefs", "queue.md"),
+          transitionBrief(transition)
+        );
+
+        await run(at, ["--k", "2"], {
+          plans: {
+            queue: [
+              passingWith(queueSpec({ patterns: false })),
+              passingWith(queueSpec({ patterns: true })),
+            ],
+          },
+        });
+
+        const reps = results(at).reps;
+        expect(
+          reps.map(({ outcome, endReason, criteria }) => ({
+            outcome,
+            endReason,
+            criteria,
+          }))
+        ).toEqual([
+          {
+            outcome: "fail",
+            endReason: "criteria-not-met",
+            criteria: { met: false, missing: [`transition ${transition}`] },
+          },
+          {
+            outcome: "pass",
+            endReason: "passed",
+            criteria: { met: true, missing: [] },
+          },
+        ]);
+      }
+    );
+  });
+
   it("gives each screen brief a first-attempt and a final pass rate, leaving errors and skips out", async () => {
     const at = setup("alpha", "beta");
 
