@@ -257,6 +257,12 @@ describe("in CI", () => {
       /"Northwind Logistics GmbH" is clipped without an ellipsis/,
     ],
     [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
+    ...[
+      /"Ada Lovelace" is set in rgb\(0, 0, 0\), which has no chroma/,
+      /"Approve and pay" is set in rgba\(16, 16, 16, 0\.3\), which has no chroma/,
+      /The placeholder "Search invoices" is set in rgb\(117, 117, 117\), which has no chroma/,
+      /"Invoice 1042" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ].map((finding) => ["no-pure-neutral-text", "fail", finding] as const),
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
     const printed = finding.source.replaceAll('"', '\\\\?"');
