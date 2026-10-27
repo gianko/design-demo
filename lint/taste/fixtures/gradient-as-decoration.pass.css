@@ -1,0 +1,9 @@
+/* Flat fills from the tokens, and a clip that isn't text. */
+.hero {
+  background: var(--ds-color-surface);
+}
+
+.edge {
+  background-clip: padding-box;
+  @apply bg-accent;
+}

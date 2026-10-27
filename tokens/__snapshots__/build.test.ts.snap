@@ -377,6 +377,28 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
     translate: 0;
   }
 }
+
+/* A row whose status changed flips into place, edge-on to flat (DataTable's
+   stagger, ADR 0011), and under reduced motion only fades in where it is. */
+@keyframes status-flip {
+  from {
+    opacity: 0;
+    transform: rotateX(90deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0);
+  }
+}
+
+@keyframes status-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 "
 `;
 
