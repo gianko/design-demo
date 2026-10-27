@@ -46,6 +46,8 @@ describe("fixtures", () => {
     "my-invoices": ["empty"],
     "payments-received": ["empty"],
     "payment-failed": ["retry-requested", "retry-failed"],
+    "withdraw-invoice": ["invoice-withdrawn", "withdraw-failed"],
+    "annual-summary": ["empty"],
   };
   const variantsOf = (states: Record<string, string[]>) =>
     Object.entries(states).flatMap(([brief, briefStates]) =>
@@ -209,7 +211,7 @@ describe("fixtures", () => {
 
   it("shows you, the contractor, your one bounced payment and why it bounced", () => {
     expect(fixtureVariant("default").data.bouncedPayment).toEqual({
-      id: "PAY-2026-10-17",
+      id: "PAY-0138",
       invoiceId: "INV-0138",
       contractorId: "ines-duarte",
       contractor: "Ines Duarte",
@@ -219,7 +221,7 @@ describe("fixtures", () => {
       date: "2026-10-17",
       dateLabel: "Oct 17",
       reason:
-        "Your bank sent it back: the account number doesn't match the name on the account.",
+        "Your bank sent it back: it went over your account's daily limit for incoming transfers.",
     });
   });
 
@@ -436,8 +438,12 @@ describe("fixtures", () => {
     expect(fixtureVariant(name).data).toEqual(fixtureVariant("default").data);
   });
 
-  it("lists the admin the payment that bounced, for the failed invoice, with the bank's reason", () => {
-    expect(fixtureVariant("default").data.failedPayments).toEqual([
+  it("lists the admin the payments that bounced, by invoice, with the bank's reason, yours among them", () => {
+    const { failedPayments, bouncedPayment } = fixtureVariant("default").data;
+
+    expect(bouncedPayment).toMatchObject({ invoiceId: "INV-0138" });
+    expect(failedPayments).toEqual([
+      bouncedPayment,
       {
         id: "PAY-0146",
         invoiceId: "INV-0146",
@@ -453,10 +459,38 @@ describe("fixtures", () => {
     ]);
   });
 
-  it("has no failed payments in failed-payments/empty", () => {
-    expect(fixtureVariant("failed-payments/empty").data.failedPayments).toEqual(
-      []
-    );
+  // One story across the admin's and your screens: the Oct 10 run sent both
+  // payments that bounced, each bounced after it and before the next run, and
+  // it is the one past run that failed.
+  it("sent every bounced payment in the Oct 10 run, which failed by their total", () => {
+    const { failedPayments, pastRuns, paymentRun } =
+      fixtureVariant("default").data;
+    const [oct10, ...earlier] = pastRuns;
+
+    expect(oct10).toMatchObject({
+      date: "2026-10-10",
+      status: "failed",
+      failedCountLabel: "2 invoices",
+      failedAmount: 5270,
+    });
+    expect(failedPayments.map((each) => each.amount)).toEqual([3650, 1620]);
+    expect(earlier.map((each) => each.status)).toEqual([
+      "paid",
+      "paid",
+      "paid",
+      "paid",
+    ]);
+    for (const each of failedPayments) {
+      expect(each.date > oct10!.date, each.id).toBe(true);
+      expect(each.date < paymentRun.date, each.id).toBe(true);
+    }
+  });
+
+  it("has no failed payments in failed-payments/empty, yours included", () => {
+    const { data } = fixtureVariant("failed-payments/empty");
+
+    expect(data.failedPayments).toEqual([]);
+    expect(data.bouncedPayment).toBeNull();
   });
 
   it.each(["failed-payments/rows-selected", "failed-payments/retry-failed"])(
@@ -464,17 +498,19 @@ describe("fixtures", () => {
     (name) => {
       const { data, selected } = fixtureVariant(name);
 
-      expect(selected).toEqual(["PAY-0146"]);
+      expect(selected).toEqual(["PAY-0138", "PAY-0146"]);
       expect(data).toEqual(fixtureVariant("default").data);
     }
   );
 
-  it("schedules the retried payment and its invoice, and only them, in failed-payments/payments-retried", () => {
+  it("schedules the retried payments and the failed invoice, and only them, in failed-payments/payments-retried", () => {
     const { data } = fixtureVariant("failed-payments/payments-retried");
 
     expect(data.failedPayments.map((each) => [each.id, each.status])).toEqual([
+      ["PAY-0138", "scheduled"],
       ["PAY-0146", "scheduled"],
     ]);
+    expect(data.bouncedPayment).toEqual(data.failedPayments[0]);
     expect(statuses("failed-payments/payments-retried")).toEqual({
       ...statuses("default"),
       "INV-0146": "scheduled",
@@ -493,7 +529,7 @@ describe("fixtures", () => {
         ]
       )
     ).toEqual([
-      ["Ines Duarte", "Portugal", 2, "2 invoices", 7200],
+      ["Ines Duarte", "Portugal", 3, "3 invoices", 10850],
       ["Lea Brandt", "Germany", 1, "1 invoice", 3100],
       ["Tomás Herrera", "Mexico", 2, "2 invoices", 4000],
       ["Jonah Whitfield-Abernathy", "United Kingdom", 2, "2 invoices", 2600],
@@ -501,6 +537,8 @@ describe("fixtures", () => {
     ]);
   });
 
+  // Your open invoices count INV-0138, whose payment bounced, beside your two
+  // here.
   it("gives each contractor the details their sheet shows, your year's total included", () => {
     const { contractors, you, paidThisYear } = fixtureVariant("default").data;
 
@@ -510,9 +548,9 @@ describe("fixtures", () => {
       country: "Portugal",
       email: "ines@duarte.studio",
       payoutMethod: "Bank transfer to an account ending 4417",
-      openInvoices: 2,
-      openInvoicesLabel: "2 invoices",
-      owed: 7200,
+      openInvoices: 3,
+      openInvoicesLabel: "3 invoices",
+      owed: 10850,
       paidThisYear: paidThisYear!.amount,
       currency: "USD",
     });
@@ -533,28 +571,28 @@ describe("fixtures", () => {
         amount,
       ])
     ).toEqual([
-      ["Oct 10", "paid", "5 invoices", 16420],
-      ["Sep 26", "failed", "6 invoices", 19105.5],
+      ["Oct 10", "failed", "7 invoices", 21690],
+      ["Sep 26", "paid", "5 invoices", 17485.5],
       ["Sep 12", "paid", "4 invoices", 11250],
       ["Aug 29", "paid", "7 invoices", 21980],
       ["Aug 15", "paid", "3 invoices", 8400],
     ]);
     // Your last payment went out in the newest run.
     expect(pastRuns[0]!.date).toBe(lastPayment!.date);
-    expect(pastRuns[1]).toEqual({
-      id: "run-2026-09-26",
-      date: "2026-09-26",
-      dateLabel: "Sep 26",
+    expect(pastRuns[0]).toEqual({
+      id: "run-2026-10-10",
+      date: "2026-10-10",
+      dateLabel: "Oct 10",
       status: "failed",
-      count: 6,
-      countLabel: "6 invoices",
-      amount: 19105.5,
+      count: 7,
+      countLabel: "7 invoices",
+      amount: 21690,
       currency: "USD",
       contractorsLabel: "5 contractors",
       paidCountLabel: "5 invoices",
-      paidAmount: 17485.5,
-      failedCountLabel: "1 invoice",
-      failedAmount: 1620,
+      paidAmount: 16420,
+      failedCountLabel: "2 invoices",
+      failedAmount: 5270,
     });
   });
 
@@ -567,6 +605,77 @@ describe("fixtures", () => {
 
   it("has no past runs in run-history/empty", () => {
     expect(fixtureVariant("run-history/empty").data.pastRuns).toEqual([]);
+  });
+
+  it("shows you, the contractor, your one invoice awaiting approval", () => {
+    expect(fixtureVariant("default").data.awaitingInvoice).toEqual({
+      id: "INV-0152",
+      number: "INV-0152",
+      contractorId: "ines-duarte",
+      contractor: "Ines Duarte",
+      client: "Northwind Logistics & Freight Holdings Ltd.",
+      amount: 2950,
+      currency: "USD",
+      status: "awaiting",
+      dueDate: "2026-11-19",
+      dueLabel: "Nov 19",
+      lineCount: 3,
+      lineCountLabel: "3 lines",
+    });
+  });
+
+  it("drops your awaiting invoice, and only it, in withdraw-invoice/invoice-withdrawn", () => {
+    const { data } = fixtureVariant("withdraw-invoice/invoice-withdrawn");
+    const before = fixtureVariant("default").data;
+
+    expect(data.awaitingInvoice).toBeNull();
+    expect({ ...data, awaitingInvoice: before.awaitingInvoice }).toEqual(
+      before
+    );
+  });
+
+  it("leaves your awaiting invoice as it was in withdraw-invoice/withdraw-failed", () => {
+    expect(fixtureVariant("withdraw-invoice/withdraw-failed").data).toEqual(
+      fixtureVariant("default").data
+    );
+  });
+
+  it("totals the payments you've received by month, newest first, to this year's 41,200", () => {
+    const { monthlyTotals, paidThisYear } = fixtureVariant("default").data;
+
+    expect(
+      monthlyTotals.map((each) => [
+        each.id,
+        each.monthLabel,
+        each.amount,
+        each.paymentCountLabel,
+        each.invoiceCountLabel,
+      ])
+    ).toEqual([
+      ["2026-10", "October", 4800, "1 payment", "1 invoice"],
+      ["2026-09", "September", 10100, "2 payments", "3 invoices"],
+      ["2026-08", "August", 7350, "1 payment", "3 invoices"],
+      ["2026-07", "July", 9550, "1 payment", "2 invoices"],
+      ["2026-06", "June", 9400, "1 payment", "3 invoices"],
+    ]);
+    expect(monthlyTotals.reduce((sum, each) => sum + each.amount, 0)).toBe(
+      paidThisYear!.amount
+    );
+  });
+
+  it("averages this year's 41,200 over the 5 months you've been paid in", () => {
+    expect(fixtureVariant("default").data.monthlyAverage).toEqual({
+      amount: 8240,
+      currency: "USD",
+    });
+  });
+
+  it("has nothing paid this year in annual-summary/empty", () => {
+    const { data } = fixtureVariant("annual-summary/empty");
+
+    expect(data.paidThisYear).toBeNull();
+    expect(data.monthlyAverage).toBeNull();
+    expect(data.monthlyTotals).toEqual([]);
   });
 
   // Runs one operation under a variant, and reports how it stood just before
@@ -735,7 +844,7 @@ describe("fixtures", () => {
 
     const settle = (name: string) =>
       settleOperation(name, (operations) =>
-        operations.requestRetry("PAY-2026-10-17")
+        operations.requestRetry("PAY-0138")
       );
 
     it.each(["default", "payment-failed/retry-requested"])(
@@ -752,13 +861,51 @@ describe("fixtures", () => {
       const { early, settled } = await settle("payment-failed/retry-failed");
 
       expect(early).toBeUndefined();
-      expect(settled).toMatch(/^rejected: .*PAY-2026-10-17/);
+      expect(settled).toMatch(/^rejected: .*PAY-0138/);
     });
 
     it("leaves sendReminder succeeding where only requestRetry fails", async () => {
       expect(
         await settleOperation("payment-failed/retry-failed", (operations) =>
           operations.sendReminder("INV-0142")
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("withdrawInvoice", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.withdrawInvoice("INV-0152")
+      );
+
+    it.each(["default", "withdraw-invoice/invoice-withdrawn"])(
+      "succeeds after exactly 1,800ms under %s",
+      async (name) => {
+        expect(await settle(name)).toEqual({
+          early: undefined,
+          settled: "resolved",
+        });
+      }
+    );
+
+    it("fails after exactly 1,800ms under withdraw-invoice/withdraw-failed, naming the invoice", async () => {
+      const { early, settled } = await settle(
+        "withdraw-invoice/withdraw-failed"
+      );
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*INV-0152/);
+    });
+
+    it("leaves requestRetry succeeding where only withdrawInvoice fails", async () => {
+      expect(
+        await settleOperation(
+          "withdraw-invoice/withdraw-failed",
+          (operations) => operations.requestRetry("PAY-0138")
         )
       ).toEqual({ early: undefined, settled: "resolved" });
     });
