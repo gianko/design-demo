@@ -45,6 +45,9 @@ export type RenderInput = {
   source: string;
   audience: Density;
   states: UiSpec["states"];
+  // What the action-transitions taste rule clicks through.
+  nodes: UiSpec["nodes"];
+  actions: UiSpec["actions"];
 };
 
 // The render pass as generate() takes it, so a test can stand in its own.

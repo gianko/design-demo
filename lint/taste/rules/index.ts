@@ -2,6 +2,7 @@
 // exports its `id`, and `lint` for its static half, `render` for its render
 // half, or both.
 
+import * as actionTransitions from "./action-transitions.ts";
 import * as contentHiddenAtRest from "./content-hidden-at-rest.ts";
 import * as edgeTreatment from "./edge-treatment.ts";
 import * as gradientAsDecoration from "./gradient-as-decoration.ts";
@@ -28,6 +29,7 @@ export const tasteRules = [
   noAllCaps,
   skippedHeading,
   nestedCards,
+  actionTransitions,
   edgeTreatment,
   noPureNeutralText,
   targetSize,

@@ -304,6 +304,31 @@ describe("in CI", () => {
       /"Next payment" is a painted surface inside another/,
     ],
     [
+      "action-transitions",
+      "swapped",
+      /Clicking "Send reminder" under send-reminder's success variant entered "reminder-failed" through a View Transition typed "confirm", not "reminder-sent" through one typed "confirm"/,
+    ],
+    [
+      "action-transitions",
+      "swapped",
+      /under send-reminder's failure variant entered "reminder-sent" through a View Transition typed "fail", not "reminder-failed" through one typed "fail"/,
+    ],
+    [
+      "action-transitions",
+      "untyped",
+      /under send-reminder's success variant entered "reminder-sent" through an untyped View Transition, not "reminder-sent" through one typed "confirm"/,
+    ],
+    [
+      "action-transitions",
+      "inert",
+      /under send-reminder's failure variant entered no state, not "reminder-failed" through a View Transition typed "fail"/,
+    ],
+    [
+      "action-transitions",
+      "relabelled",
+      /No Button labelled "Send reminder" to click for send-reminder in state "default"/,
+    ],
+    [
       "no-pure-neutral-text",
       "fail",
       /"Ada Lovelace" is set in rgb\(0, 0, 0\), which has no chroma/,
