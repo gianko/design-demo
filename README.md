@@ -117,7 +117,7 @@ pnpm storybook                         # the library
 pnpm gate                              # every gate over every story and kept screen
 pnpm test                              # unit tests
 pnpm eval                              # the eval suite; reads ANTHROPIC_API_KEY from .env, prints a cost estimate first
-pnpm eval:report --latest              # the HTML report for the newest run
+pnpm eval:report --latest              # the HTML report for the newest run, against the baseline it names (pnpm eval --baseline)
 ```
 
 [`docs/spec.md`](docs/spec.md) has the full build plan, and [`GLOSSARY.md`](GLOSSARY.md) has the vocabulary.

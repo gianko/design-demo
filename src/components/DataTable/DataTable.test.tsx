@@ -25,8 +25,9 @@ import {
 import { Text } from "../Text/Text.tsx";
 import { DataTable } from "./DataTable.tsx";
 
-// invoice-queue as its generated screen wires it.
-function InvoiceQueue() {
+// invoice-queue as its generated screen wires it: its table is selectable,
+// since Approve and pay acts on the Selection.
+function InvoiceQueue({ selectable = true }: { selectable?: boolean }) {
   const data = useFixtureData();
   const { state } = useScreenState();
   const selected = useSelectedRows();
@@ -47,16 +48,21 @@ function InvoiceQueue() {
       <DataTable
         rows={data.invoices}
         columns={["Invoice"]}
+        selectable={selectable}
         cell={(row) => <Text text={row.number} />}
       />
     </>
   );
 }
 
-function host(name = "default", fixture: VariantName = "default") {
+function host(
+  name = "default",
+  fixture: VariantName = "default",
+  selectable = true
+) {
   render(
     <ScreenHost screenState={{ name, fixture }}>
-      <InvoiceQueue />
+      <InvoiceQueue selectable={selectable} />
     </ScreenHost>
   );
 }
@@ -170,4 +176,14 @@ it("starts with the awaiting invoices selected in invoice-queue/rows-selected", 
     "Select INV-0148",
     "Select INV-0149",
   ]);
+});
+
+// Selection is off unless an action acts on the Selection (#203).
+it("renders no checkboxes and never enters rows-selected when selectable is left out", () => {
+  host("default", "default", false);
+
+  expect(screen.queryAllByRole("checkbox")).toEqual([]);
+  fireEvent.click(screen.getByRole("cell", { name: "INV-0147" }));
+  expect(screenState()).toBe("default");
+  expect(selectedRows()).toBe("");
 });

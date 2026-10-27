@@ -8,9 +8,9 @@ Five rules are reimplemented from [impeccable](https://github.com/pbakaus/impecc
 
 ## The 16 rules
 
-**P0** marks the five that ship in the P0 vertical slice. Between them they prove both harnesses, and none depends on which four components the slice builds.
+The Ships column marks a rule that is on. **P0** marks the five that ship in the P0 vertical slice. Between them they prove both harnesses, and none depends on which four components the slice builds. **P1** marks a rule P1 turns on.
 
-| Rule | P0 | Origin | Check | Fails when | Brief line it enforces |
+| Rule | Ships | Origin | Check | Fails when | Brief line it enforces |
 |---|---|---|---|---|---|
 | `motion-tokens` | **P0** | new; adapts `bounce-easing` | static | A transition or animation lacks a `duration-*` or `ease-*` token. `transition-all` is used. `ease-settle` is used on an exit (`data-[state=closed]`, exit durations). A keyframe property swings back more than once. | Easings: `settle` is a single overshoot with no second swing, never on exits. Banned: bounce or elastic easing. |
 | `no-pill` | **P0** | brief | static + render | Static: `rounded-full` outside the exempt components. Render: any non-exempt element's computed radius is ≥ half its height. | Nothing is fully rounded except avatars. |

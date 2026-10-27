@@ -3,11 +3,20 @@
 // fixtures: each planted UI spec breaks one rule, and the failure names that
 // rule and the node it found it on.
 
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import {
+  fixtureVariant,
+  operationNames,
+  variantNames,
+} from "../src/fixtures/fixtures.ts";
 import { defineEntry } from "../src/registry/entry.ts";
 import { gate1 } from "./gate1.ts";
+import { checkPassCriteria } from "./pass-criteria.ts";
 import { loadRegistry } from "./registry.ts";
+import { readScreenBrief } from "./screen-brief.ts";
+import { wireSchema } from "./ui-spec.ts";
 
 const entries = [
   defineEntry({
@@ -806,6 +815,108 @@ describe("gate 1 against the library's registry", () => {
     expect(await checkLibrary(headings("1", "2", "1"))).toEqual([
       ["heading-one", "heading-2"],
     ]);
+  });
+
+  // DataTable selection is off by default (#203); invoice-queue's brief is
+  // unchanged, and the UI spec that meets it turns selection on.
+  it("passes an invoice-queue UI spec whose DataTable is selectable, which meets the brief's pass criteria", async () => {
+    const live = (id: string, state: string, text: string) =>
+      shownIn(node(id, "Text", "column", "body", { text, live: true }), state);
+    const spec = {
+      audience: "admin",
+      nodes: [
+        node("screen", "Screen", null, null, { audience: "admin" }),
+        node("column", "Stack", "screen", "body"),
+        node("header", "PageHeader", "column", "body"),
+        node("title", "Heading", "header", "title", {
+          text: "Invoices",
+          level: 1,
+        }),
+        runs(
+          shownIn(
+            node("pay", "Button", "header", "actions", {
+              text: "Approve and pay",
+              intent: "primary",
+            }),
+            "rows-selected"
+          ),
+          "approve-and-pay"
+        ),
+        shownIn(
+          node("table", "DataTable", "column", "body", {
+            rows: bind("invoices"),
+            columns: ["Invoice", "Contractor", "Amount", "Due", "Status"],
+            selectable: true,
+          }),
+          "default",
+          "rows-selected",
+          "payment-scheduled",
+          "payment-failed"
+        ),
+        node("number", "Text", "table", "cell", { text: bind("row.number") }),
+        node("contractor", "Text", "table", "cell", {
+          text: bind("row.contractor"),
+        }),
+        node("amount", "Amount", "table", "cell", {
+          value: bind("row.amount"),
+          currency: bind("row.currency"),
+          display: "table",
+        }),
+        node("due", "Text", "table", "cell", { text: bind("row.dueLabel") }),
+        node("status", "StatusTag", "table", "cell", {
+          status: bind("row.status"),
+        }),
+        shownIn(
+          node("empty", "Text", "column", "body", {
+            text: "No invoices to pay. New ones show up here when contractors send them.",
+          }),
+          "empty"
+        ),
+        live(
+          "scheduled",
+          "payment-scheduled",
+          "3 invoices scheduled for the Oct 24 run."
+        ),
+        live(
+          "failed",
+          "payment-failed",
+          "The payment didn't go through. Nothing was paid; try again."
+        ),
+      ],
+      states: [
+        { name: "empty", fixture: "invoice-queue/empty" },
+        { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
+        {
+          name: "payment-scheduled",
+          fixture: "invoice-queue/payment-scheduled",
+        },
+        { name: "payment-failed", fixture: "invoice-queue/payment-failed" },
+      ],
+      actions: [
+        {
+          name: "approve-and-pay",
+          operation: "payInvoices",
+          pending: "pay",
+          to: { success: "payment-scheduled", failure: "payment-failed" },
+        },
+      ],
+    };
+    const { entries } = await loadRegistry();
+    const fixtures = {
+      variants: Object.fromEntries(
+        variantNames.map((name) => [name, fixtureVariant(name).data])
+      ),
+      operations: operationNames,
+    };
+    const { requires } = readScreenBrief(
+      join(import.meta.dirname, "../evals/briefs/invoice-queue.md")
+    );
+
+    expect(gate1(spec, { audience: "admin", entries, fixtures })).toEqual([]);
+    expect(checkPassCriteria(requires, wireSchema().parse(spec))).toEqual({
+      met: true,
+      missing: [],
+    });
   });
 
   // DataTable renders Checkbox; a UI spec never places one (#179).

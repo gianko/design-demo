@@ -51,7 +51,9 @@ Domain for the generated screens: **contractor payroll / invoicing** (I live it 
 
 ## 4. Components (initial list — trim, don't grow)
 
-Button, IconButton, Input, Select, Checkbox, Badge/StatusTag, Card, DataTable (sortable, selectable rows), Pagination, Tabs, Modal/Sheet, Toast, ActionBar (the bulk-action bar, see [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)), EmptyState, PageHeader, Screen (the root of every generated screen), Stack/Grid layout primitives, Heading, Text, Amount (typography; generated screens use library components only, see [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
+Button, IconButton, Checkbox, Badge/StatusTag, Card, DataTable (selectable rows), Modal/Sheet, Toast, ActionBar (the bulk-action bar, see [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)), EmptyState, PageHeader, Screen (the root of every generated screen), Stack (the layout primitive), Heading, Text, Amount (typography; generated screens use library components only, see [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
+
+Trimmed in P1: Input, Select, Pagination, Tabs, Grid and sortable DataTable. The reason for each is in [the spec's After P1](spec.md#after-p1).
 
 Tokens: colour (semantic, light + dark modes), spacing, radius, type scale + pairing, elevation, motion (durations, easings), z-index.
 
