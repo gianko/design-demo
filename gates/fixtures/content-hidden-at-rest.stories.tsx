@@ -9,8 +9,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 // a tag under an `invisible` wrapper. Clip: a wipe that ends with the name
 // clipped away, and a collapsed box whose overflow is hidden. Pass: a reveal
 // that holds the text at opacity 0 for its delay and then fades it in, so
-// the rule has to wait for it to settle; the same fade-out on copy marked
-// `aria-hidden`; a visually hidden status region, as Screen renders one; a
+// the rule has to wait for it to settle; a fade-out on copy marked
+// `aria-hidden`, at once, so axe never meets it half faded; a visually hidden status region, as Screen renders one; a
 // `hidden` note; and an idle loop that never settles, which the rule must
 // not wait on.
 type Variant = "pass" | "opacity" | "visibility" | "clip";
@@ -21,10 +21,8 @@ const animate =
     element?.animate(keyframes, options);
   };
 
-const fadeOut = animate([{ opacity: 1 }, { opacity: 0 }], {
-  duration: 240,
-  fill: "forwards",
-});
+const fadeOut = (duration: number) =>
+  animate([{ opacity: 1 }, { opacity: 0 }], { duration, fill: "forwards" });
 
 const meta = {
   title: "GateFixtures/ContentHiddenAtRest",
@@ -32,7 +30,7 @@ const meta = {
   render: ({ variant }) => (
     <div className="flex flex-col items-start gap-sm bg-page p-page text-body text-ink">
       {variant === "opacity" && (
-        <div ref={fadeOut}>
+        <div ref={fadeOut(240)}>
           <p>Northwind Logistics GmbH</p>
         </div>
       )}
@@ -60,14 +58,14 @@ const meta = {
         <>
           <div
             ref={animate([{ opacity: 0 }, { opacity: 1 }], {
-              delay: 1500,
+              delay: 5000,
               duration: 240,
               fill: "backwards",
             })}
           >
             <p>Northwind Logistics GmbH</p>
           </div>
-          <span aria-hidden="true" ref={fadeOut}>
+          <span aria-hidden="true" ref={fadeOut(0)}>
             Paid
           </span>
           <div role="status" className="sr-only">
