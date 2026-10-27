@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { staticRules } from "../lint/taste/rules/index.ts";
 import * as noPill from "../lint/taste/rules/no-pill.ts";
+import * as skippedHeading from "../lint/taste/rules/skipped-heading.ts";
 import * as tabularNumerals from "../lint/taste/rules/tabular-numerals.ts";
 import * as textOverflow from "../lint/taste/rules/text-overflow.ts";
 import * as typeOnScale from "../lint/taste/rules/type-on-scale.ts";
@@ -225,7 +226,7 @@ describe("in CI", () => {
     });
   });
 
-  // The P0 render-time taste rules (lint/taste/RULES.md): each rule's
+  // The shipped render-time taste rules (lint/taste/RULES.md): each rule's
   // failing fixture story fails gate 7 under the rule's id, with the finding.
   // A rule's fixtures are the stories of GateFixtures/<Rule>.
   const fixture = (rule: string, story: string) =>
@@ -259,6 +260,16 @@ describe("in CI", () => {
     [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
     ["no-all-caps", "fail", /"Overdue" is set in uppercase/],
     ["no-all-caps", "fail", /"AMOUNT" is in all caps/],
+    [
+      skippedHeading.id,
+      "fail",
+      /"Overdue" is level 3, after level 1 "Invoices"/,
+    ],
+    [
+      skippedHeading.id,
+      "fail",
+      /"Northwind Logistics" is level 5, after level 3 "Overdue"/,
+    ],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
     const printed = finding.source.replaceAll('"', '\\\\?"');
