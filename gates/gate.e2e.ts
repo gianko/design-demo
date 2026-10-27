@@ -15,8 +15,11 @@ import {
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { staticRules } from "../lint/taste/rules/index.ts";
+import * as nestedCards from "../lint/taste/rules/nested-cards.ts";
 import * as noPill from "../lint/taste/rules/no-pill.ts";
+import * as skippedHeading from "../lint/taste/rules/skipped-heading.ts";
 import * as tabularNumerals from "../lint/taste/rules/tabular-numerals.ts";
+import * as targetSize from "../lint/taste/rules/target-size.ts";
 import * as textOverflow from "../lint/taste/rules/text-overflow.ts";
 import * as typeOnScale from "../lint/taste/rules/type-on-scale.ts";
 import { renderRules } from "./render-rules.ts";
@@ -225,7 +228,7 @@ describe("in CI", () => {
     });
   });
 
-  // The P0 render-time taste rules (lint/taste/RULES.md): each rule's
+  // The shipped render-time taste rules (lint/taste/RULES.md): each rule's
   // failing fixture story fails gate 7 under the rule's id, with the finding.
   // A rule's fixtures are the stories of GateFixtures/<Rule>.
   const fixture = (rule: string, story: string) =>
@@ -257,6 +260,48 @@ describe("in CI", () => {
       /"Northwind Logistics GmbH" is clipped without an ellipsis/,
     ],
     [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
+    ["no-all-caps", "fail", /"Overdue" is set in uppercase/],
+    ["no-all-caps", "fail", /"AMOUNT" is in all caps/],
+    [
+      skippedHeading.id,
+      "fail",
+      /"Overdue" is level 3, after level 1 "Invoices"/,
+    ],
+    [
+      skippedHeading.id,
+      "fail",
+      /"Northwind Logistics" is level 5, after level 3 "Overdue"/,
+    ],
+    [
+      nestedCards.id,
+      "border",
+      /"Northwind Logistics" is a painted surface inside another/,
+    ],
+    [
+      nestedCards.id,
+      "shadow",
+      /"Next payment" is a painted surface inside another/,
+    ],
+    [
+      "no-pure-neutral-text",
+      "fail",
+      /"Ada Lovelace" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ],
+    [
+      "no-pure-neutral-text",
+      "fail",
+      /"Approve and pay" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ],
+    [
+      "no-pure-neutral-text",
+      "fail",
+      /The placeholder "Search invoices" is set in oklab\(0 0 0 \/ 0\.5\)/,
+    ],
+    [
+      "no-pure-neutral-text",
+      "fail",
+      /"Invoice 1042" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
     const printed = finding.source.replaceAll('"', '\\\\?"');
@@ -266,6 +311,27 @@ describe("in CI", () => {
         render,
         new RegExp(`gate 7: ${rule}\\b[\\s\\S]*${printed}`)
       );
+    }
+  });
+
+  // target-size holds only contractor scopes to 44px, so its failing
+  // fixture fails there and not in admin.
+  it("fails gate 7's target-size on its failing fixture in contractor only", () => {
+    for (const render of rendersOf(fixture(targetSize.id, "fail"))) {
+      const errors = run.outcome(render)?.errors.join("\n");
+      if (render.density === "admin") {
+        expect(errors).not.toMatch(/gate 7: target-size\b/);
+        continue;
+      }
+      for (const name of ["Remove", "Payment terms", "Remember this payee"]) {
+        expectFailed(
+          run,
+          render,
+          new RegExp(
+            `gate 7: target-size\\b[\\s\\S]*\\\\?"${name}\\\\?" has a \\d+×\\d+px hit area`
+          )
+        );
+      }
     }
   });
 
@@ -326,11 +392,14 @@ describe("static lint fixtures", () => {
   afterAll(() => rmSync(planted, { recursive: true, force: true }));
 
   it.each([
+    // Each rule on the file types it has failing fixtures for (a TSX-only
+    // rule has no CSS ones), as static.test.ts reads them.
     ...staticRules.flatMap(({ id }) =>
-      ["tsx", "css"].map((extension) => [
-        `taste/${id}`,
-        `${id}.fail.${extension}`,
-      ])
+      ["tsx", "css"]
+        .filter((extension) =>
+          existsSync(join(tasteFixtures, `${id}.fail.${extension}`))
+        )
+        .map((extension) => [`taste/${id}`, `${id}.fail.${extension}`])
     ),
     ["taste-exemptions/no-inline-disable", "no-inline-disable.fail.tsx"],
     ["taste-exemptions/no-inline-disable", "no-inline-disable.fail.css"],

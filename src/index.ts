@@ -1,5 +1,9 @@
 // The library barrel. Every library component is exported from here, and
 // nothing outside the library imports a component any other way.
+export {
+  ActionBar,
+  type ActionBarProps,
+} from "./components/ActionBar/ActionBar.tsx";
 export { Amount, type AmountProps } from "./components/Amount/Amount.tsx";
 export { Button, type ButtonProps } from "./components/Button/Button.tsx";
 export { Card, type CardProps } from "./components/Card/Card.tsx";
@@ -34,3 +38,7 @@ export {
   type StatusTagProps,
 } from "./components/StatusTag/StatusTag.tsx";
 export { Text, type TextProps } from "./components/Text/Text.tsx";
+export { Toast, type ToastProps } from "./components/Toast/Toast.tsx";
+// Toast's view transition names and entering duration. Toast.tsx can't import
+// it, since its registry entry, loaded under node, imports Toast.tsx.
+import "./components/Toast/Toast.css";

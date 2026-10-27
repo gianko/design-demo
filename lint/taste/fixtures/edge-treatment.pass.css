@@ -1,0 +1,30 @@
+/* A flat surface with its hairline, one-sided hairlines, a floating toast
+   with a shadow and no border, and a border colour beside a shadow. Widths
+   are the `thin` keyword and shadows are tokens, so the fixture also passes
+   token lint when the gate plants it. */
+.card {
+  border: thin solid var(--ds-color-border-line);
+}
+
+.row {
+  border-bottom: thin solid var(--ds-color-border-line);
+}
+
+.cell {
+  border-inline-end-width: thin;
+  border-width: 0 0 thin;
+}
+
+.toast {
+  border: none;
+  box-shadow: var(--ds-shadow-raised);
+}
+
+.menu {
+  border-color: var(--ds-color-border-line);
+  box-shadow: var(--ds-shadow-overlay);
+}
+
+.plain {
+  box-shadow: none;
+}
