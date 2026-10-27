@@ -59,9 +59,11 @@ async function holdsPlaceAndShape(canvas: HTMLElement, density: string) {
 }
 
 // A label and its value on one row, as a Sheet's body lays out a row's facts.
+// A value too long for the row wraps under its label, one 4px step below it,
+// nearer its own label than the next fact's 8px.
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Stack direction="row" justify="between" gap="sm">
+    <Stack direction="row" justify="between" gap="3xs">
       <Text tone="muted" text={label} />
       {children}
     </Stack>
@@ -72,7 +74,9 @@ const meta = {
   title: "Components/Sheet",
   component: Sheet,
   // The sheet is a modal dialog over the whole window; the canvas fills the
-  // window so the gate's shots of the story root hold all of it.
+  // window, with none of Storybook's padding, so the gate's shots of the
+  // story root hold all of it, end edge included.
+  parameters: { layout: "fullscreen" },
   decorators: [
     (Story) => (
       <div className="min-h-dvh">

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { tv } from "tailwind-variants/lite";
 import type { PropsOf } from "../../registry/entry.ts";
 import { IconButton } from "../IconButton/IconButton.tsx";
@@ -34,7 +34,9 @@ export function Sheet({ closeLabel, title, children }: SheetProps) {
   const titleId = useId();
   const close = useSheetClose();
 
-  useEffect(() => {
+  // In the commit, not after it, so the sheet is open by the time anything
+  // reads the page: a View Transition's new view, a story's play function.
+  useLayoutEffect(() => {
     const dialog = ref.current!;
     // What had focus when it opened: the row, which a keyboard user opened
     // with Enter. Focus goes back there when the sheet closes, as Radix's
