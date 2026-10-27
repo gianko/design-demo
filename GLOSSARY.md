@@ -137,3 +137,7 @@ _Avoid_: Try, retry
 **Pass criteria**:
 A screen brief's own requirements (components, screen states, actions) that the final UI spec of a rep must meet, on top of the gates.
 _Avoid_: Acceptance criteria, assertions
+
+**Coverage rule**:
+What the set of screen briefs must meet as a whole: every library component appears in at least two briefs' pass criteria, each audience gets at least a third of the briefs, and every action has a failure state. Internal entries and layout primitives aren't counted.
+_Avoid_: Coverage (unqualified), brief quota
