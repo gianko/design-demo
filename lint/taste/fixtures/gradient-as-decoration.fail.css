@@ -1,0 +1,27 @@
+/* Gradients in CSS: every gradient function, the text clip, and the classes
+   through @apply. */
+.hero {
+  background: linear-gradient(var(--ds-color-accent), var(--ds-color-surface)); /* ✗ taste/gradient-as-decoration */
+}
+
+.halo {
+  background-image: radial-gradient(circle, var(--ds-color-accent), transparent); /* ✗ taste/gradient-as-decoration */
+}
+
+.ring {
+  background-image: conic-gradient(var(--ds-color-accent), var(--ds-color-progress)); /* ✗ taste/gradient-as-decoration */
+}
+
+.stripes {
+  background-image: repeating-linear-gradient(45deg, var(--ds-color-line) 0 1px, transparent 1px 8px); /* ✗ taste/gradient-as-decoration */
+}
+
+.title {
+  -webkit-background-clip: text; /* ✗ taste/gradient-as-decoration */
+  background-clip: text; /* ✗ taste/gradient-as-decoration */
+}
+
+.banner {
+  @apply bg-linear-to-r; /* ✗ taste/gradient-as-decoration */
+  @apply hover:from-accent; /* ✗ taste/gradient-as-decoration */
+}
