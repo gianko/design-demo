@@ -1,5 +1,7 @@
 // `pnpm eval:report <a.json> [b.json]` (ADR 0008): one results file gives a
-// run report, two give a side-by-side comparison. The report is one
+// run report, two give a side-by-side comparison. `--latest` takes the
+// newest results file, compared against the baseline it names if it names
+// one, as the Pages deploy reports at /evals/. The report is one
 // self-contained HTML file in gitignored `evals/reports/`, styled by the
 // design system's own tokens.css, with its font and any screenshots inline.
 
@@ -73,6 +75,18 @@ export async function main(
       return 0;
     }
     paths = [latest.path];
+    // The newest run is compared against the baseline it names, as run A.
+    const named = latest.file.baseline;
+    if (named) {
+      const baseline = join(resultsDir, `${named}.json`);
+      if (!existsSync(baseline)) {
+        log(
+          `${relative(repo, latest.path)} names ${named} as its baseline, but ${relative(repo, baseline)} doesn't exist.`
+        );
+        return 1;
+      }
+      paths = [baseline, latest.path];
+    }
   }
   if (paths.length < 1 || paths.length > 2) {
     log(usage);
@@ -239,8 +253,8 @@ ${legend(runs)}
 ${briefSetsDiffer(runs)}
 <section>
 <h2>Screen briefs</h2>
-<p class="note">${runs.length > 1 ? "Each cell reads run A → run B, and – marks a screen brief a run doesn't cover." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate.</p>
-${summary(runs)}
+<p class="note">${runs.length > 1 ? "Side by side, each cell reads run A → run B." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate.</p>
+${summaries(runs)}
 </section>
 ${runs.map((run, index) => repsSection(run, runs.length > 1 ? letter(index) : null)).join("\n")}
 </main>
@@ -323,8 +337,8 @@ function stepConfig(config: StepConfig) {
   return `${config.model}, ${config.effort} effort, up to ${config.attempts} attempts`;
 }
 
-// ADR 0008: a comparison flags runs whose brief sets differ, since their
-// overall counts then cover different screen briefs.
+// ADR 0008: a comparison flags runs whose brief sets differ. Only the screen
+// briefs both cover are compared; the rest are shown alone.
 function briefSetsDiffer(runs: ReportRun[]) {
   if (runs.length < 2) return "";
   const [a, b] = runs.map((run) => new Set(run.file.briefSlugs)) as [
@@ -336,26 +350,80 @@ function briefSetsDiffer(runs: ReportRun[]) {
   if (onlyA.length === 0 && onlyB.length === 0) return "";
   const only = (name: string, slugs: string[]) =>
     slugs.length
-      ? `<li>only in ${name}: ${slugs.map(escape).join(", ")}</li>`
+      ? `<li>only in ${name}: ${slugs.map((slug) => escapeHtml(slug)).join(", ")}</li>`
       : "";
   return `<aside class="brief-sets-differ" role="note">
-<p><strong>These runs cover different screen briefs</strong>, so their overall counts aren't over the same screen briefs.</p>
+<p><strong>These runs cover different screen briefs</strong>, so only the screen briefs both runs cover are compared side by side, with an overall row over those alone. The others are shown on their own, below.</p>
 <ul>${only("A", onlyA)}${only("B", onlyB)}</ul>
 </aside>`;
 }
 
-// One row per screen brief, then the overall row: counts, not percentages,
-// with no claim of significance at K≈3. A run report's passes read first
-// attempt → final; in a comparison every cell reads run A → run B (ADR 0008),
-// with – for a screen brief a run doesn't cover.
-function summary(runs: ReportRun[]) {
-  const briefs = [...new Set(runs.flatMap((run) => run.file.briefSlugs))];
-  const compare = runs.length > 1;
+// The summary tables. A run report has one; so does a comparison of runs over
+// the same screen briefs. When their brief sets differ, the screen briefs
+// both runs cover are compared side by side, and those only one run covers
+// are shown alone, each set with an overall row over that set alone.
+function summaries(runs: ReportRun[]) {
+  if (runs.length === 1)
+    return summary(runs, runs[0]!.file.briefSlugs, overall, "run");
+  const [a, b] = runs as [ReportRun, ReportRun];
+  const inB = new Set(b.file.briefSlugs);
+  const shared = a.file.briefSlugs.filter((slug) => inB.has(slug));
+  const only = runs.map((run, index) => ({
+    run,
+    name: letter(index),
+    briefs: run.file.briefSlugs.filter((slug) => !shared.includes(slug)),
+  }));
+  if (only.every((each) => each.briefs.length === 0))
+    return summary(runs, shared, overall, "compare");
+  const set = (heading: string, table: string) => `<section class="brief-set">
+<h3>${escapeHtml(heading)}</h3>
+${table}
+</section>`;
+  return [
+    shared.length
+      ? set(
+          `In both runs (${shared.length}), side by side`,
+          summary(
+            runs,
+            shared,
+            `All in both runs (${shared.length})`,
+            "compare"
+          )
+        )
+      : "",
+    ...only
+      .filter((each) => each.briefs.length)
+      .map(({ run, name, briefs }) =>
+        set(
+          `Only in run ${name} (${briefs.length})`,
+          summary(
+            [run],
+            briefs,
+            `All only in ${name} (${briefs.length})`,
+            "alone"
+          )
+        )
+      ),
+  ].join("\n");
+}
+
+// One row per screen brief, then the overall row over those screen briefs:
+// counts, not percentages, with no claim of significance at K≈3. A run
+// report's passes read first attempt → final; in a comparison every cell
+// reads run A → run B (ADR 0008), and a screen brief only one run covers
+// shows that run's counts alone, in the comparison's columns.
+function summary(
+  runs: ReportRun[],
+  briefs: string[],
+  overallLabel: string,
+  mode: "run" | "compare" | "alone"
+) {
+  const compare = mode === "compare";
   const head = [
     "Screen brief",
-    ...(compare
-      ? ["Passed (final)", "Passed (first attempt)"]
-      : ["Passed (first attempt → final)"]),
+    ...(mode === "run"
+      ? ["Passed (first attempt → final)"]
+      : ["Passed (final)", "Passed (first attempt)"]),
     "Errors",
     "Skipped",
     "Mean attempts (spec · code)",
@@ -363,19 +431,15 @@ function summary(runs: ReportRun[]) {
     "Wall time",
     ...gates,
   ];
-  // One run's cells for a screen brief, or null if the run doesn't cover it.
-  const cells = (run: ReportRun, brief: string): string[] | null => {
-    if (brief !== overall && !run.file.briefSlugs.includes(brief)) return null;
-    const reps =
-      brief === overall
-        ? run.file.reps
-        : run.file.reps.filter((rep) => rep.slug === brief);
+  // One run's cells for some of its screen briefs.
+  const cells = (run: ReportRun, slugs: string[]): string[] => {
+    const reps = run.file.reps.filter((rep) => slugs.includes(rep.slug));
     const counts = tally(reps);
     const failures = gateFailures(reps);
     return [
-      ...(compare
-        ? [rate(counts.final), rate(counts.firstAttempt)]
-        : [`${rate(counts.firstAttempt)} → ${rate(counts.final)}`]),
+      ...(mode === "run"
+        ? [`${rate(counts.firstAttempt)} → ${rate(counts.final)}`]
+        : [rate(counts.final), rate(counts.firstAttempt)]),
       String(counts.error),
       String(counts.skipped),
       meanAttempts(reps),
@@ -384,16 +448,20 @@ function summary(runs: ReportRun[]) {
       ...gates.map((gate) => String(failures[gate])),
     ];
   };
-  const row = (brief: string) => {
-    const [a, b] = runs.map((run) => cells(run, brief));
-    const values = compare
-      ? head.slice(1).map((_, i) => `${a?.[i] ?? "–"} → ${b?.[i] ?? "–"}`)
-      : a!;
-    return `<tr${brief === overall ? ' class="overall"' : ""}><th scope="row">${escapeHtml(brief)}</th>${values
+  const row = (label: string, slugs: string[], isOverall: boolean) => {
+    const [a, b] = runs.map((run) => cells(run, slugs)) as [
+      string[],
+      string[]?,
+    ];
+    const values = compare ? a.map((each, i) => `${each} → ${b![i]}`) : a;
+    return `<tr${isOverall ? ' class="overall"' : ""}><th scope="row">${escapeHtml(label)}</th>${values
       .map((value) => `<td>${escapeHtml(value)}</td>`)
       .join("")}</tr>`;
   };
-  const body = [...briefs, overall].map(row);
+  const body = [
+    ...briefs.map((brief) => row(brief, [brief], false)),
+    row(overallLabel, briefs, true),
+  ];
   return `<div class="table"><table class="summary">
 <thead><tr>${head.map((cell) => `<th scope="col">${escapeHtml(cell)}</th>`).join("")}</tr></thead>
 <tbody>
@@ -425,7 +493,7 @@ ${briefs.join("\n")}
 
 function repDetails(run: ReportRun, rep: RepResult) {
   const missing = rep.criteria?.missing.length
-    ? `<p>Pass criteria missing: ${rep.criteria.missing.map(escape).join(", ")}</p>`
+    ? `<p>Pass criteria missing: ${rep.criteria.missing.map((each) => escapeHtml(each)).join(", ")}</p>`
     : "";
   const attempts = rep.attempts
     .map((attempt) => {
