@@ -98,7 +98,8 @@ export type DataTableProps<R extends Row = Row> = Omit<
 
 const rowsSelected = "rows-selected";
 
-// Marks a table with a detail slot, which the open-sheet render counts.
+// Marks a table with a detail slot: the test attribute the open-sheet render
+// (ADR 0011) counts tables by, to find the one ScreenHost's openSheet names.
 const detailAttribute = "data-detail";
 
 // The nodes `cell` gives for one row, a fragment's children one each.
