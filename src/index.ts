@@ -15,6 +15,10 @@ export {
   DataTable,
   type DataTableProps,
 } from "./components/DataTable/DataTable.tsx";
+export {
+  EmptyState,
+  type EmptyStateProps,
+} from "./components/EmptyState/EmptyState.tsx";
 export { Heading, type HeadingProps } from "./components/Heading/Heading.tsx";
 export {
   PageHeader,
