@@ -1,0 +1,30 @@
+/* A flat surface with its hairline, one-sided hairlines, a floating toast
+   with a shadow and no border, and a border colour beside a shadow. */
+.card {
+  border: 1px solid var(--ds-color-border-line);
+}
+
+.row {
+  border-bottom: 1px solid var(--ds-color-border-line);
+}
+
+.cell {
+  border-inline-end-width: thin;
+  border-width: 0 0 1px;
+}
+
+.toast {
+  border: none;
+  box-shadow: var(--ds-shadow-raised);
+}
+
+.menu {
+  border-color: var(--ds-color-border-line);
+  box-shadow:
+    0 8px 24px 0 var(--ds-color-bg-scrim),
+    0 0 0 1px var(--ds-color-border-line);
+}
+
+.plain {
+  box-shadow: none;
+}

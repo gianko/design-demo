@@ -2,6 +2,7 @@
 // exports its `id`, and `lint` for its static half, `render` for its render
 // half, or both.
 
+import * as edgeTreatment from "./edge-treatment.ts";
 import * as motionTokens from "./motion-tokens.ts";
 import * as noPill from "./no-pill.ts";
 import * as tabularNumerals from "./tabular-numerals.ts";
@@ -14,6 +15,7 @@ export const tasteRules = [
   typeOnScale,
   tabularNumerals,
   textOverflow,
+  edgeTreatment,
 ];
 
 // The rules ESLint runs as `taste/<id>`.

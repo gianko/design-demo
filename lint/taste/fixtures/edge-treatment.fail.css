@@ -1,0 +1,47 @@
+/* A border and a shadow under one selector: through @apply, as
+   declarations, and one of each. */
+.panel {
+  @apply border border-line shadow-raised; /* ✗ taste/edge-treatment */
+}
+
+.card {
+  border: 1px solid var(--ds-color-border-line);
+  box-shadow: var(--ds-shadow-raised); /* ✗ taste/edge-treatment */
+}
+
+.bar {
+  @apply border-t;
+  box-shadow: var(--ds-shadow-overlay); /* ✗ taste/edge-treatment */
+}
+
+/* A shadow drawing an edge: a ring, and shadows with no blur. */
+.field {
+  @apply ring-1; /* ✗ taste/edge-treatment */
+}
+
+.input {
+  box-shadow: 0 0 0 1px var(--ds-color-border-control); /* ✗ taste/edge-treatment */
+}
+
+.tab {
+  box-shadow: inset 0 -2px var(--ds-color-bg-accent); /* ✗ taste/edge-treatment */
+}
+
+/* A one-sided border wider than the hairline: as a shorthand, as a width, a
+   side whose shorthand leaves the width at `medium`, and one side of a
+   `border-width` list. */
+.row {
+  border-left: 4px solid var(--ds-color-bg-overdue); /* ✗ taste/edge-treatment */
+}
+
+.cell {
+  border-inline-start-width: thick; /* ✗ taste/edge-treatment */
+}
+
+.flag {
+  border-top: solid var(--ds-color-bg-failed); /* ✗ taste/edge-treatment */
+}
+
+.stripe {
+  border-width: 0 0 0 0.25rem; /* ✗ taste/edge-treatment */
+}
