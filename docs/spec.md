@@ -337,3 +337,7 @@ The ten new briefs and what each asks for are in [P1](https://github.com/gianko/
 | `my-invoices` | Screen, Heading, DataTable, Sheet, Amount, StatusTag, Text, EmptyState | empty | — | row-to-sheet |
 | `payments-received` | Screen, Heading, DataTable, Amount, Sheet, EmptyState | empty | — | row-to-sheet |
 | `payment-failed` | Screen, Heading, Card, Amount, StatusTag, Button, Toast | retry-requested, retry-failed | request-retry | — |
+| `withdraw-invoice` | Screen, Heading, Card, Amount, StatusTag, Text, Button, Toast, EmptyState | invoice-withdrawn, withdraw-failed | withdraw-invoice | — |
+| `annual-summary` | Screen, Heading, Card, Amount, DataTable, EmptyState | empty | — | — |
+
+Text is the thinnest-covered component: my-invoices and withdraw-invoice each ask for a Text per detail line and list it, which makes the two briefs the coverage rule needs. The brief-set test checks the rule across the set.
