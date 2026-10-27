@@ -199,7 +199,7 @@ describe("generate", () => {
     expect(trace.uiSpec).toEqual(smokeSpec);
   }, 120_000);
 
-  it("hands the render pass the attempt's TSX, audience and screen states, and records its renders", async () => {
+  it("hands the render pass the attempt's TSX, audience, screen states, nodes and actions, and records its renders", async () => {
     const withState = {
       ...smokeSpec,
       states: [{ name: "empty", fixture: "payment-status/empty" }],
@@ -220,6 +220,8 @@ describe("generate", () => {
         source: smokeTsx,
         audience: "contractor",
         states: withState.states,
+        nodes: withState.nodes,
+        actions: withState.actions,
       },
     ]);
     const passed = { "gate 4": "pass", "gate 7 render": "pass" };

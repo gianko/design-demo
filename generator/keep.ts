@@ -49,6 +49,8 @@ export async function main(argv: string[], deps: KeepDeps = {}) {
       slug: trace.slug,
       name,
       states: trace.uiSpec.states,
+      nodes: trace.uiSpec.nodes,
+      actions: trace.uiSpec.actions,
     }),
   };
   mkdirSync(dir, { recursive: true });

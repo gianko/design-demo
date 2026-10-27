@@ -2,6 +2,11 @@ import type { Preview } from "@storybook/react-vite";
 import { ScreenHost, type ScreenStateParameters } from "../src/index.ts";
 import "../src/styles.css";
 import { densities, themes, type Density, type Theme } from "./globals";
+import {
+  actionStart,
+  type ScreenActionGlobals,
+  type ScreenActionParameters,
+} from "./screen-actions.ts";
 
 const preview: Preview = {
   globalTypes: {
@@ -13,6 +18,10 @@ const preview: Preview = {
       description: "Density set",
       toolbar: { title: "Density", items: [...densities], dynamicTitle: true },
     },
+    // No toolbar: the action-transitions taste rule sets these in the URL
+    // (./screen-actions.ts).
+    screenAction: { description: "Declared action to start before" },
+    screenOutcome: { description: "Its outcome: success or failure" },
   },
   initialGlobals: {
     theme: "light" satisfies Theme,
@@ -24,9 +33,16 @@ const preview: Preview = {
     // hooks (ADR 0011), so every story renders inside a ScreenHost. A state
     // story names its state and fixture variant in `parameters.screenState`
     // (generator/screen-stories.ts); the rest start in the default state.
-    (Story, { parameters }) => (
+    // The screenAction and screenOutcome globals start it where one of its
+    // declared actions is clicked, under that outcome's variant.
+    (Story, { parameters, globals }) => (
       <ScreenHost
-        screenState={(parameters as ScreenStateParameters).screenState}
+        screenState={
+          actionStart(
+            parameters as ScreenActionParameters,
+            globals as ScreenActionGlobals
+          ) ?? (parameters as ScreenStateParameters).screenState
+        }
       >
         <Story />
       </ScreenHost>

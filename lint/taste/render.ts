@@ -4,7 +4,7 @@
 // over Node modules, so `installHelpers` puts these on `globalThis.taste`
 // before a rule's page function runs.
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 // One failure of a render-time taste rule: what is wrong, worded so the
 // story, theme and density in the test title complete it, and the element it
@@ -12,12 +12,29 @@ import type { Page } from "@playwright/test";
 // a repair turn can point at it (ADR 0010).
 export type RenderFinding = { message: string; selector: string; html: string };
 
+// The story a render shows, for a rule that needs more than its rendered
+// page: what the story declares, and fresh renders of it to drive.
+export type RenderedStory = {
+  id: string;
+  // One of the story's parameters, as JSON; undefined when it has none.
+  parameter(name: string): Promise<unknown>;
+  // The story opened again in a new page of the same browser context, in the
+  // same theme, density and viewport, with these globals set as well. The
+  // render's own page is left as it was; the caller closes the new one.
+  reopen(globals: Record<string, string>): Promise<Page>;
+};
+
 // A render-time taste rule. It inspects one rendered story and returns its
-// findings. Its help line is its line in RULES.md.
+// findings. Its help line is its line in RULES.md. A rule that changes the
+// page leaves it as it found it: the baseline shot follows.
 export type RenderRule = {
   name: string;
   help: string;
-  check: (page: Page, root: string) => Promise<RenderFinding[]>;
+  check: (
+    page: Page,
+    root: string,
+    story: RenderedStory
+  ) => Promise<RenderFinding[]>;
 };
 
 export type VisibleText = {
@@ -63,6 +80,19 @@ export async function inPage<Arg, Result>(
   return page
     .locator(root)
     .evaluate(check as (root: Element, arg: unknown) => Result, arg);
+}
+
+// A finding on the element `locator` points at.
+export async function findingAt(
+  page: Page,
+  locator: Locator,
+  message: string
+): Promise<RenderFinding> {
+  await page.evaluate(installHelpers);
+  return locator.evaluate(
+    (element, message) => taste.at(element, message),
+    message
+  );
 }
 
 function installHelpers() {
