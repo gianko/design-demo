@@ -149,7 +149,12 @@ async function opensSheetOf(
 
   const root = canvas.querySelector('[data-component="DataTable"]')!;
   await expect(root.contains(sheet)).toBe(false);
-  await expect(root.querySelector("[data-sheet-origin]")).toBeNull();
+  // The row it opened from carried the sheet's name only in the old view, so
+  // no row carries it now.
+  await expect(root.querySelector(".vt-row-detail")).toBeNull();
+  for (const row of root.querySelectorAll("tbody tr")) {
+    await expect(getComputedStyle(row).viewTransitionName).toBe("none");
+  }
   await expect(
     [...root.querySelectorAll<HTMLInputElement>("tbody input")].filter(
       (box) => box.checked

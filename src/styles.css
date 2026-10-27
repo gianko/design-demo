@@ -57,3 +57,87 @@
     animation-timing-function: var(--ds-motion-ease-standard);
   }
 }
+
+/* The library's view transition names, each set by a class (ADR 0006), so
+   a name is spelled once, here, and the components that share it agree by
+   using the same class. Gate 1 keeps one ActionBar and one Toast per screen
+   state, and DataTable opens one Sheet at a time, so each name is unique in
+   every snapshot.
+
+   - `vt-action-result`: ActionBar and a success Toast (ADR 0011). Entering
+     an action's success state, whose UI spec leaves the bar out, morphs the
+     bar into the toast.
+   - `vt-action-failure`: a failure Toast. The bar stays beside it, keeping
+     its own name, so the toast enters on its own.
+   - `vt-row-detail`: a Sheet, and the row it opened from, which
+     transitionSheet marks in whichever view shows the row and not the
+     sheet. So opening morphs the row into the sheet, and closing morphs it
+     back. */
+@utility vt-action-result {
+  view-transition-name: action-result;
+}
+
+@utility vt-action-failure {
+  view-transition-name: action-failure;
+}
+
+@utility vt-row-detail {
+  view-transition-name: row-detail;
+}
+
+/* Per-name timing. Every easing not set here is the rules' above, so
+   `settle` still runs only under `confirm`. Under reduced motion none of
+   this applies, and every change stays a `fast` crossfade. */
+@media (prefers-reduced-motion: no-preference) {
+  /* A toast enters at `slow`, the brief's duration for a toast entering,
+     and leaves at `slow-exit`. The bar's group is timed this way only under
+     `confirm`, the transition in which it becomes the toast; the bar
+     entering with rows-selected keeps `base`. */
+  :root:active-view-transition-type(confirm)::view-transition-group(
+      action-result
+    ),
+  :root:active-view-transition-type(confirm)::view-transition-new(
+      action-result
+    ),
+  ::view-transition-group(action-failure),
+  ::view-transition-new(action-failure) {
+    animation-duration: var(--ds-motion-duration-slow);
+  }
+
+  :root:active-view-transition-type(confirm)::view-transition-old(
+      action-result
+    ),
+  ::view-transition-old(action-failure) {
+    animation-duration: var(--ds-motion-duration-slow-exit);
+  }
+
+  /* A sheet opens at `slow`, the brief's duration for a sheet, with
+     `standard` easing (opening confirms nothing, so it never settles), and
+     the row's image fades out at its exit duration. It closes at
+     `slow-exit` with `exit`. */
+  :root:active-view-transition-type(sheet-open)::view-transition-group(
+      row-detail
+    ),
+  :root:active-view-transition-type(sheet-open)::view-transition-new(
+      row-detail
+    ) {
+    animation-duration: var(--ds-motion-duration-slow);
+    animation-timing-function: var(--ds-motion-ease-standard);
+  }
+
+  :root:active-view-transition-type(sheet-open)::view-transition-old(
+      row-detail
+    ),
+  :root:active-view-transition-type(sheet-close)::view-transition-group(
+      row-detail
+    ),
+  :root:active-view-transition-type(sheet-close)::view-transition-old(
+      row-detail
+    ),
+  :root:active-view-transition-type(sheet-close)::view-transition-new(
+      row-detail
+    ) {
+    animation-duration: var(--ds-motion-duration-slow-exit);
+    animation-timing-function: var(--ds-motion-ease-exit);
+  }
+}

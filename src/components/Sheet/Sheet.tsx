@@ -4,7 +4,6 @@ import type { PropsOf } from "../../registry/entry.ts";
 import { IconButton } from "../IconButton/IconButton.tsx";
 import type { sheetEntry } from "./Sheet.registry.ts";
 import { useSheetClose } from "./sheet-host.tsx";
-import "./Sheet.css";
 
 // Row detail (ADR 0011): an overlay panel at the end edge, full height, over
 // the scrim, holding one row's facts. It is a native modal <dialog>, opened
@@ -13,10 +12,11 @@ import "./Sheet.css";
 // casts the overlay shadow, with no border; its corners facing the page take
 // the surface radius, and the edge against the window stays square. Its
 // title box names the dialog and is at least one control tall, so a one-line
-// title centres on the close button.
+// title centres on the close button. `vt-row-detail` is the view transition
+// name it shares with the row it opened from.
 export const sheet = tv({
   slots: {
-    root: "ms-auto flex h-full max-h-none w-sheet max-w-full flex-col gap-lg rounded-s-surface bg-surface-raised p-surface text-ink shadow-overlay outline-hidden backdrop:bg-scrim",
+    root: "ms-auto flex h-full max-h-none w-sheet max-w-full flex-col gap-lg rounded-s-surface bg-surface-raised p-surface text-ink shadow-overlay outline-hidden backdrop:bg-scrim vt-row-detail",
     header: "flex items-start gap-sm",
     title: "flex min-h-control grow items-center",
     body: "flex min-h-0 flex-col gap-md overflow-y-auto",
