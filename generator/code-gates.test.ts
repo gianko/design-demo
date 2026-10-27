@@ -132,6 +132,7 @@ export function Reminder() {
       <DataTable
         rows={data.invoices}
         columns={["Invoice"]}
+        selectable
         cell={(row) => <Text text={row.number} />}
       />
     </Screen>
