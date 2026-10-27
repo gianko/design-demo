@@ -1084,8 +1084,8 @@ describe("gate 1 against the library's registry", () => {
   // Sheet is read-only row detail (#213): its title is a Heading, and its
   // body holds only Heading, Text, Amount, StatusTag and Stack, so a UI spec
   // can't nest a Card in it or put an action in it. Only failures on the
-  // Sheet's children are read: whether DataTable has its detail slot yet
-  // (#214) is another rule's business.
+  // Sheet's children are read: the table around it is the detail slot's
+  // tests' business.
   describe("Sheet's children", () => {
     function sheetWith(...children: Node[]) {
       return {
@@ -1175,6 +1175,97 @@ describe("gate 1 against the library's registry", () => {
       ],
     ])("fails %s in a Sheet, naming it", async (_, child, failure) => {
       expect(await childFailures(child)).toEqual([failure]);
+    });
+  });
+
+  // Row → sheet (ADR 0011, #214): DataTable's detail slot holds one Sheet,
+  // bound in row scope, and a Sheet anywhere else is rejected.
+  describe("DataTable's detail slot", () => {
+    function invoicesWithSheet(parent: string, slot: string) {
+      return {
+        audience: "contractor",
+        nodes: [
+          node("screen", "Screen", null, null, { audience: "contractor" }),
+          node("column", "Stack", "screen", "body"),
+          node("title", "Heading", "column", "body", {
+            text: "My invoices",
+            level: 1,
+          }),
+          node("table", "DataTable", "column", "body", {
+            rows: bind("invoices"),
+            columns: ["Invoice", "Status"],
+          }),
+          node("number", "Text", "table", "cell", { text: bind("row.number") }),
+          node("status", "StatusTag", "table", "cell", {
+            status: bind("row.status"),
+          }),
+          node("sheet", "Sheet", parent, slot, {
+            closeLabel: "Close invoice details",
+          }),
+          node("sheet-title", "Heading", "sheet", "title", {
+            text: bind("row.number"),
+            level: 2,
+          }),
+          node("sheet-amount", "Amount", "sheet", "body", {
+            value: bind("row.amount"),
+            currency: bind("row.currency"),
+            display: "card",
+          }),
+        ],
+        states: [],
+        actions: [],
+      };
+    }
+
+    async function checkWithFixtures(spec: unknown) {
+      const { entries } = await loadRegistry();
+      const fixtures = {
+        variants: { default: fixtureVariant("default").data },
+        operations: operationNames,
+      };
+      return gate1(spec, { audience: "contractor", entries, fixtures }).map(
+        ({ rule, location }) => [rule, location]
+      );
+    }
+
+    it("passes a Sheet in a DataTable's detail slot, its children bound to the row", async () => {
+      expect(
+        await checkWithFixtures(invoicesWithSheet("table", "detail"))
+      ).toEqual([]);
+    });
+
+    // Its children's row.* bindings fail there too; only the Sheet's own
+    // failures are read.
+    it("fails a Sheet outside a DataTable, naming it", async () => {
+      const failures = await checkWithFixtures(
+        invoicesWithSheet("column", "body")
+      );
+
+      expect(failures.filter(([, location]) => location === "sheet")).toEqual([
+        ["sheet-in-detail", "sheet"],
+      ]);
+    });
+
+    it("fails a Sheet in a DataTable's cell slot, naming it", async () => {
+      expect(
+        await checkWithFixtures(invoicesWithSheet("table", "cell"))
+      ).toEqual([
+        ["slot-allow", "sheet"],
+        ["sheet-in-detail", "sheet"],
+      ]);
+    });
+
+    it("fails anything but a Sheet in the detail slot, naming it", async () => {
+      const spec = invoicesWithSheet("table", "detail");
+      spec.nodes.push(
+        node("stray-text", "Text", "table", "detail", {
+          text: bind("row.number"),
+        })
+      );
+
+      expect(await checkWithFixtures(spec)).toEqual([
+        ["slot-allow", "stray-text"],
+      ]);
     });
   });
 
