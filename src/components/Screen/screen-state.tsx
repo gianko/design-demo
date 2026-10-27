@@ -50,6 +50,8 @@ type ScreenStateContext = {
   selected: readonly string[];
   // Sets the selection, entering `name` in the same update when given.
   select: (ids: readonly string[], name?: string) => void;
+  // Which detail table starts with its first row's Sheet open, if any.
+  openSheet: number | undefined;
 };
 
 const HostContext = createContext<ScreenStateContext | null>(null);
@@ -64,9 +66,12 @@ export type HostedState = { name: string; fixture: VariantName };
 // `screenStates` is the UI spec's declared states, which a kept screen's
 // stories carry for each of them, so a confirmed action shows the data of the
 // state it enters.
+// `openSheet` is the open-sheet render's (ADR 0011), which the preview hands
+// to ScreenHost.
 export type ScreenStateParameters = {
   screenState?: HostedState;
   screenStates?: readonly HostedState[];
+  openSheet?: number;
 };
 
 export type ScreenHostProps = {
@@ -81,6 +86,11 @@ export type ScreenHostProps = {
   // The selection the host starts with, such as a story's every row; the
   // fixture variant's when not given.
   selected?: readonly string[];
+  // The open-sheet render's test hook (ADR 0011), set only by the gate
+  // harness's open-sheet story: which of the screen's DataTables with a
+  // detail slot, counted from 0 in document order, starts with its first
+  // row's Sheet open, with no View Transition.
+  openSheet?: number;
   children?: ReactNode;
 };
 
@@ -92,6 +102,7 @@ export function ScreenHost({
   screenState,
   states = noStates,
   selected: startSelected,
+  openSheet,
   children,
 }: ScreenHostProps) {
   const initial = screenState?.name ?? defaultState;
@@ -144,8 +155,17 @@ export function ScreenHost({
     [enter]
   );
   const value = useMemo(
-    () => ({ state, entries, enter, data, operations, selected, select }),
-    [state, entries, enter, data, operations, selected, select]
+    () => ({
+      state,
+      entries,
+      enter,
+      data,
+      operations,
+      selected,
+      select,
+      openSheet,
+    }),
+    [state, entries, enter, data, operations, selected, select, openSheet]
   );
   return <HostContext value={value}>{children}</HostContext>;
 }
@@ -186,6 +206,13 @@ export function useSelectedRows(): string[] {
 export function useSelection() {
   const { selected, select } = useHost("useSelection");
   return { selected, select };
+}
+
+// DataTable's read of the open-sheet render's hook: which of the screen's
+// tables with a detail slot, in document order, starts with its first row's
+// Sheet open. Outside a host, none.
+export function useOpenSheetAtStart() {
+  return useContext(HostContext)?.openSheet;
 }
 
 // Screen's own read of the state, for its data attribute. A Screen outside a

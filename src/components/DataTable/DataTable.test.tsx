@@ -307,6 +307,37 @@ it("renders the Sheet after the table's surface, not inside it", () => {
   expect(table.nextElementSibling).toBe(openSheet());
 });
 
+// The open-sheet render (ADR 0011, #215): ScreenHost's openSheet names one
+// of the screen's tables with a detail slot, counted in document order, and
+// that table starts with its first row's Sheet open, with no View
+// Transition, so the gate's shot catches no motion. A table without a
+// detail slot doesn't count.
+it("starts with the first row's Sheet open in the table openSheet names, with no View Transition", () => {
+  render(
+    <ScreenHost openSheet={1}>
+      <DataTable
+        rows={[{ id: "PLAIN" }]}
+        columns={["Plain"]}
+        cell={(row) => <Text text={row.id} />}
+      />
+      <OverdueInvoices selectable={false} />
+      <OverdueInvoices selectable={false} />
+    </ScreenHost>
+  );
+
+  const sheets = screen.getAllByRole("dialog");
+  expect(sheets).toEqual([screen.getByRole("dialog", { name: "INV-0142" })]);
+  const tables = document.querySelectorAll('[data-component="DataTable"]');
+  expect(tables[2]!.nextElementSibling).toBe(sheets[0]);
+  expect(types()).toEqual([]);
+});
+
+it("opens no Sheet from the start without openSheet", () => {
+  hostWithDetail();
+
+  expect(openSheet()).toBeNull();
+});
+
 it("leaves rows out of the tab order, and opens nothing, with no detail slot", () => {
   host("default", "default", false);
 
