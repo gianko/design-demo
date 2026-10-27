@@ -6,7 +6,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 // greys a placeholder by mixing that black half with transparent, and a
 // field's value stays black. Pass sets the text colour once, which the
 // paragraph, the button and the field all take, and gives the placeholder
-// its token, all tinted toward plum.
+// its token, all tinted toward plum. Every control is at least the
+// density's minimum target, so only this rule's findings differ.
 const meta = {
   title: "GateFixtures/NoPureNeutralText",
   args: { fail: false },
@@ -17,19 +18,19 @@ const meta = {
       <p>Ada Lovelace</p>
       <button
         type="button"
-        className="rounded-control bg-surface px-control text-label"
+        className="min-h-target rounded-control bg-surface px-control text-label"
       >
         Approve and pay
       </button>
       <input
         aria-label="Search invoices"
         placeholder="Search invoices"
-        className={`rounded-control border border-control px-control text-body ${fail ? "" : "placeholder:text-ink-muted"}`}
+        className={`min-h-target rounded-control border border-control px-control text-body ${fail ? "" : "placeholder:text-ink-muted"}`}
       />
       <input
         aria-label="Invoice"
         defaultValue="Invoice 1042"
-        className="rounded-control border border-control px-control text-body"
+        className="min-h-target rounded-control border border-control px-control text-body"
       />
     </div>
   ),
