@@ -324,3 +324,9 @@ Toast, EmptyState, IconButton and the rest of demo brief §4 wait for P1. Empty 
 ### The P1 set
 
 15–20 briefs, written as build work after the P0 widening, under one coverage rule: every library component appears in at least 2 briefs, each audience gets at least a third of them, and every action has a failure state.
+
+The ten new briefs and what each asks for are in [P1](https://github.com/gianko/design-demo/issues/201). Pass criteria, with `requires.transitions` from [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md):
+
+| Slug | `requires.components` | `requires.states` | `requires.actions` | `requires.transitions` |
+|---|---|---|---|---|
+| `bulk-pay` | Screen, PageHeader, DataTable, StatusTag, Amount, ActionBar, Button, Toast, EmptyState | empty, rows-selected, payment-scheduled, payment-failed | pay-selected | bar-to-toast |

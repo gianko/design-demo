@@ -21,13 +21,20 @@ describe("fixtures", () => {
     "payment-run": ["empty"],
   };
 
-  it("names the default and one <brief>/<state> variant per P0 screen state", () => {
-    expect(variantNames).toEqual([
+  // The P1 briefs' variants follow, each named <brief>/<state> too.
+  it("names the default and one <brief>/<state> variant per P0 screen state, first", () => {
+    const p0 = [
       "default",
       ...Object.entries(p0States).flatMap(([brief, states]) =>
         states.map((state) => `${brief}/${state}`)
       ),
-    ]);
+    ];
+    expect(variantNames.slice(0, p0.length)).toEqual(p0);
+    expect(
+      variantNames
+        .slice(p0.length)
+        .filter((name) => !/^[a-z-]+\/[a-z-]+$/.test(name))
+    ).toEqual([]);
   });
 
   it.each(variantNames)("reaches %s by name", (name) => {
@@ -259,6 +266,40 @@ describe("fixtures", () => {
     });
   });
 
+  // bulk-pay's table: the invoices awaiting approval, which stay in it once
+  // paid, scheduled, so the paid rows change status in place.
+  const queued = (name: string) =>
+    fixtureVariant(name).data.payQueue.map((each) => [each.id, each.status]);
+
+  it("queues the 3 awaiting invoices to pay in the default variant", () => {
+    expect(queued("default")).toEqual([
+      ["INV-0147", "awaiting"],
+      ["INV-0148", "awaiting"],
+      ["INV-0149", "awaiting"],
+    ]);
+  });
+
+  it("keeps the paid invoices in the queue, scheduled, in bulk-pay/payment-scheduled", () => {
+    expect(queued("bulk-pay/payment-scheduled")).toEqual([
+      ["INV-0147", "scheduled"],
+      ["INV-0148", "scheduled"],
+      ["INV-0149", "scheduled"],
+    ]);
+  });
+
+  it("has nothing to pay in bulk-pay/empty", () => {
+    expect(queued("bulk-pay/empty")).toEqual([]);
+  });
+
+  it.each(["bulk-pay/rows-selected", "bulk-pay/payment-failed"])(
+    "leaves the invoices as they were under %s, with the awaiting ones selected",
+    (name) => {
+      const variant = fixtureVariant(name);
+      expect(variant.data).toEqual(fixtureVariant("default").data);
+      expect(variant.selected).toEqual(["INV-0147", "INV-0148", "INV-0149"]);
+    }
+  );
+
   it("keeps the run date with nothing in it in payment-run/empty", () => {
     expect(fixtureVariant("payment-run/empty").data.paymentRun).toEqual({
       date: "2026-10-24",
@@ -302,6 +343,8 @@ describe("fixtures", () => {
       "invoice-queue/payment-scheduled",
       "invoice-review/payment-scheduled",
       "payment-status/reminder-failed",
+      "bulk-pay/rows-selected",
+      "bulk-pay/payment-scheduled",
     ])("succeeds after exactly 1,800ms under %s", async (name) => {
       expect(await settle(name)).toEqual({
         early: undefined,
@@ -309,7 +352,11 @@ describe("fixtures", () => {
       });
     });
 
-    it.each(["invoice-queue/payment-failed", "invoice-review/payment-failed"])(
+    it.each([
+      "invoice-queue/payment-failed",
+      "invoice-review/payment-failed",
+      "bulk-pay/payment-failed",
+    ])(
       "fails after exactly 1,800ms under %s, naming the invoices",
       async (name) => {
         const { early, settled } = await settle(name);

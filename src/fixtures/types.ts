@@ -76,4 +76,7 @@ export type FixtureData = {
   reviewInvoice: Invoice | null;
   // The next payment run, totalled by status.
   paymentRun: PaymentRun;
+  // The invoices the admin can pay in bulk: those awaiting approval, by
+  // number. Once paid they stay here, scheduled.
+  payQueue: readonly Invoice[];
 };
