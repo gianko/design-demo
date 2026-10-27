@@ -4,6 +4,7 @@
 
 import * as motionTokens from "./motion-tokens.ts";
 import * as noPill from "./no-pill.ts";
+import * as skippedHeading from "./skipped-heading.ts";
 import * as tabularNumerals from "./tabular-numerals.ts";
 import * as textOverflow from "./text-overflow.ts";
 import * as typeOnScale from "./type-on-scale.ts";
@@ -14,6 +15,7 @@ export const tasteRules = [
   typeOnScale,
   tabularNumerals,
   textOverflow,
+  skippedHeading,
 ];
 
 // The rules ESLint runs as `taste/<id>`.
