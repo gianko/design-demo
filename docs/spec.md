@@ -334,5 +334,6 @@ The ten new briefs and what each asks for are in [P1](https://github.com/gianko/
 | `failed-payments` | Screen, PageHeader, DataTable, StatusTag, Amount, ActionBar, Button, Toast, EmptyState | empty, rows-selected, payments-retried, retry-failed | retry-payments | bar-to-toast |
 | `contractors` | Screen, PageHeader, DataTable, Amount, Sheet, EmptyState | empty | — | row-to-sheet |
 | `run-history` | Screen, PageHeader, DataTable, StatusTag, Amount, Sheet, EmptyState | empty | — | row-to-sheet |
+| `my-invoices` | Screen, Heading, DataTable, Sheet, Amount, StatusTag, Text, EmptyState | empty | — | row-to-sheet |
 | `payments-received` | Screen, Heading, DataTable, Amount, Sheet, EmptyState | empty | — | row-to-sheet |
 | `payment-failed` | Screen, Heading, Card, Amount, StatusTag, Button, Toast | retry-requested, retry-failed | request-retry | — |

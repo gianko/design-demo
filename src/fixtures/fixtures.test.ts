@@ -43,6 +43,7 @@ describe("fixtures", () => {
     ],
     contractors: ["empty"],
     "run-history": ["empty"],
+    "my-invoices": ["empty"],
     "payments-received": ["empty"],
     "payment-failed": ["retry-requested", "retry-failed"],
   };

@@ -1,6 +1,6 @@
 // @vitest-environment node
-// The eval screen briefs (spec § Eval screen briefs): the P0 five carry the
-// spec's audience and pass criteria, and every file in evals/briefs/ parses
+// The eval screen briefs (spec § Eval screen briefs): the P0 five and the P1
+// briefs carry the spec's audience and pass criteria, and every file in evals/briefs/ parses
 // as a screen brief, names each id its pass criteria check verbatim, and
 // tables each screen state with a fixture variant the fixtures module has.
 
@@ -110,8 +110,70 @@ const p0Five = [
   },
 ];
 
-// Spec § The P1 set, its pass-criteria table.
+// Spec § The P1 set, its pass-criteria table, in its order.
 const p1Briefs = [
+  {
+    slug: "bulk-pay",
+    audience: "admin",
+    requires: {
+      components: [
+        "Screen",
+        "PageHeader",
+        "DataTable",
+        "StatusTag",
+        "Amount",
+        "ActionBar",
+        "Button",
+        "Toast",
+        "EmptyState",
+      ],
+      states: ["empty", "rows-selected", "payment-scheduled", "payment-failed"],
+      actions: ["pay-selected"],
+      transitions: ["bar-to-toast"],
+    },
+  },
+  {
+    slug: "overdue-invoices",
+    audience: "admin",
+    requires: {
+      components: [
+        "Screen",
+        "PageHeader",
+        "DataTable",
+        "StatusTag",
+        "Amount",
+        "Sheet",
+        "Heading",
+        "ActionBar",
+        "Button",
+        "Toast",
+        "EmptyState",
+      ],
+      states: ["empty", "rows-selected", "reminders-sent", "reminders-failed"],
+      actions: ["send-reminders"],
+      transitions: ["bar-to-toast", "row-to-sheet"],
+    },
+  },
+  {
+    slug: "failed-payments",
+    audience: "admin",
+    requires: {
+      components: [
+        "Screen",
+        "PageHeader",
+        "DataTable",
+        "StatusTag",
+        "Amount",
+        "ActionBar",
+        "Button",
+        "Toast",
+        "EmptyState",
+      ],
+      states: ["empty", "rows-selected", "payments-retried", "retry-failed"],
+      actions: ["retry-payments"],
+      transitions: ["bar-to-toast"],
+    },
+  },
   {
     slug: "contractors",
     audience: "admin",
@@ -145,6 +207,60 @@ const p1Briefs = [
       states: ["empty"],
       actions: [],
       transitions: ["row-to-sheet"],
+    },
+  },
+  {
+    slug: "my-invoices",
+    audience: "contractor",
+    requires: {
+      components: [
+        "Screen",
+        "Heading",
+        "DataTable",
+        "Sheet",
+        "Amount",
+        "StatusTag",
+        "Text",
+        "EmptyState",
+      ],
+      states: ["empty"],
+      actions: [],
+      transitions: ["row-to-sheet"],
+    },
+  },
+  {
+    slug: "payments-received",
+    audience: "contractor",
+    requires: {
+      components: [
+        "Screen",
+        "Heading",
+        "DataTable",
+        "Amount",
+        "Sheet",
+        "EmptyState",
+      ],
+      states: ["empty"],
+      actions: [],
+      transitions: ["row-to-sheet"],
+    },
+  },
+  {
+    slug: "payment-failed",
+    audience: "contractor",
+    requires: {
+      components: [
+        "Screen",
+        "Heading",
+        "Card",
+        "Amount",
+        "StatusTag",
+        "Button",
+        "Toast",
+      ],
+      states: ["retry-requested", "retry-failed"],
+      actions: ["request-retry"],
+      transitions: [],
     },
   },
 ];
@@ -273,55 +389,39 @@ describe("the payment-status screen brief", () => {
   });
 });
 
-// Spec #201 § The brief set: payments-received and payment-failed.
-describe.each([
-  {
-    slug: "payments-received",
-    audience: "contractor",
-    requires: {
-      components: [
-        "Screen",
-        "Heading",
-        "DataTable",
-        "Amount",
-        "Sheet",
-        "EmptyState",
-      ],
-      states: ["empty"],
-      actions: [],
-      transitions: ["row-to-sheet"],
-    },
-  },
-  {
-    slug: "payment-failed",
-    audience: "contractor",
-    requires: {
-      components: [
-        "Screen",
-        "Heading",
-        "Card",
-        "Amount",
-        "StatusTag",
-        "Button",
-        "Toast",
-      ],
-      states: ["retry-requested", "retry-failed"],
-      actions: ["request-retry"],
-      transitions: [],
-    },
-  },
-])("the $slug screen brief", (expected) => {
-  it("carries the spec's audience and pass criteria", () => {
-    expect(brief(`${expected.slug}.md`)).toMatchObject(expected);
+// Spec #201 § The brief set: an action's result shows in a Toast and a
+// list's empty state in an EmptyState, not in a live Text as the P0 five's do.
+describe.each(["payments-received", "payment-failed"])(
+  "the %s screen brief",
+  (slug) => {
+    it("shows each state's result in a Toast or an EmptyState, never a live Text", () => {
+      const rows = stateTable(brief(`${slug}.md`).text).slice(1);
+      for (const { state, shows } of rows) {
+        expect(shows, state).toMatch(
+          state === "empty" ? /EmptyState/ : /Toast/
+        );
+        expect(shows, state).not.toMatch(/live Text/);
+      }
+    });
+  }
+);
+
+// Spec § The P1 set, my-invoices's row: the contractor's own invoices in a
+// table with no selection, a row opening its Sheet.
+describe("the my-invoices screen brief", () => {
+  it("tables each state's fixture variant", () => {
+    expect(
+      stateTable(brief("my-invoices.md").text).map(({ state, fixture }) => [
+        state,
+        fixture,
+      ])
+    ).toEqual([
+      ["default", "default"],
+      ["empty", "my-invoices/empty"],
+    ]);
   });
 
-  // An action's result shows in a Toast and a list's empty state in an
-  // EmptyState, not in a live Text as the P0 five's do.
-  it("shows each state's result in a Toast or an EmptyState, never a live Text", () => {
-    const rows = stateTable(brief(`${expected.slug}.md`).text).slice(1);
-    for (const { state, shows } of rows) {
-      expect(shows, state).toMatch(state === "empty" ? /EmptyState/ : /Toast/);
-      expect(shows, state).not.toMatch(/live Text/);
-    }
+  it("starts its empty state with none of your invoices", () => {
+    expect(fixtureVariant("my-invoices/empty").data.yourInvoices).toEqual([]);
   });
 });

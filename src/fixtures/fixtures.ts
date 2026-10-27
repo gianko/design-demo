@@ -451,6 +451,7 @@ const variants = {
   "payments-received/empty": { data: newContractor, fails: [] },
   "payment-failed/retry-requested": { data: shared, fails: [] },
   "payment-failed/retry-failed": { data: shared, fails: ["requestRetry"] },
+  "my-invoices/empty": { data: newContractor, fails: [] },
 } satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;
