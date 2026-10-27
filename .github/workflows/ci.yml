@@ -79,7 +79,8 @@ jobs:
 
   # The second job of ADR 0009 (spec § Pages deploy): on a push to main, once
   # the gate job passes, the gated Storybook at the Pages root and the newest
-  # results file's report at /evals/. `needs` skips it after a red gate job.
+  # results file's report at /evals/, compared against the baseline it names
+  # if it names one. `needs` skips it after a red gate job.
   pages:
     needs: gate
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}

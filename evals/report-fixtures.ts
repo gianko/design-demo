@@ -118,6 +118,7 @@ function rep(
 //   with its code attempts exhausted: 1/3 → 2/3.
 // - payment-status passes first time twice, and once after a spec repair:
 //   2/3 → 3/3.
+// - any other screen brief it's given passes first time in all three reps.
 export function runA(at: At, briefSlugs = ["invoice-queue", "payment-status"]) {
   const runId = "20261026-140509-before";
   const reps = [
@@ -180,6 +181,21 @@ export function runA(at: At, briefSlugs = ["invoice-queue", "payment-status"]) {
       [attempt("spec", 1, "gate 1"), attempt("spec", 2), attempt("code", 1)],
       at
     ),
+    ...briefSlugs
+      .filter((slug) => !["invoice-queue", "payment-status"].includes(slug))
+      .flatMap((slug) =>
+        [1, 2, 3].map((n) =>
+          rep(
+            runId,
+            slug,
+            n,
+            "pass",
+            30,
+            [attempt("spec", 1), attempt("code", 1)],
+            at
+          )
+        )
+      ),
   ].filter((each) => briefSlugs.includes(each.slug));
   return results(runId, "before", briefSlugs, reps);
 }

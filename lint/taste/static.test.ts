@@ -6,7 +6,7 @@
 // exactly those findings; each passing fixture must produce none.
 
 import { ESLint } from "eslint";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { staticRules } from "./rules/index.ts";
@@ -37,8 +37,20 @@ function expected(file: string) {
     );
 }
 
+// The file types a rule has fixtures for. Most rules read both; one that only
+// TSX can break (a JSX `<Card>` in a `<Card>`) has no CSS fixtures.
+function extensions(rule: string) {
+  return ["tsx", "css"].filter((extension) =>
+    existsSync(resolve(fixtures, `${rule}.fail.${extension}`))
+  );
+}
+
 describe.each(staticRules.map((rule) => rule.id))("taste/%s", (rule) => {
-  describe.each(["tsx", "css"])("in .%s", (extension) => {
+  it("has fixtures", () => {
+    expect(extensions(rule)).not.toEqual([]);
+  });
+
+  describe.each(extensions(rule))("in .%s", (extension) => {
     const fail = `${rule}.fail.${extension}`;
     const pass = `${rule}.pass.${extension}`;
 

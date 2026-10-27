@@ -234,7 +234,7 @@ The fixtures module widened to the one shared dataset that [Fixtures](#fixtures)
 
 ### Pages deploy
 
-The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. Turning Pages on, with GitHub Actions as its source, is the human's job.
+The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. A run given `pnpm eval --baseline <results file>` names that file in its own, and `/evals/` then serves the comparison against it: the screen briefs both runs cover side by side, the rest on their own. Turning Pages on, with GitHub Actions as its source, is the human's job.
 
 **Done when:** a push to main publishes Storybook at the Pages URL; `/evals/` serves the newest results file's report once one is committed, and Storybook still deploys while there isn't one; and a red gate job publishes nothing.
 
@@ -242,7 +242,7 @@ The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-
 
 Each is done as a [component piece](#component-pieces) is. What P0 needs from each is in [Library widening](#library-widening), plus the following from the ADRs:
 
-- **PageHeader**'s `actions` slot allow-list is Button alone, until IconButton exists ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
+- **PageHeader**'s `actions` slot allow-list is Button alone, until a public IconButton exists ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
 - **DataTable** takes its rows through a bound prop, and each column's `cell` slot holds one template node whose `row.*` bindings render once per row ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
 - **DataTable** owns ticking rows, and the `ScreenHost` holds the selection. Ticking rows enters `rows-selected` through the host, an action's success clears the selection and its failure keeps it, and a generated screen reads the ticked ids with `useSelectedRows()` ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)).
 - **DataTable**'s money cells end-align (`tabular-numerals`). Its `detail` slot and the Sheet wait for P1.
@@ -262,14 +262,15 @@ P0 is done when all of these hold:
 
 payment-status stays the only kept screen. The new briefs are judged by evals alone, not by gate 6 or a Figma capture.
 
-## After P0
+## After P1
 
-Each already decided, and none part of P0:
+[P1](https://github.com/gianko/design-demo/issues/201) takes what P0 deferred: the signature transitions with ActionBar, Toast and Sheet ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)), the shared Phosphor icon map with an internal IconButton, the remaining eleven taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)) and the full brief set. What P1 defers in turn, each with its reason:
 
-- The shared Phosphor icon map, with the first component that needs an icon, probably IconButton.
-- A Date component, once a screen brief needs relative dates or sorting by date.
-- The remaining eleven taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)).
-- The signature transitions, ActionBar, Toast and Sheet, and the `bulk-pay` brief, as [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) sets them out.
+- **Forms (Input, Select):** the UI spec has no field values, validation or submission. Adding them needs a new concept and an ADR.
+- **Row-scoped actions,** such as a Button inside a Sheet acting on that row: a new kind of action, and another ADR.
+- **A public IconButton:** no brief has an honest use for one. It stays an internal entry that Sheet renders as its close button.
+- **Tabs, Pagination, Grid and sortable DataTable:** no brief needs them.
+- **A Date component:** with no sorting, dates stay plain copy, pre-formatted labels bound from the fixtures.
 
 ## Eval screen briefs
 
@@ -314,7 +315,7 @@ One dataset serves both audiences: 5 contractors and about 8 invoices, with INV-
 
 The P0 set adds three components, built in this order after Card, each blocked by the one before:
 
-1. **PageHeader**: title and an `actions` slot that allows only Button (IconButton isn't in the library yet).
+1. **PageHeader**: title and an `actions` slot that allows only Button (there's no public IconButton, see [After P1](#after-p1)).
 2. **Checkbox**: the row selector DataTable renders.
 3. **DataTable**: selectable rows only, with a `cell` slot per column. No sorting, filters or pagination in P0.
 

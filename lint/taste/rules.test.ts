@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Every P0 taste rule runs where RULES.md says, says what RULES.md says, and
+// Every shipped taste rule runs where RULES.md says, says what RULES.md says, and
 // credits impeccable where, and only where, RULES.md's Origin column draws on
 // it.
 
@@ -12,9 +12,9 @@ import { tasteConfigs } from "./plugin.ts";
 import { ruleRows } from "./rules-md.ts";
 import { repo } from "../../repo.ts";
 
-const p0 = ruleRows().filter((row) => row.p0);
-const staticRows = p0.filter((row) => row.check.includes("static"));
-const renderRows = p0.filter((row) => row.check.includes("render"));
+const shipped = ruleRows().filter((row) => row.shipped);
+const staticRows = shipped.filter((row) => row.check.includes("static"));
+const renderRows = shipped.filter((row) => row.check.includes("render"));
 
 it("gives ESLint the static rules, each once", () => {
   const plugin = tasteConfigs.find((config) => config.plugins?.taste)!.plugins!
@@ -65,7 +65,7 @@ it("reads all 61 of impeccable's rules from RULES.md", () => {
   expect(impeccable.size).toBe(61);
 });
 
-describe.each(p0)("taste/$id's source", ({ id, origin }) => {
+describe.each(shipped)("taste/$id's source", ({ id, origin }) => {
   const named = [...origin.matchAll(/`([a-z0-9-]+)`/g)]
     .map(([, id]) => id!)
     .filter((id) => impeccable.has(id));

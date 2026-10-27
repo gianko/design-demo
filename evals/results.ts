@@ -81,6 +81,10 @@ export type ResultsFile = {
   concurrency: number;
   // The screen briefs `--briefs` matched, by slug.
   briefSlugs: string[];
+  // The results file this run is compared against, by name less `.json`, as
+  // `--baseline` gave it: the Pages deploy reports the newest run against
+  // it. Absent or null when there's none; files from before it have none.
+  baseline?: string | null;
   totals: Tally;
   perBrief: Record<string, Tally>;
   reps: RepResult[];
