@@ -21,20 +21,40 @@ describe("fixtures", () => {
     "payment-run": ["empty"],
   };
 
-  // The P1 briefs' variants follow, each named <brief>/<state> too.
-  it("names the default and one <brief>/<state> variant per P0 screen state, first", () => {
-    const p0 = [
-      "default",
-      ...Object.entries(p0States).flatMap(([brief, states]) =>
-        states.map((state) => `${brief}/${state}`)
-      ),
-    ];
+  // Each P1 brief's `requires.states`, as spec § The P1 set lists them.
+  const p1States = {
+    "bulk-pay": [
+      "empty",
+      "rows-selected",
+      "payment-scheduled",
+      "payment-failed",
+    ],
+    "overdue-invoices": [
+      "empty",
+      "rows-selected",
+      "reminders-sent",
+      "reminders-failed",
+    ],
+    "failed-payments": [
+      "empty",
+      "rows-selected",
+      "payments-retried",
+      "retry-failed",
+    ],
+  };
+  const variantsOf = (states: Record<string, string[]>) =>
+    Object.entries(states).flatMap(([brief, briefStates]) =>
+      briefStates.map((state) => `${brief}/${state}`)
+    );
+
+  // The P0 variants come first, in spec order; every P1 brief's follow.
+  it("names the default and one <brief>/<state> variant per screen state, P0 first", () => {
+    const p0 = ["default", ...variantsOf(p0States)];
+
     expect(variantNames.slice(0, p0.length)).toEqual(p0);
-    expect(
-      variantNames
-        .slice(p0.length)
-        .filter((name) => !/^[a-z-]+\/[a-z-]+$/.test(name))
-    ).toEqual([]);
+    expect([...variantNames.slice(p0.length)].sort()).toEqual(
+      variantsOf(p1States).sort()
+    );
   });
 
   it.each(variantNames)("reaches %s by name", (name) => {
@@ -310,6 +330,85 @@ describe("fixtures", () => {
     });
   });
 
+  it("lists every contractor's overdue invoices for the admin, by number", () => {
+    expect(
+      fixtureVariant("default").data.overdueInvoices.map((each) => [
+        each.id,
+        each.contractor,
+        each.status,
+      ])
+    ).toEqual([
+      ["INV-0142", "Ines Duarte", "overdue"],
+      ["INV-0144", "Lea Brandt", "overdue"],
+    ]);
+  });
+
+  it("has no overdue invoices in overdue-invoices/empty", () => {
+    expect(
+      fixtureVariant("overdue-invoices/empty").data.overdueInvoices
+    ).toEqual([]);
+  });
+
+  it.each([
+    "overdue-invoices/rows-selected",
+    "overdue-invoices/reminders-failed",
+  ])("starts %s with every overdue invoice selected", (name) => {
+    expect(fixtureVariant(name).selected).toEqual(["INV-0142", "INV-0144"]);
+  });
+
+  it.each([
+    "overdue-invoices/rows-selected",
+    "overdue-invoices/reminders-sent",
+    "overdue-invoices/reminders-failed",
+  ])("leaves the invoices as they were under %s", (name) => {
+    expect(fixtureVariant(name).data).toEqual(fixtureVariant("default").data);
+  });
+
+  it("lists the admin the payment that bounced, for the failed invoice, with the bank's reason", () => {
+    expect(fixtureVariant("default").data.failedPayments).toEqual([
+      {
+        id: "PAY-0146",
+        invoiceId: "INV-0146",
+        contractorId: "jonah-whitfield-abernathy",
+        contractor: "Jonah Whitfield-Abernathy",
+        amount: 1620,
+        currency: "USD",
+        status: "failed",
+        reason: "The bank closed the account.",
+        date: "2026-10-13",
+        dateLabel: "Oct 13",
+      },
+    ]);
+  });
+
+  it("has no failed payments in failed-payments/empty", () => {
+    expect(fixtureVariant("failed-payments/empty").data.failedPayments).toEqual(
+      []
+    );
+  });
+
+  it.each(["failed-payments/rows-selected", "failed-payments/retry-failed"])(
+    "starts %s with every failed payment selected, and the data as it was",
+    (name) => {
+      const { data, selected } = fixtureVariant(name);
+
+      expect(selected).toEqual(["PAY-0146"]);
+      expect(data).toEqual(fixtureVariant("default").data);
+    }
+  );
+
+  it("schedules the retried payment and its invoice, and only them, in failed-payments/payments-retried", () => {
+    const { data } = fixtureVariant("failed-payments/payments-retried");
+
+    expect(data.failedPayments.map((each) => [each.id, each.status])).toEqual([
+      ["PAY-0146", "scheduled"],
+    ]);
+    expect(statuses("failed-payments/payments-retried")).toEqual({
+      ...statuses("default"),
+      "INV-0146": "scheduled",
+    });
+  });
+
   // Runs one operation under a variant, and reports how it stood just before
   // and at 1,800ms.
   async function settleOperation(
@@ -388,6 +487,83 @@ describe("fixtures", () => {
       expect(
         await settleOperation("invoice-queue/payment-failed", (operations) =>
           operations.sendReminder("INV-0142")
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("sendReminders", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.sendReminders(["INV-0142", "INV-0144"])
+      );
+
+    it.each([
+      "default",
+      "overdue-invoices/rows-selected",
+      "overdue-invoices/reminders-sent",
+      "payment-status/reminder-failed",
+    ])("succeeds after exactly 1,800ms under %s", async (name) => {
+      expect(await settle(name)).toEqual({
+        early: undefined,
+        settled: "resolved",
+      });
+    });
+
+    it("fails after exactly 1,800ms under overdue-invoices/reminders-failed, naming the invoices", async () => {
+      const { early, settled } = await settle(
+        "overdue-invoices/reminders-failed"
+      );
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*INV-0142, INV-0144/);
+    });
+
+    it("leaves sendReminder succeeding where only sendReminders fails", async () => {
+      expect(
+        await settleOperation(
+          "overdue-invoices/reminders-failed",
+          (operations) => operations.sendReminder("INV-0142")
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("retryPayments", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.retryPayments(["PAY-0146"])
+      );
+
+    it.each([
+      "default",
+      "failed-payments/rows-selected",
+      "failed-payments/payments-retried",
+      "invoice-queue/payment-failed",
+    ])("succeeds after exactly 1,800ms under %s", async (name) => {
+      expect(await settle(name)).toEqual({
+        early: undefined,
+        settled: "resolved",
+      });
+    });
+
+    it("fails after exactly 1,800ms under failed-payments/retry-failed, naming the payments", async () => {
+      const { early, settled } = await settle("failed-payments/retry-failed");
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*PAY-0146/);
+    });
+
+    it("leaves payInvoices succeeding where only retryPayments fails", async () => {
+      expect(
+        await settleOperation("failed-payments/retry-failed", (operations) =>
+          operations.payInvoices(["INV-0147"])
         )
       ).toEqual({ early: undefined, settled: "resolved" });
     });

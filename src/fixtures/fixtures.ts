@@ -11,6 +11,7 @@
 
 import type {
   Contractor,
+  FailedPayment,
   FixtureData,
   Invoice,
   InvoiceStatus,
@@ -19,7 +20,12 @@ import type {
 
 export type * from "./types.ts";
 
-export const operationNames = ["sendReminder", "payInvoices"] as const;
+export const operationNames = [
+  "sendReminder",
+  "payInvoices",
+  "sendReminders",
+  "retryPayments",
+] as const;
 export type OperationName = (typeof operationNames)[number];
 
 // Long enough for a Button's progress edge to fill and sweep once.
@@ -100,6 +106,38 @@ const history: History = {
 // The invoice invoice-review shows.
 const reviewed = "INV-0148";
 
+// The payments the Oct 10 run sent that came back, by the invoice each paid,
+// with the bank's reason: INV-0146's, which is why that invoice is failed.
+const bounces = [
+  {
+    invoiceId: "INV-0146",
+    reason: "The bank closed the account.",
+    date: "2026-10-13",
+    dateLabel: "Oct 13",
+  },
+];
+
+// The bounced payments whose invoice is in, each failed while its invoice
+// is and scheduled once it's retried into the next run.
+function failedPayments(allInvoices: readonly Invoice[]): FailedPayment[] {
+  return bounces.flatMap(({ invoiceId, ...bounce }) => {
+    const paid = allInvoices.find((each) => each.id === invoiceId);
+    if (!paid) return [];
+    return [
+      {
+        id: invoiceId.replace("INV-", "PAY-"),
+        invoiceId,
+        contractorId: paid.contractorId,
+        contractor: paid.contractor,
+        amount: paid.amount,
+        currency: paid.currency,
+        status: paid.status === "failed" ? "failed" : "scheduled",
+        ...bounce,
+      },
+    ];
+  });
+}
+
 // The dataset of every contractor's invoices as a variant has them. Every
 // view is read from them, so a variant that changes an invoice changes each
 // screen that shows it alike.
@@ -140,6 +178,8 @@ function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
       awaitingApproval: group("awaiting"),
     },
     payQueue: allInvoices.filter((each) => toPay.has(each.id)),
+    overdueInvoices: allInvoices.filter((each) => each.status === "overdue"),
+    failedPayments: failedPayments(allInvoices),
   };
 }
 
@@ -165,6 +205,20 @@ const noInvoices = dataset([]);
 const awaiting = invoices
   .filter((each) => each.status === "awaiting")
   .map((each) => each.id);
+// The overdue ones: what overdue-invoices' rows-selected and reminders-failed
+// start with selected. Nothing is overdue once they're left out.
+const overdue = shared.overdueInvoices.map((each) => each.id);
+const nothingOverdue = dataset(
+  invoices.filter((each) => each.status !== "overdue")
+);
+// The bounced payments: what failed-payments' rows-selected and retry-failed
+// start with selected, and what its payments-retried schedules, with their
+// invoices. None bounced once the failed invoices are left out.
+const bounced = shared.failedPayments.map((each) => each.id);
+const retried = scheduled(shared.failedPayments.map((each) => each.invoiceId));
+const nothingBounced = dataset(
+  invoices.filter((each) => each.status !== "failed")
+);
 
 // A variant is the data its screen state shows, the operations that fail
 // under it, and the rows selected when it starts (ADR 0011). The selection
@@ -207,6 +261,30 @@ const variants = {
     fails: ["payInvoices"],
     selected: awaiting,
   },
+  "overdue-invoices/empty": { data: nothingOverdue, fails: [] },
+  "overdue-invoices/rows-selected": {
+    data: shared,
+    fails: [],
+    selected: overdue,
+  },
+  "overdue-invoices/reminders-sent": { data: shared, fails: [] },
+  "overdue-invoices/reminders-failed": {
+    data: shared,
+    fails: ["sendReminders"],
+    selected: overdue,
+  },
+  "failed-payments/empty": { data: nothingBounced, fails: [] },
+  "failed-payments/rows-selected": {
+    data: shared,
+    fails: [],
+    selected: bounced,
+  },
+  "failed-payments/payments-retried": { data: retried, fails: [] },
+  "failed-payments/retry-failed": {
+    data: shared,
+    fails: ["retryPayments"],
+    selected: bounced,
+  },
 } satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;
@@ -215,6 +293,8 @@ export const variantNames = Object.keys(variants) as VariantName[];
 export type Operations = {
   sendReminder: (invoiceId: string) => Promise<void>;
   payInvoices: (invoiceIds: readonly string[]) => Promise<void>;
+  sendReminders: (invoiceIds: readonly string[]) => Promise<void>;
+  retryPayments: (paymentIds: readonly string[]) => Promise<void>;
 };
 
 export type FixtureVariant = {
@@ -255,6 +335,10 @@ export function fixtureVariant(name: string): FixtureVariant {
     operations: {
       sendReminder: (invoiceId) => settle("sendReminder", invoiceId),
       payInvoices: (invoiceIds) => settle("payInvoices", invoiceIds.join(", ")),
+      sendReminders: (invoiceIds) =>
+        settle("sendReminders", invoiceIds.join(", ")),
+      retryPayments: (paymentIds) =>
+        settle("retryPayments", paymentIds.join(", ")),
     },
   };
 }
