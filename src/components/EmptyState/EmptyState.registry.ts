@@ -6,6 +6,7 @@ import { defineEntry } from "../../registry/entry.ts";
 export const emptyStateEntry = defineEntry({
   name: "EmptyState",
   use: "What a list shows in its empty screen state: title says why the list is empty, and text, where it helps, what will appear there and when. Put it where the DataTable goes, shown when: [empty], with the DataTable left out of that state and the PageHeader kept; never inside a Card. For copy that shows whatever the data use Text; for an action's result Toast.",
+  surface: "flat",
   props: z.object({
     title: z
       .string()

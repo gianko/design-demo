@@ -71,6 +71,13 @@ export type RegistryEntry<
   // spec node naming it as unregistered; the code step still sees it, marked
   // internal.
   internal?: boolean;
+  // The surface the component paints, if any. A flat one (the surface
+  // radius, a line border and the surface fill: Card, DataTable, EmptyState)
+  // fails gate 1 when the nearest surface above it is flat too
+  // (`nested-cards`). A raised one (ActionBar, Toast) or an overlay one
+  // (Sheet) floats as a surface of its own, so a flat surface inside it
+  // isn't inside the flat one beneath.
+  surface?: "flat" | "raised" | "overlay";
   slots?: Record<string, Slot>;
 };
 
