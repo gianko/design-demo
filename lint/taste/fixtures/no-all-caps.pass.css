@@ -1,0 +1,12 @@
+/* Sentence case, and the transforms that aren't capitals. */
+.header {
+  @apply text-label normal-case;
+}
+
+.name {
+  text-transform: capitalize;
+}
+
+.code {
+  text-transform: none;
+}

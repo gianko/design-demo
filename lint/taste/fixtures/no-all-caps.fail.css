@@ -1,0 +1,13 @@
+/* Capitals set in CSS: through @apply under a variant, and as the property,
+   in any case and with `!important`. */
+.header {
+  @apply text-label hover:uppercase; /* ✗ taste/no-all-caps */
+}
+
+.eyebrow {
+  text-transform: uppercase; /* ✗ taste/no-all-caps */
+}
+
+.kicker {
+  TEXT-TRANSFORM: Uppercase !important; /* ✗ taste/no-all-caps */
+}

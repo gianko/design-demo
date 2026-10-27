@@ -3,8 +3,12 @@
 // half, or both.
 
 import * as contentHiddenAtRest from "./content-hidden-at-rest.ts";
+import * as gradientAsDecoration from "./gradient-as-decoration.ts";
 import * as motionTokens from "./motion-tokens.ts";
+import * as nestedCards from "./nested-cards.ts";
+import * as noAllCaps from "./no-all-caps.ts";
 import * as noPill from "./no-pill.ts";
+import * as skippedHeading from "./skipped-heading.ts";
 import * as tabularNumerals from "./tabular-numerals.ts";
 import * as textOverflow from "./text-overflow.ts";
 import * as typeOnScale from "./type-on-scale.ts";
@@ -16,6 +20,10 @@ export const tasteRules = [
   tabularNumerals,
   textOverflow,
   contentHiddenAtRest,
+  gradientAsDecoration,
+  noAllCaps,
+  skippedHeading,
+  nestedCards,
 ];
 
 // The rules ESLint runs as `taste/<id>`.

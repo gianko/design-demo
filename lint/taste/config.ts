@@ -8,4 +8,17 @@ export const config = {
   // `data-component="<Name>"` and everything inside it. Both are where every
   // component lives and what it marks (docs/spec.md § Component pieces).
   "no-pill": { exempt: ["Avatar"] },
+  // Words that copy may write in capitals: every ISO 4217 currency code, and
+  // the abbreviations finance copy writes that way.
+  "no-all-caps": {
+    allow: [
+      ...Intl.supportedValuesOf("currency"),
+      "IBAN",
+      "BIC",
+      "ID",
+      "VAT",
+      "PDF",
+      "CSV",
+    ],
+  },
 } as const;
