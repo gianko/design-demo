@@ -3,6 +3,7 @@
 // half, or both.
 
 import * as motionTokens from "./motion-tokens.ts";
+import * as nestedCards from "./nested-cards.ts";
 import * as noPill from "./no-pill.ts";
 import * as tabularNumerals from "./tabular-numerals.ts";
 import * as textOverflow from "./text-overflow.ts";
@@ -14,6 +15,7 @@ export const tasteRules = [
   typeOnScale,
   tabularNumerals,
   textOverflow,
+  nestedCards,
 ];
 
 // The rules ESLint runs as `taste/<id>`.

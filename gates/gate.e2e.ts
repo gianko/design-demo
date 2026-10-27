@@ -15,6 +15,7 @@ import {
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { staticRules } from "../lint/taste/rules/index.ts";
+import * as nestedCards from "../lint/taste/rules/nested-cards.ts";
 import * as noPill from "../lint/taste/rules/no-pill.ts";
 import * as tabularNumerals from "../lint/taste/rules/tabular-numerals.ts";
 import * as textOverflow from "../lint/taste/rules/text-overflow.ts";
@@ -257,6 +258,16 @@ describe("in CI", () => {
       /"Northwind Logistics GmbH" is clipped without an ellipsis/,
     ],
     [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
+    [
+      nestedCards.id,
+      "border",
+      /"Northwind Logistics" is a painted surface inside another/,
+    ],
+    [
+      nestedCards.id,
+      "shadow",
+      /"Next payment" is a painted surface inside another/,
+    ],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
     const printed = finding.source.replaceAll('"', '\\\\?"');
