@@ -16,6 +16,7 @@ import {
   type VariantName,
 } from "../../fixtures/fixtures.ts";
 import { defaultState } from "./default-state.ts";
+import { inViewTransition } from "./view-transition.ts";
 
 // Screen states change only through the library (ADR 0011). A generated
 // screen holds no state of its own: `useScreenState` reads the current state
@@ -138,11 +139,7 @@ export function ScreenHost({
           }));
           alongside?.();
         });
-      if (typeof document.startViewTransition !== "function") {
-        update();
-        return;
-      }
-      document.startViewTransition({ update, types: type ? [type] : [] });
+      void inViewTransition(update, type ? [type] : []);
     },
     [states]
   );
