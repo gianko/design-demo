@@ -65,8 +65,10 @@ export const Contractor: Story = {
 // generated screen wires payment-status's send-reminder action: the screen
 // holds no state, `useAction` runs `sendReminder` and enters `reminder-sent`
 // or `reminder-failed` when it settles, and Screen shows the state it's in.
-// The invoice it reminds about is the fixture variant's. The plain button
-// stands in for Button until Button exists.
+// The invoice it reminds about is the fixture variant's. A plain button
+// stands in for Button, which ignores clicks while pending, so a second click
+// reaches `useAction`; like Button, it is at least the density's minimum
+// target (taste rule `target-size`).
 function Reminder() {
   const { state } = useScreenState();
   const { overdueInvoice } = useFixtureData();
@@ -94,7 +96,7 @@ function Reminder() {
           type="button"
           aria-busy={sendReminder.pending}
           aria-disabled={sendReminder.pending}
-          className="mt-2xs rounded-control bg-surface px-control py-3xs text-label"
+          className="mt-2xs min-h-target rounded-control bg-surface px-control py-3xs text-label"
           onClick={() => sendReminder.run(overdueInvoice.id)}
         >
           Send reminder

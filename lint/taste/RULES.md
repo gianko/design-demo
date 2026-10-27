@@ -27,7 +27,7 @@ The Ships column marks a rule that is on. **P0** marks the five that ship in the
 | `content-hidden-at-rest` | | impeccable, kept | render | After animations settle, text that isn't `aria-hidden` stays at opacity 0, `visibility: hidden` or a zero-size clip. | Everything works without animation. |
 | `skipped-heading` | **P1** | impeccable, kept | render | A heading's level is more than one deeper than the heading before it. axe `heading-order` is only Moderate, so gate 4 won't catch this. | Assured, precise type; hierarchy from size and weight. |
 | `no-all-caps` | **P1** | brief; adapts `all-caps-body` | static + render | Static: `uppercase` or `text-transform: uppercase`. Render: computed `text-transform: uppercase`, or a visible word of 3+ letters in all caps that isn't on the allowlist. | Sentence case everywhere. No ALL-CAPS labels or table headers. |
-| `target-size` | | brief | render | In a `data-density="contractor"` scope, an interactive element's hit area is under 44×44px. The hit area is the larger of the element's box and its associated `<label>`'s box. Inline links inside a sentence are exempt. | Minimum target: 24px admin, 44px contractor. |
+| `target-size` | **P1** | brief | render | In a `data-density="contractor"` scope, an interactive element's hit area is under 44×44px. The hit area is the larger of the element's box and its associated `<label>`'s box. Inline links inside a sentence are exempt. | Minimum target: 24px admin, 44px contractor. |
 
 ## Exemptions
 
