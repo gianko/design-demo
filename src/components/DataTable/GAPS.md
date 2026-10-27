@@ -82,6 +82,6 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 **Undecided:** the table's surface scrolls sideways (`overflow-x-auto`), so it clips a ring drawn outside a row: `focus-ring`'s outward offset would show only the ring's top and bottom. No token class sets an inward offset.
 
-**Call:** `src/styles.css` sets `outline-offset: calc(var(--ds-size-height-edge) * -2)` on a focused DataTable row, so `focus-ring` sits just inside the row.
+**Call:** `DataTable.css` sets `outline-offset: calc(var(--ds-size-height-edge) * -2)` on a focused DataTable row, so `focus-ring` sits just inside the row.
 
 **Alternative:** an inset focus-ring utility in the token build (`focus-ring-inset`), which any clipped focusable (a list row, a tab) could reuse.

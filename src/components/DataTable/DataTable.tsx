@@ -17,6 +17,7 @@ import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
 import { SheetHost, transitionSheet } from "../Sheet/sheet-host.tsx";
 import { StatusTag, type StatusTagProps } from "../StatusTag/StatusTag.tsx";
 import type { dataTableEntry } from "./DataTable.registry.ts";
+import "./DataTable.css";
 
 // The screen's list: a native table on a flat surface, one row per item. A
 // selectable table puts a Checkbox first in each row, and one that isn't has
@@ -41,7 +42,7 @@ import type { dataTableEntry } from "./DataTable.registry.ts";
 // edge, above the cents.
 // When the statuses its StatusTags are bound to change, such as an action's
 // confirmed result, the rows whose status changed are marked `data-flip`
-// and flip in the stagger src/styles.css sets out (ADR 0011). A table
+// and flip in the stagger DataTable.css sets out (ADR 0011). A table
 // renders its first statuses still: nothing animates on page load.
 export const dataTable = tv({
   slots: {
@@ -63,7 +64,7 @@ export const dataTable = tv({
   variants: {
     selected: { true: { row: "bg-selected" }, false: {} },
     // The row opens its Sheet. Its focus ring sits inside the row, since the
-    // surface clips anything outside it (src/styles.css).
+    // surface clips anything outside it (DataTable.css).
     opens: { true: { row: "focus-visible:focus-ring" }, false: {} },
     money: { true: { header: "text-right" }, false: { header: "text-left" } },
   },
