@@ -16,6 +16,7 @@ import type {
   FixtureData,
   Invoice,
   InvoiceStatus,
+  MonthlyTotal,
   PastRun,
   ReceivedPayment,
   RunGroup,
@@ -29,6 +30,7 @@ export const operationNames = [
   "sendReminders",
   "retryPayments",
   "requestRetry",
+  "withdrawInvoice",
 ] as const;
 export type OperationName = (typeof operationNames)[number];
 
@@ -120,10 +122,16 @@ function listed(items: readonly string[]) {
     : `${items.slice(0, -1).join(", ")} and ${last}`;
 }
 
-// Your payments before these invoices, which no invoice here accounts for.
+// Yours beyond these invoices: your payments before them, which no invoice
+// here accounts for, and your newest invoice, sent after them. They stay out
+// of the list above because the P0 briefs read it as it is.
 type History = Pick<
   FixtureData,
-  "lastPayment" | "paidThisYear" | "paymentsReceived" | "bouncedPayment"
+  | "lastPayment"
+  | "paidThisYear"
+  | "paymentsReceived"
+  | "bouncedPayment"
+  | "awaitingInvoice"
 >;
 const history: History = {
   lastPayment: {
@@ -152,8 +160,10 @@ const history: History = {
       "INV-0091",
     ]),
   ],
+  // The Oct 10 run paid you twice: INV-0131's payment went through and
+  // INV-0138's, over your bank's limit, came back a week later.
   bouncedPayment: {
-    id: "PAY-2026-10-17",
+    id: "PAY-0138",
     invoiceId: "INV-0138",
     contractorId: you.id,
     contractor: you.name,
@@ -163,15 +173,24 @@ const history: History = {
     date: "2026-10-17",
     dateLabel: "Oct 17",
     reason:
-      "Your bank sent it back: the account number doesn't match the name on the account.",
+      "Your bank sent it back: it went over your account's daily limit for incoming transfers.",
   },
+  awaitingInvoice: invoice(
+    "INV-0152",
+    you,
+    2950,
+    "awaiting",
+    ["2026-11-19", "Nov 19"],
+    3
+  ),
 };
 
 // The invoice invoice-review shows.
 const reviewed = "INV-0148";
 
-// The payments the Oct 10 run sent that came back, by the invoice each paid,
-// with the bank's reason: INV-0146's, which is why that invoice is failed.
+// The other payments the Oct 10 run sent that came back (yours is your
+// history's), by the invoice each paid, with the bank's reason: INV-0146's,
+// which is why that invoice is failed.
 const bounces = [
   {
     invoiceId: "INV-0146",
@@ -181,10 +200,14 @@ const bounces = [
   },
 ];
 
-// The bounced payments whose invoice is in, each failed while its invoice
-// is and scheduled once it's retried into the next run.
-function failedPayments(allInvoices: readonly Invoice[]): FailedPayment[] {
-  return bounces.flatMap(({ invoiceId, ...bounce }) => {
+// Your bounced payment, then the ones whose invoice is in, by invoice; each
+// failed while its invoice is and scheduled once it's retried into the next
+// run.
+function failedPayments(
+  allInvoices: readonly Invoice[],
+  yours: FailedPayment | null
+): FailedPayment[] {
+  const theirs = bounces.flatMap(({ invoiceId, ...bounce }) => {
     const paid = allInvoices.find((each) => each.id === invoiceId);
     if (!paid) return [];
     return [
@@ -197,9 +220,12 @@ function failedPayments(allInvoices: readonly Invoice[]): FailedPayment[] {
         currency: paid.currency,
         status: paid.status === "failed" ? "failed" : "scheduled",
         ...bounce,
-      },
+      } satisfies FailedPayment,
     ];
   });
+  return [...(yours ? [yours] : []), ...theirs].sort((a, b) =>
+    a.invoiceId < b.invoiceId ? -1 : 1
+  );
 }
 
 // What the admin knows of each contractor beyond their invoices. Yours
@@ -237,23 +263,29 @@ const profiles: readonly Profile[] = [
   profile(priya, "India", "priya.raman@fastmail.com", "5108", 33915.5),
 ];
 
-// Each contractor with their invoices here that aren't paid yet.
-function accounts(allInvoices: readonly Invoice[]): ContractorAccount[] {
+// Each contractor with their invoices that aren't paid yet: those here, and
+// those before them whose payment bounced (your INV-0138).
+function accounts(
+  allInvoices: readonly Invoice[],
+  bounced: readonly FailedPayment[]
+): ContractorAccount[] {
+  const here = new Set(allInvoices.map((each) => each.id));
   return profiles.map((each) => {
-    const open = allInvoices.filter(
-      (invoice) => invoice.contractorId === each.id && invoice.status !== "paid"
-    );
+    const open = [
+      ...allInvoices.filter((invoice) => invoice.status !== "paid"),
+      ...bounced.filter((payment) => !here.has(payment.invoiceId)),
+    ].filter((owing) => owing.contractorId === each.id);
     return {
       ...each,
       openInvoices: open.length,
       openInvoicesLabel: counted(open.length, "invoice"),
-      owed: open.reduce((sum, invoice) => sum + invoice.amount, 0),
+      owed: open.reduce((sum, owing) => sum + owing.amount, 0),
     };
   });
 }
 
-// The runs before the next one, newest first; Oct 10's paid your last
-// payment.
+// The runs before the next one, newest first. Oct 10's paid your last
+// payment, and sent both payments that bounced.
 function pastRun(
   [date, dateLabel]: [string, string],
   contractors: number,
@@ -278,8 +310,8 @@ function pastRun(
   };
 }
 const pastRuns: readonly PastRun[] = [
-  pastRun(["2026-10-10", "Oct 10"], 4, [5, 16420]),
-  pastRun(["2026-09-26", "Sep 26"], 5, [5, 17485.5], [1, 1620]),
+  pastRun(["2026-10-10", "Oct 10"], 5, [5, 16420], [2, 5270]),
+  pastRun(["2026-09-26", "Sep 26"], 5, [5, 17485.5]),
   pastRun(["2026-09-12", "Sep 12"], 3, [4, 11250]),
   pastRun(["2026-08-29", "Aug 29"], 5, [7, 21980]),
   pastRun(["2026-08-15", "Aug 15"], 3, [3, 8400]),
@@ -302,6 +334,9 @@ function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
       countLabel: counted(inGroup.length, "invoice"),
     };
   };
+  const bounced = failedPayments(allInvoices, past.bouncedPayment);
+  const months = monthlyTotals(past.paymentsReceived);
+  const paid = months.reduce((sum, each) => sum + each.amount, 0);
   return {
     invoices: allInvoices,
     you,
@@ -326,18 +361,52 @@ function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
     },
     payQueue: allInvoices.filter((each) => toPay.has(each.id)),
     overdueInvoices: allInvoices.filter((each) => each.status === "overdue"),
-    failedPayments: failedPayments(allInvoices),
-    contractors: accounts(allInvoices),
+    failedPayments: bounced,
+    contractors: accounts(allInvoices, bounced),
     pastRuns,
+    monthlyTotals: months,
+    monthlyAverage:
+      months.length > 0
+        ? { amount: paid / months.length, currency: "USD" }
+        : null,
   };
 }
 
+// Your payments received, totalled by month, in their order: newest first.
+function monthlyTotals(payments: readonly ReceivedPayment[]): MonthlyTotal[] {
+  const byMonth = new Map<string, ReceivedPayment[]>();
+  for (const each of payments) {
+    const month = each.date.slice(0, 7);
+    byMonth.set(month, [...(byMonth.get(month) ?? []), each]);
+  }
+  return [...byMonth].map(([id, inMonth]) => {
+    const invoiceCount = inMonth.reduce(
+      (sum, each) => sum + each.invoiceCount,
+      0
+    );
+    return {
+      id,
+      monthLabel: new Date(`${id}-01T00:00:00Z`).toLocaleString("en-US", {
+        month: "long",
+        timeZone: "UTC",
+      }),
+      amount: inMonth.reduce((sum, each) => sum + each.amount, 0),
+      currency: "USD",
+      paymentCount: inMonth.length,
+      paymentCountLabel: counted(inMonth.length, "payment"),
+      invoiceCount,
+      invoiceCountLabel: counted(invoiceCount, "invoice"),
+    };
+  });
+}
+
 // The dataset once these invoices are scheduled into the next run.
-function scheduled(ids: readonly string[]) {
+function scheduled(ids: readonly string[], past = history) {
   return dataset(
     invoices.map((each) =>
       ids.includes(each.id) ? { ...each, status: "scheduled" as const } : each
-    )
+    ),
+    past
   );
 }
 
@@ -350,6 +419,7 @@ const newContractor = dataset(
     paidThisYear: null,
     paymentsReceived: [],
     bouncedPayment: null,
+    awaitingInvoice: null,
   }
 );
 // No contractor has an invoice in.
@@ -367,11 +437,22 @@ const nothingOverdue = dataset(
 );
 // The bounced payments: what failed-payments' rows-selected and retry-failed
 // start with selected, and what its payments-retried schedules, with their
-// invoices. None bounced once the failed invoices are left out.
+// invoices, yours included. None bounced once the failed invoices and yours
+// are left out.
 const bounced = shared.failedPayments.map((each) => each.id);
-const retried = scheduled(shared.failedPayments.map((each) => each.invoiceId));
+const retried = scheduled(
+  shared.failedPayments.map((each) => each.invoiceId),
+  {
+    ...history,
+    bouncedPayment: history.bouncedPayment && {
+      ...history.bouncedPayment,
+      status: "scheduled",
+    },
+  }
+);
 const nothingBounced = dataset(
-  invoices.filter((each) => each.status !== "failed")
+  invoices.filter((each) => each.status !== "failed"),
+  { ...history, bouncedPayment: null }
 );
 
 // A variant is the data its screen state shows, the operations that fail
@@ -452,6 +533,16 @@ const variants = {
   "payment-failed/retry-requested": { data: shared, fails: [] },
   "payment-failed/retry-failed": { data: shared, fails: ["requestRetry"] },
   "my-invoices/empty": { data: newContractor, fails: [] },
+  // Withdrawn, your awaiting invoice is gone.
+  "withdraw-invoice/invoice-withdrawn": {
+    data: { ...shared, awaitingInvoice: null },
+    fails: [],
+  },
+  "withdraw-invoice/withdraw-failed": {
+    data: shared,
+    fails: ["withdrawInvoice"],
+  },
+  "annual-summary/empty": { data: newContractor, fails: [] },
 } satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;
@@ -464,6 +555,8 @@ export type Operations = {
   retryPayments: (paymentIds: readonly string[]) => Promise<void>;
   // A bounced payment of yours, by its id.
   requestRetry: (paymentId: string) => Promise<void>;
+  // Your invoice awaiting approval, by its id.
+  withdrawInvoice: (invoiceId: string) => Promise<void>;
 };
 
 export type FixtureVariant = {
@@ -509,6 +602,7 @@ export function fixtureVariant(name: string): FixtureVariant {
       retryPayments: (paymentIds) =>
         settle("retryPayments", paymentIds.join(", ")),
       requestRetry: (paymentId) => settle("requestRetry", paymentId),
+      withdrawInvoice: (invoiceId) => settle("withdrawInvoice", invoiceId),
     },
   };
 }

@@ -130,6 +130,28 @@ export type FixtureData = {
   paymentsReceived: readonly ReceivedPayment[];
   // Your one bounced payment, or null when there's none.
   bouncedPayment: FailedPayment | null;
+  // Your one invoice still awaiting approval, which you can withdraw, or
+  // null when there's none.
+  awaitingInvoice: Invoice | null;
+  // The payments you've received this year, totalled by month, newest
+  // first: empty for a contractor who hasn't been paid yet.
+  monthlyTotals: readonly MonthlyTotal[];
+  // What you've been paid this year, averaged over the months you've been
+  // paid in; null when there are none.
+  monthlyAverage: Total | null;
+};
+
+// One month of the payments you've received.
+export type MonthlyTotal = {
+  // The month, as "2026-10".
+  id: string;
+  monthLabel: string;
+  amount: number;
+  currency: "USD";
+  paymentCount: number;
+  paymentCountLabel: string;
+  invoiceCount: number;
+  invoiceCountLabel: string;
 };
 
 // A contractor as the admin sees them: who they are, how they're paid, and
