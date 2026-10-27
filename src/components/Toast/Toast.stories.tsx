@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { FocusedOn } from "../../../.storybook/focused-on.tsx";
 import type { VariantName } from "../../fixtures/fixtures.ts";
 import { ActionBar } from "../ActionBar/ActionBar.tsx";
 import { Amount } from "../Amount/Amount.tsx";
@@ -53,6 +54,8 @@ async function holdsShapeAndName(canvas: HTMLElement, density: string) {
   await expect(style.viewTransitionName).toBe(
     toast.dataset.tone === "success" ? "action-result" : "action-failure"
   );
+  // Focusable from script only, so it never joins the tab order (#244).
+  await expect(toast.tabIndex).toBe(-1);
   await document.fonts.ready;
   const control = contractor ? 44 : 32;
   const text = toast.querySelector("p")!.getBoundingClientRect().height;
@@ -231,5 +234,24 @@ export const Failed: Story = {
     await expect(toast.getBoundingClientRect().bottom).toBeLessThan(
       bar.getBoundingClientRect().top
     );
+  },
+};
+
+// Where Confirmed lands for a keyboard user who paid from the bar: focus on
+// the success Toast the bar became, so their next Tab moves on from there.
+// The toast is no control, so it shows no focus ring.
+export const ConfirmedWithFocus: Story = {
+  args: Success.args,
+  parameters: startIn("payment-scheduled", "invoice-queue/payment-scheduled"),
+  render: () => (
+    <FocusedOn component="Toast">
+      <PayConfirmation />
+    </FocusedOn>
+  ),
+  play: async ({ canvasElement, globals }) => {
+    await holdsShapeAndName(canvasElement, globals.density);
+    const toast = find(canvasElement, "Toast")!;
+    await expect(document.activeElement).toBe(toast);
+    await expect(getComputedStyle(toast).outlineStyle).toBe("none");
   },
 };

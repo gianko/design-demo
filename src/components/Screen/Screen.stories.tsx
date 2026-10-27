@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { FocusedOn } from "../../../.storybook/focused-on.tsx";
 import { Text } from "../Text/Text.tsx";
 import { Screen } from "./Screen.tsx";
 import {
@@ -10,6 +11,21 @@ import {
   type ScreenStateParameters,
 } from "./screen-state.tsx";
 
+const root = (canvas: HTMLElement) =>
+  canvas.querySelector<HTMLElement>('[data-component="Screen"]')!;
+
+// Style expectations (ADR 0012) every story holds: the root is at least the
+// viewport's height, so the page colour fills the window below a short
+// screen; and it is focusable from script only, so it never joins the tab
+// order, for focus to land on when a state change removes the focused
+// element (#244).
+async function holdsHeightAndFocusability(canvas: HTMLElement) {
+  await expect(getComputedStyle(root(canvas)).minHeight).toBe(
+    `${window.innerHeight}px`
+  );
+  await expect(root(canvas).tabIndex).toBe(-1);
+}
+
 // Screen sets its own density from `audience`, so each story keeps its
 // density whatever the toolbar's density global is: the root's scope wins over
 // the one around it. The content is plain token-classed elements until Heading
@@ -17,14 +33,7 @@ import {
 const meta = {
   title: "Components/Screen",
   component: Screen,
-  // A style expectation (ADR 0012): the root is at least the viewport's
-  // height, so the page colour fills the window below a short screen.
-  play: async ({ canvasElement }) => {
-    const root = canvasElement.querySelector('[data-component="Screen"]')!;
-    await expect(getComputedStyle(root).minHeight).toBe(
-      `${window.innerHeight}px`
-    );
-  },
+  play: ({ canvasElement }) => holdsHeightAndFocusability(canvasElement),
 } satisfies Meta<typeof Screen>;
 
 export default meta;
@@ -131,3 +140,23 @@ export const ReminderSent = hosted({
   name: "reminder-sent",
   fixture: "payment-status/reminder-sent",
 });
+
+// Focus as the library leaves it when a state change removes the focused
+// element and nothing takes over its view transition name (#244): on the
+// root, taken before the first paint. The root is no control, so it shows
+// no focus ring.
+export const FocusedAfterChange: Story = {
+  args: Contractor.args,
+  render: (args) => (
+    <FocusedOn component="Screen">
+      <Screen {...args} />
+    </FocusedOn>
+  ),
+  play: async ({ canvasElement }) => {
+    await holdsHeightAndFocusability(canvasElement);
+    await expect(document.activeElement).toBe(root(canvasElement));
+    await expect(getComputedStyle(root(canvasElement)).outlineStyle).toBe(
+      "none"
+    );
+  },
+};

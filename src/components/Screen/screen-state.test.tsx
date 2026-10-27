@@ -169,6 +169,57 @@ it("changes state without a transition where the browser has no View Transitions
   expect(screenState()).toBe("reminder-sent");
 });
 
+// Focus follows the view transition name (ADR 0011, #244). Send reminder
+// carries none, and reminder-sent leaves it out, so nothing takes over its
+// place and focus goes to the Screen.
+describe("focus after a state change", () => {
+  const button = () => screen.getByRole("button", { name: "Send reminder" });
+
+  it("lands on the Screen when the state removes the focused element and nothing carries its name", async () => {
+    render(<SendReminder />);
+    button().focus();
+
+    sendReminder();
+    await act(() => vi.advanceTimersByTimeAsync(1800));
+
+    expect(screenState()).toBe("reminder-sent");
+    expect(document.activeElement).toBe(screen.getByRole("main"));
+    // Focusable from script only, so it never joins the tab order.
+    expect(screen.getByRole("main").tabIndex).toBe(-1);
+  });
+
+  it("leaves focus where it was when the state keeps the focused element", async () => {
+    render(<ReminderFails />);
+    button().focus();
+
+    sendReminder();
+    await act(() => vi.advanceTimersByTimeAsync(1800));
+
+    expect(screenState()).toBe("reminder-failed");
+    expect(document.activeElement).toBe(button());
+  });
+
+  it("moves nothing when focus wasn't in what the state removed", async () => {
+    render(<SendReminder />);
+
+    sendReminder();
+    await act(() => vi.advanceTimersByTimeAsync(1800));
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("lands on the Screen where the browser has no View Transitions", async () => {
+    delete (document as Partial<Document>).startViewTransition;
+    render(<SendReminder />);
+    button().focus();
+
+    sendReminder();
+    await act(() => vi.advanceTimersByTimeAsync(1800));
+
+    expect(document.activeElement).toBe(screen.getByRole("main"));
+  });
+});
+
 // A generated screen reads its bound data, and its operations' arguments,
 // from the fixture variant its host renders (ADR 0004, ADR 0011).
 it("reads the data of the fixture variant its host names", () => {

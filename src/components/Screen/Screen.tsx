@@ -13,10 +13,12 @@ import { useCurrentScreenState } from "./screen-state.tsx";
 // (./screen-state.tsx), not a prop, so the UI spec never sets it. The root is
 // at least the dynamic viewport's height, so the page colour fills the window
 // below a short screen, with no scroll from mobile browser chrome; a keyword
-// utility, as no token can hold a viewport unit.
+// utility, as no token can hold a viewport unit. Focus lands on the root
+// when a state change removes the focused element and nothing takes its
+// place (ADR 0011); the root is no control, so it shows no focus ring.
 export const screen = tv({
   slots: {
-    root: "min-h-dvh bg-page p-page text-body text-ink",
+    root: "min-h-dvh bg-page p-page text-body text-ink outline-hidden",
     status: "sr-only",
   },
   variants: { audience: { admin: {}, contractor: {} } },
@@ -43,6 +45,9 @@ export function Screen({ audience, children }: ScreenProps) {
       data-component="Screen"
       data-density={audience}
       data-screen-state={state}
+      // Focusable from script only: focus lands here when a state change
+      // removes the focused element and nothing takes its place (ADR 0011).
+      tabIndex={-1}
       className={root()}
     >
       <AnnounceContext value={announce}>{children}</AnnounceContext>

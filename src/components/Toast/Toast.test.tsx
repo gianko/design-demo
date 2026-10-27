@@ -12,7 +12,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VariantName } from "../../fixtures/fixtures.ts";
 import { ActionBar } from "../ActionBar/ActionBar.tsx";
 import { Button } from "../Button/Button.tsx";
@@ -147,4 +147,51 @@ it("announces the failure again when a retry fails again", async () => {
 
   expect(transitions).toEqual([["fail"], ["fail"]]);
   expect(added).toEqual([failed, failed]);
+});
+
+// Focus follows the view transition name (ADR 0011, #244): a keyboard user
+// who confirms a payment from the bar's Button stays where they acted.
+describe("focus after the payment settles", () => {
+  const button = () =>
+    screen.getByRole<HTMLButtonElement>("button", { name: "Approve and pay" });
+
+  it("lands on the success Toast the bar became, once the payment is confirmed", async () => {
+    host("invoice-queue/rows-selected");
+    button().focus();
+
+    await pay();
+
+    expect(bar()).toBeNull();
+    expect(document.activeElement).toBe(toast());
+    // Focusable from script only, so it never joins the tab order.
+    expect(toast()!.tabIndex).toBe(-1);
+  });
+
+  it("stays on the Button, back at rest, once the payment fails", async () => {
+    host("invoice-queue/payment-failed");
+    button().focus();
+
+    await pay();
+
+    expect(document.activeElement).toBe(button());
+    expect(button().getAttribute("aria-busy")).not.toBe("true");
+  });
+
+  it("moves nothing when focus was elsewhere", async () => {
+    host("invoice-queue/rows-selected");
+
+    await pay();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("lands on the Toast where the browser has no View Transitions", async () => {
+    delete (document as Partial<Document>).startViewTransition;
+    host("invoice-queue/rows-selected");
+    button().focus();
+
+    await pay();
+
+    expect(document.activeElement).toBe(toast());
+  });
 });
