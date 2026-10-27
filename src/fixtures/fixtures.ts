@@ -17,6 +17,7 @@ import type {
   Invoice,
   InvoiceStatus,
   PastRun,
+  ReceivedPayment,
   RunGroup,
 } from "./types.ts";
 
@@ -27,6 +28,7 @@ export const operationNames = [
   "payInvoices",
   "sendReminders",
   "retryPayments",
+  "requestRetry",
 ] as const;
 export type OperationName = (typeof operationNames)[number];
 
@@ -90,9 +92,39 @@ const invoices: readonly Invoice[] = [
 const toPay: ReadonlySet<string> = new Set(
   invoices.filter((each) => each.status === "awaiting").map((each) => each.id)
 );
+// A payment you received, for invoices before these.
+function received(
+  [date, dateLabel]: [string, string],
+  amount: number,
+  invoiceNumbers: readonly string[]
+): ReceivedPayment {
+  return {
+    id: `PAY-${date}`,
+    amount,
+    currency: "USD",
+    status: "paid",
+    date,
+    dateLabel,
+    invoiceNumbers,
+    invoicesLabel: listed(invoiceNumbers),
+    invoiceCount: invoiceNumbers.length,
+    invoiceCountLabel: counted(invoiceNumbers.length, "invoice"),
+  };
+}
+
+// "A", "A and B", "A, B and C".
+function listed(items: readonly string[]) {
+  const last = items.at(-1) ?? "";
+  return items.length < 2
+    ? last
+    : `${items.slice(0, -1).join(", ")} and ${last}`;
+}
 
 // Your payments before these invoices, which no invoice here accounts for.
-type History = Pick<FixtureData, "lastPayment" | "paidThisYear">;
+type History = Pick<
+  FixtureData,
+  "lastPayment" | "paidThisYear" | "paymentsReceived" | "bouncedPayment"
+>;
 const history: History = {
   lastPayment: {
     invoiceId: "INV-0131",
@@ -103,6 +135,36 @@ const history: History = {
     dateLabel: "Oct 10",
   },
   paidThisYear: { amount: 41200, currency: "USD" },
+  // This year's, newest first: the last payment, then the rest of the 41,200.
+  paymentsReceived: [
+    received(["2026-10-10", "Oct 10"], 4800, ["INV-0131"]),
+    received(["2026-09-26", "Sep 26"], 6200, ["INV-0124", "INV-0127"]),
+    received(["2026-09-12", "Sep 12"], 3900, ["INV-0119"]),
+    received(["2026-08-29", "Aug 29"], 7350, [
+      "INV-0109",
+      "INV-0112",
+      "INV-0115",
+    ]),
+    received(["2026-07-18", "Jul 18"], 9550, ["INV-0098", "INV-0103"]),
+    received(["2026-06-06", "Jun 6"], 9400, [
+      "INV-0084",
+      "INV-0089",
+      "INV-0091",
+    ]),
+  ],
+  bouncedPayment: {
+    id: "PAY-2026-10-17",
+    invoiceId: "INV-0138",
+    contractorId: you.id,
+    contractor: you.name,
+    amount: 3650,
+    currency: "USD",
+    status: "failed",
+    date: "2026-10-17",
+    dateLabel: "Oct 17",
+    reason:
+      "Your bank sent it back: the account number doesn't match the name on the account.",
+  },
 };
 
 // The invoice invoice-review shows.
@@ -283,7 +345,12 @@ const shared = dataset(invoices);
 // A contractor who hasn't invoiced yet: none of your invoices or payments.
 const newContractor = dataset(
   invoices.filter((each) => each.contractorId !== you.id),
-  { lastPayment: null, paidThisYear: null }
+  {
+    lastPayment: null,
+    paidThisYear: null,
+    paymentsReceived: [],
+    bouncedPayment: null,
+  }
 );
 // No contractor has an invoice in.
 const noInvoices = dataset([]);
@@ -381,6 +448,9 @@ const variants = {
     data: { ...noInvoices, contractors: [], pastRuns: [] },
     fails: [],
   },
+  "payments-received/empty": { data: newContractor, fails: [] },
+  "payment-failed/retry-requested": { data: shared, fails: [] },
+  "payment-failed/retry-failed": { data: shared, fails: ["requestRetry"] },
 } satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;
@@ -391,6 +461,8 @@ export type Operations = {
   payInvoices: (invoiceIds: readonly string[]) => Promise<void>;
   sendReminders: (invoiceIds: readonly string[]) => Promise<void>;
   retryPayments: (paymentIds: readonly string[]) => Promise<void>;
+  // A bounced payment of yours, by its id.
+  requestRetry: (paymentId: string) => Promise<void>;
 };
 
 export type FixtureVariant = {
@@ -435,6 +507,7 @@ export function fixtureVariant(name: string): FixtureVariant {
         settle("sendReminders", invoiceIds.join(", ")),
       retryPayments: (paymentIds) =>
         settle("retryPayments", paymentIds.join(", ")),
+      requestRetry: (paymentId) => settle("requestRetry", paymentId),
     },
   };
 }

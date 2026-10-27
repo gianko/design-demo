@@ -40,8 +40,9 @@ export type Payment = {
 
 export type Total = { amount: number; currency: "USD" };
 
-// A payment a contractor's bank sent back. It stays failed until it's
-// retried into the next run, then it's scheduled, as its invoice is.
+// A payment a contractor's bank sent back: one in the admin's retry list, or
+// your own bounced payment. It stays failed until it's retried into the next
+// run, then it's scheduled, as its invoice is.
 export type FailedPayment = {
   id: string;
   // The invoice it paid.
@@ -56,6 +57,22 @@ export type FailedPayment = {
   // When it bounced.
   date: string;
   dateLabel: string;
+};
+
+// A payment you've received, and the invoices it paid.
+export type ReceivedPayment = {
+  id: string;
+  amount: number;
+  currency: "USD";
+  status: "paid";
+  date: string;
+  dateLabel: string;
+  // The invoices it paid, by number, and as one label: "INV-0124 and
+  // INV-0127".
+  invoiceNumbers: readonly string[];
+  invoicesLabel: string;
+  invoiceCount: number;
+  invoiceCountLabel: string;
 };
 
 // One status's share of a payment run.
@@ -108,6 +125,11 @@ export type FixtureData = {
   // The payment runs that have gone out, newest first: empty before the
   // first.
   pastRuns: readonly PastRun[];
+  // The payments you've received this year, newest first: empty for a
+  // contractor who hasn't been paid yet.
+  paymentsReceived: readonly ReceivedPayment[];
+  // Your one bounced payment, or null when there's none.
+  bouncedPayment: FailedPayment | null;
 };
 
 // A contractor as the admin sees them: who they are, how they're paid, and
