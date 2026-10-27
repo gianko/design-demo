@@ -225,7 +225,11 @@ async function shoot(
 }
 
 async function shootStates(page: Page) {
-  const control = page.locator(root).locator(focusable).first();
+  // An open modal dialog (a Sheet) makes the rest of the page inert, so the
+  // first control a keyboard user reaches is the dialog's.
+  const modal = page.locator(root).locator(":modal");
+  const scope = (await modal.count()) > 0 ? modal.first() : page.locator(root);
+  const control = scope.locator(focusable).first();
   if ((await control.count()) === 0) return;
 
   // Tab, not focus(), so the shot shows :focus-visible as a keyboard user

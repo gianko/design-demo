@@ -58,6 +58,13 @@
   }
 }
 
+/* A row that opens its Sheet takes focus, and its ring, `focus-ring`, sits
+   inside the row: the table's surface scrolls sideways, so it clips anything
+   drawn outside its rows. No token class sets an inset offset. */
+[data-component="DataTable"] tr:focus-visible {
+  outline-offset: calc(var(--ds-size-height-edge) * -2);
+}
+
 /* The stagger (ADR 0011). When bound statuses change, DataTable marks each
    row whose status changed with `data-flip`, and only those rows flip, in row
    order, one `delay-stagger` apart; from the 8th on they flip together, so a
