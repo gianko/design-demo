@@ -26,26 +26,30 @@ it("leaves the committed outputs as a fresh build writes them", async () => {
   expect(await readFile(`${tokensDir}figma.json`, "utf8")).toBe(built.figma);
 });
 
-// A quiet control sits straight on `page`, a secondary one on `surface`; one
-// step of 0.01 lightness from either was invisible in the contact sheet (#133).
-it("deepens a light neutral control's hover visibly off page and surface, and pressed again", () => {
-  const light = blockOf(built.css, '[data-theme="light"]');
-  const lightness = (role: string) =>
-    Number(
-      light.match(new RegExp(`--ds-color-bg-${role}: oklch\\(([0-9.]+) `))?.[1]
-    );
-  const visible = 0.03;
+// Hover and pressed are translucent ink, so one pair shows on every surface
+// level: they darken what's under them in light and lighten it in dark
+// (#250). The token validation holds each composite a visible step apart.
+it.each(["light", "dark"])(
+  "makes %s's hover and pressed the theme's ink at a low alpha, pressed stronger",
+  (theme) => {
+    const block = blockOf(built.css, `[data-theme="${theme}"]`);
+    const value = (name: string) =>
+      block.match(new RegExp(`--ds-color-${name}: (oklch\\([^)]*\\));`))?.[1];
+    const ink = value("text-ink")!.match(/^oklch\(([^)]*)\)$/)![1];
+    const translucent = (role: string) => {
+      const [, components, alpha] =
+        value(`bg-${role}`)!.match(/^oklch\((.*) \/ ([0-9.]+)\)$/) ?? [];
+      return { components, alpha: Number(alpha) };
+    };
 
-  expect(lightness("page") - lightness("surface-hover")).toBeGreaterThan(
-    visible
-  );
-  expect(lightness("surface") - lightness("surface-hover")).toBeGreaterThan(
-    visible
-  );
-  expect(
-    lightness("surface-hover") - lightness("surface-pressed")
-  ).toBeGreaterThan(visible);
-});
+    const hover = translucent("surface-hover");
+    const pressed = translucent("surface-pressed");
+    expect([hover.components, pressed.components]).toEqual([ink, ink]);
+    expect(hover.alpha).toBeGreaterThan(0);
+    expect(pressed.alpha).toBeGreaterThan(hover.alpha);
+    expect(pressed.alpha).toBeLessThanOrEqual(0.15);
+  }
+);
 
 describe("the naming chain", () => {
   // One token per family, as ADR 0005 spells the chain out.
@@ -381,6 +385,21 @@ describe("the Figma payload", () => {
     });
     expect(Light).toMatchObject({ a: 0.4 });
   });
+
+  // Figma colour variables carry alpha, so a hover fill drawn in Figma is
+  // the same translucent ink as in code (#250).
+  it.each(["surface-hover", "surface-pressed"])(
+    "gives %s its alpha in both modes",
+    (role) => {
+      const { valuesByMode } = variable("Color", `color/bg/${role}`);
+
+      for (const mode of ["Light", "Dark"]) {
+        expect(valuesByMode[mode]).toMatchObject({
+          a: expect.toSatisfy((a: number) => a > 0 && a < 1),
+        });
+      }
+    }
+  );
 
   // A capture binds a fill only when Figma's value is the colour the browser
   // painted, so every channel sits on the 8-bit step the browser rounds to.

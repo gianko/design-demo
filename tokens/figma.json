@@ -689,10 +689,16 @@
           "css": true,
           "valuesByMode": {
             "Light": {
-              "alias": "primitive/neutral/950"
+              "r": 0.180392,
+              "g": 0.133333,
+              "b": 0.172549,
+              "a": 0.06
             },
             "Dark": {
-              "alias": "primitive/neutral/270"
+              "r": 0.937255,
+              "g": 0.913725,
+              "b": 0.933333,
+              "a": 0.06
             }
           }
         },
@@ -706,10 +712,16 @@
           "css": true,
           "valuesByMode": {
             "Light": {
-              "alias": "primitive/neutral/900"
+              "r": 0.180392,
+              "g": 0.133333,
+              "b": 0.172549,
+              "a": 0.11
             },
             "Dark": {
-              "alias": "primitive/neutral/310"
+              "r": 0.937255,
+              "g": 0.913725,
+              "b": 0.933333,
+              "a": 0.11
             }
           }
         },

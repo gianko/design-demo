@@ -11,3 +11,15 @@ export function colour(value: string): string {
   context.fillStyle = value;
   return context.fillStyle;
 }
+
+/** The pixel the colours paint, each over the ones before it. */
+export function paint(colours: string[]): Uint8ClampedArray {
+  const context = document
+    .createElement("canvas")
+    .getContext("2d", { willReadFrequently: true })!;
+  for (const fill of colours) {
+    context.fillStyle = fill;
+    context.fillRect(0, 0, 1, 1);
+  }
+  return context.getImageData(0, 0, 1, 1).data;
+}

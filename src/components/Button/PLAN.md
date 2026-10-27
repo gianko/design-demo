@@ -48,7 +48,7 @@ States, each distinct from rest:
 | | `primary` | `bg-accent text-on-accent` |
 | | `primary`, not pending | `hover:bg-accent-hover active:bg-accent-pressed` |
 | | `secondary` | `border border-control bg-surface text-ink` |
-| | `secondary`, not pending | `hover:bg-surface-hover active:bg-surface-pressed` |
+| | `secondary`, not pending | `relative before:absolute before:inset-0 before:rounded-control before:transition-colors before:duration-fast before:ease-standard hover:before:bg-surface-hover active:before:bg-surface-pressed`: the translucent hover lies over the `surface` fill (#250) |
 | | `quiet` | `text-ink` |
 | | `quiet`, not pending | `hover:bg-surface-hover active:bg-surface-pressed` |
 | | disabled (any intent) | `text-disabled`, and no hover or pressed classes |

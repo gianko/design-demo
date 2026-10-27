@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { expect } from "storybook/test";
+import { faintHovers } from "../../../.storybook/hover-step.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Stack } from "../Stack/Stack.tsx";
@@ -56,6 +57,10 @@ async function holdsPlaceAndShape(canvas: HTMLElement, density: string) {
   await expect([close.width, close.height]).toEqual([control, control]);
   await expect(close.top).toBe(box.top + parseFloat(padding));
   await expect(close.right).toBe(box.right - parseFloat(padding));
+  // The close button's hover shows on the sheet's surface (#250).
+  await expect(
+    faintHovers([sheet.querySelector('[data-component="IconButton"]')!])
+  ).toEqual([]);
 }
 
 // A label and its value on one row, as a Sheet's body lays out a row's facts.
