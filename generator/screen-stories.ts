@@ -1,22 +1,28 @@
 // A generated screen's stories: the default, then one per declared screen
-// state, each naming the fixture variant it renders. The render pass gates
+// state, each naming the fixture variant it renders. The default story also
+// declares the screen's actions, which the `action-transitions` taste rule
+// clicks through (.storybook/screen-actions.ts). The render pass gates
 // exactly these, and `pnpm keep` commits them beside the kept screen, so a
 // kept screen is gated as it was generated (spec § Keep).
 //
 // The title's last segment is the slug, so `pnpm gate <slug>` selects them.
 
+import type {
+  ScreenAction,
+  ScreenActionParameters,
+} from "../.storybook/screen-actions.ts";
 import { defaultState } from "../src/components/Screen/default-state.ts";
 import type {
   HostedState,
   ScreenStateParameters,
 } from "../src/components/Screen/screen-state.tsx";
-import type { UiSpec } from "./ui-spec.ts";
+import type { VariantName } from "../src/fixtures/fixtures.ts";
+import type { UiNode, UiSpec } from "./ui-spec.ts";
 
-export type ScreenStoriesInput = {
-  slug: string;
-  name: string;
-  states: UiSpec["states"];
-};
+export type ScreenStoriesInput = { slug: string; name: string } & Pick<
+  UiSpec,
+  "states" | "nodes" | "actions"
+>;
 
 // Each story's export name and the screen state it renders.
 export function storyStates({ states }: Pick<ScreenStoriesInput, "states">) {
@@ -32,8 +38,11 @@ export function storyStates({ states }: Pick<ScreenStoriesInput, "states">) {
 // The story parameter the Storybook preview hands to ScreenHost (ADR 0011),
 // in the library's own shape.
 const parameter: keyof ScreenStateParameters = "screenState";
+const actionsParameter: keyof ScreenActionParameters = "screenActions";
 
-export function screenStories({ slug, name, states }: ScreenStoriesInput) {
+export function screenStories(input: ScreenStoriesInput) {
+  const { slug, name, states } = input;
+  const actions = screenActions(input);
   const stories = storyStates({ states }).map(({ exportName, state }) => {
     const declared = states.find((candidate) => candidate.name === state);
     const hosted: Record<keyof HostedState, string> | undefined = declared && {
@@ -47,7 +56,9 @@ export function screenStories({ slug, name, states }: ScreenStoriesInput) {
         .join(", ");
     const body = fields
       ? `{\n  parameters: {\n    ${parameter}: { ${fields} },\n  },\n}`
-      : "{}";
+      : state === defaultState && actions.length > 0
+        ? `{\n  parameters: {\n    ${actionsParameter}: ${JSON.stringify(actions)},\n  },\n}`
+        : "{}";
     return `export const ${exportName}: Story = ${body};\n`;
   });
   return `// Written by \`pnpm keep\`: the default and one story per declared screen
@@ -65,6 +76,62 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 ${stories.join("\n")}`;
+}
+
+// Each declared action as the action-transitions rule clicks it: its
+// Button's literal label, the first state (the default, then each declared
+// one) its Button shows in, and the state and fixture variant of each
+// outcome. Its Button is the Button node that runs it, or else its pending
+// node.
+function screenActions({
+  states,
+  nodes,
+  actions,
+}: Pick<UiSpec, "states" | "nodes" | "actions">): ScreenAction[] {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const order = [defaultState, ...states.map((state) => state.name)];
+  const showsIn = (node: UiNode, state: string) => {
+    const seen = new Set<UiNode>();
+    for (
+      let at: UiNode | undefined = node;
+      at && !seen.has(at);
+      at = at.parent === null ? undefined : byId.get(at.parent)
+    ) {
+      seen.add(at);
+      if (at.when.length > 0 && !at.when.includes(state)) return false;
+    }
+    return true;
+  };
+  const hosted = (state: string): HostedState => ({
+    name: state,
+    // A UI spec's fixtures are checked against the variants in gate 1.
+    fixture: (states.find((each) => each.name === state)?.fixture ??
+      "default") as VariantName,
+  });
+  return actions.map((action) => {
+    const button =
+      nodes.find(
+        (node) => node.component === "Button" && node.action === action.name
+      ) ?? byId.get(action.pending);
+    const text = button?.props.find((prop) => prop.name === "text")?.value;
+    let label: unknown = null;
+    try {
+      label = text === undefined ? null : JSON.parse(text);
+    } catch {
+      // Gate 1 rejects a value that isn't JSON; no label then.
+    }
+    return {
+      name: action.name,
+      label: typeof label === "string" ? label : null,
+      from:
+        (button && order.find((state) => showsIn(button, state))) ??
+        defaultState,
+      to: {
+        success: hosted(action.to.success),
+        failure: hosted(action.to.failure),
+      },
+    };
+  });
 }
 
 // `reminder-sent` → `ReminderSent`.

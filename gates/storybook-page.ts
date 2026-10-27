@@ -58,10 +58,22 @@ const settledPhases = [
 // failed (ADR 0012). Storybook shows a story before its play phase runs, and
 // a failing `play` leaves the story shown: the error only reaches the
 // channel, and the console. So the page records the channel's events from
-// the start, and this returns what `play` threw.
+// the start, and this returns what `play` threw. `globals` are set beside
+// the theme and density; Storybook drops a value with characters other than
+// letters, digits, spaces, `-` and `_`.
 export async function openStory(
   page: Page,
-  { id, theme, density }: { id: string; theme: Theme; density: Density }
+  {
+    id,
+    theme,
+    density,
+    globals = {},
+  }: {
+    id: string;
+    theme: Theme;
+    density: Density;
+    globals?: Record<string, string>;
+  }
 ): Promise<{ playError?: PlayError }> {
   await page.addInitScript((settled) => {
     const play: PlayState = { settled: false };
@@ -87,8 +99,11 @@ export async function openStory(
       },
     });
   }, settledPhases);
+  const set = Object.entries({ theme, density, ...globals })
+    .map(([name, value]) => `${name}:${encodeURIComponent(value)}`)
+    .join(";");
   await page.goto(
-    `${origin}/iframe.html?id=${id}&viewMode=story&globals=theme:${theme};density:${density}`
+    `${origin}/iframe.html?id=${id}&viewMode=story&globals=${set}`
   );
   // A story that throws can show main for a moment before the error display.
   await page
@@ -113,6 +128,35 @@ export async function openStory(
     () => (window as unknown as Played).__gatePlay.error
   );
   return playError ? { playError } : {};
+}
+
+// One of the open story's parameters, as JSON, read from Storybook's
+// preview as its test runner reads a story's context.
+export async function storyParameter(
+  page: Page,
+  id: string,
+  name: string
+): Promise<unknown> {
+  return page.evaluate(
+    async ([id, name]) => {
+      type Preview = {
+        storyStore: {
+          loadStory(options: {
+            storyId: string;
+          }): Promise<{ parameters: Record<string, unknown> }>;
+        };
+      };
+      const { storyStore } = (
+        window as unknown as { __STORYBOOK_PREVIEW__: Preview }
+      ).__STORYBOOK_PREVIEW__;
+      const { parameters } = await storyStore.loadStory({ storyId: id });
+      const value = parameters[name];
+      return value === undefined
+        ? undefined
+        : JSON.parse(JSON.stringify(value));
+    },
+    [id, name] as const
+  );
 }
 
 // Whether a console error is Storybook logging what `play` threw, which gate

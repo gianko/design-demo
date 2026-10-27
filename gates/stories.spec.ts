@@ -11,6 +11,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import type { RenderedStory } from "../lint/taste/render.ts";
 import { renderRules } from "./render-rules.ts";
 import {
   logsPlayError,
@@ -20,6 +21,7 @@ import {
   playAnimations,
   root,
   serveStorybook,
+  storyParameter,
 } from "./storybook-page.ts";
 import {
   animatesWhileIdle,
@@ -107,8 +109,20 @@ for (const story of stories) {
             .disableRules(["region"])
             .analyze();
           const taste: Checks["taste"] = {};
+          const rendered: RenderedStory = {
+            id: render.id,
+            parameter: (name) => storyParameter(page, render.id, name),
+            async reopen(globals) {
+              const fresh = await page.context().newPage();
+              await fresh.setViewportSize(page.viewportSize()!);
+              await openStory(fresh, { ...render, globals });
+              return fresh;
+            },
+          };
           for (const rule of renderRules) {
-            taste[rule.name] = seeding ? [] : await rule.check(page, root);
+            taste[rule.name] = seeding
+              ? []
+              : await rule.check(page, root, rendered);
           }
           expect
             .soft(

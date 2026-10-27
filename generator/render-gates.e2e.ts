@@ -49,6 +49,8 @@ const screen = (
   source,
   audience: "contractor" as const,
   states,
+  nodes: [],
+  actions: [],
 });
 
 describe("renderGates", () => {

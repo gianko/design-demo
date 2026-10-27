@@ -36,7 +36,11 @@ export function ${name}() {
 function repDir({
   endReason = "passed",
   states = [],
-}: { endReason?: EndReason; states?: UiSpec["states"] } = {}) {
+  nodes = [],
+  actions = [],
+}: { endReason?: EndReason } & Partial<
+  Pick<UiSpec, "states" | "nodes" | "actions">
+> = {}) {
   const id = randomUUID().slice(0, 8);
   const slug = `keep-${id}`;
   const name = pascalCase(slug);
@@ -51,7 +55,7 @@ function repDir({
       workDir: "/somewhere/else",
       outcome: endReason === "passed" ? "pass" : "fail",
       endReason,
-      uiSpec: { audience: "contractor", nodes: [], states, actions: [] },
+      uiSpec: { audience: "contractor", nodes, states, actions },
       screen: `attempt-1-code/${name}.tsx`,
       attempts: [],
     })
@@ -112,6 +116,83 @@ export function ${rep.name}() {
     expect(stories).toMatch(
       /export const ReminderSent: Story = \{\s*parameters: \{\s*screenState: \{\s*name: "reminder-sent",\s*fixture: "payment-status\/reminder-sent",?\s*\},?\s*\},?\s*\};/
     );
+  });
+
+  it("declares each action on the default story: its Button's label, the state it's clicked in, and each outcome's state and variant", async () => {
+    const node = (
+      id: string,
+      parent: string | null,
+      when: string[],
+      { action = null, text }: { action?: string | null; text?: string } = {}
+    ): UiSpec["nodes"][number] => ({
+      id,
+      component: text === undefined ? "Stack" : "Button",
+      parent,
+      slot: parent && "children",
+      props: text === undefined ? [] : [{ name: "text", value: text }],
+      when,
+      action,
+    });
+    const rep = repDir({
+      nodes: [
+        node("screen", null, []),
+        node("remind", "screen", ["default", "reminder-failed"], {
+          action: "send-reminder",
+          text: '"Send reminder"',
+        }),
+        node("retry-bar", "screen", ["reminder-failed"]),
+        node("retry", "retry-bar", [], {
+          action: "retry",
+          text: '{"bind":"overdueInvoice.number"}',
+        }),
+      ],
+      states: [
+        { name: "empty", fixture: "payment-status/empty" },
+        { name: "reminder-sent", fixture: "payment-status/reminder-sent" },
+        { name: "reminder-failed", fixture: "payment-status/reminder-failed" },
+      ],
+      actions: [
+        {
+          name: "send-reminder",
+          operation: "sendReminder",
+          pending: "remind",
+          to: { success: "reminder-sent", failure: "reminder-failed" },
+        },
+        {
+          name: "retry",
+          operation: "sendReminder",
+          pending: "retry",
+          to: { success: "reminder-sent", failure: "reminder-failed" },
+        },
+      ],
+    });
+
+    await keep(rep.dir);
+
+    const stories = await import(join(rep.kept, `${rep.name}.stories.tsx`));
+    const sent = {
+      name: "reminder-sent",
+      fixture: "payment-status/reminder-sent",
+    };
+    const failed = {
+      name: "reminder-failed",
+      fixture: "payment-status/reminder-failed",
+    };
+    expect(stories.Default.parameters.screenActions).toEqual([
+      {
+        name: "send-reminder",
+        label: "Send reminder",
+        from: "default",
+        to: { success: sent, failure: failed },
+      },
+      {
+        name: "retry",
+        label: null,
+        from: "reminder-failed",
+        to: { success: sent, failure: failed },
+      },
+    ]);
+    expect(stories.Empty.parameters.screenActions).toBeUndefined();
   });
 
   it("refuses a rep that didn't pass, and writes nothing", async () => {

@@ -12,7 +12,27 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  parameters: {
+    screenActions: [
+      {
+        name: "send-reminder",
+        label: "Send reminder",
+        from: "default",
+        to: {
+          success: {
+            name: "reminder-sent",
+            fixture: "payment-status/reminder-sent",
+          },
+          failure: {
+            name: "reminder-failed",
+            fixture: "payment-status/reminder-failed",
+          },
+        },
+      },
+    ],
+  },
+};
 
 export const Empty: Story = {
   parameters: {

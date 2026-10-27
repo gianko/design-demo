@@ -21,6 +21,10 @@ export {
 } from "./components/EmptyState/EmptyState.tsx";
 export { Heading, type HeadingProps } from "./components/Heading/Heading.tsx";
 export {
+  IconButton,
+  type IconButtonProps,
+} from "./components/IconButton/IconButton.tsx";
+export {
   PageHeader,
   type PageHeaderProps,
 } from "./components/PageHeader/PageHeader.tsx";
@@ -36,6 +40,7 @@ export {
   type ScreenHostProps,
   type ScreenStateParameters,
 } from "./components/Screen/screen-state.tsx";
+export { Sheet, type SheetProps } from "./components/Sheet/Sheet.tsx";
 export { Stack, type StackProps } from "./components/Stack/Stack.tsx";
 export {
   StatusTag,

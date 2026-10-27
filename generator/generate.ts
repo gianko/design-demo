@@ -232,6 +232,8 @@ export async function generate(
           source: tsx,
           audience: brief.audience,
           states: uiSpec.states,
+          nodes: uiSpec.nodes,
+          actions: uiSpec.actions,
         });
       } catch (error) {
         console.error(error);
