@@ -326,7 +326,7 @@ function findings(): RenderFinding[] {
     const what = ran.transition
       ? `the ${ran.name} transition`
       : ran.name
-        ? `the ${taste.quote(ran.name)} animation`
+        ? `the ${JSON.stringify(ran.name)} animation`
         : "a scripted animation";
     const at = (message: string) =>
       viewTransition
