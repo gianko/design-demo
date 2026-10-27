@@ -11,14 +11,17 @@ import { Text } from "../Text/Text.tsx";
 import { DataTable } from "./DataTable.tsx";
 
 // invoice-queue's table, as its generated screen renders it: the rows are
-// the fixture variant's invoices, and each column's cell reads the row. The
-// selection comes from the host (ADR 0011).
-function InvoiceQueue() {
+// the fixture variant's invoices, and each column's cell reads the row. It is
+// selectable, since Approve and pay acts on the Selection, which comes from
+// the host (ADR 0011). With selection off it is the same list with nothing to
+// act on (#203).
+function InvoiceQueue({ selectable = true }: { selectable?: boolean }) {
   const data = useFixtureData();
   return (
     <DataTable
       rows={data.invoices}
       columns={["Invoice", "Contractor", "Amount", "Due", "Status"]}
+      selectable={selectable}
       cell={(row) => (
         <>
           <Text text={row.number} />
@@ -42,7 +45,10 @@ async function holdsRowsAndHeaders(canvas: HTMLElement, density: string) {
   for (const row of root.querySelectorAll("tr")) {
     await expect(row.getBoundingClientRect().height).toBe(height);
   }
-  const headers = [...root.querySelectorAll<HTMLElement>("th")].slice(1);
+  // The column headers, without the select-all box's cell.
+  const headers = [...root.querySelectorAll<HTMLElement>("th")].filter(
+    (header) => !header.querySelector('[data-component="Checkbox"]')
+  );
   for (const header of headers) {
     await expect(getComputedStyle(header).fontSize).toBe(size);
     await expect(getComputedStyle(header).fontWeight).toBe("600");
@@ -117,6 +123,25 @@ export const Empty: Story = {
   parameters: {
     screenState: { name: "empty", fixture: "invoice-queue/empty" },
   } satisfies ScreenStateParameters,
+};
+
+// A table nothing acts on: no checkboxes in the header or the rows, so the
+// first column starts at the table's edge. Even in a fixture variant that
+// starts with rows selected, no row fills: the table shows no Selection.
+export const NotSelectable: Story = {
+  render: () => <InvoiceQueue selectable={false} />,
+  parameters: rowsSelected,
+  play: async ({ canvasElement, globals }) => {
+    await holdsRowsAndHeaders(canvasElement, globals.density);
+    const root = canvasElement.querySelector('[data-component="DataTable"]')!;
+    await expect(
+      root.querySelectorAll('[data-component="Checkbox"]')
+    ).toHaveLength(0);
+    const rows = [...root.querySelectorAll("tbody tr")];
+    await expect(
+      rows.map((row) => getComputedStyle(row).backgroundColor)
+    ).toEqual(rows.map(() => "rgba(0, 0, 0, 0)"));
+  },
 };
 
 // On a phone the columns keep their width and the table scrolls sideways

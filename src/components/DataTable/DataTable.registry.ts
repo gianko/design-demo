@@ -6,7 +6,7 @@ import { defineEntry } from "../../registry/entry.ts";
 // the header at the same place in `columns`.
 export const dataTableEntry = defineEntry({
   name: "DataTable",
-  use: "The screen's list of invoices or payments, one row per item, each with a checkbox to select it: bind rows to a fixtures list, name each column in columns, and put one node per column in cell, in the same order, with its props bound to row.* (such as row.number). Ticking rows enters rows-selected and unticking the last returns to the default state; an action that succeeds clears the selection, and one that fails keeps it. For the facts of one invoice use a Card.",
+  use: "The screen's list of invoices or payments, one row per item: bind rows to a fixtures list, name each column in columns, and put one node per column in cell, in the same order, with its props bound to row.* (such as row.number). Turn selectable on only when an action acts on the Selection, the rows the person ticks; leave it off otherwise, and the table has no checkboxes. In a selectable table, ticking rows enters rows-selected and unticking the last returns to the default state; an action that succeeds clears the selection, and one that fails keeps it. For the facts of one invoice use a Card.",
   props: z.object({
     rows: z
       .array(z.looseObject({ id: z.string() }))
@@ -18,6 +18,12 @@ export const dataTableEntry = defineEntry({
       .min(1)
       .describe(
         "Each column's header, in sentence case, in the order of the cell slot's nodes, such as Due."
+      ),
+    selectable: z
+      .boolean()
+      .optional()
+      .describe(
+        "Puts a checkbox on each row, and one in the header, to tick rows into the Selection; true only when an action acts on the selected rows, left out otherwise."
       ),
   }),
   slots: { cell: { allow: ["Text", "Amount", "StatusTag"] } },
