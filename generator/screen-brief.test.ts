@@ -287,7 +287,6 @@ const p1Briefs = [
         "Text",
         "Button",
         "Toast",
-        "EmptyState",
       ],
       states: ["invoice-withdrawn", "withdraw-failed"],
       actions: ["withdraw-invoice"],
