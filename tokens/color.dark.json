@@ -5,6 +5,10 @@
       "page": { "$value": "{primitive.neutral.190}" },
       "surface": { "$value": "{primitive.neutral.230}" },
       "surface-raised": { "$value": "{primitive.neutral.270}" },
+      "surface-overlay": {
+        "$description": "A sheet, modal or menu: lighter than surface-raised, and as light as the control edge's 3:1 on it allows.",
+        "$value": "{primitive.neutral.290}"
+      },
       "surface-hover": {
         "$description": "The theme's ink, translucent, so a neutral control's hover shows on every surface.",
         "$value": {
@@ -64,6 +68,7 @@
                 "{color.bg.page}",
                 "{color.bg.surface}",
                 "{color.bg.surface-raised}",
+                "{color.bg.surface-overlay}",
                 "{color.bg.surface-hover}",
                 "{color.bg.surface-pressed}",
                 "{color.bg.selected}"
@@ -81,7 +86,8 @@
               "against": [
                 "{color.bg.page}",
                 "{color.bg.surface}",
-                "{color.bg.surface-raised}"
+                "{color.bg.surface-raised}",
+                "{color.bg.surface-overlay}"
               ]
             }
           }
@@ -181,7 +187,8 @@
               "against": [
                 "{color.bg.page}",
                 "{color.bg.surface}",
-                "{color.bg.surface-raised}"
+                "{color.bg.surface-raised}",
+                "{color.bg.surface-overlay}"
               ]
             }
           }
@@ -199,7 +206,11 @@
           "design-demo": {
             "contrast": {
               "min": 3,
-              "against": ["{color.bg.page}", "{color.bg.surface}"]
+              "against": [
+                "{color.bg.page}",
+                "{color.bg.surface}",
+                "{color.bg.surface-overlay}"
+              ]
             }
           }
         }

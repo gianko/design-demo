@@ -8,15 +8,16 @@ import { useSheetClose } from "./sheet-host.tsx";
 // Row detail (ADR 0011): an overlay panel at the end edge, full height, over
 // the scrim, holding one row's facts. It is a native modal <dialog>, opened
 // on mount: DataTable renders only the opened row's Sheet, so a rendered
-// Sheet is an open one. The panel is the highest surface the tokens have and
-// casts the overlay shadow, with no border; its corners facing the page take
-// the surface radius, and the edge against the window stays square. Its
-// title box names the dialog and is at least one control tall, so a one-line
-// title centres on the close button. `vt-row-detail` is the view transition
-// name it shares with the row it opened from.
+// Sheet is an open one. The panel is the overlay surface, lighter in dark
+// than the raised bars and toasts, and casts the overlay shadow, with no
+// border; its corners facing the page take the surface radius, and the edge
+// against the window stays square. Its title box names the dialog and is at
+// least one control tall, so a one-line title centres on the close button.
+// `vt-row-detail` is the view transition name it shares with the row it
+// opened from.
 export const sheet = tv({
   slots: {
-    root: "ms-auto flex h-full max-h-none w-sheet max-w-full flex-col gap-lg rounded-s-surface bg-surface-raised p-surface text-ink shadow-overlay outline-hidden backdrop:bg-scrim vt-row-detail",
+    root: "ms-auto flex h-full max-h-none w-sheet max-w-full flex-col gap-lg rounded-s-surface bg-surface-overlay p-surface text-ink shadow-overlay outline-hidden backdrop:bg-scrim vt-row-detail",
     header: "flex items-start gap-sm",
     title: "flex min-h-control grow items-center",
     body: "flex min-h-0 flex-col gap-md overflow-y-auto",

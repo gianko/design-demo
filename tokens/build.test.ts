@@ -51,6 +51,53 @@ it.each(["light", "dark"])(
   }
 );
 
+// The brief's overlay level (a sheet, a modal, a menu) floats above the raised
+// bars and toasts, and in dark, levels are lighter surfaces (#252).
+describe("the overlay surface", () => {
+  it("is lighter than surface-raised in dark", () => {
+    const dark = blockOf(built.css, '[data-theme="dark"]');
+    const lightness = (role: string) =>
+      Number(
+        dark.match(new RegExp(`--ds-color-bg-${role}: oklch\\(([0-9.]+) `))?.[1]
+      );
+
+    expect(lightness("surface-overlay")).toBeGreaterThan(
+      lightness("surface-raised")
+    );
+  });
+
+  // So text and edges are checked on the overlay as on raised, in both themes.
+  it.each(["color.light", "color.dark"])(
+    "is a background in every contrast annotation of %s that lists surface-raised",
+    async (file) => {
+      const { files } = await readSources(tokensDir);
+      const missing: string[] = [];
+      const walk = (node: unknown, path: string[]) => {
+        if (typeof node !== "object" || node === null) return;
+        const against = (
+          node as {
+            $extensions?: {
+              "design-demo"?: { contrast?: { against: string[] } };
+            };
+          }
+        ).$extensions?.["design-demo"]?.contrast?.against;
+        if (
+          against?.includes("{color.bg.surface-raised}") &&
+          !against.includes("{color.bg.surface-overlay}")
+        ) {
+          missing.push(path.join("."));
+        }
+        for (const [key, child] of Object.entries(node)) {
+          if (!key.startsWith("$")) walk(child, [...path, key]);
+        }
+      };
+      walk(files[file], []);
+
+      expect(missing).toEqual([]);
+    }
+  );
+});
+
 describe("the naming chain", () => {
   // One token per family, as ADR 0005 spells the chain out.
   const examples: [path: string, mode: string][] = [
@@ -58,6 +105,7 @@ describe("the naming chain", () => {
     ["color.text.ink-muted", '[data-theme="dark"]'],
     ["color.border.control", '[data-theme="dark"]'],
     ["color.ring.focus", '[data-theme="dark"]'],
+    ["color.bg.surface-overlay", '[data-theme="light"]'],
     ["shadow.raised", '[data-theme="dark"]'],
     ["space.sm", ":root"],
     ["radius.control", ":root"],
@@ -253,7 +301,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(95);
+    expect(variables.filter((v) => v.css)).toHaveLength(96);
   });
 
   // ADR 0001 lists container padding among what density changes.
@@ -384,6 +432,18 @@ describe("the Figma payload", () => {
       a: 0.6,
     });
     expect(Light).toMatchObject({ a: 0.4 });
+  });
+
+  it("carries the overlay surface in both modes, as surface-raised is (#252)", () => {
+    expect(variable("Color", "color/bg/surface-overlay")).toMatchObject({
+      type: "COLOR",
+      scopes: variable("Color", "color/bg/surface-raised").scopes,
+      css: true,
+      valuesByMode: {
+        Light: { alias: expect.stringMatching(/^primitive\/neutral\//) },
+        Dark: { alias: expect.stringMatching(/^primitive\/neutral\//) },
+      },
+    });
   });
 
   // Figma colour variables carry alpha, so a hover fill drawn in Figma is

@@ -43,7 +43,7 @@ type Story = StoryObj<typeof meta>;
 export const Unchecked: Story = { args: { label: "Select INV-0142" } };
 
 // An unticked box on each surface level a table can sit on: the page, a
-// card's surface and a raised bar. Hover shows as a step from rest on every
+// card's surface, a raised bar and an overlay. Hover shows as a step from rest on every
 // one, in both themes; the box's fill stays under its hover rather than
 // giving way to it (#250).
 export const UncheckedOnEachSurface: Story = {
@@ -60,6 +60,9 @@ export const UncheckedOnEachSurface: Story = {
       <div className="flex bg-surface-raised p-2xs">
         <Checkbox label="Select INV-0148" />
       </div>
+      <div className="flex bg-surface-overlay p-2xs">
+        <Checkbox label="Select INV-0151" />
+      </div>
     </div>
   ),
   play: async ({ canvasElement, globals }) => {
@@ -69,7 +72,7 @@ export const UncheckedOnEachSurface: Story = {
         '[data-component="Checkbox"] span[aria-hidden]'
       ),
     ];
-    await expect(boxes).toHaveLength(3);
+    await expect(boxes).toHaveLength(4);
     await expect(faintHovers(boxes)).toEqual([]);
   },
 };
