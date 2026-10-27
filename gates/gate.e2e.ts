@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { staticRules } from "../lint/taste/rules/index.ts";
 import * as noPill from "../lint/taste/rules/no-pill.ts";
 import * as tabularNumerals from "../lint/taste/rules/tabular-numerals.ts";
+import * as targetSize from "../lint/taste/rules/target-size.ts";
 import * as textOverflow from "../lint/taste/rules/text-overflow.ts";
 import * as typeOnScale from "../lint/taste/rules/type-on-scale.ts";
 import { renderRules } from "./render-rules.ts";
@@ -266,6 +267,27 @@ describe("in CI", () => {
         render,
         new RegExp(`gate 7: ${rule}\\b[\\s\\S]*${printed}`)
       );
+    }
+  });
+
+  // target-size holds only contractor scopes to 44px, so its failing
+  // fixture fails there and not in admin.
+  it("fails gate 7's target-size on its failing fixture in contractor only", () => {
+    for (const render of rendersOf(fixture(targetSize.id, "fail"))) {
+      const errors = run.outcome(render)?.errors.join("\n");
+      if (render.density === "admin") {
+        expect(errors).not.toMatch(/gate 7: target-size\b/);
+        continue;
+      }
+      for (const name of ["Remove", "Payment terms", "Remember this payee"]) {
+        expectFailed(
+          run,
+          render,
+          new RegExp(
+            `gate 7: target-size\\b[\\s\\S]*\\\\?"${name}\\\\?" has a \\d+×\\d+px hit area`
+          )
+        );
+      }
     }
   });
 
