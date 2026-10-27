@@ -46,7 +46,7 @@ One quiet family; hierarchy comes from size and weight, not from a second face.
 
 Colour is assigned by role; components never name a hue.
 
-- **Roles**: `page`, `surface`, `surface-raised`, `ink`, `ink-muted`, `line`, `accent`, `on-accent`, `selected`, and status pairs for `awaiting`, `overdue`, `paid`, `scheduled`, `failed`.
+- **Roles**: `page`, `surface`, `surface-raised`, `ink`, `ink-muted`, `line`, `accent`, `on-accent`, `selected`, status pairs for `awaiting`, `overdue`, `paid`, `scheduled`, `failed`, and an `error` pair for an action that failed (a failure toast), kept apart from the status pairs so a failed action never reads as one more overdue invoice.
 - **State roles**: `accent-hover` and `accent-pressed` deepen the accent; `surface-hover` and `surface-pressed` deepen a neutral control; `control` is the 3:1 edge of an input or secondary button (`line` stays a hairline between surfaces); `disabled` and its text are a flat, quiet neutral; `scrim` sits behind overlays. Each has its own value in dark mode. A disabled control keeps its intent's shape: a filled button keeps a `disabled` fill, a bordered one keeps its edge in `disabled`, and a bare one stays bare.
 - **One accent, heather** (about `#80527A` light, `#D8B4D2` dark): a dusty berry for primary actions, selection and focus only. _Why: one accent keeps "what can I do here" obvious._
 - **The focus ring shows on keyboard focus only** (`:focus-visible`), never on click. _Why: a ring on a clicked button reads as "selected"._
@@ -70,7 +70,7 @@ Colour is assigned by role; components never name a hue.
   |---|---|---|---|---|---|
   | 6px | 6px | 4px | 8px | 12px | Round |
 
-  Nothing is fully rounded except avatars. Nested corners stay concentric (inner = outer − padding). _Why: softened corners keep some warmth without the friendly-app look; one radius everywhere is a default, not a choice._
+  Nothing is fully rounded except avatars. Nested corners stay concentric (inner = outer − padding) where the spacing scale allows; where it doesn't, the radius table wins. _Why: softened corners keep some warmth without the friendly-app look; one radius everywhere is a default, not a choice._
 - **Elevation, three levels**: flat (page and cards, separated by a `line` hairline), raised (sticky and floating bars, toasts: one soft plum-tinted shadow), overlay (modal, sheet, menu: a deeper shadow and a scrim). A shadow means "this floats", never "this is a box". In dark mode, levels are lighter surfaces.
 
 ## Motion
@@ -90,7 +90,7 @@ Motion confirms what the user just did. It is the system's signature, so it is p
 
 ## Icons and copy
 
-- **Phosphor**, regular weight: 16px on admin screens, 20px on contractor screens.
+- **Phosphor**, regular weight: 16px on admin screens, 20px on contractor screens. An icon takes the colour of its control's label (`ink` on a quiet control, `disabled` when disabled); there is no separate icon colour.
 - **Copy** is second person, active and specific: "Your money is on its way", "Approve and pay", "Arrives Oct 20", never "soon". No exclamation marks, no emoji, no jokes in errors. Errors say what happened and what to do next. Admin copy is terser; the warmth stays.
 
 ## Banned

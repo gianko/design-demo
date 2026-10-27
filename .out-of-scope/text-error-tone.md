@@ -8,7 +8,7 @@ The brief says colour alone never communicates state. A failure result, such as 
 
 ## When to reconsider
 
-A failure tone arrives with Toast in P1 ([ADR 0011](../docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)). An `error` text role can be added then, if Toast needs one, AA-checked on page and surface.
+A failure tone arrives with Toast in P1 ([ADR 0011](../docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)). An `error` text role can be added then, if Toast needs one, AA-checked on page and surface. Toast's triage (#241) adds an `error` surface and ink pair for a failure Toast; a Text tone that uses it is still out of scope.
 
 ## Prior requests
 
