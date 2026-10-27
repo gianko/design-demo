@@ -924,6 +924,23 @@
           }
         },
         {
+          "name": "color/bg/error",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Light": {
+              "alias": "primitive/red/820"
+            },
+            "Dark": {
+              "alias": "primitive/red/480"
+            }
+          }
+        },
+        {
           "name": "color/text/ink",
           "type": "COLOR",
           "scopes": [
@@ -1080,6 +1097,22 @@
             },
             "Dark": {
               "alias": "primitive/red/180"
+            }
+          }
+        },
+        {
+          "name": "color/text/error",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Light": {
+              "alias": "primitive/red/320"
+            },
+            "Dark": {
+              "alias": "primitive/red/940"
             }
           }
         },

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { colour } from "../../../.storybook/canvas-colour.ts";
 import { FocusedOn } from "../../../.storybook/focused-on.tsx";
 import type { VariantName } from "../../fixtures/fixtures.ts";
 import { ActionBar } from "../ActionBar/ActionBar.tsx";
@@ -26,6 +27,18 @@ const failed =
 
 const find = (canvas: HTMLElement, component: string) =>
   canvas.querySelector<HTMLElement>(`[data-component="${component}"]`);
+
+// A failure Toast is the error pair (#241), not the overdue status tag's, so
+// beside an Overdue tag it doesn't read as one more overdue thing.
+async function holdsErrorColours(toast: HTMLElement) {
+  const style = getComputedStyle(toast);
+  const token = (name: string) =>
+    colour(style.getPropertyValue(`--ds-color-${name}`));
+  await expect(colour(style.backgroundColor)).toBe(token("bg-error"));
+  await expect(colour(style.color)).toBe(token("text-error"));
+  await expect(colour(style.backgroundColor)).not.toBe(token("bg-overdue"));
+  await expect(colour(style.color)).not.toBe(token("text-overdue"));
+}
 
 // Style expectations (ADR 0012) every Toast holds: raised, with a shadow and
 // no border; the surface radius and padding of its density; sticky at the
@@ -56,6 +69,7 @@ async function holdsShapeAndName(canvas: HTMLElement, density: string) {
   );
   // Focusable from script only, so it never joins the tab order (#244).
   await expect(toast.tabIndex).toBe(-1);
+  if (toast.dataset.tone === "failure") await holdsErrorColours(toast);
   await document.fonts.ready;
   const control = contractor ? 44 : 32;
   const text = toast.querySelector("p")!.getBoundingClientRect().height;
@@ -88,7 +102,7 @@ type Story = StoryObj<typeof meta>;
 // The confirmed result: the bar's own raised surface, holding what was done.
 export const Success: Story = { args: { tone: "success", text: scheduled } };
 
-// The failed result: the overdue tint, saying what happened and what to do.
+// The failed result: the error pair, saying what happened and what to do.
 export const Failure: Story = { args: { tone: "failure", text: failed } };
 
 // The failure on a phone: its copy wraps inside the toast, and the toast

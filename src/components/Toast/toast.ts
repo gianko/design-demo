@@ -15,7 +15,7 @@ export const toast = tv({
   variants: {
     tone: {
       success: { root: "bg-surface-raised text-ink vt-action-result" },
-      failure: { root: "bg-overdue text-overdue vt-action-failure" },
+      failure: { root: "bg-error text-error vt-action-failure" },
     },
   },
 });

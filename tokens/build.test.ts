@@ -162,6 +162,16 @@ describe("the naming chain", () => {
     expect(css).toContain("outline-offset: var(--ds-size-height-edge)");
   });
 
+  // A failure Toast's pair (#241), compiled like a status pair.
+  it("compiles the error pair's background and text classes", () => {
+    expect(utilities("bg-error")).toContain(
+      "background-color: var(--ds-color-bg-error)"
+    );
+    expect(utilities("text-error")).toContain(
+      "color: var(--ds-color-text-error)"
+    );
+  });
+
   it("compiles nothing outside the tokens", () => {
     for (const className of [
       "bg-ink",
@@ -239,7 +249,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(93);
+    expect(variables.filter((v) => v.css)).toHaveLength(95);
   });
 
   // ADR 0001 lists container padding among what density changes.
@@ -276,6 +286,78 @@ describe("the Figma payload", () => {
       },
     });
   });
+
+  // A failure Toast's own pair (#241), so the status tags keep their colours
+  // to themselves: a calm red surface and its ink in each theme, neither the
+  // value of any status pair's background or text in that theme.
+  it("gives a failure its own error pair in each theme, apart from the status pairs", () => {
+    expect(variable("Color", "color/bg/error")).toEqual({
+      name: "color/bg/error",
+      type: "COLOR",
+      scopes: ["FRAME_FILL", "SHAPE_FILL"],
+      css: true,
+      valuesByMode: {
+        Light: { alias: "primitive/red/820" },
+        Dark: { alias: "primitive/red/480" },
+      },
+    });
+    expect(variable("Color", "color/text/error")).toEqual({
+      name: "color/text/error",
+      type: "COLOR",
+      scopes: ["TEXT_FILL"],
+      css: true,
+      valuesByMode: {
+        Light: { alias: "primitive/red/320" },
+        Dark: { alias: "primitive/red/940" },
+      },
+    });
+    const statuses = ["awaiting", "overdue", "paid", "scheduled", "failed"];
+    for (const mode of ["Light", "Dark"] as const) {
+      const status = statuses.flatMap((role) =>
+        ["bg", "text"].map(
+          (family) =>
+            variable("Color", `color/${family}/${role}`).valuesByMode[mode]
+        )
+      );
+      for (const family of ["bg", "text"]) {
+        expect(status).not.toContainEqual(
+          variable("Color", `color/${family}/error`).valuesByMode[mode]
+        );
+      }
+    }
+  });
+
+  // The token validation checks a pair's text only where an annotation asks
+  // it to, so each status pair's and the error pair's text names its own
+  // background at 4.5:1, in each theme.
+  it.each(["color.light", "color.dark"])(
+    "annotates each status and error pair's text at 4.5:1 on its background in %s",
+    async (file) => {
+      const { files } = await readSources(tokensDir);
+      const text = (
+        files[file] as {
+          color: {
+            text: Record<
+              string,
+              {
+                $extensions?: {
+                  "design-demo"?: {
+                    contrast?: { min: number; against: string[] };
+                  };
+                };
+              }
+            >;
+          };
+        }
+      ).color.text;
+      const pairs = ["awaiting", "overdue", "paid", "scheduled", "failed"];
+      for (const role of [...pairs, "error"]) {
+        const contrast = text[role]?.$extensions?.["design-demo"]?.contrast;
+        expect(contrast?.min, role).toBeGreaterThanOrEqual(4.5);
+        expect(contrast?.against, role).toContain(`{color.bg.${role}}`);
+      }
+    }
+  );
 
   // About 65 characters of body copy at each density's body size (#95); 65ch
   // would hold about 96, as Instrument Sans's "0" is wide.
