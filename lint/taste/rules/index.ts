@@ -1,4 +1,4 @@
-// The P0 taste rules (lint/taste/RULES.md), each listed once. A rule's module
+// The 16 taste rules (lint/taste/RULES.md), each listed once. A rule's module
 // exports its `id`, and `lint` for its static half, `render` for its render
 // half, or both.
 
@@ -7,6 +7,7 @@ import * as contentHiddenAtRest from "./content-hidden-at-rest.ts";
 import * as edgeTreatment from "./edge-treatment.ts";
 import * as gradientAsDecoration from "./gradient-as-decoration.ts";
 import * as grayOnColor from "./gray-on-color.ts";
+import * as motionReduced from "./motion-reduced.ts";
 import * as motionTokens from "./motion-tokens.ts";
 import * as nestedCards from "./nested-cards.ts";
 import * as noAllCaps from "./no-all-caps.ts";
@@ -34,6 +35,7 @@ export const tasteRules = [
   noPureNeutralText,
   targetSize,
   grayOnColor,
+  motionReduced,
 ];
 
 // The rules ESLint runs as `taste/<id>`.

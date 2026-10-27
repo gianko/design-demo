@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useLayoutEffect, useState } from "react";
-import { expect } from "storybook/test";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { expect, waitFor } from "storybook/test";
 import { fixtureVariant, type Invoice } from "../../fixtures/fixtures.ts";
 import {
   ScreenHost,
@@ -8,6 +8,9 @@ import {
   type ScreenStateParameters,
 } from "../Screen/screen-state.tsx";
 import { Amount } from "../Amount/Amount.tsx";
+import { Heading } from "../Heading/Heading.tsx";
+import { Sheet } from "../Sheet/Sheet.tsx";
+import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { DataTable } from "./DataTable.tsx";
@@ -16,12 +19,14 @@ import { DataTable } from "./DataTable.tsx";
 // the fixture variant's invoices, and each column's cell reads the row. It is
 // selectable, since Approve and pay acts on the Selection, which comes from
 // the host (ADR 0011). With selection off it is the same list with nothing to
-// act on (#203).
+// act on (#203). With `detail`, a row opens its invoice's Sheet.
 function InvoiceQueue({
   selectable = true,
+  detail = false,
   rows,
 }: {
   selectable?: boolean;
+  detail?: boolean;
   rows?: readonly Invoice[];
 }) {
   const data = useFixtureData();
@@ -39,9 +44,123 @@ function InvoiceQueue({
           <StatusTag status={row.status} />
         </>
       )}
+      detail={detail ? invoiceSheet : undefined}
     />
   );
 }
+
+// A label and its value on one row, as Sheet's own stories lay out a row's
+// facts.
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Stack direction="row" justify="between" gap="3xs">
+      <Text tone="muted" text={label} />
+      {children}
+    </Stack>
+  );
+}
+
+// The detail slot: the row's invoice, its amount and status first, then the
+// facts the row had no room for, every value read from the row.
+function invoiceSheet(row: Invoice) {
+  return (
+    <Sheet
+      closeLabel="Close invoice details"
+      title={<Heading level={2} text={row.number} />}
+    >
+      <Stack direction="row" justify="between" gap="sm">
+        <Amount value={row.amount} currency={row.currency} display="card" />
+        <StatusTag status={row.status} />
+      </Stack>
+      <Stack gap="2xs">
+        <Fact label="Contractor">
+          <Text text={row.contractor} />
+        </Fact>
+        <Fact label="Client">
+          <Text text={row.client} />
+        </Fact>
+        <Fact label="Due">
+          <Text text={row.dueLabel} />
+        </Fact>
+      </Stack>
+    </Sheet>
+  );
+}
+
+// The table as a person leaves it once they open a row: a real click on the
+// row, or Enter with the row focused, dispatched in the first commit, so the
+// story shows the table's own open path, its View Transition included,
+// without its play function touching the page (ADR 0012).
+function OpensRow({
+  number,
+  by,
+  selectable,
+}: {
+  number: string;
+  by: "click" | "Enter";
+  selectable: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const row = [...ref.current!.querySelectorAll("tbody tr")].find(
+      (each) =>
+        each.querySelector("td:not(:has(input))")?.textContent === number
+    ) as HTMLTableRowElement;
+    if (by === "click") {
+      row.click();
+    } else {
+      row.focus();
+      row.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      );
+    }
+  }, [number, by]);
+  return (
+    <div ref={ref}>
+      <InvoiceQueue selectable={selectable} detail />
+    </div>
+  );
+}
+
+// Style expectations (ADR 0012) of a table whose row opened its Sheet: once
+// the View Transition ends, that row's Sheet is the open modal dialog and
+// has focus, it sits after the table's surface rather than inside it, the
+// row no longer carries the shared transition name, and the selection is
+// what it was: opening a row doesn't tick it.
+async function opensSheetOf(
+  canvas: HTMLElement,
+  density: string,
+  number: string,
+  ticked: number
+) {
+  const sheet = await waitFor(() => {
+    const open = canvas.querySelector<HTMLDialogElement>(
+      '[data-component="Sheet"]'
+    );
+    if (!open) throw new Error("No Sheet has opened.");
+    if (document.documentElement.matches(":active-view-transition")) {
+      throw new Error("The sheet's View Transition is still running.");
+    }
+    return open;
+  });
+  await expect(sheet.matches(":modal")).toBe(true);
+  await expect(document.activeElement).toBe(sheet);
+  await expect(sheet.querySelector("h2")!.textContent).toBe(number);
+
+  const root = canvas.querySelector('[data-component="DataTable"]')!;
+  await expect(root.contains(sheet)).toBe(false);
+  await expect(root.querySelector("[data-sheet-origin]")).toBeNull();
+  await expect(
+    [...root.querySelectorAll<HTMLInputElement>("tbody input")].filter(
+      (box) => box.checked
+    )
+  ).toHaveLength(ticked);
+  await holdsRowsAndHeaders(canvas, density);
+}
+
+// A Sheet is a modal dialog over the whole window, so a story with one open
+// fills the window, as Sheet's own stories do.
+const sheetOpen = { layout: "fullscreen" } as const;
 
 // Style expectations (ADR 0012) every story holds: rows are the density's
 // row height, headers are the body size at weight 600 (#185), and the money
@@ -132,10 +251,15 @@ const rowsSelected = {
 
 const meta = {
   title: "Components/DataTable",
-  // Room for the focus ring, which sits outside the header's box.
+  // Room for the focus ring, which sits outside the header's box; a story
+  // with a Sheet open fills the window as well.
   decorators: [
-    (Story) => (
-      <div className="p-2xs">
+    (Story, { parameters }) => (
+      <div
+        className={
+          parameters.layout === "fullscreen" ? "min-h-dvh p-2xs" : "p-2xs"
+        }
+      >
         <Story />
       </div>
     ),
@@ -261,3 +385,43 @@ export const NotSelectable: Story = {
 // On a phone the columns keep their width and the table scrolls sideways
 // inside its surface, rather than squeezing amounts onto two lines.
 export const Phone: Story = { render: () => <InvoiceQueue />, tags: ["phone"] };
+
+// A table whose rows open their invoice's Sheet, none open yet: each row
+// takes focus, and answers hover and press.
+export const WithDetail: Story = {
+  render: () => <InvoiceQueue selectable={false} detail />,
+};
+
+// Row → sheet (ADR 0011): clicking INV-0148's row opens its Sheet.
+export const OpensOnClick: Story = {
+  render: () => <OpensRow number="INV-0148" by="click" selectable={false} />,
+  parameters: sheetOpen,
+  play: ({ canvasElement, globals }) =>
+    opensSheetOf(canvasElement, globals.density, "INV-0148", 0),
+};
+
+// The keyboard path: Enter on the focused INV-0145 row opens its Sheet.
+export const OpensOnEnter: Story = {
+  render: () => <OpensRow number="INV-0145" by="Enter" selectable={false} />,
+  parameters: sheetOpen,
+  play: ({ canvasElement, globals }) =>
+    opensSheetOf(canvasElement, globals.density, "INV-0145", 0),
+};
+
+// A selectable table with a detail slot: with three invoices ticked, clicking
+// the ticked INV-0148's row opens its Sheet, and the three stay ticked.
+export const SelectableOpensOnClick: Story = {
+  render: () => <OpensRow number="INV-0148" by="click" selectable />,
+  parameters: { ...rowsSelected, ...sheetOpen },
+  play: ({ canvasElement, globals }) =>
+    opensSheetOf(canvasElement, globals.density, "INV-0148", 3),
+};
+
+// Enter on an unticked row of the same table opens its Sheet without
+// ticking it.
+export const SelectableOpensOnEnter: Story = {
+  render: () => <OpensRow number="INV-0142" by="Enter" selectable />,
+  parameters: { ...rowsSelected, ...sheetOpen },
+  play: ({ canvasElement, globals }) =>
+    opensSheetOf(canvasElement, globals.density, "INV-0142", 3),
+};

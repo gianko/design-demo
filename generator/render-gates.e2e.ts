@@ -131,6 +131,91 @@ export function Smoke() {
     }
   }, 120_000);
 
+  // ADR 0011's open-sheet render: a DataTable with a detail slot adds the
+  // default state with its first row's Sheet open, in both themes. The
+  // nameless, empty button sits only in the Sheet, so only that render fails
+  // gate 4 (its name) and gate 7 (its hit area), which shows both render
+  // gates run on the open sheet. (The clean screen
+  // above, with no detail slot, gets no such render.)
+  it("adds the open-sheet render in both themes for a DataTable with a detail slot, through every render gate", async () => {
+    const tsx = `import {
+  DataTable,
+  Heading,
+  Screen,
+  Sheet,
+  Text,
+  useFixtureData,
+} from "../../index.ts";
+
+export function Smoke() {
+  const data = useFixtureData();
+  return (
+    <Screen audience="contractor">
+      <DataTable
+        rows={data.yourInvoices}
+        columns={["Invoice"]}
+        cell={(row) => <Text text={row.number} />}
+        detail={(row) => (
+          <Sheet
+            closeLabel="Close invoice details"
+            title={<Heading level={2} text={row.number} />}
+          >
+            <button type="button"></button>
+          </Sheet>
+        )}
+      />
+    </Screen>
+  );
+}
+`;
+    const node = (
+      id: string,
+      component: string,
+      parent: string | null,
+      slot: string | null
+    ) => ({ id, component, parent, slot, props: [], when: [], action: null });
+    const result = await renderGates({
+      ...screen(tsx, []),
+      nodes: [
+        node("screen", "Screen", null, null),
+        node("invoices", "DataTable", "screen", "body"),
+        node("number", "Text", "invoices", "cell"),
+        node("invoice", "Sheet", "invoices", "detail"),
+      ],
+    });
+
+    expect(
+      result.failures.map(({ gate, rule, renders }) => [gate, rule, renders])
+    ).toEqual(
+      ["light", "dark"].flatMap((theme) => [
+        ["gate 4", "button-name", [`${theme} · default, sheet open`]],
+        ["gate 7 render", "target-size", [`${theme} · default, sheet open`]],
+      ])
+    );
+    expect(result.failures.map(failureLine)).toContainEqual(
+      expect.stringMatching(
+        /^gate 7 render · target-size · .*dialog\[data-component="Sheet"\].*<button type="button"><\/button>/
+      )
+    );
+    expect(
+      result.renders.map(({ theme, state, gates }) => [theme, state, gates])
+    ).toEqual(
+      expect.arrayContaining([
+        ...["light", "dark"].map((theme) => [
+          theme,
+          "default",
+          { "gate 4": "pass", "gate 7 render": "pass" },
+        ]),
+        ...["light", "dark"].map((theme) => [
+          theme,
+          "default, sheet open",
+          { "gate 4": "fail", "gate 7 render": "fail" },
+        ]),
+      ])
+    );
+    expect(result.renders).toHaveLength(4);
+  }, 120_000);
+
   it("records both render gates as not-run when the screen doesn't build", async () => {
     const tsx = smokeTsx.replace(
       'from "../../index.ts"',

@@ -2,7 +2,10 @@ import {
   Children,
   Fragment,
   isValidElement,
+  useLayoutEffect,
+  useRef,
   useState,
+  type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { tv } from "tailwind-variants/lite";
@@ -11,8 +14,10 @@ import { Amount } from "../Amount/Amount.tsx";
 import { Checkbox } from "../Checkbox/Checkbox.tsx";
 import { defaultState } from "../Screen/default-state.ts";
 import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
+import { SheetHost, transitionSheet } from "../Sheet/sheet-host.tsx";
 import { StatusTag, type StatusTagProps } from "../StatusTag/StatusTag.tsx";
 import type { dataTableEntry } from "./DataTable.registry.ts";
+import "./DataTable.css";
 
 // The screen's list: a native table on a flat surface, one row per item. A
 // selectable table puts a Checkbox first in each row, and one that isn't has
@@ -24,11 +29,20 @@ import type { dataTableEntry } from "./DataTable.registry.ts";
 // confirmed action clears the selection and a failed one keeps it, both in
 // the host. A selected row fills with `selected` and its box is ticked, so
 // the state never rests on colour alone.
-// Rows don't answer hover: nothing in them opens yet. A column whose cell is
-// an Amount puts its header at the end edge, above the cents.
+// A table with a detail slot opens a row's Sheet when the row is clicked or
+// Enter is pressed on it (ADR 0011), through transitionSheet's View
+// Transition, so the row expands into the sheet and the sheet shrinks back
+// into it on close. The open sheet is DataTable's own state, not a screen
+// state. Such a row takes focus and answers hover and press; in a selectable
+// table, ticking its box selects and doesn't open it. The Sheet renders after
+// the table's surface, not inside it: it draws in the top layer, but it is a
+// painted surface, and one inside another fails nested-cards (gap #254). A
+// table with no detail slot has rows that don't answer hover, since nothing
+// in them opens. A column whose cell is an Amount puts its header at the end
+// edge, above the cents.
 // When the statuses its StatusTags are bound to change, such as an action's
 // confirmed result, the rows whose status changed are marked `data-flip`
-// and flip in the stagger src/styles.css sets out (ADR 0011). A table
+// and flip in the stagger DataTable.css sets out (ADR 0011). A table
 // renders its first statuses still: nothing animates on page load.
 export const dataTable = tv({
   slots: {
@@ -49,9 +63,21 @@ export const dataTable = tv({
   },
   variants: {
     selected: { true: { row: "bg-selected" }, false: {} },
+    // The row opens its Sheet. Its focus ring sits inside the row, since the
+    // surface clips anything outside it (DataTable.css).
+    opens: { true: { row: "focus-visible:focus-ring" }, false: {} },
     money: { true: { header: "text-right" }, false: { header: "text-left" } },
   },
-  defaultVariants: { selected: false, money: false },
+  compoundVariants: [
+    // A selected row keeps its fill under the pointer: selection outranks
+    // hover.
+    {
+      opens: true,
+      selected: false,
+      class: { row: "hover:bg-surface-hover active:bg-surface-pressed" },
+    },
+  ],
+  defaultVariants: { selected: false, opens: false, money: false },
 });
 
 type Row = { id: string };
@@ -63,9 +89,36 @@ export type DataTableProps<R extends Row = Row> = Omit<
   rows: readonly R[];
   // The cell slot: one node per column for a row, in column order.
   cell: (row: R) => ReactNode;
+  // The detail slot: the Sheet a row opens, for that row.
+  detail?: (row: R) => ReactNode;
 };
 
 const rowsSelected = "rows-selected";
+
+// Marks a table with a detail slot: what the open-sheet render (ADR 0011)
+// counts tables by.
+const detailAttribute = "data-detail";
+
+// The open-sheet render's library test attribute (ADR 0011), which only the
+// Storybook preview sets, for a screen's open-sheet story: on an element
+// around the screen, it names one of the tables with a detail slot inside
+// it, counted from 0 in document order, and that table starts with its
+// first row's Sheet open, with no View Transition.
+export const openDetailAttribute = "data-test-open-detail";
+
+// Whether the open-detail attribute around `table` names it.
+function namedToOpen(table: HTMLElement) {
+  const scope = table.closest(`[${openDetailAttribute}]`);
+  if (!scope) return false;
+  const tables = [
+    ...scope.querySelectorAll(
+      `[data-component="DataTable"][${detailAttribute}]`
+    ),
+  ];
+  return (
+    tables.indexOf(table) === Number(scope.getAttribute(openDetailAttribute))
+  );
+}
 
 // The nodes `cell` gives for one row, a fragment's children one each.
 function cellsOf(node: ReactNode) {
@@ -113,6 +166,7 @@ export function DataTable<R extends Row>({
   columns,
   selectable = false,
   cell,
+  detail,
 }: DataTableProps<R>) {
   const { state } = useScreenState();
   const selection = useSelection();
@@ -126,6 +180,29 @@ export function DataTable<R extends Row>({
     const target = next.size > 0 ? rowsSelected : defaultState;
     selection.select([...next], state === target ? undefined : target);
   };
+  // The open row's id, and each row's element, which its sheet opens from
+  // and closes back into.
+  const [open, setOpen] = useState<string | null>(null);
+  const rowElements = useRef(new Map<string, HTMLTableRowElement>());
+  const opened = detail && rows.find((row) => row.id === open);
+  // The open-sheet render (ADR 0011): the table the test attribute names
+  // opens its first row before the first paint, as a state it starts in,
+  // with no View Transition.
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const first = rows[0];
+    if (detail && first && namedToOpen(root.current!)) setOpen(first.id);
+    // Only as the table first renders: once open, the sheet is the person's.
+  }, []);
+  const openDetail = (id: string, from: HTMLTableRowElement) =>
+    transitionSheet("open", from, () => setOpen(id));
+  const closeDetail = () =>
+    transitionSheet(
+      "close",
+      (open !== null && rowElements.current.get(open)) || null,
+      () => setOpen(null)
+    );
+
   const toggle = (id: string, on: boolean) => {
     const next = new Set(selected);
     if (on) next.add(id);
@@ -179,66 +256,98 @@ export function DataTable<R extends Row>({
 
   const slots = dataTable();
   return (
-    <div data-component="DataTable" className={slots.root()}>
-      <table className={slots.table()}>
-        <thead>
-          <tr className={slots.headerRow()}>
-            {selectable && (
-              <th scope="col" className={slots.select()}>
-                <div className={slots.selector()}>
-                  <Checkbox
-                    label="Select all rows"
-                    checked={all}
-                    disabled={rows.length === 0}
-                    onCheckedChange={(on) =>
-                      select(new Set(on ? rows.map((row) => row.id) : []))
-                    }
-                  />
-                </div>
-              </th>
-            )}
-            {columns.map((name, i) => (
-              <th
-                key={i}
-                scope="col"
-                className={dataTable({ money: money[i] }).header()}
-              >
-                {name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, r) => {
-            const isSelected = selected.has(row.id);
-            const each = dataTable({ selected: isSelected });
-            return (
-              <tr
-                key={`${row.id} ${statuses.flips.get(row.id) ?? 0}`}
-                className={each.row()}
-                data-flip={statuses.flipped.has(row.id) || undefined}
-              >
-                {selectable && (
-                  <td className={each.select()}>
-                    <div className={each.selector()}>
-                      <Checkbox
-                        label={`Select ${row.id}`}
-                        checked={isSelected}
-                        onCheckedChange={(on) => toggle(row.id, on)}
-                      />
-                    </div>
-                  </td>
-                )}
-                {cells[r]!.map((node, i) => (
-                  <td key={i} className={each.cell()}>
-                    {node}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div
+        ref={root}
+        data-component="DataTable"
+        {...(detail && { [detailAttribute]: "" })}
+        className={slots.root()}
+      >
+        <table className={slots.table()}>
+          <thead>
+            <tr className={slots.headerRow()}>
+              {selectable && (
+                <th scope="col" className={slots.select()}>
+                  <div className={slots.selector()}>
+                    <Checkbox
+                      label="Select all rows"
+                      checked={all}
+                      disabled={rows.length === 0}
+                      onCheckedChange={(on) =>
+                        select(new Set(on ? rows.map((row) => row.id) : []))
+                      }
+                    />
+                  </div>
+                </th>
+              )}
+              {columns.map((name, i) => (
+                <th
+                  key={i}
+                  scope="col"
+                  className={dataTable({ money: money[i] }).header()}
+                >
+                  {name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, r) => {
+              const isSelected = selected.has(row.id);
+              const each = dataTable({ selected: isSelected, opens: !!detail });
+              const opens = detail && {
+                tabIndex: 0,
+                ref: (element: HTMLTableRowElement | null) => {
+                  if (element) rowElements.current.set(row.id, element);
+                  else rowElements.current.delete(row.id);
+                },
+                onClick: (event: { currentTarget: HTMLTableRowElement }) =>
+                  openDetail(row.id, event.currentTarget),
+                // Enter on the row itself, not on its checkbox.
+                onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
+                  if (
+                    event.key !== "Enter" ||
+                    event.target !== event.currentTarget
+                  )
+                    return;
+                  event.preventDefault();
+                  openDetail(row.id, event.currentTarget);
+                },
+              };
+              return (
+                <tr
+                  key={`${row.id} ${statuses.flips.get(row.id) ?? 0}`}
+                  className={each.row()}
+                  data-flip={statuses.flipped.has(row.id) || undefined}
+                  {...opens}
+                >
+                  {selectable && (
+                    // Ticking selects; a click on the box doesn't open the row.
+                    <td
+                      className={each.select()}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className={each.selector()}>
+                        <Checkbox
+                          label={`Select ${row.id}`}
+                          checked={isSelected}
+                          onCheckedChange={(on) => toggle(row.id, on)}
+                        />
+                      </div>
+                    </td>
+                  )}
+                  {cells[r]!.map((node, i) => (
+                    <td key={i} className={each.cell()}>
+                      {node}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {opened && <SheetHost onClose={closeDetail}>{detail(opened)}</SheetHost>}
+    </>
   );
 }

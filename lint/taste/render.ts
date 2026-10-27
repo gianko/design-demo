@@ -1,8 +1,11 @@
 // What the render-time taste rules share: the shape gate 7 runs them in, and,
 // in the page, the visible text under the story root, a short quote of it for
-// a failure line, and the failing element's place. Page functions can't close
-// over Node modules, so `installHelpers` puts these on `globalThis.taste`
-// before a rule's page function runs.
+// a failure line, the failing element's place, and the reads several rules
+// make: text with its whitespace collapsed, whether a box is visually
+// hidden, the background an element reads on, a value as the page computes
+// it, and waiting for the page's motion to settle. Page functions can't
+// close over Node modules, so `installHelpers` puts these on
+// `globalThis.taste` before a rule's page function runs.
 
 import type { Locator, Page } from "@playwright/test";
 
@@ -19,9 +22,14 @@ export type RenderedStory = {
   // One of the story's parameters, as JSON; undefined when it has none.
   parameter(name: string): Promise<unknown>;
   // The story opened again in a new page of the same browser context, in the
-  // same theme, density and viewport, with these globals set as well. The
-  // render's own page is left as it was; the caller closes the new one.
-  reopen(globals: Record<string, string>): Promise<Page>;
+  // same theme, density and viewport, with these globals set as well.
+  // `prepare` runs on the new page before the story loads in it (emulated
+  // media, init scripts), so it needs no second load. The render's own page
+  // is left as it was; the caller closes the new one.
+  reopen(
+    globals: Record<string, string>,
+    prepare?: (page: Page) => Promise<void>
+  ): Promise<Page>;
 };
 
 // A render-time taste rule. It inspects one rendered story and returns its
@@ -51,6 +59,24 @@ export type Helpers = {
   quote(text: string): string;
   // A finding on `element`.
   at(element: Element, message: string): RenderFinding;
+  // The text with its whitespace collapsed and trimmed, as it reads.
+  words(text: string): string;
+  // Whether `element` is copy only assistive tech reads: it, or a box
+  // around it, is clipped the visually hidden way.
+  visuallyHidden(element: Element): boolean;
+  // Whether a computed colour paints nothing.
+  clear(colour: string): boolean;
+  // The background `element` reads on: the first fill painted at or above
+  // it, or the page role's colour in its theme where none is.
+  background(element: Element): string;
+  // `value` as the page computes `property` (a CSS property name) under
+  // `scope`, read off a probe placed inside it: a token's value in that
+  // theme or density, or a colour converted.
+  computed(scope: Element, property: string, value: string): string;
+  // Waits until no View Transition is active and every animation that ends
+  // has ended, including any a finished one starts. Loops never end, so
+  // they aren't waited on.
+  settle(): Promise<void>;
 };
 
 declare global {
@@ -82,6 +108,12 @@ export async function inPage<Arg, Result>(
     .evaluate(check as (root: Element, arg: unknown) => Result, arg);
 }
 
+// Waits for the page's motion to settle (Helpers.settle).
+export async function settle(page: Page): Promise<void> {
+  await page.evaluate(installHelpers);
+  await page.evaluate(() => taste.settle());
+}
+
 // A finding on the element `locator` points at.
 export async function findingAt(
   page: Page,
@@ -101,11 +133,11 @@ function installHelpers() {
       const texts: VisibleText[] = [];
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        const text = node.textContent!.replace(/\s+/g, " ").trim();
+        const text = taste.words(node.textContent!);
         const element = node.parentElement;
         if (!text || !element) continue;
         if (!element.checkVisibility({ visibilityProperty: true })) continue;
-        if (visuallyHidden(element)) continue;
+        if (taste.visuallyHidden(element)) continue;
         const range = document.createRange();
         range.selectNodeContents(node);
         const rects = [...range.getClientRects()].filter(
@@ -115,27 +147,80 @@ function installHelpers() {
         texts.push({ node: node as globalThis.Text, element, text, rects });
       }
       return texts;
-
-      // Copy only assistive tech reads, as in Screen's status region:
-      // something around it clips it to nothing, with a clip that leaves no
-      // area or a 1px box that hides its overflow, so no one sees its type
-      // or where it runs.
-      function visuallyHidden(element: Element) {
-        for (let box: Element | null = element; box; box = box.parentElement) {
-          const style = getComputedStyle(box);
-          if (style.clipPath === "inset(50%)") return true;
-          if (style.clip === "rect(0px, 0px, 0px, 0px)") return true;
-          const rect = box.getBoundingClientRect();
-          if (
-            style.overflowX !== "visible" &&
-            style.overflowY !== "visible" &&
-            rect.width <= 1 &&
-            rect.height <= 1
-          ) {
-            return true;
-          }
+    },
+    words(text) {
+      return text.replace(/\s+/g, " ").trim();
+    },
+    // The visually hidden pattern, as Tailwind's `sr-only` and Screen's
+    // status region draw it, either half of it: the clip that halves the
+    // box from every side (`clip-path: inset(50%)`, or the older
+    // `clip: rect(0 0 0 0)`), or a box of at most 1px that hides its
+    // overflow. A clip that leaves no area some other way, such as a wipe
+    // that ends clipped away, isn't the pattern.
+    visuallyHidden(element) {
+      for (let box: Element | null = element; box; box = box.parentElement) {
+        const style = getComputedStyle(box);
+        if (style.clipPath === "inset(50%)") return true;
+        if (style.clip === "rect(0px, 0px, 0px, 0px)") return true;
+        const { width, height } = box.getBoundingClientRect();
+        if (
+          width <= 1 &&
+          height <= 1 &&
+          style.overflowX !== "visible" &&
+          style.overflowY !== "visible"
+        ) {
+          return true;
         }
-        return false;
+      }
+      return false;
+    },
+    clear(colour) {
+      return (
+        colour === "transparent" ||
+        /^rgba\(.*,\s*0\)$/.test(colour) ||
+        /\/\s*0\)$/.test(colour)
+      );
+    },
+    background(element) {
+      for (let box: Element | null = element; box; box = box.parentElement) {
+        const fill = getComputedStyle(box).backgroundColor;
+        if (!taste.clear(fill)) return fill;
+      }
+      return taste.computed(
+        element.closest("[data-theme]") ?? document.documentElement,
+        "background-color",
+        "var(--ds-color-bg-page)"
+      );
+    },
+    computed(scope, property, value) {
+      const probe = document.createElement("span");
+      probe.hidden = true;
+      probe.style.setProperty(property, value);
+      scope.append(probe);
+      const read = getComputedStyle(probe).getPropertyValue(property);
+      probe.remove();
+      return read;
+    },
+    async settle() {
+      const frame = () =>
+        new Promise((resolve) => requestAnimationFrame(resolve));
+      for (let round = 0; round < 20; round++) {
+        await frame();
+        await frame();
+        const ending = document
+          .getAnimations()
+          .filter(
+            (animation) =>
+              animation.playState === "running" &&
+              animation.effect?.getComputedTiming().endTime !== Infinity
+          );
+        const transitioning = document.documentElement.matches(
+          ":active-view-transition"
+        );
+        if (ending.length === 0 && !transitioning) return;
+        await Promise.all(
+          ending.map((animation) => animation.finished.catch(() => undefined))
+        );
       }
     },
     quote(text) {

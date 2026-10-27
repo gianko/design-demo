@@ -11,7 +11,12 @@
 // assistive tech reads, so none of those count. Waiting changes nothing on
 // the page, so the baseline shot after it sees the story as it was.
 
-import { inPage, type RenderFinding, type RenderRule } from "../render.ts";
+import {
+  inPage,
+  settle,
+  type RenderFinding,
+  type RenderRule,
+} from "../render.ts";
 import { help } from "../rules-md.ts";
 
 export const id = "content-hidden-at-rest";
@@ -20,45 +25,27 @@ export const render: RenderRule = {
   name: id,
   help: help(id),
   check: async (page, root) => {
-    await page.evaluate(settle);
+    await settle(page);
     return inPage(page, root, hiddenAtRest);
   },
 };
-
-// Waits until no animation or transition that has an end is still running,
-// including any a finished one starts.
-async function settle() {
-  for (let round = 0; round < 10; round++) {
-    const ending = document
-      .getAnimations()
-      .filter(
-        (animation) =>
-          animation.playState === "running" &&
-          animation.effect?.getComputedTiming().endTime !== Infinity
-      );
-    if (ending.length === 0) return;
-    await Promise.all(
-      ending.map((animation) => animation.finished.catch(() => undefined))
-    );
-  }
-}
 
 function hiddenAtRest(root: Element): RenderFinding[] {
   const failures: RenderFinding[] = [];
   const reported = new Set<Element>();
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    const text = node.textContent!.replace(/\s+/g, " ").trim();
+    const text = taste.words(node.textContent!);
     const element = node.parentElement;
     if (!text || !element) continue;
     if (element.closest('[aria-hidden="true"]')) continue;
     if (!element.checkVisibility()) continue;
+    if (taste.visuallyHidden(element)) continue;
     const boxes: Element[] = [];
     for (let box: Element | null = element; box; box = box.parentElement) {
       boxes.push(box);
       if (box === root) break;
     }
-    if (boxes.some(visuallyHidden)) continue;
 
     const hiding =
       boxes
@@ -79,21 +66,6 @@ function hiddenAtRest(root: Element): RenderFinding[] {
     failures.push(taste.at(box, `${taste.quote(text)} ${finding}.`));
   }
   return failures;
-
-  // The visually hidden pattern, as Tailwind's `sr-only` and Screen's status
-  // region draw it: a box of at most 1px that hides its overflow. Its clip is
-  // part of the pattern, so a zero-size clip on a box of any other size
-  // still counts.
-  function visuallyHidden(box: Element) {
-    const style = getComputedStyle(box);
-    const { width, height } = box.getBoundingClientRect();
-    return (
-      width <= 1 &&
-      height <= 1 &&
-      clips(style.overflowX) &&
-      clips(style.overflowY)
-    );
-  }
 
   function clips(overflow: string) {
     return overflow === "hidden" || overflow === "clip";

@@ -11,15 +11,27 @@
 
 import type {
   Contractor,
+  FailedPayment,
+  ContractorAccount,
   FixtureData,
   Invoice,
   InvoiceStatus,
+  MonthlyTotal,
+  PastRun,
+  ReceivedPayment,
   RunGroup,
 } from "./types.ts";
 
 export type * from "./types.ts";
 
-export const operationNames = ["sendReminder", "payInvoices"] as const;
+export const operationNames = [
+  "sendReminder",
+  "payInvoices",
+  "sendReminders",
+  "retryPayments",
+  "requestRetry",
+  "withdrawInvoice",
+] as const;
 export type OperationName = (typeof operationNames)[number];
 
 // Long enough for a Button's progress edge to fill and sweep once.
@@ -77,8 +89,50 @@ const invoices: readonly Invoice[] = [
   invoice("INV-0151", you, 2400, "scheduled", ["2026-10-22", "Oct 22"], 1),
 ];
 
-// Your payments before these invoices, which no invoice here accounts for.
-type History = Pick<FixtureData, "lastPayment" | "paidThisYear">;
+// The invoices awaiting approval before any is paid: bulk-pay's queue,
+// which keeps them once they're scheduled.
+const toPay: ReadonlySet<string> = new Set(
+  invoices.filter((each) => each.status === "awaiting").map((each) => each.id)
+);
+// A payment you received, for invoices before these.
+function received(
+  [date, dateLabel]: [string, string],
+  amount: number,
+  invoiceNumbers: readonly string[]
+): ReceivedPayment {
+  return {
+    id: `PAY-${date}`,
+    amount,
+    currency: "USD",
+    status: "paid",
+    date,
+    dateLabel,
+    invoiceNumbers,
+    invoicesLabel: listed(invoiceNumbers),
+    invoiceCount: invoiceNumbers.length,
+    invoiceCountLabel: counted(invoiceNumbers.length, "invoice"),
+  };
+}
+
+// "A", "A and B", "A, B and C".
+function listed(items: readonly string[]) {
+  const last = items.at(-1) ?? "";
+  return items.length < 2
+    ? last
+    : `${items.slice(0, -1).join(", ")} and ${last}`;
+}
+
+// Yours beyond these invoices: your payments before them, which no invoice
+// here accounts for, and your newest invoice, sent after them. They stay out
+// of the list above because the P0 briefs read it as it is.
+type History = Pick<
+  FixtureData,
+  | "lastPayment"
+  | "paidThisYear"
+  | "paymentsReceived"
+  | "bouncedPayment"
+  | "awaitingInvoice"
+>;
 const history: History = {
   lastPayment: {
     invoiceId: "INV-0131",
@@ -89,10 +143,179 @@ const history: History = {
     dateLabel: "Oct 10",
   },
   paidThisYear: { amount: 41200, currency: "USD" },
+  // This year's, newest first: the last payment, then the rest of the 41,200.
+  paymentsReceived: [
+    received(["2026-10-10", "Oct 10"], 4800, ["INV-0131"]),
+    received(["2026-09-26", "Sep 26"], 6200, ["INV-0124", "INV-0127"]),
+    received(["2026-09-12", "Sep 12"], 3900, ["INV-0119"]),
+    received(["2026-08-29", "Aug 29"], 7350, [
+      "INV-0109",
+      "INV-0112",
+      "INV-0115",
+    ]),
+    received(["2026-07-18", "Jul 18"], 9550, ["INV-0098", "INV-0103"]),
+    received(["2026-06-06", "Jun 6"], 9400, [
+      "INV-0084",
+      "INV-0089",
+      "INV-0091",
+    ]),
+  ],
+  // The Oct 10 run paid you twice: INV-0131's payment went through and
+  // INV-0138's, over your bank's limit, came back a week later.
+  bouncedPayment: {
+    id: "PAY-0138",
+    invoiceId: "INV-0138",
+    contractorId: you.id,
+    contractor: you.name,
+    amount: 3650,
+    currency: "USD",
+    status: "failed",
+    date: "2026-10-17",
+    dateLabel: "Oct 17",
+    reason:
+      "Your bank sent it back: it went over your account's daily limit for incoming transfers.",
+  },
+  awaitingInvoice: invoice(
+    "INV-0152",
+    you,
+    2950,
+    "awaiting",
+    ["2026-11-19", "Nov 19"],
+    3
+  ),
 };
 
 // The invoice invoice-review shows.
 const reviewed = "INV-0148";
+
+// The other payments the Oct 10 run sent that came back (yours is your
+// history's), by the invoice each paid, with the bank's reason: INV-0146's,
+// which is why that invoice is failed.
+const bounces = [
+  {
+    invoiceId: "INV-0146",
+    reason: "The bank closed the account.",
+    date: "2026-10-13",
+    dateLabel: "Oct 13",
+  },
+];
+
+// Your bounced payment, then the ones whose invoice is in, by invoice; each
+// failed while its invoice is and scheduled once it's retried into the next
+// run.
+function failedPayments(
+  allInvoices: readonly Invoice[],
+  yours: FailedPayment | null
+): FailedPayment[] {
+  const theirs = bounces.flatMap(({ invoiceId, ...bounce }) => {
+    const paid = allInvoices.find((each) => each.id === invoiceId);
+    if (!paid) return [];
+    return [
+      {
+        id: invoiceId.replace("INV-", "PAY-"),
+        invoiceId,
+        contractorId: paid.contractorId,
+        contractor: paid.contractor,
+        amount: paid.amount,
+        currency: paid.currency,
+        status: paid.status === "failed" ? "failed" : "scheduled",
+        ...bounce,
+      } satisfies FailedPayment,
+    ];
+  });
+  return [...(yours ? [yours] : []), ...theirs].sort((a, b) =>
+    a.invoiceId < b.invoiceId ? -1 : 1
+  );
+}
+
+// What the admin knows of each contractor beyond their invoices. Yours
+// matches your history's total for the year.
+type Profile = Omit<
+  ContractorAccount,
+  "openInvoices" | "openInvoicesLabel" | "owed"
+>;
+const profile = (
+  { id, name }: Contractor,
+  country: string,
+  email: string,
+  accountEnding: string,
+  paidThisYear: number
+): Profile => ({
+  id,
+  name,
+  country,
+  email,
+  payoutMethod: `Bank transfer to an account ending ${accountEnding}`,
+  paidThisYear,
+  currency: "USD",
+});
+const profiles: readonly Profile[] = [
+  profile(you, "Portugal", "ines@duarte.studio", "4417", 41200),
+  profile(lea, "Germany", "lea.brandt@posteo.de", "0932", 28350),
+  profile(tomas, "Mexico", "tomas@herrera.mx", "7781", 19800),
+  profile(
+    jonah,
+    "United Kingdom",
+    "jonah@whitfield-abernathy.co.uk",
+    "2265",
+    12460
+  ),
+  profile(priya, "India", "priya.raman@fastmail.com", "5108", 33915.5),
+];
+
+// Each contractor with their invoices that aren't paid yet: those here, and
+// those before them whose payment bounced (your INV-0138).
+function accounts(
+  allInvoices: readonly Invoice[],
+  bounced: readonly FailedPayment[]
+): ContractorAccount[] {
+  const here = new Set(allInvoices.map((each) => each.id));
+  return profiles.map((each) => {
+    const open = [
+      ...allInvoices.filter((invoice) => invoice.status !== "paid"),
+      ...bounced.filter((payment) => !here.has(payment.invoiceId)),
+    ].filter((owing) => owing.contractorId === each.id);
+    return {
+      ...each,
+      openInvoices: open.length,
+      openInvoicesLabel: counted(open.length, "invoice"),
+      owed: open.reduce((sum, owing) => sum + owing.amount, 0),
+    };
+  });
+}
+
+// The runs before the next one, newest first. Oct 10's paid your last
+// payment, and sent both payments that bounced.
+function pastRun(
+  [date, dateLabel]: [string, string],
+  contractors: number,
+  [paidCount, paidAmount]: [number, number],
+  [failedCount, failedAmount]: [number, number] = [0, 0]
+): PastRun {
+  const count = paidCount + failedCount;
+  return {
+    id: `run-${date}`,
+    date,
+    dateLabel,
+    status: failedCount > 0 ? "failed" : "paid",
+    count,
+    countLabel: counted(count, "invoice"),
+    amount: paidAmount + failedAmount,
+    currency: "USD",
+    contractorsLabel: counted(contractors, "contractor"),
+    paidCountLabel: counted(paidCount, "invoice"),
+    paidAmount,
+    failedCountLabel: counted(failedCount, "invoice"),
+    failedAmount,
+  };
+}
+const pastRuns: readonly PastRun[] = [
+  pastRun(["2026-10-10", "Oct 10"], 5, [5, 16420], [2, 5270]),
+  pastRun(["2026-09-26", "Sep 26"], 5, [5, 17485.5]),
+  pastRun(["2026-09-12", "Sep 12"], 3, [4, 11250]),
+  pastRun(["2026-08-29", "Aug 29"], 5, [7, 21980]),
+  pastRun(["2026-08-15", "Aug 15"], 3, [3, 8400]),
+];
 
 // The dataset of every contractor's invoices as a variant has them. Every
 // view is read from them, so a variant that changes an invoice changes each
@@ -111,6 +334,9 @@ function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
       countLabel: counted(inGroup.length, "invoice"),
     };
   };
+  const bounced = failedPayments(allInvoices, past.bouncedPayment);
+  const months = monthlyTotals(past.paymentsReceived);
+  const paid = months.reduce((sum, each) => sum + each.amount, 0);
   return {
     invoices: allInvoices,
     you,
@@ -133,15 +359,54 @@ function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
       overdue: group("overdue"),
       awaitingApproval: group("awaiting"),
     },
+    payQueue: allInvoices.filter((each) => toPay.has(each.id)),
+    overdueInvoices: allInvoices.filter((each) => each.status === "overdue"),
+    failedPayments: bounced,
+    contractors: accounts(allInvoices, bounced),
+    pastRuns,
+    monthlyTotals: months,
+    monthlyAverage:
+      months.length > 0
+        ? { amount: paid / months.length, currency: "USD" }
+        : null,
   };
 }
 
+// Your payments received, totalled by month, in their order: newest first.
+function monthlyTotals(payments: readonly ReceivedPayment[]): MonthlyTotal[] {
+  const byMonth = new Map<string, ReceivedPayment[]>();
+  for (const each of payments) {
+    const month = each.date.slice(0, 7);
+    byMonth.set(month, [...(byMonth.get(month) ?? []), each]);
+  }
+  return [...byMonth].map(([id, inMonth]) => {
+    const invoiceCount = inMonth.reduce(
+      (sum, each) => sum + each.invoiceCount,
+      0
+    );
+    return {
+      id,
+      monthLabel: new Date(`${id}-01T00:00:00Z`).toLocaleString("en-US", {
+        month: "long",
+        timeZone: "UTC",
+      }),
+      amount: inMonth.reduce((sum, each) => sum + each.amount, 0),
+      currency: "USD",
+      paymentCount: inMonth.length,
+      paymentCountLabel: counted(inMonth.length, "payment"),
+      invoiceCount,
+      invoiceCountLabel: counted(invoiceCount, "invoice"),
+    };
+  });
+}
+
 // The dataset once these invoices are scheduled into the next run.
-function scheduled(ids: readonly string[]) {
+function scheduled(ids: readonly string[], past = history) {
   return dataset(
     invoices.map((each) =>
       ids.includes(each.id) ? { ...each, status: "scheduled" as const } : each
-    )
+    ),
+    past
   );
 }
 
@@ -149,7 +414,13 @@ const shared = dataset(invoices);
 // A contractor who hasn't invoiced yet: none of your invoices or payments.
 const newContractor = dataset(
   invoices.filter((each) => each.contractorId !== you.id),
-  { lastPayment: null, paidThisYear: null }
+  {
+    lastPayment: null,
+    paidThisYear: null,
+    paymentsReceived: [],
+    bouncedPayment: null,
+    awaitingInvoice: null,
+  }
 );
 // No contractor has an invoice in.
 const noInvoices = dataset([]);
@@ -158,6 +429,31 @@ const noInvoices = dataset([]);
 const awaiting = invoices
   .filter((each) => each.status === "awaiting")
   .map((each) => each.id);
+// The overdue ones: what overdue-invoices' rows-selected and reminders-failed
+// start with selected. Nothing is overdue once they're left out.
+const overdue = shared.overdueInvoices.map((each) => each.id);
+const nothingOverdue = dataset(
+  invoices.filter((each) => each.status !== "overdue")
+);
+// The bounced payments: what failed-payments' rows-selected and retry-failed
+// start with selected, and what its payments-retried schedules, with their
+// invoices, yours included. None bounced once the failed invoices and yours
+// are left out.
+const bounced = shared.failedPayments.map((each) => each.id);
+const retried = scheduled(
+  shared.failedPayments.map((each) => each.invoiceId),
+  {
+    ...history,
+    bouncedPayment: history.bouncedPayment && {
+      ...history.bouncedPayment,
+      status: "scheduled",
+    },
+  }
+);
+const nothingBounced = dataset(
+  invoices.filter((each) => each.status !== "failed"),
+  { ...history, bouncedPayment: null }
+);
 
 // A variant is the data its screen state shows, the operations that fail
 // under it, and the rows selected when it starts (ADR 0011). The selection
@@ -192,6 +488,61 @@ const variants = {
   },
   "invoice-review/payment-failed": { data: shared, fails: ["payInvoices"] },
   "payment-run/empty": { data: noInvoices, fails: [] },
+  "bulk-pay/empty": { data: noInvoices, fails: [] },
+  "bulk-pay/rows-selected": { data: shared, fails: [], selected: awaiting },
+  "bulk-pay/payment-scheduled": { data: scheduled(awaiting), fails: [] },
+  "bulk-pay/payment-failed": {
+    data: shared,
+    fails: ["payInvoices"],
+    selected: awaiting,
+  },
+  "overdue-invoices/empty": { data: nothingOverdue, fails: [] },
+  "overdue-invoices/rows-selected": {
+    data: shared,
+    fails: [],
+    selected: overdue,
+  },
+  "overdue-invoices/reminders-sent": { data: shared, fails: [] },
+  "overdue-invoices/reminders-failed": {
+    data: shared,
+    fails: ["sendReminders"],
+    selected: overdue,
+  },
+  "failed-payments/empty": { data: nothingBounced, fails: [] },
+  "failed-payments/rows-selected": {
+    data: shared,
+    fails: [],
+    selected: bounced,
+  },
+  "failed-payments/payments-retried": { data: retried, fails: [] },
+  "failed-payments/retry-failed": {
+    data: shared,
+    fails: ["retryPayments"],
+    selected: bounced,
+  },
+  // An account that has paid no one yet: no contractors, invoices or runs.
+  "contractors/empty": {
+    data: { ...noInvoices, contractors: [], pastRuns: [] },
+    fails: [],
+  },
+  "run-history/empty": {
+    data: { ...noInvoices, contractors: [], pastRuns: [] },
+    fails: [],
+  },
+  "payments-received/empty": { data: newContractor, fails: [] },
+  "payment-failed/retry-requested": { data: shared, fails: [] },
+  "payment-failed/retry-failed": { data: shared, fails: ["requestRetry"] },
+  "my-invoices/empty": { data: newContractor, fails: [] },
+  // Withdrawn, your awaiting invoice is gone.
+  "withdraw-invoice/invoice-withdrawn": {
+    data: { ...shared, awaitingInvoice: null },
+    fails: [],
+  },
+  "withdraw-invoice/withdraw-failed": {
+    data: shared,
+    fails: ["withdrawInvoice"],
+  },
+  "annual-summary/empty": { data: newContractor, fails: [] },
 } satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;
@@ -200,6 +551,12 @@ export const variantNames = Object.keys(variants) as VariantName[];
 export type Operations = {
   sendReminder: (invoiceId: string) => Promise<void>;
   payInvoices: (invoiceIds: readonly string[]) => Promise<void>;
+  sendReminders: (invoiceIds: readonly string[]) => Promise<void>;
+  retryPayments: (paymentIds: readonly string[]) => Promise<void>;
+  // A bounced payment of yours, by its id.
+  requestRetry: (paymentId: string) => Promise<void>;
+  // Your invoice awaiting approval, by its id.
+  withdrawInvoice: (invoiceId: string) => Promise<void>;
 };
 
 export type FixtureVariant = {
@@ -240,6 +597,12 @@ export function fixtureVariant(name: string): FixtureVariant {
     operations: {
       sendReminder: (invoiceId) => settle("sendReminder", invoiceId),
       payInvoices: (invoiceIds) => settle("payInvoices", invoiceIds.join(", ")),
+      sendReminders: (invoiceIds) =>
+        settle("sendReminders", invoiceIds.join(", ")),
+      retryPayments: (paymentIds) =>
+        settle("retryPayments", paymentIds.join(", ")),
+      requestRetry: (paymentId) => settle("requestRetry", paymentId),
+      withdrawInvoice: (invoiceId) => settle("withdrawInvoice", invoiceId),
     },
   };
 }

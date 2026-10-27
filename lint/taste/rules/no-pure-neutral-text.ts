@@ -25,14 +25,13 @@ export const render: RenderRule = {
 function untinted(root: Element, noChroma: number): RenderFinding[] {
   const failures: RenderFinding[] = [];
   // The browser converts each colour to OKLCH, whatever space it was
-  // written in, on an element of its own.
-  const probe = document.createElement("span");
-  probe.hidden = true;
-  document.body.append(probe);
-  const chroma = (colour: string) => {
-    probe.style.color = `oklch(from ${colour} l c h)`;
-    return Number(getComputedStyle(probe).color.split(/[\s()]+/)[2]);
-  };
+  // written in.
+  const chroma = (colour: string) =>
+    Number(
+      taste
+        .computed(document.body, "color", `oklch(from ${colour} l c h)`)
+        .split(/[\s()]+/)[2]
+    );
   const check = (element: Element, what: string, colour: string) => {
     if (chroma(colour) < noChroma) {
       failures.push(
@@ -66,6 +65,5 @@ function untinted(root: Element, noChroma: number): RenderFinding[] {
     }
   }
 
-  probe.remove();
   return failures;
 }

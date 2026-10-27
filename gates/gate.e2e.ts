@@ -364,6 +364,41 @@ describe("in CI", () => {
       "fail",
       /"Approve" is disabled text on the accent background/,
     ],
+    [
+      "motion-reduced",
+      "animation",
+      /On load, a scripted animation moves translate under reduced motion/,
+    ],
+    [
+      "motion-reduced",
+      "transition",
+      /On load, the translate transition moves translate/,
+    ],
+    [
+      "motion-reduced",
+      "slow",
+      /On load, a scripted animation runs 240ms under reduced motion, longer than fast \(120ms\)/,
+    ],
+    [
+      "motion-reduced",
+      "loop",
+      /On load, the "progress-sweep" animation moves width, translate/,
+    ],
+    [
+      "motion-reduced",
+      "loop",
+      /the "progress-sweep" animation runs forever under reduced motion/,
+    ],
+    [
+      "motion-reduced",
+      "clicked",
+      /Clicking "Show details", a scripted animation moves translate/,
+    ],
+    [
+      "motion-reduced",
+      "row",
+      /Opening a row's Sheet, a scripted animation moves translate/,
+    ],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
     const printed = finding.source.replaceAll('"', '\\\\?"');

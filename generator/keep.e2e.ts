@@ -1,11 +1,13 @@
-// spec § Keep, end to end: a rep that generate() passed (stubbed model, the
-// smoke brief under its own slug) is kept, and then `pnpm gate <slug>`
+// spec § Keep, end to end: a rep that generate() passed (stubbed model, a
+// one-table brief under its own slug) is kept, and then `pnpm gate <slug>`
 // passes after `--update`, with no hand edits. `pnpm gate` lints and
 // typechecks the whole repo, so the kept files are held to every gate a
-// library component is. Baselines go to a scratch directory.
+// library component is. Its DataTable has a detail slot, so the kept
+// screen also carries ADR 0011's open-sheet render, which gate 6 baselines
+// like a screen state. Baselines go to a scratch directory.
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { afterAll, describe, expect, it } from "vitest";
@@ -25,34 +27,57 @@ afterAll(() => {
   }
 });
 
+const brief = `---
+audience: contractor
+requires:
+  components: [Screen, Stack, Heading, DataTable, Text, Sheet]
+  transitions: [row-to-sheet]
+---
+
+# Keep e2e: my invoices
+
+A contractor checks their invoices. The screen is titled "My invoices" and lists their invoices by number; clicking one opens its details, its number and due date.
+`;
+
+const bind = (path: string) => JSON.stringify({ bind: path });
+const node = (
+  id: string,
+  component: string,
+  parent: string | null,
+  slot: string | null,
+  props: Record<string, string> = {}
+) => ({
+  id,
+  component,
+  parent,
+  slot,
+  props: Object.entries(props).map(([name, value]) => ({ name, value })),
+  when: [],
+  action: null,
+});
+
 const uiSpec = {
   audience: "contractor",
   nodes: [
-    {
-      id: "screen",
-      component: "Screen",
-      parent: null,
-      slot: null,
-      props: [{ name: "audience", value: '"contractor"' }],
-      when: [],
-      action: null,
-    },
-    {
-      id: "welcome",
-      component: "Text",
-      parent: "screen",
-      slot: "body",
-      props: [
-        {
-          name: "text",
-          value: JSON.stringify(
-            "Welcome back. Your invoices and payments will show up here."
-          ),
-        },
-      ],
-      when: [],
-      action: null,
-    },
+    node("screen", "Screen", null, null, { audience: '"contractor"' }),
+    node("column", "Stack", "screen", "body"),
+    node("title", "Heading", "column", "body", {
+      text: '"My invoices"',
+      level: "1",
+    }),
+    node("invoices", "DataTable", "column", "body", {
+      rows: bind("yourInvoices"),
+      columns: '["Invoice"]',
+    }),
+    node("number", "Text", "invoices", "cell", { text: bind("row.number") }),
+    node("invoice", "Sheet", "invoices", "detail", {
+      closeLabel: '"Close invoice details"',
+    }),
+    node("invoice-title", "Heading", "invoice", "title", {
+      text: bind("row.number"),
+      level: "2",
+    }),
+    node("due", "Text", "invoice", "body", { text: bind("row.dueLabel") }),
   ],
   states: [],
   actions: [],
@@ -60,10 +85,14 @@ const uiSpec = {
 
 // As a model might send it: fenced, and not formatted the way Prettier would.
 const tsx = `\`\`\`tsx
-import { Screen, Text } from "../../index.ts";
+import { DataTable, Heading, Screen, Sheet, Stack, Text, useFixtureData } from "../../index.ts";
 
 export function KeepE2e() {
-  return <Screen audience="contractor"><Text text="Welcome back. Your invoices and payments will show up here." /></Screen>;
+  const data = useFixtureData();
+  return <Screen audience="contractor"><Stack><Heading level={1} text="My invoices" />
+    <DataTable rows={data.yourInvoices} columns={["Invoice"]} cell={(row) => <Text text={row.number} />}
+      detail={(row) => <Sheet closeLabel="Close invoice details" title={<Heading level={2} text={row.number} />}><Text text={row.dueLabel} /></Sheet>} />
+  </Stack></Screen>;
 }
 \`\`\``;
 
@@ -89,13 +118,10 @@ function gate(args: string[], ci: boolean) {
 }
 
 describe("pnpm keep", () => {
-  it("keeps a passed rep as a screen whose pnpm gate <slug> passes after --update", async () => {
+  it("keeps a passed rep as a screen whose pnpm gate <slug> passes after --update, its open-sheet render baselined in both themes", async () => {
     mkdirSync(scratch, { recursive: true });
     const briefPath = join(scratch, `${slug}.md`);
-    writeFileSync(
-      briefPath,
-      readFileSync(join(import.meta.dirname, "fixtures/smoke.md"), "utf8")
-    );
+    writeFileSync(briefPath, brief);
     const replies = [JSON.stringify(uiSpec), tsx];
     const workDir = join(scratch, "run");
     const trace = await generate(readScreenBrief(briefPath), {
@@ -105,7 +131,18 @@ describe("pnpm keep", () => {
         requestId: null,
       }),
     });
-    expect(trace.endReason).toBe("passed");
+    expect(trace.endReason, JSON.stringify(trace.attempts.at(-1))).toBe(
+      "passed"
+    );
+    // The render pass rendered the open sheet too, at the audience's density.
+    expect(
+      trace.attempts.at(-1)!.renders!.map(({ theme, state }) => [theme, state])
+    ).toEqual(
+      expect.arrayContaining([
+        ["light", "default, sheet open"],
+        ["dark", "default, sheet open"],
+      ])
+    );
 
     expect(await keep([workDir], { log: () => {} })).toBe(0);
 
@@ -114,6 +151,19 @@ describe("pnpm keep", () => {
     // As CI runs it: a missing baseline would fail.
     const check = gate([], true);
     expect(check.status, check.stdout + check.stderr).toBe(0);
-    expect(check.stdout).toMatch(/4 passed/);
+    // Two stories (the default and its open sheet) × 2 themes × 2 densities.
+    expect(check.stdout).toMatch(/8 passed/);
+    expect(
+      readdirSync(join(repo, baselines), { recursive: true })
+        .map(String)
+        .filter((file) => file.includes("default-sheet-open"))
+        .map((file) => file.split("/").at(-1))
+        .sort()
+    ).toEqual([
+      "screens-keep-e2e--default-sheet-open--dark-admin.png",
+      "screens-keep-e2e--default-sheet-open--dark-contractor.png",
+      "screens-keep-e2e--default-sheet-open--light-admin.png",
+      "screens-keep-e2e--default-sheet-open--light-contractor.png",
+    ]);
   });
 });

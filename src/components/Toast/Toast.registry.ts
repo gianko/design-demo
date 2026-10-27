@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineEntry, variantEnum } from "../../registry/entry.ts";
-import { toast } from "./Toast.tsx";
+import { toast } from "./toast.ts";
 
 export const toastEntry = defineEntry({
   name: "Toast",

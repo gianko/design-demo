@@ -69,3 +69,19 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 **Call:** cells don't wrap, so every row keeps the density's height and amounts never break; a long contractor name widens its column, and when the columns outgrow the screen the table scrolls sideways inside its surface (the Phone story). Nothing is truncated, so nothing is hidden behind an ellipsis.
 
 **Alternative:** columns with a maximum width that truncate with an ellipsis and a tooltip, or on a phone each row stacked as a small label–value list. Both need decisions (a column width token, a breakpoint) the brief doesn't make yet.
+
+## A row that opens its Sheet doesn't say so to a screen reader
+
+**Undecided:** ADR 0011 and the spec say clicking a row or pressing Enter on it opens its Sheet, so the row itself takes focus. A focused `<tr>` is read as its cells; nothing tells a screen reader user that Enter opens a dialog. `aria-haspopup` and `aria-expanded` aren't allowed on a plain table's `row` (axe `aria-allowed-attr`), and a `grid` role would bring arrow-key navigation the table doesn't have.
+
+**Call:** the row is a plain focusable `<tr>` (`tabIndex=0`) with no added semantics. Sighted keyboard users see the focus ring and the hover tint; a screen reader user hears the row's cells, and finds that Enter opens the details only by trying it.
+
+**Alternative:** a visually hidden "Open details" button in the row's first cell (or an `aria-describedby` hint on each row) that opens the same Sheet; or the first cell's Text as a link-styled button. Either adds a node per row the spec doesn't name.
+
+## The row's focus ring is inset by a raw multiple in CSS
+
+**Undecided:** the table's surface scrolls sideways (`overflow-x-auto`), so it clips a ring drawn outside a row: `focus-ring`'s outward offset would show only the ring's top and bottom. No token class sets an inward offset.
+
+**Call:** `DataTable.css` sets `outline-offset: calc(var(--ds-size-height-edge) * -2)` on a focused DataTable row, so `focus-ring` sits just inside the row.
+
+**Alternative:** an inset focus-ring utility in the token build (`focus-ring-inset`), which any clipped focusable (a list row, a tab) could reuse.

@@ -69,20 +69,11 @@ function findNestedCards(root: Element): RenderFinding[] {
     "a, button, label, input, select, textarea, summary, [role=button], [role=checkbox], [role=radio], [role=switch], [role=tab], [role=option], [role=menuitem]";
   const blocks = ["block", "flex", "grid", "flow-root", "list-item", "table"];
   const sides = ["Top", "Right", "Bottom", "Left"] as const;
-  const clear = (colour: string) =>
-    colour === "transparent" ||
-    /^rgba\(.*,\s*0\)$/.test(colour) ||
-    /\/\s*0\)$/.test(colour);
+  const { clear } = taste;
 
-  // What sits behind an element: the nearest fill above it, the page's at
-  // the top.
-  const behind = (element: Element) => {
-    for (let up = element.parentElement; up; up = up.parentElement) {
-      const fill = getComputedStyle(up).backgroundColor;
-      if (!clear(fill)) return fill;
-    }
-    return "rgb(255, 255, 255)";
-  };
+  // What sits behind an element: the background its parent reads on.
+  const behind = (element: Element) =>
+    taste.background(element.parentElement ?? element);
 
   const kind = (element: Element) => {
     const { width, height } = element.getBoundingClientRect();
@@ -112,7 +103,7 @@ function findNestedCards(root: Element): RenderFinding[] {
     let outer = element.parentElement;
     while (outer && outer !== root && !kind(outer)) outer = outer.parentElement;
     if (!outer || outer === root) continue;
-    const text = element.textContent!.replace(/\s+/g, " ").trim();
+    const text = taste.words(element.textContent!);
     failures.push(
       taste.at(
         element,

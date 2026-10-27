@@ -32,7 +32,7 @@ No Radix Toast: it brings its own live region, a viewport, timers and swipe-to-d
 | `root` | `failure` | `bg-overdue text-overdue` | Status colours: Overdue is red, Failed is solid red; the tint keeps it assured rather than alarmed. The pair is AA by construction. A gap. |
 | `text` | all | `flex min-h-control items-center text-body` | Body text 14px admin, 16px contractor. `p` already wraps `pretty` (src/styles.css), so a two-line failure doesn't strand a word. |
 
-`Toast.css`, beside the component, sets what no token class can: the view transition names, and the toast's entering duration. The barrel imports it, not `Toast.tsx`, because the registry entry imports `Toast.tsx` for its `tv()` config and the generator loads entries under node, which can't import a stylesheet (a gap).
+`Toast.css`, beside the component, sets what no token class can: the view transition names, and the toast's entering duration. `Toast.tsx` imports it, as ActionBar and Sheet import theirs. The `tv()` config lives in `toast.ts`, which the registry entry reads, so the generator loads the entry under tsx on node without touching the stylesheet.
 
 - `view-transition-name: action-result` on a success Toast: ActionBar's name (ActionBar.css), so entering the success state morphs the bar into the toast. Repeated here, not imported, so each component's folder owns its rule; a style expectation in the pairing stories asserts the two computed names match. A gap, as for ActionBar (#236).
 - `view-transition-name: action-failure` on a failure Toast: a name of its own, since the bar it sits beside keeps `action-result` and a name must be unique in a snapshot. Its own group enters on its own.

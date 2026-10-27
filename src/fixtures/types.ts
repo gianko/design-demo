@@ -40,6 +40,41 @@ export type Payment = {
 
 export type Total = { amount: number; currency: "USD" };
 
+// A payment a contractor's bank sent back: one in the admin's retry list, or
+// your own bounced payment. It stays failed until it's retried into the next
+// run, then it's scheduled, as its invoice is.
+export type FailedPayment = {
+  id: string;
+  // The invoice it paid.
+  invoiceId: string;
+  contractorId: string;
+  contractor: string;
+  amount: number;
+  currency: "USD";
+  status: "failed" | "scheduled";
+  // Why the bank sent it back.
+  reason: string;
+  // When it bounced.
+  date: string;
+  dateLabel: string;
+};
+
+// A payment you've received, and the invoices it paid.
+export type ReceivedPayment = {
+  id: string;
+  amount: number;
+  currency: "USD";
+  status: "paid";
+  date: string;
+  dateLabel: string;
+  // The invoices it paid, by number, and as one label: "INV-0124 and
+  // INV-0127".
+  invoiceNumbers: readonly string[];
+  invoicesLabel: string;
+  invoiceCount: number;
+  invoiceCountLabel: string;
+};
+
 // One status's share of a payment run.
 export type RunGroup = {
   status: InvoiceStatus;
@@ -76,4 +111,83 @@ export type FixtureData = {
   reviewInvoice: Invoice | null;
   // The next payment run, totalled by status.
   paymentRun: PaymentRun;
+  // The invoices the admin can pay in bulk: those awaiting approval, by
+  // number. Once paid they stay here, scheduled.
+  payQueue: readonly Invoice[];
+  // Every contractor's overdue invoices, by number: the admin's reminders
+  // list; empty when nothing is overdue.
+  overdueInvoices: readonly Invoice[];
+  // The payments contractors' banks sent back, by invoice: the admin's
+  // retry list; empty when none bounced.
+  failedPayments: readonly FailedPayment[];
+  // Every contractor Northwind pays: empty when there are none.
+  contractors: readonly ContractorAccount[];
+  // The payment runs that have gone out, newest first: empty before the
+  // first.
+  pastRuns: readonly PastRun[];
+  // The payments you've received this year, newest first: empty for a
+  // contractor who hasn't been paid yet.
+  paymentsReceived: readonly ReceivedPayment[];
+  // Your one bounced payment, or null when there's none.
+  bouncedPayment: FailedPayment | null;
+  // Your one invoice still awaiting approval, which you can withdraw, or
+  // null when there's none.
+  awaitingInvoice: Invoice | null;
+  // The payments you've received this year, totalled by month, newest
+  // first: empty for a contractor who hasn't been paid yet.
+  monthlyTotals: readonly MonthlyTotal[];
+  // What you've been paid this year, averaged over the months you've been
+  // paid in; null when there are none.
+  monthlyAverage: Total | null;
+};
+
+// One month of the payments you've received.
+export type MonthlyTotal = {
+  // The month, as "2026-10".
+  id: string;
+  monthLabel: string;
+  amount: number;
+  currency: "USD";
+  paymentCount: number;
+  paymentCountLabel: string;
+  invoiceCount: number;
+  invoiceCountLabel: string;
+};
+
+// A contractor as the admin sees them: who they are, how they're paid, and
+// what of theirs is still open.
+export type ContractorAccount = {
+  id: string;
+  name: string;
+  country: string;
+  email: string;
+  payoutMethod: string;
+  // Their invoices not yet paid, whatever their status, and what those come
+  // to.
+  openInvoices: number;
+  openInvoicesLabel: string;
+  owed: number;
+  // What they've been paid this year.
+  paidThisYear: number;
+  currency: "USD";
+};
+
+// A payment run that has gone out: failed when any payment in it bounced.
+export type PastRun = {
+  id: string;
+  date: string;
+  dateLabel: string;
+  status: "paid" | "failed";
+  // The invoices in it, and their total.
+  count: number;
+  countLabel: string;
+  amount: number;
+  currency: "USD";
+  // Its breakdown: how many contractors it paid, then what went through and
+  // what bounced, each a count and its total.
+  contractorsLabel: string;
+  paidCountLabel: string;
+  paidAmount: number;
+  failedCountLabel: string;
+  failedAmount: number;
 };

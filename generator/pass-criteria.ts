@@ -37,11 +37,11 @@ export function checkPassCriteria(
 }
 
 const transitionChecks: Record<Transition, (spec: UiSpec) => boolean> = {
-  // An action's Button sits in an ActionBar, and shows in some state, so the
-  // bar is up while the action can be run; the action's success state shows
-  // a Toast and not that bar, so the bar becomes the toast.
+  // An action's Button sits in an ActionBar shown while the action can be
+  // run; the action's success state shows a Toast and not that bar, so the
+  // bar becomes the toast.
   "bar-to-toast": (spec) => {
-    const { visibleIn, parentOf } = visibility(spec);
+    const { states, visibleIn, parentOf } = visibility(spec);
     return spec.actions.some(({ name, to }) =>
       spec.nodes.some((button) => {
         if (button.component !== "Button" || button.action !== name) {
@@ -52,7 +52,9 @@ const transitionChecks: Record<Transition, (spec: UiSpec) => boolean> = {
         );
         return (
           bar !== undefined &&
-          visibleIn(button).length > 0 &&
+          canStartIn(states, to).some((state) =>
+            visibleIn(button).includes(state)
+          ) &&
           !visibleIn(bar).includes(to.success) &&
           spec.nodes.some(
             (node) =>
@@ -73,6 +75,18 @@ const transitionChecks: Record<Transition, (spec: UiSpec) => boolean> = {
     );
   },
 };
+
+// The states an action can be run from, before it has ever run: not its own
+// outcomes, and on a screen with a Selection only `rows-selected`, since the
+// bulk-action bar acts on the ticked rows (ADR 0011).
+function canStartIn(states: string[], to: UiSpec["actions"][number]["to"]) {
+  const started = states.filter(
+    (state) => state !== to.success && state !== to.failure
+  );
+  return started.includes(rowsSelected) ? [rowsSelected] : started;
+}
+
+const rowsSelected = "rows-selected";
 
 // A node's parent, its parent's parent and so on, stopping at a loop.
 function ancestors(

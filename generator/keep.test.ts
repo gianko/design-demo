@@ -195,6 +195,100 @@ export function ${rep.name}() {
     expect(stories.Empty.parameters.screenActions).toBeUndefined();
   });
 
+  // So a confirmed action shows the data of the state it enters in every
+  // story (ADR 0011, the stagger): the preview hands them to ScreenHost.
+  it("gives every story the declared states, each with its fixture variant", async () => {
+    const rep = repDir({
+      states: [
+        { name: "rows-selected", fixture: "bulk-pay/rows-selected" },
+        { name: "payment-scheduled", fixture: "bulk-pay/payment-scheduled" },
+      ],
+    });
+
+    await keep(rep.dir);
+
+    const stories = readFileSync(
+      join(rep.kept, `${rep.name}.stories.tsx`),
+      "utf8"
+    );
+    expect(stories).toMatch(
+      /const meta = \{[^;]*parameters: \{\s*screenStates: \[\s*\{ name: "rows-selected", fixture: "bulk-pay\/rows-selected" \},\s*\{\s*name: "payment-scheduled",\s*fixture: "bulk-pay\/payment-scheduled",?\s*\},?\s*\],?\s*\},?\s*\} satisfies Meta/
+    );
+  });
+
+  // ADR 0011: the open-sheet render, the default state with the first row's
+  // Sheet open, one per DataTable with a detail slot, counted in document
+  // order among the tables the default state shows. Full window, as a
+  // modal Sheet covers it.
+  it("writes an open-sheet story for each DataTable with a detail slot the default state shows, and none for a table without one", async () => {
+    const node = (
+      id: string,
+      component: string,
+      parent: string | null,
+      slot: string | null,
+      when: string[] = []
+    ): UiSpec["nodes"][number] => ({
+      id,
+      component,
+      parent,
+      slot,
+      props: [],
+      when,
+      action: null,
+    });
+    const rep = repDir({
+      nodes: [
+        node("screen", "Screen", null, null),
+        node("plain", "DataTable", "screen", "body"),
+        node("plain-cell", "Text", "plain", "cell"),
+        node("hidden", "DataTable", "screen", "body", ["paid"]),
+        node("hidden-detail", "Sheet", "hidden", "detail"),
+        node("stack", "Stack", "screen", "body"),
+        node("invoices", "DataTable", "stack", "children"),
+        node("invoice", "Sheet", "invoices", "detail"),
+        node("payments", "DataTable", "screen", "body"),
+        node("payment", "Sheet", "payments", "detail"),
+      ],
+      states: [{ name: "paid", fixture: "payment-status/reminder-sent" }],
+    });
+
+    await keep(rep.dir);
+
+    const stories = await import(join(rep.kept, `${rep.name}.stories.tsx`));
+    expect(stories.DefaultSheetOpen.parameters).toEqual({
+      layout: "fullscreen",
+      openSheet: 0,
+    });
+    expect(stories.DefaultSheet2Open.parameters).toEqual({
+      layout: "fullscreen",
+      openSheet: 1,
+    });
+    expect(
+      Object.keys(stories).filter((name) => name.startsWith("DefaultSheet"))
+    ).toHaveLength(2);
+  });
+
+  it("writes no open-sheet story when no DataTable has a detail slot", async () => {
+    const rep = repDir({
+      nodes: [
+        {
+          id: "screen",
+          component: "Screen",
+          parent: null,
+          slot: null,
+          props: [],
+          when: [],
+          action: null,
+        },
+      ],
+    });
+
+    await keep(rep.dir);
+
+    const stories = await import(join(rep.kept, `${rep.name}.stories.tsx`));
+    expect(Object.keys(stories).sort()).toEqual(["Default", "default"]);
+  });
+
   it("refuses a rep that didn't pass, and writes nothing", async () => {
     const rep = repDir({ endReason: "code-attempts-exhausted" });
 
