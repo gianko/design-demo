@@ -25,7 +25,9 @@ import { defaultState } from "./default-state.ts";
 // hooks and the Screen it renders see the same one. The host also holds the
 // fixture variant, whose data `useFixtureData` reads for bound props and
 // operation arguments (ADR 0004), and the selection: the rows DataTable has
-// ticked, which `useSelectedRows` reads for an action's argument.
+// ticked, which `useSelectedRows` reads for an action's argument. Given the
+// UI spec's declared states, a confirmed action brings the data of the state
+// it enters, so the statuses it changed change on screen (the stagger).
 
 export { defaultState };
 
@@ -59,43 +61,68 @@ const HostContext = createContext<ScreenStateContext | null>(null);
 // ScreenHost; this is the one shape all three hold to.
 export type HostedState = { name: string; fixture: VariantName };
 
-export type ScreenStateParameters = { screenState?: HostedState };
+// `screenStates` is the UI spec's declared states, which a kept screen's
+// stories carry for each of them, so a confirmed action shows the data of the
+// state it enters.
+export type ScreenStateParameters = {
+  screenState?: HostedState;
+  screenStates?: readonly HostedState[];
+};
 
 export type ScreenHostProps = {
   // The default state, in the default variant, when not given.
   screenState?: HostedState;
+  // The UI spec's declared states. A confirmed action has changed the data,
+  // so the state it enters shows its own variant's data, in the same update
+  // as the selection clears; the operations stay the starting variant's. A
+  // failed action, and an untyped change, keep the data. Without them, or for
+  // a state they don't name, the data never changes.
+  states?: readonly HostedState[];
   // The selection the host starts with, such as a story's every row; the
   // fixture variant's when not given.
   selected?: readonly string[];
   children?: ReactNode;
 };
 
+const noStates: readonly HostedState[] = [];
+
 // What hosts a generated screen: a story, the gate harness or an app. It
 // holds the screen state, the fixture variant and the selection.
 export function ScreenHost({
   screenState,
+  states = noStates,
   selected: startSelected,
   children,
 }: ScreenHostProps) {
   const initial = screenState?.name ?? defaultState;
   const variant = screenState?.fixture ?? "default";
   const fixture = useMemo(() => fixtureVariant(variant), [variant]);
-  const { data, operations } = fixture;
-  const [{ state, entries, selected }, setEntered] = useState(() => ({
+  const { operations } = fixture;
+  const [{ state, entries, selected, shown }, setEntered] = useState(() => ({
     state: initial,
     entries: 0,
     selected: startSelected ?? fixture.selected,
+    // The variant whose data the screen shows.
+    shown: variant,
   }));
+  const data = useMemo(() => fixtureVariant(shown).data, [shown]);
   const enter = useCallback(
     (name: string, type?: TransitionType, alongside?: () => void) => {
       const update = () =>
         flushSync(() => {
           // A confirmed action has acted on the selection, so it clears in
-          // the same update; a failed one keeps it for a retry.
+          // the same update, and has changed the data, so the state it
+          // enters shows its own variant's; a failed one keeps both for a
+          // retry.
+          const confirmed = type === "confirm";
+          const entered = confirmed
+            ? states.find((each) => each.name === name)
+            : undefined;
           setEntered((last) => ({
             state: name,
             entries: last.entries + 1,
-            selected: type === "confirm" ? [] : last.selected,
+            selected: confirmed ? [] : last.selected,
+            shown: entered?.fixture ?? last.shown,
           }));
           alongside?.();
         });
@@ -105,7 +132,7 @@ export function ScreenHost({
       }
       document.startViewTransition({ update, types: type ? [type] : [] });
     },
-    []
+    [states]
   );
   const select = useCallback(
     (ids: readonly string[], name?: string) => {
@@ -140,7 +167,8 @@ export function useScreenState() {
   return { state, enter: (name: string) => enter(name) };
 }
 
-// The data of the fixture variant the host renders: what a UI spec's
+// The data of the fixture variant the host renders, or of the state a
+// confirmed action entered: what a UI spec's
 // `{ "bind": "<path>" }` props and its operations' arguments read.
 export function useFixtureData(): FixtureData {
   return useHost("useFixtureData").data;

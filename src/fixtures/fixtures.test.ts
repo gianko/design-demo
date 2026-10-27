@@ -21,13 +21,45 @@ describe("fixtures", () => {
     "payment-run": ["empty"],
   };
 
-  it("names the default and one <brief>/<state> variant per P0 screen state", () => {
-    expect(variantNames).toEqual([
-      "default",
-      ...Object.entries(p0States).flatMap(([brief, states]) =>
-        states.map((state) => `${brief}/${state}`)
-      ),
-    ]);
+  // Each P1 brief's `requires.states`, as spec § The P1 set lists them.
+  const p1States = {
+    "bulk-pay": [
+      "empty",
+      "rows-selected",
+      "payment-scheduled",
+      "payment-failed",
+    ],
+    "overdue-invoices": [
+      "empty",
+      "rows-selected",
+      "reminders-sent",
+      "reminders-failed",
+    ],
+    "failed-payments": [
+      "empty",
+      "rows-selected",
+      "payments-retried",
+      "retry-failed",
+    ],
+    contractors: ["empty"],
+    "run-history": ["empty"],
+    "my-invoices": ["empty"],
+    "payments-received": ["empty"],
+    "payment-failed": ["retry-requested", "retry-failed"],
+  };
+  const variantsOf = (states: Record<string, string[]>) =>
+    Object.entries(states).flatMap(([brief, briefStates]) =>
+      briefStates.map((state) => `${brief}/${state}`)
+    );
+
+  // The P0 variants come first, in spec order; every P1 brief's follow.
+  it("names the default and one <brief>/<state> variant per screen state, P0 first", () => {
+    const p0 = ["default", ...variantsOf(p0States)];
+
+    expect(variantNames.slice(0, p0.length)).toEqual(p0);
+    expect([...variantNames.slice(p0.length)].sort()).toEqual(
+      variantsOf(p1States).sort()
+    );
   });
 
   it.each(variantNames)("reaches %s by name", (name) => {
@@ -133,6 +165,73 @@ describe("fixtures", () => {
       dateLabel: "Oct 10",
     });
     expect(data.paidThisYear).toEqual({ amount: 41200, currency: "USD" });
+  });
+
+  it("lists the payments you've received this year, newest first, each with the invoices it covered", () => {
+    const { data } = fixtureVariant("default");
+
+    expect(
+      data.paymentsReceived.map((payment) => [
+        payment.dateLabel,
+        payment.amount,
+        payment.invoicesLabel,
+        payment.invoiceCountLabel,
+      ])
+    ).toEqual([
+      ["Oct 10", 4800, "INV-0131", "1 invoice"],
+      ["Sep 26", 6200, "INV-0124 and INV-0127", "2 invoices"],
+      ["Sep 12", 3900, "INV-0119", "1 invoice"],
+      ["Aug 29", 7350, "INV-0109, INV-0112 and INV-0115", "3 invoices"],
+      ["Jul 18", 9550, "INV-0098 and INV-0103", "2 invoices"],
+      ["Jun 6", 9400, "INV-0084, INV-0089 and INV-0091", "3 invoices"],
+    ]);
+    expect(data.paymentsReceived[0]).toMatchObject({
+      id: "PAY-2026-10-10",
+      currency: "USD",
+      status: "paid",
+      date: "2026-10-10",
+      invoiceNumbers: ["INV-0131"],
+      invoiceCount: 1,
+    });
+    // The newest is your last payment, and together they're this year's 41,200.
+    expect(data.lastPayment).toMatchObject({ invoiceId: "INV-0131" });
+    expect(
+      data.paymentsReceived.reduce((sum, each) => sum + each.amount, 0)
+    ).toBe(41200);
+    expect(new Set(data.paymentsReceived.map((each) => each.id)).size).toBe(6);
+  });
+
+  it("has no payments received in payments-received/empty", () => {
+    expect(
+      fixtureVariant("payments-received/empty").data.paymentsReceived
+    ).toEqual([]);
+  });
+
+  it("shows you, the contractor, your one bounced payment and why it bounced", () => {
+    expect(fixtureVariant("default").data.bouncedPayment).toEqual({
+      id: "PAY-2026-10-17",
+      invoiceId: "INV-0138",
+      contractorId: "ines-duarte",
+      contractor: "Ines Duarte",
+      amount: 3650,
+      currency: "USD",
+      status: "failed",
+      date: "2026-10-17",
+      dateLabel: "Oct 17",
+      reason:
+        "Your bank sent it back: the account number doesn't match the name on the account.",
+    });
+  });
+
+  it("shows the same bounced payment under both retry variants", () => {
+    const { bouncedPayment } = fixtureVariant("default").data;
+
+    expect(
+      fixtureVariant("payment-failed/retry-requested").data.bouncedPayment
+    ).toEqual(bouncedPayment);
+    expect(
+      fixtureVariant("payment-failed/retry-failed").data.bouncedPayment
+    ).toEqual(bouncedPayment);
   });
 
   it("shows the admin one awaiting invoice to review, with its line count", () => {
@@ -259,6 +358,40 @@ describe("fixtures", () => {
     });
   });
 
+  // bulk-pay's table: the invoices awaiting approval, which stay in it once
+  // paid, scheduled, so the paid rows change status in place.
+  const queued = (name: string) =>
+    fixtureVariant(name).data.payQueue.map((each) => [each.id, each.status]);
+
+  it("queues the 3 awaiting invoices to pay in the default variant", () => {
+    expect(queued("default")).toEqual([
+      ["INV-0147", "awaiting"],
+      ["INV-0148", "awaiting"],
+      ["INV-0149", "awaiting"],
+    ]);
+  });
+
+  it("keeps the paid invoices in the queue, scheduled, in bulk-pay/payment-scheduled", () => {
+    expect(queued("bulk-pay/payment-scheduled")).toEqual([
+      ["INV-0147", "scheduled"],
+      ["INV-0148", "scheduled"],
+      ["INV-0149", "scheduled"],
+    ]);
+  });
+
+  it("has nothing to pay in bulk-pay/empty", () => {
+    expect(queued("bulk-pay/empty")).toEqual([]);
+  });
+
+  it.each(["bulk-pay/rows-selected", "bulk-pay/payment-failed"])(
+    "leaves the invoices as they were under %s, with the awaiting ones selected",
+    (name) => {
+      const variant = fixtureVariant(name);
+      expect(variant.data).toEqual(fixtureVariant("default").data);
+      expect(variant.selected).toEqual(["INV-0147", "INV-0148", "INV-0149"]);
+    }
+  );
+
   it("keeps the run date with nothing in it in payment-run/empty", () => {
     expect(fixtureVariant("payment-run/empty").data.paymentRun).toEqual({
       date: "2026-10-24",
@@ -267,6 +400,173 @@ describe("fixtures", () => {
       overdue: null,
       awaitingApproval: null,
     });
+  });
+
+  it("lists every contractor's overdue invoices for the admin, by number", () => {
+    expect(
+      fixtureVariant("default").data.overdueInvoices.map((each) => [
+        each.id,
+        each.contractor,
+        each.status,
+      ])
+    ).toEqual([
+      ["INV-0142", "Ines Duarte", "overdue"],
+      ["INV-0144", "Lea Brandt", "overdue"],
+    ]);
+  });
+
+  it("has no overdue invoices in overdue-invoices/empty", () => {
+    expect(
+      fixtureVariant("overdue-invoices/empty").data.overdueInvoices
+    ).toEqual([]);
+  });
+
+  it.each([
+    "overdue-invoices/rows-selected",
+    "overdue-invoices/reminders-failed",
+  ])("starts %s with every overdue invoice selected", (name) => {
+    expect(fixtureVariant(name).selected).toEqual(["INV-0142", "INV-0144"]);
+  });
+
+  it.each([
+    "overdue-invoices/rows-selected",
+    "overdue-invoices/reminders-sent",
+    "overdue-invoices/reminders-failed",
+  ])("leaves the invoices as they were under %s", (name) => {
+    expect(fixtureVariant(name).data).toEqual(fixtureVariant("default").data);
+  });
+
+  it("lists the admin the payment that bounced, for the failed invoice, with the bank's reason", () => {
+    expect(fixtureVariant("default").data.failedPayments).toEqual([
+      {
+        id: "PAY-0146",
+        invoiceId: "INV-0146",
+        contractorId: "jonah-whitfield-abernathy",
+        contractor: "Jonah Whitfield-Abernathy",
+        amount: 1620,
+        currency: "USD",
+        status: "failed",
+        reason: "The bank closed the account.",
+        date: "2026-10-13",
+        dateLabel: "Oct 13",
+      },
+    ]);
+  });
+
+  it("has no failed payments in failed-payments/empty", () => {
+    expect(fixtureVariant("failed-payments/empty").data.failedPayments).toEqual(
+      []
+    );
+  });
+
+  it.each(["failed-payments/rows-selected", "failed-payments/retry-failed"])(
+    "starts %s with every failed payment selected, and the data as it was",
+    (name) => {
+      const { data, selected } = fixtureVariant(name);
+
+      expect(selected).toEqual(["PAY-0146"]);
+      expect(data).toEqual(fixtureVariant("default").data);
+    }
+  );
+
+  it("schedules the retried payment and its invoice, and only them, in failed-payments/payments-retried", () => {
+    const { data } = fixtureVariant("failed-payments/payments-retried");
+
+    expect(data.failedPayments.map((each) => [each.id, each.status])).toEqual([
+      ["PAY-0146", "scheduled"],
+    ]);
+    expect(statuses("failed-payments/payments-retried")).toEqual({
+      ...statuses("default"),
+      "INV-0146": "scheduled",
+    });
+  });
+
+  it("lists every contractor for the admin, with their invoices still open and what those come to", () => {
+    expect(
+      fixtureVariant("default").data.contractors.map(
+        ({ name, country, openInvoices, openInvoicesLabel, owed }) => [
+          name,
+          country,
+          openInvoices,
+          openInvoicesLabel,
+          owed,
+        ]
+      )
+    ).toEqual([
+      ["Ines Duarte", "Portugal", 2, "2 invoices", 7200],
+      ["Lea Brandt", "Germany", 1, "1 invoice", 3100],
+      ["Tomás Herrera", "Mexico", 2, "2 invoices", 4000],
+      ["Jonah Whitfield-Abernathy", "United Kingdom", 2, "2 invoices", 2600],
+      ["Priya Raman", "India", 1, "1 invoice", 6375.5],
+    ]);
+  });
+
+  it("gives each contractor the details their sheet shows, your year's total included", () => {
+    const { contractors, you, paidThisYear } = fixtureVariant("default").data;
+
+    expect(contractors.find((each) => each.id === you.id)).toEqual({
+      id: "ines-duarte",
+      name: "Ines Duarte",
+      country: "Portugal",
+      email: "ines@duarte.studio",
+      payoutMethod: "Bank transfer to an account ending 4417",
+      openInvoices: 2,
+      openInvoicesLabel: "2 invoices",
+      owed: 7200,
+      paidThisYear: paidThisYear!.amount,
+      currency: "USD",
+    });
+  });
+
+  it("has no contractors in contractors/empty", () => {
+    expect(fixtureVariant("contractors/empty").data.contractors).toEqual([]);
+  });
+
+  it("lists the past payment runs newest first, each with its breakdown", () => {
+    const { pastRuns, lastPayment } = fixtureVariant("default").data;
+
+    expect(
+      pastRuns.map(({ dateLabel, status, countLabel, amount }) => [
+        dateLabel,
+        status,
+        countLabel,
+        amount,
+      ])
+    ).toEqual([
+      ["Oct 10", "paid", "5 invoices", 16420],
+      ["Sep 26", "failed", "6 invoices", 19105.5],
+      ["Sep 12", "paid", "4 invoices", 11250],
+      ["Aug 29", "paid", "7 invoices", 21980],
+      ["Aug 15", "paid", "3 invoices", 8400],
+    ]);
+    // Your last payment went out in the newest run.
+    expect(pastRuns[0]!.date).toBe(lastPayment!.date);
+    expect(pastRuns[1]).toEqual({
+      id: "run-2026-09-26",
+      date: "2026-09-26",
+      dateLabel: "Sep 26",
+      status: "failed",
+      count: 6,
+      countLabel: "6 invoices",
+      amount: 19105.5,
+      currency: "USD",
+      contractorsLabel: "5 contractors",
+      paidCountLabel: "5 invoices",
+      paidAmount: 17485.5,
+      failedCountLabel: "1 invoice",
+      failedAmount: 1620,
+    });
+  });
+
+  it("splits each past run into what went through and what bounced, failed only when a payment bounced", () => {
+    for (const run of fixtureVariant("default").data.pastRuns) {
+      expect(run.paidAmount + run.failedAmount).toBe(run.amount);
+      expect(run.status).toBe(run.failedAmount > 0 ? "failed" : "paid");
+    }
+  });
+
+  it("has no past runs in run-history/empty", () => {
+    expect(fixtureVariant("run-history/empty").data.pastRuns).toEqual([]);
   });
 
   // Runs one operation under a variant, and reports how it stood just before
@@ -302,6 +602,8 @@ describe("fixtures", () => {
       "invoice-queue/payment-scheduled",
       "invoice-review/payment-scheduled",
       "payment-status/reminder-failed",
+      "bulk-pay/rows-selected",
+      "bulk-pay/payment-scheduled",
     ])("succeeds after exactly 1,800ms under %s", async (name) => {
       expect(await settle(name)).toEqual({
         early: undefined,
@@ -309,7 +611,11 @@ describe("fixtures", () => {
       });
     });
 
-    it.each(["invoice-queue/payment-failed", "invoice-review/payment-failed"])(
+    it.each([
+      "invoice-queue/payment-failed",
+      "invoice-review/payment-failed",
+      "bulk-pay/payment-failed",
+    ])(
       "fails after exactly 1,800ms under %s, naming the invoices",
       async (name) => {
         const { early, settled } = await settle(name);
@@ -340,6 +646,118 @@ describe("fixtures", () => {
     it("leaves sendReminder succeeding where only payInvoices fails", async () => {
       expect(
         await settleOperation("invoice-queue/payment-failed", (operations) =>
+          operations.sendReminder("INV-0142")
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("sendReminders", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.sendReminders(["INV-0142", "INV-0144"])
+      );
+
+    it.each([
+      "default",
+      "overdue-invoices/rows-selected",
+      "overdue-invoices/reminders-sent",
+      "payment-status/reminder-failed",
+    ])("succeeds after exactly 1,800ms under %s", async (name) => {
+      expect(await settle(name)).toEqual({
+        early: undefined,
+        settled: "resolved",
+      });
+    });
+
+    it("fails after exactly 1,800ms under overdue-invoices/reminders-failed, naming the invoices", async () => {
+      const { early, settled } = await settle(
+        "overdue-invoices/reminders-failed"
+      );
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*INV-0142, INV-0144/);
+    });
+
+    it("leaves sendReminder succeeding where only sendReminders fails", async () => {
+      expect(
+        await settleOperation(
+          "overdue-invoices/reminders-failed",
+          (operations) => operations.sendReminder("INV-0142")
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("retryPayments", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.retryPayments(["PAY-0146"])
+      );
+
+    it.each([
+      "default",
+      "failed-payments/rows-selected",
+      "failed-payments/payments-retried",
+      "invoice-queue/payment-failed",
+    ])("succeeds after exactly 1,800ms under %s", async (name) => {
+      expect(await settle(name)).toEqual({
+        early: undefined,
+        settled: "resolved",
+      });
+    });
+
+    it("fails after exactly 1,800ms under failed-payments/retry-failed, naming the payments", async () => {
+      const { early, settled } = await settle("failed-payments/retry-failed");
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*PAY-0146/);
+    });
+
+    it("leaves payInvoices succeeding where only retryPayments fails", async () => {
+      expect(
+        await settleOperation("failed-payments/retry-failed", (operations) =>
+          operations.payInvoices(["INV-0147"])
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("requestRetry", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.requestRetry("PAY-2026-10-17")
+      );
+
+    it.each(["default", "payment-failed/retry-requested"])(
+      "succeeds after exactly 1,800ms under %s",
+      async (name) => {
+        expect(await settle(name)).toEqual({
+          early: undefined,
+          settled: "resolved",
+        });
+      }
+    );
+
+    it("fails after exactly 1,800ms under payment-failed/retry-failed, naming the payment", async () => {
+      const { early, settled } = await settle("payment-failed/retry-failed");
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*PAY-2026-10-17/);
+    });
+
+    it("leaves sendReminder succeeding where only requestRetry fails", async () => {
+      expect(
+        await settleOperation("payment-failed/retry-failed", (operations) =>
           operations.sendReminder("INV-0142")
         )
       ).toEqual({ early: undefined, settled: "resolved" });
