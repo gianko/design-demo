@@ -355,6 +355,33 @@ describe("gate 1", () => {
     expect(check(spec)).toEqual([["slot-allow", "nested"]]);
   });
 
+  // Only Stacks carry a slot's allow-list down; what sits in an allowed
+  // component's own slots is that component's business.
+  it("holds an allow-list through Stacks but not through other components", () => {
+    const footerTakesPanel = entries.map((entry) =>
+      entry.name === "Card"
+        ? {
+            ...entry,
+            slots: { ...entry.slots, footer: { allow: ["Panel", "Stack"] } },
+          }
+        : entry
+    );
+    const spec = clean();
+    spec.nodes.push(
+      node("card", "Card", "screen", "body"),
+      node("actions", "Stack", "card", "footer"),
+      node("aside", "Panel", "actions", "body", { title: "Aside" }),
+      node("aside-figure", "Figure", "aside", "body", { value: 3 }),
+      node("stray", "Figure", "actions", "body", { value: 4 })
+    );
+
+    expect(
+      gate1(spec, { ...context, entries: footerTakesPanel }).map(
+        ({ rule, location }) => [rule, location]
+      )
+    ).toEqual([["slot-allow", "stray"]]);
+  });
+
   it.each([
     ["a prop of the wrong type", "padded", JSON.stringify("yes")],
     ["a prop the entry doesn't have", "tone", JSON.stringify("muted")],
@@ -712,18 +739,21 @@ describe("gate 1", () => {
       expect(check(spec)).toEqual([["nested-cards", "inner"]]);
     });
 
-    it.each(["header", "body", "footer"])(
-      "fails a Card inside a Stack in another Card's %s",
-      (slot) => {
-        const spec = withCard();
-        spec.nodes.push(
-          node("row", "Stack", "card", slot),
-          node("inner", "Card", "row", "body")
-        );
+    // The header's and footer's allow-lists, which hold through the Stack,
+    // leave a Card out too.
+    it.each([
+      ["header", [["slot-allow", "inner"]]],
+      ["body", []],
+      ["footer", [["slot-allow", "inner"]]],
+    ])("fails a Card inside a Stack in another Card's %s", (slot, allow) => {
+      const spec = withCard();
+      spec.nodes.push(
+        node("row", "Stack", "card", slot),
+        node("inner", "Card", "row", "body")
+      );
 
-        expect(check(spec)).toEqual([["nested-cards", "inner"]]);
-      }
-    );
+      expect(check(spec)).toEqual([...allow, ["nested-cards", "inner"]]);
+    });
 
     it("fails a Card two Stacks deep in another Card's footer", () => {
       const spec = withCard();
@@ -733,7 +763,10 @@ describe("gate 1", () => {
         node("inner", "Card", "row", "body")
       );
 
-      expect(check(spec)).toEqual([["nested-cards", "inner"]]);
+      expect(check(spec)).toEqual([
+        ["slot-allow", "inner"],
+        ["nested-cards", "inner"],
+      ]);
     });
 
     it("passes Cards side by side under a Screen and in a Stack", () => {
@@ -1266,6 +1299,141 @@ describe("gate 1 against the library's registry", () => {
       ],
     ])("fails %s in a Sheet, naming it", async (_, child, failures) => {
       expect(await childFailures(child)).toEqual(failures);
+    });
+  });
+
+  // A slot's allow-list holds through Stacks, which are layout, not content
+  // (#253): a node in a chain of Stacks is checked against the nearest
+  // enclosing slot that has one.
+  describe("allow-lists through Stacks", () => {
+    function screenWith(...children: Node[]) {
+      return {
+        audience: "admin",
+        nodes: [
+          node("screen", "Screen", null, null, { audience: "admin" }),
+          node("column", "Stack", "screen", "body"),
+          node("header", "PageHeader", "column", "body"),
+          node("title", "Heading", "header", "title", {
+            text: "Invoices",
+            level: 1,
+          }),
+          node("invoice", "Card", "column", "body"),
+          node("table", "DataTable", "column", "body", {
+            rows: bind("invoices"),
+            columns: ["Invoice"],
+          }),
+          node("number", "Text", "table", "cell", { text: bind("row.number") }),
+          node("sheet", "Sheet", "table", "detail", {
+            closeLabel: "Close invoice details",
+          }),
+          ...children,
+        ],
+        states: [],
+        actions: [],
+      };
+    }
+
+    // Only the planted children's failures are read.
+    async function childFailures(...children: Node[]) {
+      const { entries } = await loadRegistry();
+      const fixtures = {
+        variants: { default: fixtureVariant("default").data },
+        operations: operationNames,
+      };
+      const ids = new Set(children.map((child) => child.id));
+      return gate1(screenWith(...children), {
+        audience: "admin",
+        entries,
+        fixtures,
+      }).filter(({ location }) => ids.has(location));
+    }
+
+    const button = (id: string, parent: string) =>
+      node(id, "Button", parent, "body", {
+        text: "Approve and pay",
+        intent: "primary",
+      });
+
+    it("fails a Button in a Stack in a Sheet's body, naming the Sheet's body slot and the Stack", async () => {
+      expect(
+        await childFailures(
+          node("facts", "Stack", "sheet", "body"),
+          button("pay", "facts")
+        )
+      ).toEqual([
+        {
+          gate: "gate 1",
+          rule: "slot-allow",
+          location: "pay",
+          message:
+            'Sheet\'s body slot takes only Heading, Text, Amount, StatusTag, Stack, not Button (inside the Stack "facts").',
+        },
+      ]);
+    });
+
+    it("fails a Button two Stacks deep in a Sheet's body the same way", async () => {
+      expect(
+        await childFailures(
+          node("facts", "Stack", "sheet", "body"),
+          node("row", "Stack", "facts", "body"),
+          button("pay", "row")
+        )
+      ).toEqual([
+        {
+          gate: "gate 1",
+          rule: "slot-allow",
+          location: "pay",
+          message:
+            'Sheet\'s body slot takes only Heading, Text, Amount, StatusTag, Stack, not Button (inside the Stack "row").',
+        },
+      ]);
+    });
+
+    it("passes Text in a Stack in a Sheet's body", async () => {
+      expect(
+        await childFailures(
+          node("facts", "Stack", "sheet", "body"),
+          node("due", "Text", "facts", "body", { text: bind("row.number") })
+        )
+      ).toEqual([]);
+    });
+
+    it("fails a Heading in a Stack in a Card's footer, naming the Card's footer slot", async () => {
+      expect(
+        await childFailures(
+          node("actions", "Stack", "invoice", "footer"),
+          node("aside", "Heading", "actions", "body", {
+            text: "Next step",
+            level: 2,
+          })
+        )
+      ).toEqual([
+        {
+          gate: "gate 1",
+          rule: "slot-allow",
+          location: "aside",
+          message:
+            'Card\'s footer slot takes only Button, Text, Stack, not Heading (inside the Stack "actions").',
+        },
+      ]);
+    });
+
+    it("passes a Button in a Stack in a Card's footer", async () => {
+      expect(
+        await childFailures(
+          node("actions", "Stack", "invoice", "footer"),
+          button("pay", "actions")
+        )
+      ).toEqual([]);
+    });
+
+    it("passes a Button in a Stack in a Card's body, which has no allow-list", async () => {
+      expect(
+        await childFailures(
+          node("lines", "Stack", "invoice", "body"),
+          button("pay", "lines")
+        )
+      ).toEqual([]);
     });
   });
 
