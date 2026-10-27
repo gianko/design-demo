@@ -112,9 +112,10 @@ for (const story of stories) {
           const rendered: RenderedStory = {
             id: render.id,
             parameter: (name) => storyParameter(page, render.id, name),
-            async reopen(globals) {
+            async reopen(globals, prepare) {
               const fresh = await page.context().newPage();
               await fresh.setViewportSize(page.viewportSize()!);
+              await prepare?.(fresh);
               await openStory(fresh, { ...render, globals });
               return fresh;
             },
