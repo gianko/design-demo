@@ -257,6 +257,26 @@ describe("in CI", () => {
       /"Northwind Logistics GmbH" is clipped without an ellipsis/,
     ],
     [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
+    [
+      "content-hidden-at-rest",
+      "opacity",
+      /"Northwind Logistics GmbH" stays at opacity 0/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "visibility",
+      /"Paid" stays at visibility: hidden/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "clip",
+      /"Invoice 2024-0117" stays clipped to nothing/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "clip",
+      /"Due in 14 days" stays clipped to nothing/,
+    ],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
     const printed = finding.source.replaceAll('"', '\\\\?"');
