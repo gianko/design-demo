@@ -45,6 +45,12 @@ const storybookStatic = resolve(
 // has no baseline, and nobody reads its state shots (ADR 0008).
 const renderOnly = Boolean(process.env.GATE_RENDER_ONLY);
 
+// The gate's own tests seeding their scratch baselines (gates/gate.e2e.ts):
+// nothing reads a seed run's checks, only the baselines it writes, so it
+// skips the render-time taste rules, the slowest of them. Each rule leaves
+// the page as it found it, so the baselines are the ones a full run shoots.
+const seeding = Boolean(process.env.GATE_SEED);
+
 // A comma-separated subset of the densities, for the render pass.
 const densityFilter = process.env.GATE_DENSITIES?.split(",");
 
@@ -106,15 +112,18 @@ for (const story of stories) {
           const rendered: RenderedStory = {
             id: render.id,
             parameter: (name) => storyParameter(page, render.id, name),
-            async reopen(globals) {
+            async reopen(globals, prepare) {
               const fresh = await page.context().newPage();
               await fresh.setViewportSize(page.viewportSize()!);
+              await prepare?.(fresh);
               await openStory(fresh, { ...render, globals });
               return fresh;
             },
           };
           for (const rule of renderRules) {
-            taste[rule.name] = await rule.check(page, root, rendered);
+            taste[rule.name] = seeding
+              ? []
+              : await rule.check(page, root, rendered);
           }
           expect
             .soft(

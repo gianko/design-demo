@@ -145,15 +145,13 @@ async function drive(
   globals: Record<string, string>,
   act: (page: Page) => Promise<void>
 ): Promise<RenderFinding[]> {
-  const page = await story.reopen(globals);
-  try {
+  // Recording from the first frame, under the emulated media, so motion a
+  // story runs as it mounts is recorded too.
+  const page = await story.reopen(globals, async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.addInitScript(record, root);
-    // From the first frame, under the emulated media, so motion a story
-    // runs as it mounts is recorded too.
-    await page.reload();
-    await page.locator(`${root} > *`).first().waitFor({ state: "attached" });
-    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  });
+  try {
     await settle(page);
     await act(page);
     return await inPage(page, root, findings);

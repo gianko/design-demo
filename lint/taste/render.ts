@@ -22,9 +22,14 @@ export type RenderedStory = {
   // One of the story's parameters, as JSON; undefined when it has none.
   parameter(name: string): Promise<unknown>;
   // The story opened again in a new page of the same browser context, in the
-  // same theme, density and viewport, with these globals set as well. The
-  // render's own page is left as it was; the caller closes the new one.
-  reopen(globals: Record<string, string>): Promise<Page>;
+  // same theme, density and viewport, with these globals set as well.
+  // `prepare` runs on the new page before the story loads in it (emulated
+  // media, init scripts), so it needs no second load. The render's own page
+  // is left as it was; the caller closes the new one.
+  reopen(
+    globals: Record<string, string>,
+    prepare?: (page: Page) => Promise<void>
+  ): Promise<Page>;
 };
 
 // A render-time taste rule. It inspects one rendered story and returns its
