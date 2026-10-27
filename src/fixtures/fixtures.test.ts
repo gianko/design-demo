@@ -21,11 +21,21 @@ describe("fixtures", () => {
     "payment-run": ["empty"],
   };
 
-  it("names the default and one <brief>/<state> variant per P0 screen state", () => {
+  // Each P1 brief's `requires.states`, as spec § The P1 set lists them.
+  const p1States = {
+    "overdue-invoices": [
+      "empty",
+      "rows-selected",
+      "reminders-sent",
+      "reminders-failed",
+    ],
+  };
+
+  it("names the default and one <brief>/<state> variant per screen state", () => {
     expect(variantNames).toEqual([
       "default",
-      ...Object.entries(p0States).flatMap(([brief, states]) =>
-        states.map((state) => `${brief}/${state}`)
+      ...Object.entries({ ...p0States, ...p1States }).flatMap(
+        ([brief, states]) => states.map((state) => `${brief}/${state}`)
       ),
     ]);
   });
@@ -269,6 +279,40 @@ describe("fixtures", () => {
     });
   });
 
+  it("lists every contractor's overdue invoices for the admin, by number", () => {
+    expect(
+      fixtureVariant("default").data.overdueInvoices.map((each) => [
+        each.id,
+        each.contractor,
+        each.status,
+      ])
+    ).toEqual([
+      ["INV-0142", "Ines Duarte", "overdue"],
+      ["INV-0144", "Lea Brandt", "overdue"],
+    ]);
+  });
+
+  it("has no overdue invoices in overdue-invoices/empty", () => {
+    expect(
+      fixtureVariant("overdue-invoices/empty").data.overdueInvoices
+    ).toEqual([]);
+  });
+
+  it.each([
+    "overdue-invoices/rows-selected",
+    "overdue-invoices/reminders-failed",
+  ])("starts %s with every overdue invoice selected", (name) => {
+    expect(fixtureVariant(name).selected).toEqual(["INV-0142", "INV-0144"]);
+  });
+
+  it.each([
+    "overdue-invoices/rows-selected",
+    "overdue-invoices/reminders-sent",
+    "overdue-invoices/reminders-failed",
+  ])("leaves the invoices as they were under %s", (name) => {
+    expect(fixtureVariant(name).data).toEqual(fixtureVariant("default").data);
+  });
+
   // Runs one operation under a variant, and reports how it stood just before
   // and at 1,800ms.
   async function settleOperation(
@@ -341,6 +385,46 @@ describe("fixtures", () => {
       expect(
         await settleOperation("invoice-queue/payment-failed", (operations) =>
           operations.sendReminder("INV-0142")
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("sendReminders", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.sendReminders(["INV-0142", "INV-0144"])
+      );
+
+    it.each([
+      "default",
+      "overdue-invoices/rows-selected",
+      "overdue-invoices/reminders-sent",
+      "payment-status/reminder-failed",
+    ])("succeeds after exactly 1,800ms under %s", async (name) => {
+      expect(await settle(name)).toEqual({
+        early: undefined,
+        settled: "resolved",
+      });
+    });
+
+    it("fails after exactly 1,800ms under overdue-invoices/reminders-failed, naming the invoices", async () => {
+      const { early, settled } = await settle(
+        "overdue-invoices/reminders-failed"
+      );
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*INV-0142, INV-0144/);
+    });
+
+    it("leaves sendReminder succeeding where only sendReminders fails", async () => {
+      expect(
+        await settleOperation(
+          "overdue-invoices/reminders-failed",
+          (operations) => operations.sendReminder("INV-0142")
         )
       ).toEqual({ early: undefined, settled: "resolved" });
     });

@@ -76,4 +76,7 @@ export type FixtureData = {
   reviewInvoice: Invoice | null;
   // The next payment run, totalled by status.
   paymentRun: PaymentRun;
+  // Every contractor's overdue invoices, by number: the admin's reminders
+  // list; empty when nothing is overdue.
+  overdueInvoices: readonly Invoice[];
 };

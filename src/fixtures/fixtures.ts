@@ -19,7 +19,11 @@ import type {
 
 export type * from "./types.ts";
 
-export const operationNames = ["sendReminder", "payInvoices"] as const;
+export const operationNames = [
+  "sendReminder",
+  "payInvoices",
+  "sendReminders",
+] as const;
 export type OperationName = (typeof operationNames)[number];
 
 // Long enough for a Button's progress edge to fill and sweep once.
@@ -133,6 +137,7 @@ function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
       overdue: group("overdue"),
       awaitingApproval: group("awaiting"),
     },
+    overdueInvoices: allInvoices.filter((each) => each.status === "overdue"),
   };
 }
 
@@ -158,6 +163,12 @@ const noInvoices = dataset([]);
 const awaiting = invoices
   .filter((each) => each.status === "awaiting")
   .map((each) => each.id);
+// The overdue ones: what overdue-invoices' rows-selected and reminders-failed
+// start with selected. Nothing is overdue once they're left out.
+const overdue = shared.overdueInvoices.map((each) => each.id);
+const nothingOverdue = dataset(
+  invoices.filter((each) => each.status !== "overdue")
+);
 
 // A variant is the data its screen state shows, the operations that fail
 // under it, and the rows selected when it starts (ADR 0011). The selection
@@ -192,6 +203,18 @@ const variants = {
   },
   "invoice-review/payment-failed": { data: shared, fails: ["payInvoices"] },
   "payment-run/empty": { data: noInvoices, fails: [] },
+  "overdue-invoices/empty": { data: nothingOverdue, fails: [] },
+  "overdue-invoices/rows-selected": {
+    data: shared,
+    fails: [],
+    selected: overdue,
+  },
+  "overdue-invoices/reminders-sent": { data: shared, fails: [] },
+  "overdue-invoices/reminders-failed": {
+    data: shared,
+    fails: ["sendReminders"],
+    selected: overdue,
+  },
 } satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;
@@ -200,6 +223,7 @@ export const variantNames = Object.keys(variants) as VariantName[];
 export type Operations = {
   sendReminder: (invoiceId: string) => Promise<void>;
   payInvoices: (invoiceIds: readonly string[]) => Promise<void>;
+  sendReminders: (invoiceIds: readonly string[]) => Promise<void>;
 };
 
 export type FixtureVariant = {
@@ -240,6 +264,8 @@ export function fixtureVariant(name: string): FixtureVariant {
     operations: {
       sendReminder: (invoiceId) => settle("sendReminder", invoiceId),
       payInvoices: (invoiceIds) => settle("payInvoices", invoiceIds.join(", ")),
+      sendReminders: (invoiceIds) =>
+        settle("sendReminders", invoiceIds.join(", ")),
     },
   };
 }
