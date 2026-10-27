@@ -1080,4 +1080,30 @@ describe("gate 1 against the library's registry", () => {
       },
     ]);
   });
+
+  // Sheet renders IconButton as its close button; a UI spec never places one
+  // (#212). The library has the entry, and the code step sees it, so it's
+  // the internal mark that keeps it out of a UI spec.
+  it("fails an IconButton placed in a UI spec as unregistered, though the code step sees it", async () => {
+    const spec = headings("1");
+    spec.nodes.push(
+      node("close", "IconButton", "column", "body", {
+        icon: "close",
+        label: "Close invoice details",
+      })
+    );
+    const { entries, serialized } = await loadRegistry();
+
+    expect(JSON.parse(serialized.code)).toContainEqual(
+      expect.objectContaining({ name: "IconButton", internal: true })
+    );
+    expect(gate1(spec, { ...library, entries })).toEqual([
+      {
+        gate: "gate 1",
+        rule: "registered-component",
+        location: "close",
+        message: '"IconButton" isn\'t a registered component.',
+      },
+    ]);
+  });
 });

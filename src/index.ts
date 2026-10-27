@@ -21,6 +21,10 @@ export {
 } from "./components/EmptyState/EmptyState.tsx";
 export { Heading, type HeadingProps } from "./components/Heading/Heading.tsx";
 export {
+  IconButton,
+  type IconButtonProps,
+} from "./components/IconButton/IconButton.tsx";
+export {
   PageHeader,
   type PageHeaderProps,
 } from "./components/PageHeader/PageHeader.tsx";
