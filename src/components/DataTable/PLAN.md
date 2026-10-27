@@ -23,7 +23,7 @@ Props and slots:
 - `selectable`: off by default. On, each row and the header get a Checkbox and the table reads and writes the Selection; off, there are no checkboxes, no row fills with `selected`, and the table never enters `rows-selected` (#203). The registry `use` line tells the spec step to turn it on only when an action acts on the Selection.
 - No `selected` prop: a fixture variant names its starting selection, and the host starts with it (GAPS.md).
 - `cell` slot: one template node per column, rendered once per row with that row's `row.*` bindings (ADR 0004). In code it is a function from the row to those nodes, `cell={(row) => <>…</>}`: a `ReactNode` can't read a row.
-- `detail` slot (#214): one Sheet, allow-listed, rendered for the opened row with that row's `row.*` bindings (ADR 0011), and in code a function of the row like `cell`, `detail={(row) => <Sheet …>}`. DataTable holds which row is open, not the screen state, and renders that row's Sheet inside a `SheetHost` (`Sheet/sheet-host.tsx`) after its surface, not inside it: the Sheet draws in the top layer, but it is a painted surface, and one inside another fails `nested-cards` (gap #254).
+- `detail` slot (#214): one Sheet, allow-listed, rendered for the opened row with that row's `row.*` bindings (ADR 0011), and in code a function of the row like `cell`, `detail={(row) => <Sheet …>}`. DataTable holds which row is open, not the screen state, and renders that row's Sheet inside a `SheetHost` (`Sheet/sheet-host.tsx`) after its surface. The Sheet draws in the top layer, so `nested-cards` reads it as a surface of its own wherever it sits in the DOM (#254).
 
 ## Variants, sizes, states
 
