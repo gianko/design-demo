@@ -23,7 +23,7 @@ Props:
 
 ### The icon map
 
-`icons.tsx` is the library's one Phosphor icon map (spec § P1: IconButton "brings the shared Phosphor icon map"). It maps a library name to a Phosphor icon and exports `Icon`, which renders one at the brief's size and weight: regular weight, `size-icon` (16px admin, 20px contractor, "Phosphor, regular weight: 16px on admin screens, 20px on contractor screens"), `aria-hidden`. Names say what the icon does in this product (`close`), not what it draws (`X`), so swapping a glyph is one line. It holds only the icons a component renders; a component that needs another adds it there. Each icon is imported from its own module (`@phosphor-icons/react/dist/csr/X`), so Vitest and the generator, which load the registry and so this file, never parse the whole set.
+`icons.tsx` is the library's one Phosphor icon map (spec § P1: IconButton "brings the shared Phosphor icon map"). It maps a library name to a Phosphor icon and exports `Icon`, which renders one at the brief's weight, regular, `aria-hidden`, sized by the class its holder passes: IconButton's `icon` slot, `size-icon` (16px admin, 20px contractor, "Phosphor, regular weight: 16px on admin screens, 20px on contractor screens"). Names say what the icon does in this product (`close`), not what it draws (`X`), so swapping a glyph is one line. It holds only the icons a component renders; a component that needs another adds it there. Each icon is imported from its own module (`@phosphor-icons/react/dist/csr/X`), so Vitest and the generator, which load the registry and so this file, never parse the whole set.
 
 ## Variants, sizes, states
 
@@ -46,7 +46,7 @@ No pending: closing starts no operation.
 | `root` | always | `inline-flex aspect-square h-control shrink-0 items-center justify-center rounded-control transition-colors duration-fast ease-standard focus-visible:focus-ring` |
 | | enabled | `text-ink hover:bg-surface-hover active:bg-surface-pressed` |
 | | disabled | `text-disabled` |
-| `icon` | always | `size-icon` (in `icons.tsx`; the glyph fills in `currentColor`) |
+| `icon` | always | `size-icon shrink-0` (the glyph fills in `currentColor`) |
 | `name` | always | `sr-only` |
 
 Radius `rounded-control` (6px), the radius table's "Buttons", so the hover fill matches a quiet Button's.

@@ -11,10 +11,16 @@ export type IconName = keyof typeof glyphs;
 
 export const iconNames = Object.keys(glyphs) as [IconName, ...IconName[]];
 
-// One icon as the design brief draws it: Phosphor regular, at the density's
-// icon size (16px admin, 20px contractor), in the surrounding text colour.
+// One icon as the design brief draws it: Phosphor regular, in the
+// surrounding text colour, sized by the `className` of whatever holds it.
 // Decorative: whatever holds it carries the name.
-export function Icon({ name }: { name: IconName }) {
+export function Icon({
+  name,
+  className,
+}: {
+  name: IconName;
+  className: string;
+}) {
   const Glyph = glyphs[name];
-  return <Glyph aria-hidden weight="regular" className="size-icon shrink-0" />;
+  return <Glyph aria-hidden weight="regular" className={className} />;
 }
