@@ -56,16 +56,10 @@ function grayOnColor(
     seen.add(element);
     const scope = element.closest("[data-theme]") ?? root;
     if (!scopes.has(scope)) scopes.set(scope, resolve(scope));
-    const { text: textRoles, background, transparent } = scopes.get(scope)!;
+    const { text: textRoles, background } = scopes.get(scope)!;
     const role = textRoles.get(getComputedStyle(element).color);
     if (!role) continue;
-    let tint: string | undefined;
-    for (let box: Element | null = element; box; box = box.parentElement) {
-      const color = getComputedStyle(box).backgroundColor;
-      if (color === transparent) continue;
-      tint = background.get(color);
-      break;
-    }
+    const tint = background.get(taste.background(element));
     if (!tint) continue;
     failures.push(
       taste.at(
@@ -76,31 +70,25 @@ function grayOnColor(
   }
   return failures;
 
-  // Each role's computed colour under a theme scope, read off a probe
-  // placed inside it.
+  // Each role's computed colour under a theme scope.
   function resolve(scope: Element) {
-    const probe = document.createElement("span");
-    scope.append(probe);
-    const read = (property: "color" | "backgroundColor", value: string) => {
-      probe.style[property] = value;
-      return getComputedStyle(probe)[property];
-    };
-    const resolved = {
+    return {
       text: new Map(
         muted.map((name) => [
-          read("color", `var(--ds-color-text-${name})`),
+          taste.computed(scope, "color", `var(--ds-color-text-${name})`),
           name,
         ])
       ),
       background: new Map(
         tinted.map((name) => [
-          read("backgroundColor", `var(--ds-color-bg-${name})`),
+          taste.computed(
+            scope,
+            "background-color",
+            `var(--ds-color-bg-${name})`
+          ),
           name,
         ])
       ),
-      transparent: read("backgroundColor", "transparent"),
     };
-    probe.remove();
-    return resolved;
   }
 }

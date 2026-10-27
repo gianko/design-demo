@@ -79,8 +79,7 @@ function smallTargets(root: Element, minimum: number): RenderFinding[] {
   function inSentence(element: Element) {
     if (element.tagName !== "A") return false;
     if (getComputedStyle(element).display !== "inline") return false;
-    const words = (node: Node | null) =>
-      node?.textContent!.replace(/\s+/g, " ").trim() ?? "";
+    const words = (node: Node | null) => taste.words(node?.textContent ?? "");
     return words(element.parentElement) !== words(element);
   }
 
@@ -88,7 +87,7 @@ function smallTargets(root: Element, minimum: number): RenderFinding[] {
   // its tag.
   function name(element: Element, labels: Element[]) {
     const text = [element, ...labels]
-      .map((box) => box.textContent!.replace(/\s+/g, " ").trim())
+      .map((box) => taste.words(box.textContent!))
       .find(Boolean);
     const label = text || element.getAttribute("aria-label");
     return label ? taste.quote(label) : `<${element.tagName.toLowerCase()}>`;
