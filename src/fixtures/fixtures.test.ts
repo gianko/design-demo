@@ -21,13 +21,21 @@ describe("fixtures", () => {
     "payment-run": ["empty"],
   };
 
+  // Later briefs add their own variants; the brief-set test checks those.
   it("names the default and one <brief>/<state> variant per P0 screen state", () => {
-    expect(variantNames).toEqual([
-      "default",
-      ...Object.entries(p0States).flatMap(([brief, states]) =>
-        states.map((state) => `${brief}/${state}`)
-      ),
-    ]);
+    expect(variantNames).toEqual(
+      expect.arrayContaining([
+        "default",
+        ...Object.entries(p0States).flatMap(([brief, states]) =>
+          states.map((state) => `${brief}/${state}`)
+        ),
+      ])
+    );
+    expect(
+      variantNames.filter(
+        (name) => name !== "default" && !/^[a-z-]+\/[a-z-]+$/.test(name)
+      )
+    ).toEqual([]);
   });
 
   it.each(variantNames)("reaches %s by name", (name) => {

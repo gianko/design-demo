@@ -324,3 +324,9 @@ Toast, EmptyState, IconButton and the rest of demo brief §4 wait for P1. Empty 
 ### The P1 set
 
 15–20 briefs, written as build work after the P0 widening, under one coverage rule: every library component appears in at least 2 briefs, each audience gets at least a third of them, and every action has a failure state.
+
+Pass criteria:
+
+| Slug | `requires.components` | `requires.states` | `requires.actions` | `requires.transitions` |
+|---|---|---|---|---|
+| `my-invoices` | Screen, Heading, DataTable, Sheet, Amount, StatusTag, Text, EmptyState | empty | — | row-to-sheet |

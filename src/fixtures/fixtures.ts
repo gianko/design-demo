@@ -192,6 +192,7 @@ const variants = {
   },
   "invoice-review/payment-failed": { data: shared, fails: ["payInvoices"] },
   "payment-run/empty": { data: noInvoices, fails: [] },
+  "my-invoices/empty": { data: newContractor, fails: [] },
 } satisfies Record<string, Variant>;
 
 export type VariantName = keyof typeof variants;

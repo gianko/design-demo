@@ -224,3 +224,45 @@ describe("the payment-status screen brief", () => {
     });
   });
 });
+
+// Spec § The P1 set, my-invoices's row: the contractor's own invoices in a
+// table with no selection, a row opening its Sheet.
+describe("the my-invoices screen brief", () => {
+  it("carries the spec's audience and pass criteria", () => {
+    expect(brief("my-invoices.md")).toMatchObject({
+      slug: "my-invoices",
+      audience: "contractor",
+      requires: {
+        components: [
+          "Screen",
+          "Heading",
+          "DataTable",
+          "Sheet",
+          "Amount",
+          "StatusTag",
+          "Text",
+          "EmptyState",
+        ],
+        states: ["empty"],
+        actions: [],
+        transitions: ["row-to-sheet"],
+      },
+    });
+  });
+
+  it("tables each state's fixture variant", () => {
+    expect(
+      stateTable(brief("my-invoices.md").text).map(({ state, fixture }) => [
+        state,
+        fixture,
+      ])
+    ).toEqual([
+      ["default", "default"],
+      ["empty", "my-invoices/empty"],
+    ]);
+  });
+
+  it("starts its empty state with none of your invoices", () => {
+    expect(fixtureVariant("my-invoices/empty").data.yourInvoices).toEqual([]);
+  });
+});
