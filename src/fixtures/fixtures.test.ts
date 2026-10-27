@@ -135,6 +135,71 @@ describe("fixtures", () => {
     expect(data.paidThisYear).toEqual({ amount: 41200, currency: "USD" });
   });
 
+  it("lists the payments you've received this year, newest first, each with the invoices it covered", () => {
+    const { data } = fixtureVariant("default");
+
+    expect(
+      data.paymentsReceived.map((payment) => [
+        payment.dateLabel,
+        payment.amount,
+        payment.invoicesLabel,
+        payment.invoiceCountLabel,
+      ])
+    ).toEqual([
+      ["Oct 10", 4800, "INV-0131", "1 invoice"],
+      ["Sep 26", 6200, "INV-0124 and INV-0127", "2 invoices"],
+      ["Sep 12", 3900, "INV-0119", "1 invoice"],
+      ["Aug 29", 7350, "INV-0109, INV-0112 and INV-0115", "3 invoices"],
+      ["Jul 18", 9550, "INV-0098 and INV-0103", "2 invoices"],
+      ["Jun 6", 9400, "INV-0084, INV-0089 and INV-0091", "3 invoices"],
+    ]);
+    expect(data.paymentsReceived[0]).toMatchObject({
+      id: "PAY-2026-10-10",
+      currency: "USD",
+      status: "paid",
+      date: "2026-10-10",
+      invoiceNumbers: ["INV-0131"],
+      invoiceCount: 1,
+    });
+    // The newest is your last payment, and together they're this year's 41,200.
+    expect(data.lastPayment).toMatchObject({ invoiceId: "INV-0131" });
+    expect(
+      data.paymentsReceived.reduce((sum, each) => sum + each.amount, 0)
+    ).toBe(41200);
+    expect(new Set(data.paymentsReceived.map((each) => each.id)).size).toBe(6);
+  });
+
+  it("has no payments received in payments-received/empty", () => {
+    expect(
+      fixtureVariant("payments-received/empty").data.paymentsReceived
+    ).toEqual([]);
+  });
+
+  it("shows you, the contractor, your one bounced payment and why it bounced", () => {
+    expect(fixtureVariant("default").data.bouncedPayment).toEqual({
+      id: "PAY-2026-10-17",
+      invoiceNumber: "INV-0138",
+      amount: 3650,
+      currency: "USD",
+      status: "failed",
+      date: "2026-10-17",
+      dateLabel: "Oct 17",
+      reason:
+        "Your bank sent it back: the account number doesn't match the name on the account.",
+    });
+  });
+
+  it("shows the same bounced payment under both retry variants", () => {
+    const { bouncedPayment } = fixtureVariant("default").data;
+
+    expect(
+      fixtureVariant("payment-failed/retry-requested").data.bouncedPayment
+    ).toEqual(bouncedPayment);
+    expect(
+      fixtureVariant("payment-failed/retry-failed").data.bouncedPayment
+    ).toEqual(bouncedPayment);
+  });
+
   it("shows the admin one awaiting invoice to review, with its line count", () => {
     expect(fixtureVariant("default").data.reviewInvoice).toMatchObject({
       id: "INV-0148",
