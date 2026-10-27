@@ -22,6 +22,8 @@ import {
   useScreenState,
   useSelectedRows,
 } from "../Screen/screen-state.tsx";
+import { Heading } from "../Heading/Heading.tsx";
+import { Sheet } from "../Sheet/Sheet.tsx";
 import { Text } from "../Text/Text.tsx";
 import { DataTable } from "./DataTable.tsx";
 
@@ -186,4 +188,130 @@ it("renders no checkboxes and never enters rows-selected when selectable is left
   fireEvent.click(screen.getByRole("cell", { name: "INV-0147" }));
   expect(screenState()).toBe("default");
   expect(selectedRows()).toBe("");
+});
+
+// Row → sheet (ADR 0011, #214): a table with a detail slot opens a row's own
+// Sheet when the row is clicked or Enter is pressed on it, through a View
+// Transition typed sheet-open. The open sheet is DataTable's own state, not
+// a screen state, so the screen stays where it was.
+function OverdueInvoices({ selectable }: { selectable: boolean }) {
+  const data = useFixtureData();
+  const { state } = useScreenState();
+  const selected = useSelectedRows();
+  return (
+    <>
+      <output aria-label="Screen state">{state}</output>
+      <output aria-label="Selected rows">{selected.join(" ")}</output>
+      <DataTable
+        rows={data.invoices}
+        columns={["Invoice"]}
+        selectable={selectable}
+        cell={(row) => <Text text={row.number} />}
+        detail={(row) => (
+          <Sheet
+            closeLabel="Close invoice details"
+            title={<Heading level={2} text={row.number} />}
+          >
+            <Text text={row.contractor} />
+          </Sheet>
+        )}
+      />
+    </>
+  );
+}
+
+function hostWithDetail(selectable = false) {
+  render(
+    <ScreenHost screenState={{ name: "default", fixture: "default" }}>
+      <OverdueInvoices selectable={selectable} />
+    </ScreenHost>
+  );
+}
+
+const row = (number: string) =>
+  screen.getByRole("cell", { name: number }).closest("tr")!;
+const openSheet = () => screen.queryByRole("dialog");
+const types = () => transitions.map((each) => each.types);
+
+it("opens a row's Sheet when the row is clicked, through a sheet-open View Transition", () => {
+  hostWithDetail();
+
+  fireEvent.click(row("INV-0148"));
+
+  expect(openSheet()).toBe(screen.getByRole("dialog", { name: "INV-0148" }));
+  expect(types()).toEqual([["sheet-open"]]);
+  expect(screenState()).toBe("default");
+});
+
+it("opens a row's Sheet when Enter is pressed on the row", () => {
+  hostWithDetail();
+  const invoice = row("INV-0145");
+
+  invoice.focus();
+  expect(document.activeElement).toBe(invoice);
+  fireEvent.keyDown(invoice, { key: "Enter" });
+
+  expect(openSheet()).toBe(screen.getByRole("dialog", { name: "INV-0145" }));
+  expect(types()).toEqual([["sheet-open"]]);
+});
+
+it("closes the Sheet on Escape or its close button, through a sheet-close View Transition, and focus goes back to the row", () => {
+  hostWithDetail();
+  const invoice = row("INV-0145");
+  invoice.focus();
+  fireEvent.keyDown(invoice, { key: "Enter" });
+
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  expect(openSheet()).toBeNull();
+  expect(document.activeElement).toBe(invoice);
+
+  fireEvent.click(invoice);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Close invoice details" })
+  );
+  expect(openSheet()).toBeNull();
+  expect(types()).toEqual([
+    ["sheet-open"],
+    ["sheet-close"],
+    ["sheet-open"],
+    ["sheet-close"],
+  ]);
+});
+
+it("in a selectable table, ticking a row selects it without opening it, and clicking the row opens it without selecting it", () => {
+  hostWithDetail(true);
+
+  tick("INV-0147");
+  expect(openSheet()).toBeNull();
+  expect(selectedRows()).toBe("INV-0147");
+  expect(screenState()).toBe("rows-selected");
+
+  fireEvent.keyDown(screen.getByRole("checkbox", { name: "Select INV-0148" }), {
+    key: "Enter",
+  });
+  expect(openSheet()).toBeNull();
+
+  fireEvent.click(row("INV-0148"));
+  expect(openSheet()).toBe(screen.getByRole("dialog", { name: "INV-0148" }));
+  expect(selectedRows()).toBe("INV-0147");
+  expect(screenState()).toBe("rows-selected");
+});
+
+it("renders the Sheet after the table's surface, not inside it", () => {
+  hostWithDetail();
+
+  fireEvent.click(row("INV-0148"));
+
+  const table = document.querySelector('[data-component="DataTable"]')!;
+  expect(table.contains(openSheet())).toBe(false);
+  expect(table.nextElementSibling).toBe(openSheet());
+});
+
+it("leaves rows out of the tab order, and opens nothing, with no detail slot", () => {
+  host("default", "default", false);
+
+  fireEvent.click(row("INV-0148"));
+
+  expect(openSheet()).toBeNull();
+  expect(row("INV-0148").tabIndex).toBe(-1);
 });
