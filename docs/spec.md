@@ -332,3 +332,5 @@ The ten new briefs and what each asks for are in [P1](https://github.com/gianko/
 | `bulk-pay` | Screen, PageHeader, DataTable, StatusTag, Amount, ActionBar, Button, Toast, EmptyState | empty, rows-selected, payment-scheduled, payment-failed | pay-selected | bar-to-toast |
 | `overdue-invoices` | Screen, PageHeader, DataTable, StatusTag, Amount, Sheet, Heading, ActionBar, Button, Toast, EmptyState | empty, rows-selected, reminders-sent, reminders-failed | send-reminders | bar-to-toast, row-to-sheet |
 | `failed-payments` | Screen, PageHeader, DataTable, StatusTag, Amount, ActionBar, Button, Toast, EmptyState | empty, rows-selected, payments-retried, retry-failed | retry-payments | bar-to-toast |
+| `contractors` | Screen, PageHeader, DataTable, Amount, Sheet, EmptyState | empty | — | row-to-sheet |
+| `run-history` | Screen, PageHeader, DataTable, StatusTag, Amount, Sheet, EmptyState | empty | — | row-to-sheet |

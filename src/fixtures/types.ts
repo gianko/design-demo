@@ -103,4 +103,47 @@ export type FixtureData = {
   // The payments contractors' banks sent back, by invoice: the admin's
   // retry list; empty when none bounced.
   failedPayments: readonly FailedPayment[];
+  // Every contractor Northwind pays: empty when there are none.
+  contractors: readonly ContractorAccount[];
+  // The payment runs that have gone out, newest first: empty before the
+  // first.
+  pastRuns: readonly PastRun[];
+};
+
+// A contractor as the admin sees them: who they are, how they're paid, and
+// what of theirs is still open.
+export type ContractorAccount = {
+  id: string;
+  name: string;
+  country: string;
+  email: string;
+  payoutMethod: string;
+  // Their invoices not yet paid, whatever their status, and what those come
+  // to.
+  openInvoices: number;
+  openInvoicesLabel: string;
+  owed: number;
+  // What they've been paid this year.
+  paidThisYear: number;
+  currency: "USD";
+};
+
+// A payment run that has gone out: failed when any payment in it bounced.
+export type PastRun = {
+  id: string;
+  date: string;
+  dateLabel: string;
+  status: "paid" | "failed";
+  // The invoices in it, and their total.
+  count: number;
+  countLabel: string;
+  amount: number;
+  currency: "USD";
+  // Its breakdown: how many contractors it paid, then what went through and
+  // what bounced, each a count and its total.
+  contractorsLabel: string;
+  paidCountLabel: string;
+  paidAmount: number;
+  failedCountLabel: string;
+  failedAmount: number;
 };

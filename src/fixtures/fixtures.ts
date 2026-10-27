@@ -12,9 +12,11 @@
 import type {
   Contractor,
   FailedPayment,
+  ContractorAccount,
   FixtureData,
   Invoice,
   InvoiceStatus,
+  PastRun,
   RunGroup,
 } from "./types.ts";
 
@@ -138,6 +140,89 @@ function failedPayments(allInvoices: readonly Invoice[]): FailedPayment[] {
   });
 }
 
+// What the admin knows of each contractor beyond their invoices. Yours
+// matches your history's total for the year.
+type Profile = Omit<
+  ContractorAccount,
+  "openInvoices" | "openInvoicesLabel" | "owed"
+>;
+const profile = (
+  { id, name }: Contractor,
+  country: string,
+  email: string,
+  accountEnding: string,
+  paidThisYear: number
+): Profile => ({
+  id,
+  name,
+  country,
+  email,
+  payoutMethod: `Bank transfer to an account ending ${accountEnding}`,
+  paidThisYear,
+  currency: "USD",
+});
+const profiles: readonly Profile[] = [
+  profile(you, "Portugal", "ines@duarte.studio", "4417", 41200),
+  profile(lea, "Germany", "lea.brandt@posteo.de", "0932", 28350),
+  profile(tomas, "Mexico", "tomas@herrera.mx", "7781", 19800),
+  profile(
+    jonah,
+    "United Kingdom",
+    "jonah@whitfield-abernathy.co.uk",
+    "2265",
+    12460
+  ),
+  profile(priya, "India", "priya.raman@fastmail.com", "5108", 33915.5),
+];
+
+// Each contractor with their invoices here that aren't paid yet.
+function accounts(allInvoices: readonly Invoice[]): ContractorAccount[] {
+  return profiles.map((each) => {
+    const open = allInvoices.filter(
+      (invoice) => invoice.contractorId === each.id && invoice.status !== "paid"
+    );
+    return {
+      ...each,
+      openInvoices: open.length,
+      openInvoicesLabel: counted(open.length, "invoice"),
+      owed: open.reduce((sum, invoice) => sum + invoice.amount, 0),
+    };
+  });
+}
+
+// The runs before the next one, newest first; Oct 10's paid your last
+// payment.
+function pastRun(
+  [date, dateLabel]: [string, string],
+  contractors: number,
+  [paidCount, paidAmount]: [number, number],
+  [failedCount, failedAmount]: [number, number] = [0, 0]
+): PastRun {
+  const count = paidCount + failedCount;
+  return {
+    id: `run-${date}`,
+    date,
+    dateLabel,
+    status: failedCount > 0 ? "failed" : "paid",
+    count,
+    countLabel: counted(count, "invoice"),
+    amount: paidAmount + failedAmount,
+    currency: "USD",
+    contractorsLabel: counted(contractors, "contractor"),
+    paidCountLabel: counted(paidCount, "invoice"),
+    paidAmount,
+    failedCountLabel: counted(failedCount, "invoice"),
+    failedAmount,
+  };
+}
+const pastRuns: readonly PastRun[] = [
+  pastRun(["2026-10-10", "Oct 10"], 4, [5, 16420]),
+  pastRun(["2026-09-26", "Sep 26"], 5, [5, 17485.5], [1, 1620]),
+  pastRun(["2026-09-12", "Sep 12"], 3, [4, 11250]),
+  pastRun(["2026-08-29", "Aug 29"], 5, [7, 21980]),
+  pastRun(["2026-08-15", "Aug 15"], 3, [3, 8400]),
+];
+
 // The dataset of every contractor's invoices as a variant has them. Every
 // view is read from them, so a variant that changes an invoice changes each
 // screen that shows it alike.
@@ -180,6 +265,8 @@ function dataset(allInvoices: readonly Invoice[], past = history): FixtureData {
     payQueue: allInvoices.filter((each) => toPay.has(each.id)),
     overdueInvoices: allInvoices.filter((each) => each.status === "overdue"),
     failedPayments: failedPayments(allInvoices),
+    contractors: accounts(allInvoices),
+    pastRuns,
   };
 }
 
@@ -284,6 +371,15 @@ const variants = {
     data: shared,
     fails: ["retryPayments"],
     selected: bounced,
+  },
+  // An account that has paid no one yet: no contractors, invoices or runs.
+  "contractors/empty": {
+    data: { ...noInvoices, contractors: [], pastRuns: [] },
+    fails: [],
+  },
+  "run-history/empty": {
+    data: { ...noInvoices, contractors: [], pastRuns: [] },
+    fails: [],
   },
 } satisfies Record<string, Variant>;
 

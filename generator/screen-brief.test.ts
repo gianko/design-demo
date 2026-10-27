@@ -110,6 +110,45 @@ const p0Five = [
   },
 ];
 
+// Spec § The P1 set, its pass-criteria table.
+const p1Briefs = [
+  {
+    slug: "contractors",
+    audience: "admin",
+    requires: {
+      components: [
+        "Screen",
+        "PageHeader",
+        "DataTable",
+        "Amount",
+        "Sheet",
+        "EmptyState",
+      ],
+      states: ["empty"],
+      actions: [],
+      transitions: ["row-to-sheet"],
+    },
+  },
+  {
+    slug: "run-history",
+    audience: "admin",
+    requires: {
+      components: [
+        "Screen",
+        "PageHeader",
+        "DataTable",
+        "StatusTag",
+        "Amount",
+        "Sheet",
+        "EmptyState",
+      ],
+      states: ["empty"],
+      actions: [],
+      transitions: ["row-to-sheet"],
+    },
+  },
+];
+
 describe("a screen brief's requires.transitions", () => {
   const dir = join(repo, ".generated", `vitest-brief-${randomUUID()}`);
   mkdirSync(dir, { recursive: true });
@@ -144,6 +183,15 @@ describe("a screen brief's requires.transitions", () => {
 
 describe("the P0 five", () => {
   it.each(p0Five)(
+    "$slug carries the spec's audience and pass criteria",
+    (expected) => {
+      expect(brief(`${expected.slug}.md`)).toMatchObject(expected);
+    }
+  );
+});
+
+describe("the P1 briefs", () => {
+  it.each(p1Briefs)(
     "$slug carries the spec's audience and pass criteria",
     (expected) => {
       expect(brief(`${expected.slug}.md`)).toMatchObject(expected);
