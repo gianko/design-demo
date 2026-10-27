@@ -37,7 +37,9 @@ const preview: Preview = {
     // declared actions is clicked, under that outcome's variant. A kept
     // screen's stories also carry its declared states in
     // `parameters.screenStates`, so a confirmed action shows the data of the
-    // state it enters.
+    // state it enters. A screen's open-sheet story names in
+    // `parameters.openSheet` which detail table starts with its first row's
+    // Sheet open (ADR 0011).
     (Story, { parameters, globals }) => (
       <ScreenHost
         screenState={
@@ -47,6 +49,7 @@ const preview: Preview = {
           ) ?? (parameters as ScreenStateParameters).screenState
         }
         states={(parameters as ScreenStateParameters).screenStates}
+        openSheet={(parameters as ScreenStateParameters).openSheet}
       >
         <Story />
       </ScreenHost>

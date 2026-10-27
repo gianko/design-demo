@@ -2,6 +2,7 @@ import {
   Children,
   Fragment,
   isValidElement,
+  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent,
@@ -12,7 +13,11 @@ import type { PropsOf } from "../../registry/entry.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Checkbox } from "../Checkbox/Checkbox.tsx";
 import { defaultState } from "../Screen/default-state.ts";
-import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
+import {
+  useOpenSheetAtStart,
+  useScreenState,
+  useSelection,
+} from "../Screen/screen-state.tsx";
 import { SheetHost, transitionSheet } from "../Sheet/sheet-host.tsx";
 import { StatusTag, type StatusTagProps } from "../StatusTag/StatusTag.tsx";
 import type { dataTableEntry } from "./DataTable.registry.ts";
@@ -93,6 +98,10 @@ export type DataTableProps<R extends Row = Row> = Omit<
 
 const rowsSelected = "rows-selected";
 
+// Marks a table with a detail slot: the test attribute the open-sheet render
+// (ADR 0011) counts tables by, to find the one ScreenHost's openSheet names.
+const detailAttribute = "data-detail";
+
 // The nodes `cell` gives for one row, a fragment's children one each.
 function cellsOf(node: ReactNode) {
   const nodes = Children.toArray(node);
@@ -158,6 +167,22 @@ export function DataTable<R extends Row>({
   const [open, setOpen] = useState<string | null>(null);
   const rowElements = useRef(new Map<string, HTMLTableRowElement>());
   const opened = detail && rows.find((row) => row.id === open);
+  // The open-sheet render (ADR 0011): the table the host names, counted
+  // among the page's tables with a detail slot, opens its first row before
+  // the first paint, as a state it starts in, with no View Transition.
+  const openAtStart = useOpenSheetAtStart();
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const first = rows[0];
+    if (!detail || openAtStart === undefined || !first) return;
+    const tables = [
+      ...root.current!.ownerDocument.querySelectorAll(
+        `[data-component="DataTable"][${detailAttribute}]`
+      ),
+    ];
+    if (tables.indexOf(root.current!) === openAtStart) setOpen(first.id);
+    // Only as the table first renders: once open, the sheet is the person's.
+  }, []);
   const openDetail = (id: string, from: HTMLTableRowElement) =>
     transitionSheet("open", from, () => setOpen(id));
   const closeDetail = () =>
@@ -221,7 +246,12 @@ export function DataTable<R extends Row>({
   const slots = dataTable();
   return (
     <>
-      <div data-component="DataTable" className={slots.root()}>
+      <div
+        ref={root}
+        data-component="DataTable"
+        {...(detail && { [detailAttribute]: "" })}
+        className={slots.root()}
+      >
         <table className={slots.table()}>
           <thead>
             <tr className={slots.headerRow()}>
