@@ -1,4 +1,5 @@
 import type { Preview } from "@storybook/react-vite";
+import { openDetailAttribute } from "../src/components/DataTable/DataTable.tsx";
 import { ScreenHost, type ScreenStateParameters } from "../src/index.ts";
 import "../src/styles.css";
 import { densities, themes, type Density, type Theme } from "./globals";
@@ -39,21 +40,30 @@ const preview: Preview = {
     // `parameters.screenStates`, so a confirmed action shows the data of the
     // state it enters. A screen's open-sheet story names in
     // `parameters.openSheet` which detail table starts with its first row's
-    // Sheet open (ADR 0011).
-    (Story, { parameters, globals }) => (
-      <ScreenHost
-        screenState={
-          actionStart(
-            parameters as ScreenActionParameters,
-            globals as ScreenActionGlobals
-          ) ?? (parameters as ScreenStateParameters).screenState
-        }
-        states={(parameters as ScreenStateParameters).screenStates}
-        openSheet={(parameters as ScreenStateParameters).openSheet}
-      >
-        <Story />
-      </ScreenHost>
-    ),
+    // Sheet open (ADR 0011), which DataTable reads from its test attribute
+    // on a box-less element around the story.
+    (Story, { parameters, globals }) => {
+      const { openSheet } = parameters as ScreenStateParameters;
+      return (
+        <ScreenHost
+          screenState={
+            actionStart(
+              parameters as ScreenActionParameters,
+              globals as ScreenActionGlobals
+            ) ?? (parameters as ScreenStateParameters).screenState
+          }
+          states={(parameters as ScreenStateParameters).screenStates}
+        >
+          {openSheet === undefined ? (
+            <Story />
+          ) : (
+            <div className="contents" {...{ [openDetailAttribute]: openSheet }}>
+              <Story />
+            </div>
+          )}
+        </ScreenHost>
+      );
+    },
     // Theme and density are CSS scopes, so this sets the two attributes. It
     // also paints the page, as whatever hosts a screen does, so a component
     // with no surface of its own sits on the page role, not on the browser's

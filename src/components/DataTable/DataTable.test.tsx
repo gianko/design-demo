@@ -25,7 +25,7 @@ import {
 import { Heading } from "../Heading/Heading.tsx";
 import { Sheet } from "../Sheet/Sheet.tsx";
 import { Text } from "../Text/Text.tsx";
-import { DataTable } from "./DataTable.tsx";
+import { DataTable, openDetailAttribute } from "./DataTable.tsx";
 
 // invoice-queue as its generated screen wires it: its table is selectable,
 // since Approve and pay acts on the Selection.
@@ -307,21 +307,23 @@ it("renders the Sheet after the table's surface, not inside it", () => {
   expect(table.nextElementSibling).toBe(openSheet());
 });
 
-// The open-sheet render (ADR 0011, #215): ScreenHost's openSheet names one
-// of the screen's tables with a detail slot, counted in document order, and
-// that table starts with its first row's Sheet open, with no View
-// Transition, so the gate's shot catches no motion. A table without a
-// detail slot doesn't count.
-it("starts with the first row's Sheet open in the table openSheet names, with no View Transition", () => {
+// The open-sheet render (ADR 0011, #215): a library test attribute on an
+// element around the screen names one of the tables with a detail slot
+// inside it, counted from 0 in document order, and that table starts with
+// its first row's Sheet open, with no View Transition, so the gate's shot
+// catches no motion. A table without a detail slot doesn't count.
+it("starts with the first row's Sheet open in the table the test attribute names, with no View Transition", () => {
   render(
-    <ScreenHost openSheet={1}>
-      <DataTable
-        rows={[{ id: "PLAIN" }]}
-        columns={["Plain"]}
-        cell={(row) => <Text text={row.id} />}
-      />
-      <OverdueInvoices selectable={false} />
-      <OverdueInvoices selectable={false} />
+    <ScreenHost>
+      <div {...{ [openDetailAttribute]: "1" }}>
+        <DataTable
+          rows={[{ id: "PLAIN" }]}
+          columns={["Plain"]}
+          cell={(row) => <Text text={row.id} />}
+        />
+        <OverdueInvoices selectable={false} />
+        <OverdueInvoices selectable={false} />
+      </div>
     </ScreenHost>
   );
 
@@ -332,7 +334,7 @@ it("starts with the first row's Sheet open in the table openSheet names, with no
   expect(types()).toEqual([]);
 });
 
-it("opens no Sheet from the start without openSheet", () => {
+it("opens no Sheet from the start without the test attribute", () => {
   hostWithDetail();
 
   expect(openSheet()).toBeNull();
