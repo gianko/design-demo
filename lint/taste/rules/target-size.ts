@@ -2,7 +2,8 @@
 // target: 24px admin, 44px contractor." The admin floor is WCAG 2.2 AA's,
 // which gate 4's axe already holds, so this holds the contractor one: in a
 // `data-density="contractor"` scope, every interactive element's hit area is
-// at least 44×44px. A control's `<label>` takes its clicks too, so the hit
+// at least the density's `min-height-target` token (44px) on each side, as
+// the page computes it. A control's `<label>` takes its clicks too, so the hit
 // area is whichever of the two boxes is larger. A link inside a sentence
 // takes the sentence's line height, and WCAG exempts it, so this does too.
 
@@ -11,18 +12,16 @@ import { help } from "../rules-md.ts";
 
 export const id = "target-size";
 
-// The contractor density's `min-height-target` token, in px.
-const minimum = 44;
-
 export const render: RenderRule = {
   name: id,
   help: help(id),
-  check: (page, root) => inPage(page, root, smallTargets, minimum),
+  check: (page, root) => inPage(page, root, smallTargets),
 };
 
 // In the page: every visible interactive element in a contractor scope whose
-// own box and labels' boxes are all under the minimum on either side.
-function smallTargets(root: Element, minimum: number): RenderFinding[] {
+// own box and labels' boxes are all under the scope's minimum target on
+// either side.
+function smallTargets(root: Element): RenderFinding[] {
   const interactive = [
     "a[href]",
     "button",
@@ -47,9 +46,29 @@ function smallTargets(root: Element, minimum: number): RenderFinding[] {
     ].map((role) => `[role=${role}]`),
   ].join(",");
   const failures: RenderFinding[] = [];
+  // The contractor density's `min-height-target` token, in px, per scope.
+  const minimums = new Map<Element, number>();
+  const minimumIn = (scope: Element) => {
+    if (!minimums.has(scope)) {
+      const token = taste.computed(
+        scope,
+        "min-height",
+        "var(--ds-density-min-height-target)"
+      );
+      const px = parseFloat(token);
+      if (!token.endsWith("px") || Number.isNaN(px)) {
+        throw new Error(
+          `target-size: the min-height-target token computes as ${JSON.stringify(token)}, not a px length.`
+        );
+      }
+      minimums.set(scope, px);
+    }
+    return minimums.get(scope)!;
+  };
   for (const element of root.querySelectorAll(interactive)) {
     const scope = element.closest("[data-density]");
     if (scope?.getAttribute("data-density") !== "contractor") continue;
+    const minimum = minimumIn(scope);
     if (!element.checkVisibility({ visibilityProperty: true })) continue;
     if (inSentence(element)) continue;
     const labels =
@@ -79,8 +98,7 @@ function smallTargets(root: Element, minimum: number): RenderFinding[] {
   function inSentence(element: Element) {
     if (element.tagName !== "A") return false;
     if (getComputedStyle(element).display !== "inline") return false;
-    const words = (node: Node | null) =>
-      node?.textContent!.replace(/\s+/g, " ").trim() ?? "";
+    const words = (node: Node | null) => taste.words(node?.textContent ?? "");
     return words(element.parentElement) !== words(element);
   }
 
@@ -88,7 +106,7 @@ function smallTargets(root: Element, minimum: number): RenderFinding[] {
   // its tag.
   function name(element: Element, labels: Element[]) {
     const text = [element, ...labels]
-      .map((box) => box.textContent!.replace(/\s+/g, " ").trim())
+      .map((box) => taste.words(box.textContent!))
       .find(Boolean);
     const label = text || element.getAttribute("aria-label");
     return label ? taste.quote(label) : `<${element.tagName.toLowerCase()}>`;

@@ -13,6 +13,8 @@ import { Icon } from "./icons.tsx";
 export const iconButton = tv({
   slots: {
     root: "inline-flex aspect-square h-control shrink-0 items-center justify-center rounded-control transition-colors duration-fast ease-standard focus-visible:focus-ring",
+    // The density's icon size: 16px admin, 20px contractor.
+    icon: "size-icon shrink-0",
     name: "sr-only",
   },
   variants: {
@@ -48,7 +50,7 @@ export function IconButton({
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon name={icon} />
+      <Icon name={icon} className={slots.icon()} />
       <span className={slots.name()}>{label}</span>
     </button>
   );

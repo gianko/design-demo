@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { inViewTransition } from "../Screen/view-transition.ts";
 
 // The seam DataTable opens and closes a Sheet through (ADR 0011: DataTable
 // owns the open sheet). Sheet holds no open state: DataTable renders the
@@ -42,20 +43,13 @@ export function transitionSheet(
   from: Element | null,
   update: () => void
 ) {
-  if (typeof document.startViewTransition !== "function") {
-    flushSync(update);
-    return;
-  }
   if (direction === "open") from?.setAttribute(origin, "");
-  const transition = document.startViewTransition({
-    update: () => {
-      if (direction === "open") from?.removeAttribute(origin);
-      else from?.setAttribute(origin, "");
-      flushSync(update);
-    },
-    types: [`sheet-${direction}`],
-  });
+  const finished = inViewTransition(() => {
+    if (direction === "open") from?.removeAttribute(origin);
+    else from?.setAttribute(origin, "");
+    flushSync(update);
+  }, [`sheet-${direction}`]);
   if (direction === "close") {
-    void transition.finished.finally(() => from?.removeAttribute(origin));
+    void finished.then(() => from?.removeAttribute(origin));
   }
 }

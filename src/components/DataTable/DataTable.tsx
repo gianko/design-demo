@@ -13,14 +13,11 @@ import type { PropsOf } from "../../registry/entry.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Checkbox } from "../Checkbox/Checkbox.tsx";
 import { defaultState } from "../Screen/default-state.ts";
-import {
-  useOpenSheetAtStart,
-  useScreenState,
-  useSelection,
-} from "../Screen/screen-state.tsx";
+import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
 import { SheetHost, transitionSheet } from "../Sheet/sheet-host.tsx";
 import { StatusTag, type StatusTagProps } from "../StatusTag/StatusTag.tsx";
 import type { dataTableEntry } from "./DataTable.registry.ts";
+import "./DataTable.css";
 
 // The screen's list: a native table on a flat surface, one row per item. A
 // selectable table puts a Checkbox first in each row, and one that isn't has
@@ -45,7 +42,7 @@ import type { dataTableEntry } from "./DataTable.registry.ts";
 // edge, above the cents.
 // When the statuses its StatusTags are bound to change, such as an action's
 // confirmed result, the rows whose status changed are marked `data-flip`
-// and flip in the stagger src/styles.css sets out (ADR 0011). A table
+// and flip in the stagger DataTable.css sets out (ADR 0011). A table
 // renders its first statuses still: nothing animates on page load.
 export const dataTable = tv({
   slots: {
@@ -67,7 +64,7 @@ export const dataTable = tv({
   variants: {
     selected: { true: { row: "bg-selected" }, false: {} },
     // The row opens its Sheet. Its focus ring sits inside the row, since the
-    // surface clips anything outside it (src/styles.css).
+    // surface clips anything outside it (DataTable.css).
     opens: { true: { row: "focus-visible:focus-ring" }, false: {} },
     money: { true: { header: "text-right" }, false: { header: "text-left" } },
   },
@@ -98,9 +95,30 @@ export type DataTableProps<R extends Row = Row> = Omit<
 
 const rowsSelected = "rows-selected";
 
-// Marks a table with a detail slot: the test attribute the open-sheet render
-// (ADR 0011) counts tables by, to find the one ScreenHost's openSheet names.
+// Marks a table with a detail slot: what the open-sheet render (ADR 0011)
+// counts tables by.
 const detailAttribute = "data-detail";
+
+// The open-sheet render's library test attribute (ADR 0011), which only the
+// Storybook preview sets, for a screen's open-sheet story: on an element
+// around the screen, it names one of the tables with a detail slot inside
+// it, counted from 0 in document order, and that table starts with its
+// first row's Sheet open, with no View Transition.
+export const openDetailAttribute = "data-test-open-detail";
+
+// Whether the open-detail attribute around `table` names it.
+function namedToOpen(table: HTMLElement) {
+  const scope = table.closest(`[${openDetailAttribute}]`);
+  if (!scope) return false;
+  const tables = [
+    ...scope.querySelectorAll(
+      `[data-component="DataTable"][${detailAttribute}]`
+    ),
+  ];
+  return (
+    tables.indexOf(table) === Number(scope.getAttribute(openDetailAttribute))
+  );
+}
 
 // The nodes `cell` gives for one row, a fragment's children one each.
 function cellsOf(node: ReactNode) {
@@ -167,20 +185,13 @@ export function DataTable<R extends Row>({
   const [open, setOpen] = useState<string | null>(null);
   const rowElements = useRef(new Map<string, HTMLTableRowElement>());
   const opened = detail && rows.find((row) => row.id === open);
-  // The open-sheet render (ADR 0011): the table the host names, counted
-  // among the page's tables with a detail slot, opens its first row before
-  // the first paint, as a state it starts in, with no View Transition.
-  const openAtStart = useOpenSheetAtStart();
+  // The open-sheet render (ADR 0011): the table the test attribute names
+  // opens its first row before the first paint, as a state it starts in,
+  // with no View Transition.
   const root = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const first = rows[0];
-    if (!detail || openAtStart === undefined || !first) return;
-    const tables = [
-      ...root.current!.ownerDocument.querySelectorAll(
-        `[data-component="DataTable"][${detailAttribute}]`
-      ),
-    ];
-    if (tables.indexOf(root.current!) === openAtStart) setOpen(first.id);
+    if (detail && first && namedToOpen(root.current!)) setOpen(first.id);
     // Only as the table first renders: once open, the sheet is the person's.
   }, []);
   const openDetail = (id: string, from: HTMLTableRowElement) =>

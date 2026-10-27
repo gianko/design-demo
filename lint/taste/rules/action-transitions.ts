@@ -6,7 +6,8 @@
 // screen's actions in its `screenActions` parameter (a kept or generated
 // screen's default story, .storybook/screen-actions.ts). For each action and
 // each outcome, this opens the story again starting in the state its Button
-// is clicked in, under that outcome's fixture variant, clicks the Button by
+// is clicked in, with that state's data and selection and its operations
+// settling under the outcome's fixture variant, clicks the Button by
 // its literal label, and checks the screen enters the outcome's state through
 // a View Transition of the outcome's type. Whether the motion looks right is
 // gated in the library's own stories.
@@ -15,10 +16,7 @@ import type { Page } from "@playwright/test";
 import type {
   Outcome,
   ScreenAction,
-  ScreenActionGlobals,
-  ScreenActionParameters,
 } from "../../../.storybook/screen-actions.ts";
-import { operationDelayMs } from "../../../src/fixtures/fixtures.ts";
 import type { TransitionType } from "../../../src/components/Screen/screen-state.tsx";
 import {
   findingAt,
@@ -27,6 +25,15 @@ import {
   type RenderedStory,
 } from "../render.ts";
 import { help } from "../rules-md.ts";
+import {
+  actionButton,
+  clickAction,
+  declaredActions,
+  outcomes,
+  quote,
+  reopenBefore,
+  settleMs,
+} from "../screen-actions.ts";
 
 export const id = "action-transitions";
 
@@ -34,12 +41,9 @@ export const render: RenderRule = {
   name: id,
   help: help(id),
   check: async (_page, root, story) => {
-    const actions = (await story.parameter(
-      "screenActions"
-    )) as ScreenActionParameters["screenActions"];
     // A Button missing under both outcomes is one finding.
     const findings = new Map<string, RenderFinding>();
-    for (const action of actions ?? []) {
+    for (const action of await declaredActions(story)) {
       for (const outcome of outcomes) {
         for (const finding of await clickThrough(
           story,
@@ -55,16 +59,10 @@ export const render: RenderRule = {
   },
 };
 
-const outcomes: Outcome[] = ["success", "failure"];
-
 const typeOf: Record<Outcome, TransitionType> = {
   success: "confirm",
   failure: "fail",
 };
-
-// How long after the click the operation may take to settle, with room for
-// a loaded machine.
-const settleMs = operationDelayMs + 4000;
 
 // A View Transition the screen started, and the state it left the screen in.
 type Started = { types: string[]; state?: string | null };
@@ -75,15 +73,9 @@ async function clickThrough(
   action: ScreenAction,
   outcome: Outcome
 ): Promise<RenderFinding[]> {
-  const globals: Required<ScreenActionGlobals> = {
-    screenAction: action.name,
-    screenOutcome: outcome,
-  };
-  const page = await story.reopen(globals);
+  const page = await reopenBefore(story, action, outcome);
   try {
-    const button = page
-      .locator(root)
-      .getByRole("button", { name: action.label ?? "", exact: true });
+    const button = actionButton(page, root, action.label ?? "");
     if (action.label === null || (await button.count()) === 0) {
       const label =
         action.label === null ? "with a literal label" : quote(action.label);
@@ -97,10 +89,7 @@ async function clickThrough(
     }
     const at = await findingAt(page, button.first(), "");
     await page.evaluate(recordTransitions);
-    try {
-      await button.first().click({ timeout: settleMs });
-    } catch {
-      // Disabled, hidden or covered.
+    if (!(await clickAction(button))) {
       return [
         {
           ...at,
@@ -182,8 +171,4 @@ async function settled(page: Page, from: string): Promise<Started[]> {
   return page.evaluate(() =>
     globalThis.__gateTransitions!.filter(({ state }) => state !== undefined)
   );
-}
-
-function quote(text: string) {
-  return JSON.stringify(text);
 }

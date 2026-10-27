@@ -89,7 +89,7 @@ A generated screen committed to the repo with a story per screen state, held to 
 _Avoid_: Promoted screen, reference screen, saved screen
 
 **Open-sheet render**:
-A screen story of the default state with the first row's Sheet open, one for each DataTable with a `detail` slot, gated, baselined and captured like a screen state. It isn't a screen state: the open sheet is DataTable's own state, set from the start through ScreenHost's `openSheet`, which only this story sets.
+A screen story of the default state with the first row's Sheet open, one for each DataTable with a `detail` slot, gated, baselined and captured like a screen state. It isn't a screen state: the open sheet is DataTable's own state, set from the start through a library test attribute, `data-test-open-detail`, which only this story sets (from its `openSheet` parameter).
 _Avoid_: Sheet state, detail-open state
 
 ## Quality

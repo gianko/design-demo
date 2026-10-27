@@ -2,10 +2,15 @@
 // `action-transitions` taste rule (lint/taste/RULES.md, ADR 0011). The rule
 // opens the story again with the `screenAction` and `screenOutcome` globals,
 // and the preview's ScreenHost then starts in the state the action's Button
-// is clicked in, under the fixture variant of that outcome. Written by
+// is clicked in, with that state's data and selection, and settles the
+// action under the fixture variant of that outcome. Written by
 // generator/screen-stories.ts from the UI spec.
 
-import type { HostedState } from "../src/index.ts";
+import type {
+  HostedState,
+  ScreenHostProps,
+  ScreenStateParameters,
+} from "../src/index.ts";
 
 export type Outcome = "success" | "failure";
 
@@ -29,15 +34,25 @@ export type ScreenActionGlobals = {
   screenOutcome?: string;
 };
 
-// The state a story's host starts in when the globals name one of its
-// declared actions and an outcome; undefined otherwise.
+// Where a story's host starts when the globals name one of its declared
+// actions and an outcome: in the state the action's Button is clicked in,
+// with the variant the screen's declared states give it (the default
+// variant for the default state), its operations settling under the
+// outcome's variant. Undefined otherwise.
 export function actionStart(
-  { screenActions = [] }: ScreenActionParameters,
+  {
+    screenActions = [],
+    screenStates = [],
+  }: ScreenActionParameters & ScreenStateParameters,
   { screenAction, screenOutcome }: ScreenActionGlobals
-): HostedState | undefined {
+): Required<Pick<ScreenHostProps, "screenState" | "settleUnder">> | undefined {
   const action = screenActions.find(({ name }) => name === screenAction);
   if (!action || (screenOutcome !== "success" && screenOutcome !== "failure")) {
     return undefined;
   }
-  return { name: action.from, fixture: action.to[screenOutcome].fixture };
+  const start = screenStates.find(({ name }) => name === action.from);
+  return {
+    screenState: { name: action.from, fixture: start?.fixture ?? "default" },
+    settleUnder: action.to[screenOutcome].fixture,
+  };
 }

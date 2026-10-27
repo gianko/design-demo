@@ -98,7 +98,7 @@ function findPills(root: Element, exempt: readonly string[]): RenderFinding[] {
       })
     );
     if (radius < height / 2) continue;
-    const text = element.textContent!.replace(/\s+/g, " ").trim();
+    const text = taste.words(element.textContent!);
     failures.push(
       taste.at(
         element,

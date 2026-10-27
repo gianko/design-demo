@@ -49,8 +49,9 @@ export function storyStates({
 }
 
 // The open-sheet render (ADR 0011): for each DataTable with a detail slot,
-// the default state with its first row's Sheet open, which ScreenHost's
-// `openSheet` sets from the start, so no View Transition runs in the shot.
+// the default state with its first row's Sheet open, which the story's
+// `openSheet` parameter sets from the start through DataTable's library test
+// attribute, so no View Transition runs in the shot.
 // Its index counts the tables with a detail slot that the default state
 // shows, in document order (a parent's children in the UI spec's order), as
 // the library counts them in the page. A modal Sheet covers the window, so

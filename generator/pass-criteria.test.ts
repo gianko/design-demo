@@ -121,6 +121,14 @@ describe("requires.transitions", () => {
         "the Button never shows, so the action can't be run from the bar",
         (spec) => edit(spec, "pay", { when: ["payment-scheduled"] }),
       ],
+      [
+        "the bar shows only in the failure state, which needs a run first",
+        (spec) => edit(spec, "bar", { when: ["payment-failed"] }),
+      ],
+      [
+        "the bar shows with nothing selected but not in rows-selected",
+        (spec) => edit(spec, "bar", { when: ["default", "payment-failed"] }),
+      ],
     ])("misses it when %s", (_, change) => {
       expect(missing("bar-to-toast", change(queue()))).toEqual([
         "transition bar-to-toast",

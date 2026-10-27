@@ -13,8 +13,9 @@
 //   it with Escape (row → sheet); a story that loads with a Sheet open only
 //   closes it;
 // - a screen's declared actions (its `screenActions` parameter, as
-//   `action-transitions` reads it): clicking each one's Button under each
-//   outcome's fixture variant (bar → toast, the failure toast); a story that
+//   `action-transitions` reads it): clicking each one's Button in its start
+//   state, settling under each outcome's fixture variant (bar → toast, the
+//   failure toast); a story that
 //   declares none has each Button in an ActionBar clicked instead.
 //
 // Each drive runs in a page of its own, so the render's page, which the
@@ -27,19 +28,23 @@
 // plumbing on a View Transition's images.
 
 import type { Locator, Page } from "@playwright/test";
-import type {
-  Outcome,
-  ScreenActionGlobals,
-  ScreenActionParameters,
-} from "../../../.storybook/screen-actions.ts";
-import { operationDelayMs } from "../../../src/fixtures/fixtures.ts";
 import {
   inPage,
+  settle,
   type RenderFinding,
   type RenderRule,
   type RenderedStory,
 } from "../render.ts";
 import { help } from "../rules-md.ts";
+import {
+  actionButton,
+  actionGlobals,
+  clickAction,
+  declaredActions,
+  outcomes,
+  quote,
+  settleMs,
+} from "../screen-actions.ts";
 
 export const id = "motion-reduced";
 
@@ -56,26 +61,23 @@ export const render: RenderRule = {
 
     add(await drive(story, root, {}, (reduced) => rowToSheet(reduced, root)));
 
-    const actions = (await story.parameter(
-      "screenActions"
-    )) as ScreenActionParameters["screenActions"];
-    if (actions?.length) {
+    const actions = await declaredActions(story);
+    if (actions.length) {
       for (const action of actions) {
-        if (action.label === null) continue;
+        const { label } = action;
+        if (label === null) continue;
         for (const outcome of outcomes) {
-          const globals: Required<ScreenActionGlobals> = {
-            screenAction: action.name,
-            screenOutcome: outcome,
-          };
           add(
-            await drive(story, root, globals, (reduced) =>
-              click(
-                reduced,
-                reduced
-                  .locator(root)
-                  .getByRole("button", { name: action.label!, exact: true }),
-                `Clicking ${quote(action.label!)} under ${action.name}'s ${outcome} variant`
-              )
+            await drive(
+              story,
+              root,
+              actionGlobals(action, outcome),
+              (reduced) =>
+                click(
+                  reduced,
+                  actionButton(reduced, root, label),
+                  `Clicking ${quote(label)} under ${action.name}'s ${outcome} variant`
+                )
             )
           );
         }
@@ -107,15 +109,9 @@ export const render: RenderRule = {
   },
 };
 
-const outcomes: Outcome[] = ["success", "failure"];
-
 // The Buttons an ActionBar holds that a click can run.
 const barButtons =
   '[data-component="ActionBar"] [data-component="Button"]:not([disabled], [aria-busy="true"])';
-
-// How long a clicked action may take to settle, with room for a loaded
-// machine.
-const settleMs = operationDelayMs + 4000;
 
 // One recorded animation or transition, and the drive it ran under.
 type Ran = {
@@ -197,12 +193,8 @@ async function rowToSheet(page: Page, root: string) {
 async function click(page: Page, button: Locator, name: string) {
   if ((await button.count()) === 0) return;
   await step(page, name);
-  try {
-    await button.first().click({ timeout: settleMs });
-  } catch {
-    // Disabled, hidden or covered: action-transitions reports it.
-    return;
-  }
+  // Not clickable: action-transitions reports it.
+  if (!(await clickAction(button))) return;
   await page.evaluate(frames, 2);
   await page
     .waitForFunction(() => !document.querySelector('[aria-busy="true"]'), {
@@ -218,34 +210,6 @@ function frames(count: number) {
     const next = (left: number) =>
       left === 0 ? resolve() : requestAnimationFrame(() => next(left - 1));
     next(count);
-  });
-}
-
-// Waits until no View Transition is active and every animation that ends
-// has ended, including any a finished one starts. Loops never end, so they
-// aren't waited on.
-async function settle(page: Page) {
-  await page.evaluate(async () => {
-    const frame = () =>
-      new Promise((resolve) => requestAnimationFrame(resolve));
-    for (let round = 0; round < 20; round++) {
-      await frame();
-      await frame();
-      const ending = document
-        .getAnimations()
-        .filter(
-          (animation) =>
-            animation.playState === "running" &&
-            animation.effect?.getComputedTiming().endTime !== Infinity
-        );
-      const transitioning = document.documentElement.matches(
-        ":active-view-transition"
-      );
-      if (ending.length === 0 && !transitioning) return;
-      await Promise.all(
-        ending.map((animation) => animation.finished.catch(() => undefined))
-      );
-    }
   });
 }
 
@@ -353,8 +317,4 @@ function findings(): RenderFinding[] {
     }
   }
   return failures;
-}
-
-function quote(text: string) {
-  return JSON.stringify(text);
 }

@@ -40,7 +40,7 @@ function untabular(root: Element, isoCodes: string[]): RenderFinding[] {
           (context): context is HTMLElement => context instanceof HTMLElement
         )
         .some((context) => {
-          const around = context.textContent!.replace(/\s+/g, " ");
+          const around = taste.words(context.textContent!);
           const escaped = digits.replace(/[.]/g, "\\.");
           return new RegExp(
             `${currency}\\s?-?${escaped}|${escaped}\\s?${currency}`

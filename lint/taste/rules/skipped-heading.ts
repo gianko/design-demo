@@ -33,7 +33,7 @@ function skippedLevels(root: Element): RenderFinding[] {
     if (element.closest("[aria-hidden=true]")) continue;
     if (!element.checkVisibility({ visibilityProperty: true })) continue;
     const level = levelOf(element);
-    const text = element.textContent!.replace(/\s+/g, " ").trim();
+    const text = taste.words(element.textContent!);
     if (before && level > before.level + 1) {
       failures.push(
         taste.at(
