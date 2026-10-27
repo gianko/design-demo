@@ -86,6 +86,11 @@ export type ScreenHostProps = {
   // The selection the host starts with, such as a story's every row; the
   // fixture variant's when not given.
   selected?: readonly string[];
+  // The fixture variant whose operations the screen's actions settle under,
+  // when it isn't the screen state's: the action-transitions rule starts a
+  // screen in its action's start state, with that state's data and
+  // selection, under the outcome's operations.
+  settleUnder?: VariantName;
   children?: ReactNode;
 };
 
@@ -97,12 +102,14 @@ export function ScreenHost({
   screenState,
   states = noStates,
   selected: startSelected,
+  settleUnder,
   children,
 }: ScreenHostProps) {
   const initial = screenState?.name ?? defaultState;
   const variant = screenState?.fixture ?? "default";
   const fixture = useMemo(() => fixtureVariant(variant), [variant]);
-  const { operations } = fixture;
+  const operated = settleUnder ?? variant;
+  const { operations } = useMemo(() => fixtureVariant(operated), [operated]);
   const [{ state, entries, selected, shown }, setEntered] = useState(() => ({
     state: initial,
     entries: 0,

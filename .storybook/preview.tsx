@@ -35,25 +35,22 @@ const preview: Preview = {
     // story names its state and fixture variant in `parameters.screenState`
     // (generator/screen-stories.ts); the rest start in the default state.
     // The screenAction and screenOutcome globals start it where one of its
-    // declared actions is clicked, under that outcome's variant. A kept
-    // screen's stories also carry its declared states in
+    // declared actions is clicked, settling under that outcome's variant. A
+    // kept screen's stories also carry its declared states in
     // `parameters.screenStates`, so a confirmed action shows the data of the
     // state it enters. A screen's open-sheet story names in
     // `parameters.openSheet` which detail table starts with its first row's
     // Sheet open (ADR 0011), which DataTable reads from its test attribute
     // on a box-less element around the story.
     (Story, { parameters, globals }) => {
-      const { openSheet } = parameters as ScreenStateParameters;
+      const { screenState, screenStates, openSheet } =
+        parameters as ScreenStateParameters;
+      const start = actionStart(
+        parameters as ScreenActionParameters & ScreenStateParameters,
+        globals as ScreenActionGlobals
+      ) ?? { screenState };
       return (
-        <ScreenHost
-          screenState={
-            actionStart(
-              parameters as ScreenActionParameters,
-              globals as ScreenActionGlobals
-            ) ?? (parameters as ScreenStateParameters).screenState
-          }
-          states={(parameters as ScreenStateParameters).screenStates}
-        >
+        <ScreenHost {...start} states={screenStates}>
           {openSheet === undefined ? (
             <Story />
           ) : (

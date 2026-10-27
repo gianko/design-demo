@@ -6,7 +6,8 @@
 // screen's actions in its `screenActions` parameter (a kept or generated
 // screen's default story, .storybook/screen-actions.ts). For each action and
 // each outcome, this opens the story again starting in the state its Button
-// is clicked in, under that outcome's fixture variant, clicks the Button by
+// is clicked in, with that state's data and selection and its operations
+// settling under the outcome's fixture variant, clicks the Button by
 // its literal label, and checks the screen enters the outcome's state through
 // a View Transition of the outcome's type. Whether the motion looks right is
 // gated in the library's own stories.

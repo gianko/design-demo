@@ -17,6 +17,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import preview from "../../../.storybook/preview.tsx";
+import type {
+  Outcome,
+  ScreenActionParameters,
+} from "../../../.storybook/screen-actions.ts";
 import { Button } from "../Button/Button.tsx";
 import { DataTable } from "../DataTable/DataTable.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
@@ -323,6 +327,75 @@ describe("the data of the state an action enters", () => {
       "Scheduled (flips)",
       "Scheduled (flips)",
     ]);
+  });
+
+  // The action-transitions and motion-reduced rules open a screen's default
+  // story with the screenAction and screenOutcome globals
+  // (.storybook/screen-actions.ts). The screen starts in the state the
+  // action's Button is clicked in, with that state's data and selection, and
+  // its operations settle as the outcome's variant says.
+  describe("started before an action", () => {
+    const startedBefore = (screenOutcome: Outcome) =>
+      composeStory(
+        {
+          parameters: {
+            screenStates: declared,
+            screenActions: [
+              {
+                name: "pay-selected",
+                label: "Pay selected",
+                from: "rows-selected",
+                to: { success: declared[1]!, failure: declared[2]! },
+              },
+            ],
+          } satisfies ScreenStateParameters & ScreenActionParameters,
+          render: () => <BulkPay />,
+        },
+        { title: "Screens/bulk-pay" },
+        {
+          ...preview,
+          initialGlobals: {
+            ...preview.initialGlobals,
+            screenAction: "pay-selected",
+            screenOutcome,
+          },
+        }
+      );
+
+    it("starts with the start state's rows ticked, not the outcome's data", () => {
+      const Started = startedBefore("success");
+      render(<Started />);
+
+      expect(screenState()).toBe("rows-selected");
+      expect(statuses()).toEqual(["Awaiting", "Awaiting", "Awaiting"]);
+      expect(screen.getAllByRole("checkbox", { checked: true })).toHaveLength(
+        4
+      );
+    });
+
+    it("confirms into the success state's data", async () => {
+      const Started = startedBefore("success");
+      render(<Started />);
+
+      await pay();
+
+      expect(screenState()).toBe("payment-scheduled");
+      expect(statuses()).toEqual([
+        "Scheduled (flips)",
+        "Scheduled (flips)",
+        "Scheduled (flips)",
+      ]);
+    });
+
+    it("fails as the failure variant says", async () => {
+      const Started = startedBefore("failure");
+      render(<Started />);
+
+      await pay();
+
+      expect(screenState()).toBe("payment-failed");
+      expect(statuses()).toEqual(["Awaiting", "Awaiting", "Awaiting"]);
+    });
   });
 });
 

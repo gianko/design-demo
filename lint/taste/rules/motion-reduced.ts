@@ -13,8 +13,9 @@
 //   it with Escape (row → sheet); a story that loads with a Sheet open only
 //   closes it;
 // - a screen's declared actions (its `screenActions` parameter, as
-//   `action-transitions` reads it): clicking each one's Button under each
-//   outcome's fixture variant (bar → toast, the failure toast); a story that
+//   `action-transitions` reads it): clicking each one's Button in its start
+//   state, settling under each outcome's fixture variant (bar → toast, the
+//   failure toast); a story that
 //   declares none has each Button in an ActionBar clicked instead.
 //
 // Each drive runs in a page of its own, so the render's page, which the
