@@ -234,7 +234,7 @@ The fixtures module widened to the one shared dataset that [Fixtures](#fixtures)
 
 ### Pages deploy
 
-The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. Turning Pages on, with GitHub Actions as its source, is the human's job.
+The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. A run given `pnpm eval --baseline <results file>` names that file in its own, and `/evals/` then serves the comparison against it: the screen briefs both runs cover side by side, the rest on their own. Turning Pages on, with GitHub Actions as its source, is the human's job.
 
 **Done when:** a push to main publishes Storybook at the Pages URL; `/evals/` serves the newest results file's report once one is committed, and Storybook still deploys while there isn't one; and a red gate job publishes nothing.
 

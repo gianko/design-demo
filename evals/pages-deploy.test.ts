@@ -162,6 +162,47 @@ describe("the Pages deploy job", () => {
       expect(doc.querySelectorAll("img")).toHaveLength(0);
     });
 
+    it("compares the newest results file against the one it names as its baseline", async () => {
+      const at = setup();
+      const shared = [
+        "invoice-queue",
+        "invoice-review",
+        "payment-overview",
+        "payment-run",
+        "payment-status",
+      ];
+      const baseline = runA(at, shared);
+      baseline.startedAt = "2026-10-26T23:51:35.118Z";
+      write(at, "2026-10-26-rerun.json", baseline);
+      // Newer than the baseline but not named by the newest: not compared.
+      const between = runA(at, shared);
+      between.startedAt = "2026-10-30T09:00:00.000Z";
+      write(at, "2026-10-30-between.json", between);
+      const newest = runB(at, [...shared, "bulk-pay", "my-invoices"]);
+      newest.startedAt = "2026-11-03T09:00:00.000Z";
+      newest.baseline = "2026-10-26-rerun";
+      scratch(at, newest.reps[0]!.workDir!, [1]);
+      write(at, "2026-11-03-p1.json", newest);
+
+      const { code } = await runReportStep(at.dir, at.resultsDir);
+
+      expect(code).toBe(0);
+      const doc = new DOMParser().parseFromString(
+        readFileSync(join(at.dir, reportOut()), "utf8"),
+        "text/html"
+      );
+      expect(doc.querySelector("h1")?.textContent).toMatch(/comparison/i);
+      const legend = doc.querySelector(".runs")?.textContent ?? "";
+      expect(legend).toMatch(/A\s*2026-10-26-rerun/);
+      expect(legend).toMatch(/B\s*2026-11-03-p1/);
+      expect(legend).not.toContain("2026-10-30-between");
+      // The shared five side by side, the newest run's own two alone.
+      expect(
+        [...doc.querySelectorAll(".brief-set h3")].map((h) => h.textContent)
+      ).toEqual(["In both runs (5), side by side", "Only in run B (2)"]);
+      expect(doc.querySelectorAll("img")).toHaveLength(0);
+    });
+
     it("lets Storybook deploy while no results file is committed: it writes nothing and exits 0", async () => {
       const at = setup();
 

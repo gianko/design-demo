@@ -46,23 +46,38 @@ function written(at: At) {
   };
 }
 
-// The summary table's rows for one screen brief ("All screen briefs" for the
-// overall row), each keyed by its column heading.
-function rows(doc: Document, brief: string) {
-  const table = doc.querySelector("table.summary")!;
+// One summary table's rows, each keyed by its column heading.
+function tableRows(table: Element) {
   const headings = [...table.querySelectorAll("thead th")].map(
     (th) => th.textContent?.trim() ?? ""
   );
-  return [...table.querySelectorAll("tbody tr")]
-    .map((tr) =>
-      Object.fromEntries(
-        [...tr.querySelectorAll("th, td")].map((cell, i) => [
-          headings[i],
-          cell.textContent?.trim().replace(/\s+/g, " "),
-        ])
-      )
+  return [...table.querySelectorAll("tbody tr")].map((tr) =>
+    Object.fromEntries(
+      [...tr.querySelectorAll("th, td")].map((cell, i) => [
+        headings[i],
+        cell.textContent?.trim().replace(/\s+/g, " "),
+      ])
     )
+  );
+}
+
+// The summary tables' rows for one screen brief ("All screen briefs" for the
+// overall row), each keyed by its column heading.
+function rows(doc: Document, brief: string) {
+  return [...doc.querySelectorAll("table.summary")]
+    .flatMap(tableRows)
     .filter((row) => row["Screen brief"] === brief);
+}
+
+// A comparison's summary tables when its runs' brief sets differ: each
+// table's heading and the screen briefs it has a row for, overall row last.
+function briefSets(doc: Document) {
+  return [...doc.querySelectorAll(".brief-set")].map((set) => ({
+    heading: set.querySelector("h3")?.textContent?.trim(),
+    briefs: tableRows(set.querySelector("table.summary")!).map(
+      (row) => row["Screen brief"]
+    ),
+  }));
 }
 
 describe("pnpm eval:report", () => {
@@ -194,11 +209,12 @@ describe("pnpm eval:report", () => {
     const legend = doc.querySelector(".runs")?.textContent ?? "";
     expect(legend).toMatch(/A\s*2026-10-26-before/);
     expect(legend).toMatch(/B\s*2026-10-27-after/);
-    // Runs over the same screen briefs aren't flagged.
+    // Runs over the same screen briefs aren't flagged, and share one table.
     expect(doc.querySelector(".brief-sets-differ")).toBeNull();
+    expect(briefSets(doc)).toEqual([]);
   });
 
-  it("flags a comparison whose runs cover different screen briefs", async () => {
+  it("flags a comparison whose runs cover different screen briefs, and shows each run's own screen briefs alone", async () => {
     const at = setup();
     const a = write(at, "2026-10-26-before.json", runA(at));
     const b = write(
@@ -213,14 +229,123 @@ describe("pnpm eval:report", () => {
     const flag = doc.querySelector(".brief-sets-differ")?.textContent ?? "";
     expect(flag).toMatch(/only in A: payment-status/);
     expect(flag).toMatch(/only in B: payment-run/);
-    expect(flag).toMatch(/aren't over the same screen briefs/);
-    // A brief a run never had reads as absent, not as 0/0.
-    expect(rows(doc, "payment-run")).toEqual([
-      expect.objectContaining({ "Passed (final)": "– → 3/3", Errors: "– → 0" }),
+    expect(briefSets(doc)).toEqual([
+      {
+        heading: "In both runs (1), side by side",
+        briefs: ["invoice-queue", "All in both runs (1)"],
+      },
+      {
+        heading: "Only in run A (1)",
+        briefs: ["payment-status", "All only in A (1)"],
+      },
+      {
+        heading: "Only in run B (1)",
+        briefs: ["payment-run", "All only in B (1)"],
+      },
     ]);
+    // A brief only one run has reads as that run's own count, not as – → 3/3.
     expect(rows(doc, "payment-status")).toEqual([
-      expect.objectContaining({ "Passed (final)": "3/3 → –" }),
+      expect.objectContaining({
+        "Passed (final)": "3/3",
+        "Passed (first attempt)": "2/3",
+        Errors: "0",
+      }),
     ]);
+    expect(rows(doc, "payment-run")).toEqual([
+      expect.objectContaining({ "Passed (final)": "3/3", Errors: "0" }),
+    ]);
+  });
+
+  it("compares a 5-brief run with a 15-brief run: the 5 shared side by side, the other 10 alone, each overall row over its own set", async () => {
+    const at = setup();
+    const shared = [
+      "invoice-queue",
+      "invoice-review",
+      "payment-overview",
+      "payment-run",
+      "payment-status",
+    ];
+    const added = [
+      "bulk-pay",
+      "overdue-invoices",
+      "failed-payments",
+      "contractors",
+      "run-history",
+      "my-invoices",
+      "payments-received",
+      "payment-failed",
+      "withdraw-invoice",
+      "annual-summary",
+    ];
+    const a = write(at, "2026-10-26-rerun.json", runA(at, shared));
+    const b = write(at, "2026-11-03-p1.json", runB(at, [...shared, ...added]));
+
+    await report(at, [a, b]);
+
+    const { doc } = written(at);
+    expect(briefSets(doc)).toEqual([
+      {
+        heading: "In both runs (5), side by side",
+        briefs: [...shared, "All in both runs (5)"],
+      },
+      {
+        heading: "Only in run B (10)",
+        briefs: [...added, "All only in B (10)"],
+      },
+    ]);
+    // Side by side, A → B: invoice-queue 2/3 → 3/3, the rest 3/3 → 3/3.
+    expect(rows(doc, "invoice-queue")).toEqual([
+      expect.objectContaining({
+        "Passed (final)": "2/3 → 3/3",
+        "Passed (first attempt)": "1/3 → 3/3",
+      }),
+    ]);
+    // Run A's 15 reps against run B's 15 reps of the same 5 screen briefs,
+    // not against all 45 of run B's.
+    expect(rows(doc, "All in both runs (5)")).toEqual([
+      expect.objectContaining({
+        "Passed (final)": "14/15 → 15/15",
+        "Passed (first attempt)": "12/15 → 15/15",
+        Cost: "$3.40 → $3.00",
+      }),
+    ]);
+    // Alone: run B's own counts, with no arrow.
+    expect(rows(doc, "bulk-pay")).toEqual([
+      expect.objectContaining({
+        "Passed (final)": "3/3",
+        "Passed (first attempt)": "3/3",
+        Errors: "0",
+        Cost: "$0.60",
+      }),
+    ]);
+    expect(rows(doc, "All only in B (10)")).toEqual([
+      expect.objectContaining({
+        "Passed (final)": "30/30",
+        "Passed (first attempt)": "30/30",
+        Cost: "$6.00",
+      }),
+    ]);
+    // Each screen brief has exactly one row.
+    for (const brief of [...shared, ...added])
+      expect(rows(doc, brief), brief).toHaveLength(1);
+    expect(rows(doc, "All screen briefs")).toEqual([]);
+  });
+
+  it("names the pass criteria a rep's final UI spec missed, as written", async () => {
+    const at = setup();
+    const file = runA(at);
+    file.reps[0]!.criteria = {
+      met: false,
+      missing: ["component Toast", "state <scheduled>"],
+    };
+    const a = write(at, "2026-10-26-before.json", file);
+
+    await report(at, [a]);
+
+    const { doc } = written(at);
+    expect(doc.body.textContent).toContain(
+      "Pass criteria missing: component Toast, state <scheduled>"
+    );
   });
 
   describe("--latest, as the Pages deploy calls it", () => {
@@ -249,6 +374,21 @@ describe("pnpm eval:report", () => {
       expect(doc.querySelector(".runs")?.textContent).toContain(
         "2026-10-27-a-after"
       );
+    });
+
+    it("fails, writing nothing, when the newest results file names a baseline that isn't there", async () => {
+      const at = setup();
+      write(at, "2026-10-27-after.json", {
+        ...runB(at),
+        baseline: "2026-10-26-gone",
+      });
+      const out = join(at.dir, "site", "evals", "index.html");
+
+      const { code, output } = await report(at, ["--latest", "--out", out]);
+
+      expect(code).toBe(1);
+      expect(output).toMatch(/2026-10-26-gone.*doesn't exist/);
+      expect(existsSync(out)).toBe(false);
     });
 
     it("writes nothing, and still exits 0, while no results file is committed", async () => {

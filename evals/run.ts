@@ -8,7 +8,7 @@
 // that file is written.
 
 import { existsSync, globSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import type { Attempt, RepTrace, Versions } from "../generator/generate.ts";
 import { checkPassCriteria } from "../generator/pass-criteria.ts";
@@ -45,7 +45,7 @@ export type EvalDeps = {
 const concurrency = 3;
 
 const usage =
-  "Usage: pnpm eval [--briefs <glob>] [--k <n>] [--budget <usd>|none] [--label <label>] [--allow-dirty]";
+  "Usage: pnpm eval [--briefs <glob>] [--k <n>] [--budget <usd>|none] [--label <label>] [--baseline <results file name>] [--allow-dirty]";
 
 export async function main(argv: string[], deps: EvalDeps): Promise<number> {
   const log = deps.log ?? console.log;
@@ -73,6 +73,18 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
   if (existsSync(out)) {
     log(
       `${relative(repo, out)} already exists. Give this run another --label.`
+    );
+    return 2;
+  }
+
+  // The Pages deploy compares this run against its baseline, so it has to
+  // be a results file that's there.
+  if (
+    args.baseline !== null &&
+    !existsSync(join(resultsDir, `${args.baseline}.json`))
+  ) {
+    log(
+      `--baseline ${args.baseline}: there's no ${relative(repo, join(resultsDir, `${args.baseline}.json`))}.`
     );
     return 2;
   }
@@ -155,6 +167,7 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
     budget: args.budget,
     concurrency,
     briefSlugs: briefs.map((brief) => brief.slug),
+    baseline: args.baseline,
     totals: tally(reps),
     perBrief: Object.fromEntries(
       briefs.map((brief) => [
@@ -256,6 +269,8 @@ type Args = {
   k: number;
   budget: number | null;
   label: string;
+  // A results file's name, less `.json`.
+  baseline: string | null;
   allowDirty: boolean;
 };
 
@@ -269,6 +284,7 @@ function parse(argv: string[]): Args | string {
         k: { type: "string", default: "3" },
         budget: { type: "string", default: "15" },
         label: { type: "string", default: "eval" },
+        baseline: { type: "string" },
         "allow-dirty": { type: "boolean", default: false },
       },
     }));
@@ -289,6 +305,9 @@ function parse(argv: string[]): Args | string {
     k,
     budget,
     label: values.label,
+    // A path to the file works too.
+    baseline:
+      values.baseline === undefined ? null : basename(values.baseline, ".json"),
     allowDirty: values["allow-dirty"],
   };
 }

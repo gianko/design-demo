@@ -548,6 +548,44 @@ describe("pnpm eval", () => {
     expect(results(at).versions.dirty).toBe(true);
   });
 
+  it("records the results file --baseline names, and none without it", async () => {
+    const at = setup("alpha");
+    mkdirSync(at.resultsDir, { recursive: true });
+    writeFileSync(
+      join(at.resultsDir, "2026-10-26-rerun.json"),
+      JSON.stringify({ startedAt: "2026-10-26T23:51:35.118Z", reps: [] })
+    );
+
+    const named = await run(
+      at,
+      ["--k", "1", "--label", "p1", "--baseline", "2026-10-26-rerun"],
+      { plans: { alpha: [plans.firstTry()] } }
+    );
+    const plain = await run(at, ["--k", "1"], {
+      plans: { alpha: [plans.firstTry()] },
+    });
+
+    expect(named.code).toBe(0);
+    expect(results(at, "2026-10-26-p1.json").baseline).toBe("2026-10-26-rerun");
+    expect(plain.code).toBe(0);
+    expect(results(at).baseline).toBeNull();
+  });
+
+  it("refuses a --baseline that names no results file, before any rep starts", async () => {
+    const at = setup("alpha");
+
+    const { code, started, output } = await run(
+      at,
+      ["--k", "1", "--baseline", "2026-10-26-gone"],
+      { plans: { alpha: [plans.firstTry()] } }
+    );
+
+    expect(code).toBe(2);
+    expect(output).toMatch(/2026-10-26-gone\.json/);
+    expect(started).toEqual([]);
+    expect(existsSync(at.resultsDir)).toBe(false);
+  });
+
   describe("the estimate", () => {
     // Two earlier runs on one day. The later one's reps that ran cost $0.1,
     // $0.5 and $0.9 (median $0.5); with its skipped rep counted the median
