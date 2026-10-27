@@ -337,11 +337,14 @@ describe("static lint fixtures", () => {
   afterAll(() => rmSync(planted, { recursive: true, force: true }));
 
   it.each([
+    // Each rule on the file types it has failing fixtures for (a TSX-only
+    // rule has no CSS ones), as static.test.ts reads them.
     ...staticRules.flatMap(({ id }) =>
-      ["tsx", "css"].map((extension) => [
-        `taste/${id}`,
-        `${id}.fail.${extension}`,
-      ])
+      ["tsx", "css"]
+        .filter((extension) =>
+          existsSync(join(tasteFixtures, `${id}.fail.${extension}`))
+        )
+        .map((extension) => [`taste/${id}`, `${id}.fail.${extension}`])
     ),
     ["taste-exemptions/no-inline-disable", "no-inline-disable.fail.tsx"],
     ["taste-exemptions/no-inline-disable", "no-inline-disable.fail.css"],
