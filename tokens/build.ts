@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { converter, inGamut, wcagContrast, type Oklch } from "culori";
 import { z } from "zod";
+import { minLightnessStep } from "./lightness-step.ts";
 import { tokenNames } from "./naming.ts";
 
 // ── Collections ───────────────────────────────────────────────────────────
@@ -46,6 +47,7 @@ export type Check =
   | "unique-names"
   | "gamut"
   | "contrast"
+  | "lightness-step"
   | "neutral-tint"
   | "settle"
   | "neutral-elevation"
@@ -70,6 +72,10 @@ const bannedFonts = ["Inter", "Geist", "Roboto", "Arial", "Space Grotesk"];
 const neutralChroma = 0.03;
 // `settle` overshoots once, by at most this much.
 const maxOvershoot = 0.05;
+// A neutral control's pointer states, each painted over the one before it
+// starts from: hover over the surface the control sits on, pressed over the
+// same surface but a step from hover.
+const surfaceStates = ["color.bg.surface-hover", "color.bg.surface-pressed"];
 
 // ── Schema ────────────────────────────────────────────────────────────────
 
@@ -390,7 +396,10 @@ export function build({ files, keyframes }: Sources): BuildResult {
   checkUniqueNames(parsed, failures);
   const all = [...resolvedFiles.values()].flat();
   checkGamut(all, failures);
-  for (const tokens of resolvedFiles.values()) checkContrast(tokens, failures);
+  for (const tokens of resolvedFiles.values()) {
+    checkContrast(tokens, failures);
+    checkLightnessSteps(tokens, failures);
+  }
   checkNeutralTint(all, failures);
   checkEasings(all, failures);
   checkElevation(all, failures);
@@ -532,25 +541,106 @@ function checkGamut(tokens: Resolved[], failures: Failures) {
   }
 }
 
+const opaque = ({ alpha }: ColorValue) => alpha === undefined || alpha === 1;
+
+/**
+ * The surfaces a translucent fill can sit on: the opaque elevation levels,
+ * `page`, `surface` and every other `surface-*` role but the pointer states,
+ * so a surface added later is checked without being listed.
+ */
+function surfacesOf(byPath: Map<string, Resolved>): Resolved[] {
+  return [...byPath.values()].filter(
+    (token) =>
+      token.type === "color" &&
+      /^color\.bg\.(page|surface(-.+)?)$/.test(token.path) &&
+      !surfaceStates.includes(token.path) &&
+      opaque(token.resolved as ColorValue)
+  );
+}
+
+const toOklch = converter("oklch");
+
+/** `fill` painted over an opaque colour, composited in sRGB as browsers do. */
+function over(fill: ColorValue, under: ColorValue): Oklch {
+  const top = toRgb(oklch(fill));
+  const bottom = toRgb(oklch(under));
+  const alpha = fill.alpha ?? 1;
+  const mix = (a: number, b: number) => a * alpha + b * (1 - alpha);
+  return toOklch({
+    mode: "rgb",
+    r: mix(top.r, bottom.r),
+    g: mix(top.g, bottom.g),
+    b: mix(top.b, bottom.b),
+  });
+}
+
 function checkContrast(tokens: Resolved[], failures: Failures) {
   const byPath = new Map(tokens.map((token) => [token.path, token]));
+  const surfaces = surfacesOf(byPath);
   for (const token of tokens) {
     const contrast = token.extensions?.["design-demo"]?.contrast;
     if (!contrast) continue;
     for (const against of contrast.against) {
       const background = byPath.get(against.slice(1, -1))!;
-      const ratio = wcagContrast(
-        oklch(token.resolved as ColorValue),
-        oklch(background.resolved as ColorValue)
+      const fill = background.resolved as ColorValue;
+      // A translucent background is measured over each surface under it.
+      const composites: [colour: Oklch, where: string][] = opaque(fill)
+        ? [[oklch(fill), ""]]
+        : surfaces.map((surface) => [
+            over(fill, surface.resolved as ColorValue),
+            ` over ${surface.path}`,
+          ]);
+      for (const [colour, where] of composites) {
+        const ratio = wcagContrast(oklch(token.resolved as ColorValue), colour);
+        if (ratio < contrast.min) {
+          failures.add(
+            "contrast",
+            token.path,
+            token.file,
+            `is ${Math.floor(ratio * 100) / 100}:1 on ${background.path}${where}, needs ${contrast.min}:1`
+          );
+        }
+      }
+    }
+  }
+}
+
+// Hover differs from each surface, and pressed from hover over the same
+// surface, by a visible lightness step, so a neutral control's states read
+// on every elevation level in both themes (#250).
+function checkLightnessSteps(tokens: Resolved[], failures: Failures) {
+  const byPath = new Map(tokens.map((token) => [token.path, token]));
+  const surfaces = surfacesOf(byPath);
+  if (!surfaces.length) return;
+  const states: Resolved[] = [];
+  for (const path of surfaceStates) {
+    const state = byPath.get(path);
+    if (state) states.push(state);
+    else {
+      failures.add(
+        "schema",
+        path,
+        surfaces[0]!.file,
+        "is missing; it is a neutral control's pointer state"
       );
-      if (ratio < contrast.min) {
+    }
+  }
+  for (const surface of surfaces) {
+    const base = surface.resolved as ColorValue;
+    let under = { path: surface.path, lightness: oklch(base).l };
+    for (const state of states) {
+      const { l } = over(state.resolved as ColorValue, base);
+      // Rounded, so a step authored as 0.02 isn't failed by float error.
+      const step = Number(Math.abs(l - under.lightness).toFixed(4));
+      if (step < minLightnessStep) {
         failures.add(
-          "contrast",
-          token.path,
-          token.file,
-          `is ${Math.floor(ratio * 100) / 100}:1 on ${background.path}, needs ${contrast.min}:1`
+          "lightness-step",
+          state.path,
+          state.file,
+          `steps ${step} in OKLCH lightness from ${under.path} over ${surface.path}, needs ${minLightnessStep}`
         );
       }
+      under = { path: state.path, lightness: l };
     }
   }
 }

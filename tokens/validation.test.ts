@@ -69,11 +69,27 @@ it("writes every output and exits 0 on the committed sources", async () => {
   );
 });
 
-// One failing fixture per validation in spec § Token build.
+// Dark's ink, as a translucent fill.
+const darkInkAt = (alpha: number) => ({
+  colorSpace: "oklch",
+  components: [0.94, 0.01, 330],
+  alpha,
+});
+
+// Light's ink, as a translucent fill.
+const lightInkAt = (alpha: number) => ({
+  colorSpace: "oklch",
+  components: [0.27, 0.025, 330],
+  alpha,
+});
+
+// One failing fixture per validation in spec § Token build. A fixture whose
+// failure is about one place in particular names it in `where`.
 const fixtures: [
   check: Check,
   path: string,
   edit: Parameters<typeof tokens>[0],
+  where?: string,
 ][] = [
   [
     "schema",
@@ -122,6 +138,54 @@ const fixtures: [
       files["color.dark"].color.text["ink-muted"].$value =
         "{primitive.neutral.400}";
     },
+  ],
+  // Translucent: ink clears 4.5:1 on the pressed fill over page and surface,
+  // and misses it only over surface-raised, the lightest surface in dark.
+  [
+    "contrast",
+    "color.text.ink",
+    (files) => {
+      files["color.dark"].color.bg["surface-pressed"].$value = darkInkAt(0.35);
+    },
+    "on color.bg.surface-pressed over color.bg.surface-raised,",
+  ],
+  // Dark's hover as it was: opaque, and the same colour as surface-raised,
+  // so it only vanishes on that one surface.
+  [
+    "lightness-step",
+    "color.bg.surface-hover",
+    (files) => {
+      files["color.dark"].color.bg["surface-hover"].$value =
+        "{primitive.neutral.270}";
+    },
+    "from color.bg.surface-raised over color.bg.surface-raised,",
+  ],
+  // Pressed is a clear step from every surface, but not from hover: light's
+  // pressed at 10% over hover at 6%, about 0.025 from hover on each surface,
+  // which a 0.02 minimum let through though #133 found a step under 0.03
+  // hard to see.
+  [
+    "lightness-step",
+    "color.bg.surface-pressed",
+    (files) => {
+      files["color.light"].color.bg["surface-hover"].$value = lightInkAt(0.06);
+      files["color.light"].color.bg["surface-pressed"].$value = lightInkAt(0.1);
+    },
+    "from color.bg.surface-hover over",
+  ],
+  // A surface added later is checked too: hover over a near-ink surface.
+  [
+    "lightness-step",
+    "color.bg.surface-hover",
+    (files) => {
+      files["color.light"].color.bg["surface-sunken"] = {
+        $value: "{primitive.neutral.985}",
+      };
+      files["color.dark"].color.bg["surface-sunken"] = {
+        $value: "{primitive.neutral.900}",
+      };
+    },
+    "over color.bg.surface-sunken,",
   ],
   [
     "neutral-tint",
@@ -212,10 +276,14 @@ const fixtures: [
 
 it.each(fixtures)(
   "fails %s on %s and exits non-zero",
-  async (check, path, edit) => {
+  async (check, path, edit, where) => {
     const { code, output } = await tokens(edit);
+    const failures = output
+      .split("\n")
+      .filter((line) => line.includes(`[${check}] ${path} `));
 
     expect(code).not.toBe(0);
-    expect(output).toContain(`[${check}] ${path} `);
+    expect(failures).not.toEqual([]);
+    if (where) expect(failures.join("\n")).toContain(where);
   }
 );

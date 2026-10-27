@@ -38,8 +38,12 @@ export const checkbox = tv({
     {
       checked: false,
       disabled: false,
+      // Hover and pressed are translucent ink, laid over the box's
+      // `surface` fill on a `::before` rounded like it, so hover is a step from
+      // rest on any surface rather than the fill giving way. Positioned, the
+      // box would sit over the input, so it lets the pointer through to it.
       class: {
-        box: "border-control bg-surface peer-hover:bg-surface-hover peer-active:bg-surface-pressed",
+        box: "pointer-events-none relative border-control bg-surface before:absolute before:inset-0 before:rounded-tag before:transition-colors before:duration-fast before:ease-standard peer-hover:before:bg-surface-hover peer-active:before:bg-surface-pressed",
       },
     },
     {

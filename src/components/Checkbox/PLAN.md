@@ -48,7 +48,7 @@ No pending: a checkbox starts no operation; selecting rows enters `rows-selected
 | `input` | always | `peer absolute inset-0 appearance-none outline-none` (the box draws the ring) |
 | `box` | always | `size-icon rounded-tag border transition-colors duration-fast ease-standard peer-focus-visible:focus-ring` |
 | | unchecked | `border-control bg-surface` |
-| | unchecked, enabled | `peer-hover:bg-surface-hover peer-active:bg-surface-pressed` |
+| | unchecked, enabled | `pointer-events-none relative before:absolute before:inset-0 before:rounded-tag before:transition-colors before:duration-fast before:ease-standard peer-hover:before:bg-surface-hover peer-active:before:bg-surface-pressed`: the translucent hover lies over the `surface` fill (#250) |
 | | checked or mixed | `border-transparent bg-accent` |
 | | checked or mixed, enabled | `peer-hover:bg-accent-hover peer-active:bg-accent-pressed` |
 | | unchecked, disabled | `border-disabled bg-surface` |

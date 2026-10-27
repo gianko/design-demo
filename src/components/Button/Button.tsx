@@ -56,11 +56,24 @@ export const button = tv({
       pending: false,
       class: { root: "hover:bg-accent-hover active:bg-accent-pressed" },
     },
+    // Hover and pressed are translucent ink. A quiet button takes them as
+    // its fill; a secondary one keeps its `surface` fill and lays them over
+    // it, on a `::before` rounded like the button (not clipped by it, which
+    // re-rasterises the label at rest), so its hover is a step from rest
+    // on any surface rather than the fill giving way.
     {
-      intent: ["secondary", "quiet"],
+      intent: "quiet",
       disabled: false,
       pending: false,
       class: { root: "hover:bg-surface-hover active:bg-surface-pressed" },
+    },
+    {
+      intent: "secondary",
+      disabled: false,
+      pending: false,
+      class: {
+        root: "relative before:absolute before:inset-0 before:rounded-control before:transition-colors before:duration-fast before:ease-standard hover:before:bg-surface-hover active:before:bg-surface-pressed",
+      },
     },
   ],
   defaultVariants: { disabled: false, pending: false },

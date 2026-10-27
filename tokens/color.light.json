@@ -5,8 +5,22 @@
       "page": { "$value": "{primitive.neutral.985}" },
       "surface": { "$value": "{primitive.neutral.995}" },
       "surface-raised": { "$value": "{primitive.neutral.970}" },
-      "surface-hover": { "$value": "{primitive.neutral.950}" },
-      "surface-pressed": { "$value": "{primitive.neutral.900}" },
+      "surface-hover": {
+        "$description": "The theme's ink, translucent, so a neutral control's hover shows on every surface.",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.27, 0.025, 330],
+          "alpha": 0.06
+        }
+      },
+      "surface-pressed": {
+        "$description": "The theme's ink, translucent and a step stronger than hover.",
+        "$value": {
+          "colorSpace": "oklch",
+          "components": [0.27, 0.025, 330],
+          "alpha": 0.11
+        }
+      },
       "selected": { "$value": "{primitive.heather.950}" },
       "accent": { "$value": "{primitive.heather.480}" },
       "accent-hover": { "$value": "{primitive.heather.430}" },
@@ -22,7 +36,7 @@
       },
       "disabled": { "$value": "{primitive.neutral.950}" },
       "scrim": {
-        "$description": "The one alpha token, behind overlays.",
+        "$description": "Behind overlays.",
         "$value": {
           "colorSpace": "oklch",
           "components": [0.27, 0.025, 330],
