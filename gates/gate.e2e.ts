@@ -15,6 +15,7 @@ import {
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { staticRules } from "../lint/taste/rules/index.ts";
+import * as grayOnColor from "../lint/taste/rules/gray-on-color.ts";
 import * as nestedCards from "../lint/taste/rules/nested-cards.ts";
 import * as noPill from "../lint/taste/rules/no-pill.ts";
 import * as skippedHeading from "../lint/taste/rules/skipped-heading.ts";
@@ -40,7 +41,11 @@ type Run = ReturnType<typeof gate>;
 
 // Runs `pnpm gate` with the fixture stories built in, and returns its printed
 // output, each render's outcome and the contact sheet's shots.
-function gate(args: string[], { ci }: { ci: boolean }) {
+// A seed run only writes baselines, so it skips the taste rules.
+function gate(
+  args: string[],
+  { ci, seed = false }: { ci: boolean; seed?: boolean }
+) {
   const { status, stdout, stderr } = spawnSync("pnpm", ["gate", ...args], {
     cwd: repo,
     encoding: "utf8",
@@ -49,6 +54,7 @@ function gate(args: string[], { ci }: { ci: boolean }) {
       CI: ci ? "1" : "",
       GATE_FIXTURES: "1",
       GATE_BASELINES: "gates/out/e2e-baselines",
+      GATE_SEED: seed ? "1" : "",
     },
   });
   const report = JSON.parse(
@@ -99,7 +105,7 @@ function expectFailed(run: Run, render: Render, errors: RegExp) {
 function seed(args: string[]) {
   rmSync(baselines, { recursive: true, force: true });
   cpSync(join(repo, "gates/baselines"), baselines, { recursive: true });
-  gate(args, { ci: false });
+  gate(args, { ci: false, seed: true });
   const before = rendersOf("gatefixtures-onepixel--before");
   for (const story of ["after", "faint"]) {
     rendersOf(`gatefixtures-onepixel--${story}`).forEach((render, i) =>
@@ -148,11 +154,12 @@ describe("in CI", () => {
   ];
   let run: Run;
 
+  // Two gate runs over every fixture: ~4 min on a Mac, ~8 on CI's 2 workers.
   beforeAll(() => {
     seed(targets);
     rmSync(baseline(missing!));
     run = gate(targets, { ci: true });
-  });
+  }, 900_000);
 
   it("passes the placeholder story against its committed baselines", () => {
     for (const render of rendersOf("placeholder--placeholder")) {
@@ -260,6 +267,26 @@ describe("in CI", () => {
       /"Northwind Logistics GmbH" is clipped without an ellipsis/,
     ],
     [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
+    [
+      "content-hidden-at-rest",
+      "opacity",
+      /"Northwind Logistics GmbH" stays at opacity 0/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "visibility",
+      /"Paid" stays at visibility: hidden/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "clip",
+      /"Invoice 2024-0117" stays clipped to nothing/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "clip",
+      /"Due in 14 days" stays clipped to nothing/,
+    ],
     ["no-all-caps", "fail", /"Overdue" is set in uppercase/],
     ["no-all-caps", "fail", /"AMOUNT" is in all caps/],
     [
@@ -301,6 +328,16 @@ describe("in CI", () => {
       "no-pure-neutral-text",
       "fail",
       /"Invoice 1042" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ],
+    [
+      grayOnColor.id,
+      "fail",
+      /"Pays Oct 20" is ink-muted text on the scheduled background/,
+    ],
+    [
+      grayOnColor.id,
+      "fail",
+      /"Approve" is disabled text on the accent background/,
     ],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.

@@ -7,6 +7,11 @@ import { parse } from "yaml";
 import { z } from "zod";
 import { densities } from "../.storybook/globals.ts";
 
+// ADR 0011's signature transitions, each a structural pattern the pass
+// criteria look for in the final UI spec.
+export const transitions = ["bar-to-toast", "row-to-sheet"] as const;
+export type Transition = (typeof transitions)[number];
+
 const frontmatter = z.object({
   // An audience is the density set it gets (ADR 0001).
   audience: z.enum(densities),
@@ -14,6 +19,7 @@ const frontmatter = z.object({
     components: z.array(z.string()),
     states: z.array(z.string()).default([]),
     actions: z.array(z.string()).default([]),
+    transitions: z.array(z.enum(transitions)).default([]),
   }),
 });
 

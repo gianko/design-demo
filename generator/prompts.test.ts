@@ -15,7 +15,12 @@ const registry = {
 
 const brief: ScreenBrief = {
   audience: "contractor",
-  requires: { components: ["Screen"], states: [], actions: [] },
+  requires: {
+    components: ["Screen"],
+    states: [],
+    actions: [],
+    transitions: [],
+  },
   slug: "brief",
   text: "# A screen brief",
 };

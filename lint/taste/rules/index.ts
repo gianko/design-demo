@@ -2,8 +2,10 @@
 // exports its `id`, and `lint` for its static half, `render` for its render
 // half, or both.
 
+import * as contentHiddenAtRest from "./content-hidden-at-rest.ts";
 import * as edgeTreatment from "./edge-treatment.ts";
 import * as gradientAsDecoration from "./gradient-as-decoration.ts";
+import * as grayOnColor from "./gray-on-color.ts";
 import * as motionTokens from "./motion-tokens.ts";
 import * as nestedCards from "./nested-cards.ts";
 import * as noAllCaps from "./no-all-caps.ts";
@@ -21,6 +23,7 @@ export const tasteRules = [
   typeOnScale,
   tabularNumerals,
   textOverflow,
+  contentHiddenAtRest,
   gradientAsDecoration,
   noAllCaps,
   skippedHeading,
@@ -28,6 +31,7 @@ export const tasteRules = [
   edgeTreatment,
   noPureNeutralText,
   targetSize,
+  grayOnColor,
 ];
 
 // The rules ESLint runs as `taste/<id>`.
