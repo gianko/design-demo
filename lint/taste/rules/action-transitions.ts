@@ -97,7 +97,17 @@ async function clickThrough(
     }
     const at = await findingAt(page, button.first(), "");
     await page.evaluate(recordTransitions);
-    await button.first().click();
+    try {
+      await button.first().click({ timeout: settleMs });
+    } catch {
+      // Disabled, hidden or covered.
+      return [
+        {
+          ...at,
+          message: `Couldn't click ${quote(action.label)} for ${action.name} in state ${quote(action.from)}`,
+        },
+      ];
+    }
     const started = await settled(page, action.from);
 
     const expected = action.to[outcome].name;
