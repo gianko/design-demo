@@ -41,7 +41,11 @@ type Run = ReturnType<typeof gate>;
 
 // Runs `pnpm gate` with the fixture stories built in, and returns its printed
 // output, each render's outcome and the contact sheet's shots.
-function gate(args: string[], { ci }: { ci: boolean }) {
+// A seed run only writes baselines, so it skips the taste rules.
+function gate(
+  args: string[],
+  { ci, seed = false }: { ci: boolean; seed?: boolean }
+) {
   const { status, stdout, stderr } = spawnSync("pnpm", ["gate", ...args], {
     cwd: repo,
     encoding: "utf8",
@@ -50,6 +54,7 @@ function gate(args: string[], { ci }: { ci: boolean }) {
       CI: ci ? "1" : "",
       GATE_FIXTURES: "1",
       GATE_BASELINES: "gates/out/e2e-baselines",
+      GATE_SEED: seed ? "1" : "",
     },
   });
   const report = JSON.parse(
@@ -100,7 +105,7 @@ function expectFailed(run: Run, render: Render, errors: RegExp) {
 function seed(args: string[]) {
   rmSync(baselines, { recursive: true, force: true });
   cpSync(join(repo, "gates/baselines"), baselines, { recursive: true });
-  gate(args, { ci: false });
+  gate(args, { ci: false, seed: true });
   const before = rendersOf("gatefixtures-onepixel--before");
   for (const story of ["after", "faint"]) {
     rendersOf(`gatefixtures-onepixel--${story}`).forEach((render, i) =>
@@ -149,11 +154,12 @@ describe("in CI", () => {
   ];
   let run: Run;
 
+  // Two gate runs over every fixture: ~4 min on a Mac, ~8 on CI's 2 workers.
   beforeAll(() => {
     seed(targets);
     rmSync(baseline(missing!));
     run = gate(targets, { ci: true });
-  });
+  }, 900_000);
 
   it("passes the placeholder story against its committed baselines", () => {
     for (const render of rendersOf("placeholder--placeholder")) {
