@@ -63,8 +63,13 @@ export const render: RenderRule = {
 // what sits in it, but inside one it reads as emphasis, not a card, so only a
 // box with an edge or a shadow counts as the inner card. Controls and what's
 // inside them (a button's border, a checkbox's box) aren't cards, nor are
-// inline boxes (a tag) or table parts (a selected row).
+// inline boxes (a tag) or table parts (a selected row). A box in the top
+// layer (a modal dialog such as an open Sheet, or an open popover) is drawn
+// over the page, not inside its DOM ancestors, so the walk up from a surface
+// stops there: the box is a root of its own, and what's inside it is checked
+// against it alone.
 function findNestedCards(root: Element): RenderFinding[] {
+  const layer = ":modal, :popover-open";
   const controls =
     "a, button, label, input, select, textarea, summary, [role=button], [role=checkbox], [role=radio], [role=switch], [role=tab], [role=option], [role=menuitem]";
   const blocks = ["block", "flex", "grid", "flow-root", "list-item", "table"];
@@ -99,10 +104,12 @@ function findNestedCards(root: Element): RenderFinding[] {
 
   const failures: RenderFinding[] = [];
   for (const element of root.querySelectorAll("*")) {
-    if (kind(element) !== "card") continue;
+    if (kind(element) !== "card" || element.matches(layer)) continue;
     let outer = element.parentElement;
-    while (outer && outer !== root && !kind(outer)) outer = outer.parentElement;
-    if (!outer || outer === root) continue;
+    while (outer && outer !== root && !kind(outer) && !outer.matches(layer)) {
+      outer = outer.parentElement;
+    }
+    if (!outer || outer === root || !kind(outer)) continue;
     const text = taste.words(element.textContent!);
     failures.push(
       taste.at(

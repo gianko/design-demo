@@ -310,6 +310,11 @@ describe("in CI", () => {
       /"Next payment" is a painted surface inside another/,
     ],
     [
+      nestedCards.id,
+      "card-in-sheet",
+      /"Approved by Ada Lovelace" is a painted surface inside another/,
+    ],
+    [
       "action-transitions",
       "swapped",
       /Clicking "Send reminder" under send-reminder's success variant entered "reminder-failed" through a View Transition typed "confirm", not "reminder-sent" through one typed "confirm"/,
@@ -429,6 +434,24 @@ describe("in CI", () => {
           )
         );
       }
+    }
+  });
+
+  // A modal Sheet is drawn in the top layer, over the page, so one rendered
+  // inside a Card's element isn't a surface inside the Card.
+  it("passes nested-cards' open Sheet rendered inside a Card", () => {
+    for (const render of rendersOf(fixture(nestedCards.id, "sheet-in-card"))) {
+      expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+    }
+  });
+
+  // An open popover is in the top layer too, so a surface in one rendered
+  // inside a Card's element isn't inside the Card.
+  it("passes nested-cards' surface in an open popover rendered inside a Card", () => {
+    for (const render of rendersOf(
+      fixture(nestedCards.id, "popover-in-card")
+    )) {
+      expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
     }
   });
 

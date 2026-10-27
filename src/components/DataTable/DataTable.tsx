@@ -35,11 +35,11 @@ import "./DataTable.css";
 // into it on close. The open sheet is DataTable's own state, not a screen
 // state. Such a row takes focus and answers hover and press; in a selectable
 // table, ticking its box selects and doesn't open it. The Sheet renders after
-// the table's surface, not inside it: it draws in the top layer, but it is a
-// painted surface, and one inside another fails nested-cards (gap #254). A
-// table with no detail slot has rows that don't answer hover, since nothing
-// in them opens. A column whose cell is an Amount puts its header at the end
-// edge, above the cents.
+// the table's surface; it draws in the top layer, so nested-cards reads it as
+// a surface of its own wherever it sits in the DOM (#254). A table with no
+// detail slot has rows that don't answer hover, since nothing in them opens.
+// A column whose cell is an Amount puts its header at the end edge, above
+// the cents.
 // When the statuses its StatusTags are bound to change, such as an action's
 // confirmed result, the rows whose status changed are marked `data-flip`
 // and flip in the stagger DataTable.css sets out (ADR 0011). A table
