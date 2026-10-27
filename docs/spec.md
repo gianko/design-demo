@@ -324,3 +324,10 @@ Toast, EmptyState, IconButton and the rest of demo brief §4 wait for P1. Empty 
 ### The P1 set
 
 15–20 briefs, written as build work after the P0 widening, under one coverage rule: every library component appears in at least 2 briefs, each audience gets at least a third of them, and every action has a failure state.
+
+[P1](https://github.com/gianko/design-demo/issues/201) holds the ten new briefs and what each asks for. Their pass criteria, with `requires.transitions` beside the P0 five's keys ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)):
+
+| Slug | `requires.components` | `requires.states` | `requires.actions` | `requires.transitions` |
+|---|---|---|---|---|
+| `contractors` | Screen, PageHeader, DataTable, Amount, Sheet, EmptyState | empty | — | row-to-sheet |
+| `run-history` | Screen, PageHeader, DataTable, StatusTag, Amount, Sheet, EmptyState | empty | — | row-to-sheet |

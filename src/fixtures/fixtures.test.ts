@@ -7,8 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixtureVariant, type Operations, variantNames } from "./fixtures.ts";
 
 describe("fixtures", () => {
-  // Each P0 brief's `requires.states`, as spec § The P0 five lists them.
-  const p0States = {
+  // Each brief's `requires.states`, as spec § The P0 five and § The P1 set
+  // list them.
+  const briefStates = {
     "payment-status": ["empty", "reminder-sent", "reminder-failed"],
     "payment-overview": ["empty"],
     "invoice-queue": [
@@ -19,12 +20,14 @@ describe("fixtures", () => {
     ],
     "invoice-review": ["payment-scheduled", "payment-failed"],
     "payment-run": ["empty"],
+    contractors: ["empty"],
+    "run-history": ["empty"],
   };
 
-  it("names the default and one <brief>/<state> variant per P0 screen state", () => {
+  it("names the default and one <brief>/<state> variant per brief screen state", () => {
     expect(variantNames).toEqual([
       "default",
-      ...Object.entries(p0States).flatMap(([brief, states]) =>
+      ...Object.entries(briefStates).flatMap(([brief, states]) =>
         states.map((state) => `${brief}/${state}`)
       ),
     ]);
@@ -267,6 +270,94 @@ describe("fixtures", () => {
       overdue: null,
       awaitingApproval: null,
     });
+  });
+
+  it("lists every contractor for the admin, with their invoices still open and what those come to", () => {
+    expect(
+      fixtureVariant("default").data.contractors.map(
+        ({ name, country, openInvoices, openInvoicesLabel, owed }) => [
+          name,
+          country,
+          openInvoices,
+          openInvoicesLabel,
+          owed,
+        ]
+      )
+    ).toEqual([
+      ["Ines Duarte", "Portugal", 2, "2 invoices", 7200],
+      ["Lea Brandt", "Germany", 1, "1 invoice", 3100],
+      ["Tomás Herrera", "Mexico", 2, "2 invoices", 4000],
+      ["Jonah Whitfield-Abernathy", "United Kingdom", 2, "2 invoices", 2600],
+      ["Priya Raman", "India", 1, "1 invoice", 6375.5],
+    ]);
+  });
+
+  it("gives each contractor the details their sheet shows, your year's total included", () => {
+    const { contractors, you, paidThisYear } = fixtureVariant("default").data;
+
+    expect(contractors.find((each) => each.id === you.id)).toEqual({
+      id: "ines-duarte",
+      name: "Ines Duarte",
+      country: "Portugal",
+      email: "ines@duarte.studio",
+      payoutMethod: "Bank transfer to an account ending 4417",
+      openInvoices: 2,
+      openInvoicesLabel: "2 invoices",
+      owed: 7200,
+      paidThisYear: paidThisYear!.amount,
+      currency: "USD",
+    });
+  });
+
+  it("has no contractors in contractors/empty", () => {
+    expect(fixtureVariant("contractors/empty").data.contractors).toEqual([]);
+  });
+
+  it("lists the past payment runs newest first, each with its breakdown", () => {
+    const { pastRuns, lastPayment } = fixtureVariant("default").data;
+
+    expect(
+      pastRuns.map(({ dateLabel, status, countLabel, amount }) => [
+        dateLabel,
+        status,
+        countLabel,
+        amount,
+      ])
+    ).toEqual([
+      ["Oct 10", "paid", "5 invoices", 16420],
+      ["Sep 26", "failed", "6 invoices", 19105.5],
+      ["Sep 12", "paid", "4 invoices", 11250],
+      ["Aug 29", "paid", "7 invoices", 21980],
+      ["Aug 15", "paid", "3 invoices", 8400],
+    ]);
+    // Your last payment went out in the newest run.
+    expect(pastRuns[0]!.date).toBe(lastPayment!.date);
+    expect(pastRuns[1]).toEqual({
+      id: "run-2026-09-26",
+      date: "2026-09-26",
+      dateLabel: "Sep 26",
+      status: "failed",
+      count: 6,
+      countLabel: "6 invoices",
+      amount: 19105.5,
+      currency: "USD",
+      contractorsLabel: "5 contractors",
+      paidCountLabel: "5 invoices",
+      paidAmount: 17485.5,
+      failedCountLabel: "1 invoice",
+      failedAmount: 1620,
+    });
+  });
+
+  it("splits each past run into what went through and what bounced, failed only when a payment bounced", () => {
+    for (const run of fixtureVariant("default").data.pastRuns) {
+      expect(run.paidAmount + run.failedAmount).toBe(run.amount);
+      expect(run.status).toBe(run.failedAmount > 0 ? "failed" : "paid");
+    }
+  });
+
+  it("has no past runs in run-history/empty", () => {
+    expect(fixtureVariant("run-history/empty").data.pastRuns).toEqual([]);
   });
 
   // Runs one operation under a variant, and reports how it stood just before
