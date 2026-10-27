@@ -2,7 +2,7 @@
 
 ## Use
 
-The screen's list of invoices or payments, one row per item, each with a selection checkbox: bind `rows` to a fixtures list, name each column in `columns`, and put one node per column in `cell`, in the same order, its props bound to `row.*`. Selecting rows enters `rows-selected`. For the facts of one invoice use a Card; for a fixed set of named things use Cards in a Stack.
+The screen's list of invoices or payments, one row per item: bind `rows` to a fixtures list, name each column in `columns`, and put one node per column in `cell`, in the same order, its props bound to `row.*`. Turn `selectable` on only when an action acts on the Selection; then each row has a checkbox, and selecting rows enters `rows-selected`. For the facts of one invoice use a Card; for a fixed set of named things use Cards in a Stack.
 
 ## Anatomy
 
@@ -14,19 +14,20 @@ No Radix primitive: Radix isn't installed, and a native `<table>` already has th
 - `header`: each `<th scope="col">`, the column's name.
 - `row`: each `<tr>` in `<tbody>`, one per item in `rows`.
 - `cell`: each `<td>`, holding one node of the `cell` slot for that row.
-- `select`: the first `<th>`/`<td>` of a row, holding its Checkbox; the header's selects every row.
+- `select`: in a selectable table, the first `<th>`/`<td>` of a row, holding its Checkbox; the header's selects every row.
 
 Props and slots:
 
 - `rows`: the items, bound to a fixtures list (`invoices`). Each has an `id`, which keys the row and is what selection holds.
 - `columns`: each column's header, in the order of the `cell` slot's nodes.
-- `selected`: the ids of the rows selected when the table first renders; none when left out. A story, or a screen state that starts with rows selected, sets it.
+- `selectable`: off by default. On, each row and the header get a Checkbox and the table reads and writes the Selection; off, there are no checkboxes, no row fills with `selected`, and the table never enters `rows-selected` (#203). The registry `use` line tells the spec step to turn it on only when an action acts on the Selection.
+- No `selected` prop: a fixture variant names its starting selection, and the host starts with it (GAPS.md).
 - `cell` slot: one template node per column, rendered once per row with that row's `row.*` bindings (ADR 0004). In code it is a function from the row to those nodes, `cell={(row) => <>…</>}`: a `ReactNode` can't read a row.
 - No `detail` slot yet: it and Sheet wait for P1 (spec § PageHeader, Checkbox and DataTable).
 
 ## Variants, sizes, states
 
-No look variant and no size: one table, density sets its size (ADR 0002). Selection is always on, the only kind P0 has (spec § Library widening 3: "selectable rows only").
+No look variant and no size: one table, density sets its size (ADR 0002). Selection was always on in P0 (spec § Library widening 3: "selectable rows only"); P1 makes it the `selectable` prop, off by default, so a table nothing acts on isn't cluttered with checkboxes that do nothing. The selection states below are a selectable table's.
 
 | State | How it shows | Brief line |
 |---|---|---|
@@ -66,7 +67,7 @@ Header weight: there is no 12px, 600 role; `text-caption` is 12px at 400 (see GA
 - **Role**: native `table`; `th scope="col"` column headers, so each cell is read with its column's name.
 - **Accessible name**: none of its own; the screen's level 1 Heading names what it lists (see GAPS.md).
 - **Selection**: each row's Checkbox is named "Select `<row id>`", such as "Select INV-0142"; the header's is "Select all rows", `mixed` when some are. Selected rows carry no `aria-selected`, which a plain table doesn't support; the checkbox's checked state is what is read.
-- **Keyboard**: Tab moves through the checkboxes in row order, header first; Space toggles. Nothing else in a row takes focus in P0.
+- **Keyboard**: in a selectable table, Tab moves through the checkboxes in row order, header first; Space toggles. Nothing else in a row takes focus in P0, so a table that isn't selectable has no tab stop.
 - **Focus**: Checkbox's ring, on `:focus-visible` only.
 - **Disabled**: the header box, natively, when there are no rows.
 - **Busy**: none.
