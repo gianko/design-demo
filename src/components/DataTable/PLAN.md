@@ -80,8 +80,9 @@ Header weight: there is no 12px, 600 role; `text-caption` is 12px at 400 (see GA
 | ticks a row, or the header box | the row's fill crosses to `selected`, `transition-colors duration-base ease-standard` ("`base` 240ms (state change, selection)") |
 | the first tick, or untick of the last | enters `rows-selected`, or back to the default state, through `useScreenState`'s `enter`: an untyped View Transition, `base`, `standard` (ADR 0011) |
 | an action's result changes the screen state | the selection clears in the same update, so the transition carries it |
+| an action's result changes bound statuses | the stagger (#208): only the rows whose StatusTag's status changed flip, edge-on to flat (`status-flip`, `base`, `settle`), in row order, one `delay-stagger` (40ms) apart, and from the 8th changed row on together. Unchanged rows aren't counted, so they leave no gaps ("Stagger", ADR 0011) |
 
-No `settle`: selecting isn't a confirmed result. Reduced motion: the fill's transition drops to `fast`, a crossfade with nothing moving, and the View Transition is already a `fast` crossfade there (`src/styles.css`). The stagger of changed statuses waits for P1 with the pay confirmation (ADR 0011).
+No `settle` on selection: selecting isn't a confirmed result. A flip settles, since it confirms one ("a status flipping after pay"). DataTable marks a changed row `data-flip`, and `src/styles.css` holds the delays (`:nth-child(k of [data-flip])` × `delay-stagger`), so unmarked rows don't count. A table's first render flips nothing: no entrance animation on page load. A row that flips again later is re-keyed, so its flip replays. Reduced motion: the fill's transition drops to `fast`, a crossfade with nothing moving, the View Transition is already a `fast` crossfade there, and a changed row fades in at `fast` (`status-fade`), all at once (`src/styles.css`). The stories StatusesFlip and ManyStatusesFlip hold the delays as style expectations.
 
 ## Against defaults
 
