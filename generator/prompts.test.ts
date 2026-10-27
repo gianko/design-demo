@@ -88,17 +88,23 @@ describe("codePrompt", () => {
   });
 
   // ADR 0011: the host holds the selection, not the fixture data (#188).
-  it("passes payInvoices the selection from useSelectedRows", () => {
-    const [instructions] = codePrompt(
-      "# Design brief",
-      registry,
-      fixtureTypes
-    ).system;
+  // Every bulk operation acts on the Selection (#218).
+  it.each(["payInvoices", "sendReminders", "retryPayments"])(
+    "passes %s the selection from useSelectedRows",
+    (operation) => {
+      const [instructions] = codePrompt(
+        "# Design brief",
+        registry,
+        fixtureTypes
+      ).system;
 
-    expect(instructions!.text).toContain(
-      "payInvoices takes the selected rows' ids: call const selected = useSelectedRows() at the top of the screen and pass selected to the action's run"
-    );
-  });
+      expect(instructions!.text).toMatch(
+        new RegExp(
+          `\\b${operation}\\b[^.:]*take the selected rows' ids: call const selected = useSelectedRows\\(\\) at the top of the screen and pass selected to the action's run`
+        )
+      );
+    }
+  );
 });
 
 // ADR 0004: a DataTable's row slots render once per row, so in code they're

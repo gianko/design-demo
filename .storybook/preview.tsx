@@ -34,7 +34,10 @@ const preview: Preview = {
     // story names its state and fixture variant in `parameters.screenState`
     // (generator/screen-stories.ts); the rest start in the default state.
     // The screenAction and screenOutcome globals start it where one of its
-    // declared actions is clicked, under that outcome's variant.
+    // declared actions is clicked, under that outcome's variant. A kept
+    // screen's stories also carry its declared states in
+    // `parameters.screenStates`, so a confirmed action shows the data of the
+    // state it enters.
     (Story, { parameters, globals }) => (
       <ScreenHost
         screenState={
@@ -43,6 +46,7 @@ const preview: Preview = {
             globals as ScreenActionGlobals
           ) ?? (parameters as ScreenStateParameters).screenState
         }
+        states={(parameters as ScreenStateParameters).screenStates}
       >
         <Story />
       </ScreenHost>
