@@ -15,6 +15,7 @@ import {
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { staticRules } from "../lint/taste/rules/index.ts";
+import * as grayOnColor from "../lint/taste/rules/gray-on-color.ts";
 import * as nestedCards from "../lint/taste/rules/nested-cards.ts";
 import * as noPill from "../lint/taste/rules/no-pill.ts";
 import * as skippedHeading from "../lint/taste/rules/skipped-heading.ts";
@@ -326,6 +327,16 @@ describe("in CI", () => {
       "no-pure-neutral-text",
       "fail",
       /"Invoice 1042" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ],
+    [
+      grayOnColor.id,
+      "fail",
+      /"Pays Oct 20" is ink-muted text on the scheduled background/,
+    ],
+    [
+      grayOnColor.id,
+      "fail",
+      /"Approve" is disabled text on the accent background/,
     ],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
