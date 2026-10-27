@@ -4,9 +4,11 @@
 // as a screen brief, names each id its pass criteria check verbatim, and
 // tables each screen state with a fixture variant the fixtures module has.
 
-import { readdirSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
+import { repo } from "../repo.ts";
 import { fixtureVariant } from "../src/fixtures/fixtures.ts";
 import { readScreenBrief } from "./screen-brief.ts";
 
@@ -108,6 +110,38 @@ const p0Five = [
   },
 ];
 
+describe("a screen brief's requires.transitions", () => {
+  const dir = join(repo, ".generated", `vitest-brief-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  function planted(requires: string) {
+    const path = join(dir, `${randomUUID()}.md`);
+    writeFileSync(
+      path,
+      `---\naudience: admin\nrequires:\n  components: [Screen]\n${requires}---\n\n# A brief\n`
+    );
+    return path;
+  }
+
+  it("takes ADR 0011's transition ids", () => {
+    expect(
+      readScreenBrief(planted("  transitions: [bar-to-toast, row-to-sheet]\n"))
+        .requires.transitions
+    ).toEqual(["bar-to-toast", "row-to-sheet"]);
+  });
+
+  it("defaults to none", () => {
+    expect(readScreenBrief(planted("")).requires.transitions).toEqual([]);
+  });
+
+  it("refuses an id that isn't one of them", () => {
+    expect(() =>
+      readScreenBrief(planted("  transitions: [stagger]\n"))
+    ).toThrow(/transitions/);
+  });
+});
+
 describe("the P0 five", () => {
   it.each(p0Five)(
     "$slug carries the spec's audience and pass criteria",
@@ -123,10 +157,10 @@ describe.each(briefFiles)("the screen brief %s", (file) => {
   });
 
   // Spec § Rules every brief follows: every id a `requires.*` key checks,
-  // components included. A component is named as a word ("Card", not only
-  // "Cards"), and the table's "Screen state" heading doesn't name Screen; a
-  // state or action id is backticked.
-  it("names every component, state and action id its pass criteria check, verbatim", () => {
+  // components and transitions included. A component is named as a word
+  // ("Card", not only "Cards"), and the table's "Screen state" heading
+  // doesn't name Screen; a state, action or transition id is backticked.
+  it("names every component, state, action and transition id its pass criteria check, verbatim", () => {
     const { requires, text } = brief(file);
     const prose = body(text).replace(/^\| Screen state \|.*$/m, "");
     expect(
@@ -135,7 +169,7 @@ describe.each(briefFiles)("the screen brief %s", (file) => {
       )
     ).toEqual([]);
     expect(
-      [...requires.states, ...requires.actions].filter(
+      [...requires.states, ...requires.actions, ...requires.transitions].filter(
         (id) => !prose.includes(`\`${id}\``)
       )
     ).toEqual([]);

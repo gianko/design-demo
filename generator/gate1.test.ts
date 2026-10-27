@@ -919,6 +919,150 @@ describe("gate 1 against the library's registry", () => {
     });
   });
 
+  // ADR 0011's pay confirmation with the library's own ActionBar and Toast:
+  // the bar shows while rows are selected and after a failure, and the
+  // success state shows a Toast where the bar was.
+  describe("the pay confirmation", () => {
+    function payConfirmation() {
+      return {
+        audience: "admin",
+        nodes: [
+          node("screen", "Screen", null, null, { audience: "admin" }),
+          node("column", "Stack", "screen", "body"),
+          node("header", "PageHeader", "column", "body"),
+          node("title", "Heading", "header", "title", {
+            text: "Invoices",
+            level: 1,
+          }),
+          node("table", "DataTable", "column", "body", {
+            rows: bind("invoices"),
+            columns: ["Invoice"],
+            selectable: true,
+          }),
+          node("number", "Text", "table", "cell", { text: bind("row.number") }),
+          shownIn(
+            node("failed", "Toast", "column", "body", {
+              text: "The payment didn't go through. Nothing was paid; try again.",
+              tone: "failure",
+            }),
+            "payment-failed"
+          ),
+          shownIn(
+            node("bar", "ActionBar", "column", "body"),
+            "rows-selected",
+            "payment-failed"
+          ),
+          runs(
+            node("pay", "Button", "bar", "body", {
+              text: "Approve and pay",
+              intent: "primary",
+            }),
+            "approve-and-pay"
+          ),
+          shownIn(
+            node("scheduled", "Toast", "column", "body", {
+              text: "Invoices scheduled for the next run.",
+              tone: "success",
+            }),
+            "payment-scheduled"
+          ),
+        ],
+        states: [
+          { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
+          {
+            name: "payment-scheduled",
+            fixture: "invoice-queue/payment-scheduled",
+          },
+          { name: "payment-failed", fixture: "invoice-queue/payment-failed" },
+        ],
+        actions: [
+          {
+            name: "approve-and-pay",
+            operation: "payInvoices",
+            pending: "pay",
+            to: { success: "payment-scheduled", failure: "payment-failed" },
+          },
+        ],
+      };
+    }
+
+    async function checkQueue(spec: ReturnType<typeof payConfirmation>) {
+      const { entries } = await loadRegistry();
+      const fixtures = {
+        variants: Object.fromEntries(
+          variantNames.map((name) => [name, fixtureVariant(name).data])
+        ),
+        operations: operationNames,
+      };
+      return gate1(spec, { audience: "admin", entries, fixtures }).map(
+        ({ rule, location }) => [rule, location]
+      );
+    }
+
+    it("passes, and has the bar-to-toast transition", async () => {
+      const spec = payConfirmation();
+
+      expect(await checkQueue(spec)).toEqual([]);
+      expect(
+        checkPassCriteria(
+          {
+            components: ["ActionBar", "Toast"],
+            states: [],
+            actions: ["approve-and-pay"],
+            transitions: ["bar-to-toast"],
+          },
+          wireSchema().parse(spec)
+        )
+      ).toEqual({ met: true, missing: [] });
+    });
+
+    it("fails a second ActionBar in the failure state", async () => {
+      const spec = payConfirmation();
+      spec.nodes.push(
+        shownIn(
+          node("retry-bar", "ActionBar", "column", "body"),
+          "payment-failed"
+        )
+      );
+
+      expect(await checkQueue(spec)).toEqual([["one-action-bar", "retry-bar"]]);
+    });
+
+    it("fails a second Toast in the success state", async () => {
+      const spec = payConfirmation();
+      spec.nodes.push(
+        shownIn(
+          node("also", "Toast", "column", "body", {
+            text: "Paid.",
+            tone: "success",
+          }),
+          "payment-scheduled"
+        )
+      );
+
+      expect(await checkQueue(spec)).toEqual([["one-toast", "also"]]);
+    });
+
+    it("fails a Toast in a state no action enters", async () => {
+      const spec = payConfirmation();
+      nodeOf(spec, "scheduled").when = ["rows-selected"];
+
+      expect(await checkQueue(spec)).toEqual([["toast-state", "scheduled"]]);
+    });
+
+    it("fails a Button in the bar that runs no action", async () => {
+      const spec = payConfirmation();
+      spec.nodes.push(
+        node("later", "Button", "bar", "body", {
+          text: "Later",
+          intent: "secondary",
+        })
+      );
+
+      expect(await checkQueue(spec)).toEqual([["action-bar-button", "later"]]);
+    });
+  });
+
   // DataTable renders Checkbox; a UI spec never places one (#179).
   it("fails a Checkbox placed in a UI spec as unregistered", async () => {
     const spec = headings("1");
