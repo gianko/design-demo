@@ -1,0 +1,42 @@
+/* What no token class can set (ActionBar gap #236), on the component's own
+   marker. Row → sheet (ADR 0011) is one view transition name, carried by the
+   Sheet and by the row it opened from, which transitionSheet marks with
+   `data-sheet-origin` in whichever view shows the row and not the sheet. So
+   opening morphs the row into the sheet, and closing morphs it back. */
+[data-component="Sheet"],
+[data-sheet-origin] {
+  view-transition-name: row-detail;
+}
+
+/* A sheet opens at `slow`, the brief's duration for a sheet, with `standard`
+   easing (opening confirms nothing, so it never settles), and the row's image
+   fades out at its exit duration. It closes at `slow-exit` with `exit`.
+   src/styles.css times every other group. Under reduced motion none of this
+   applies, and src/styles.css makes every change a `fast` crossfade. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:active-view-transition-type(sheet-open)::view-transition-group(
+      row-detail
+    ),
+  :root:active-view-transition-type(sheet-open)::view-transition-new(
+      row-detail
+    ) {
+    animation-duration: var(--ds-motion-duration-slow);
+    animation-timing-function: var(--ds-motion-ease-standard);
+  }
+
+  :root:active-view-transition-type(sheet-open)::view-transition-old(
+      row-detail
+    ),
+  :root:active-view-transition-type(sheet-close)::view-transition-group(
+      row-detail
+    ),
+  :root:active-view-transition-type(sheet-close)::view-transition-old(
+      row-detail
+    ),
+  :root:active-view-transition-type(sheet-close)::view-transition-new(
+      row-detail
+    ) {
+    animation-duration: var(--ds-motion-duration-slow-exit);
+    animation-timing-function: var(--ds-motion-ease-exit);
+  }
+}

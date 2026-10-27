@@ -1081,6 +1081,103 @@ describe("gate 1 against the library's registry", () => {
     ]);
   });
 
+  // Sheet is read-only row detail (#213): its title is a Heading, and its
+  // body holds only Heading, Text, Amount, StatusTag and Stack, so a UI spec
+  // can't nest a Card in it or put an action in it. Only failures on the
+  // Sheet's children are read: whether DataTable has its detail slot yet
+  // (#214) is another rule's business.
+  describe("Sheet's children", () => {
+    function sheetWith(...children: Node[]) {
+      return {
+        audience: "admin",
+        nodes: [
+          node("screen", "Screen", null, null, { audience: "admin" }),
+          node("column", "Stack", "screen", "body"),
+          node("header", "PageHeader", "column", "body"),
+          node("title", "Heading", "header", "title", {
+            text: "Invoices",
+            level: 1,
+          }),
+          node("table", "DataTable", "column", "body", {
+            rows: bind("invoices"),
+            columns: ["Invoice"],
+          }),
+          node("number", "Text", "table", "cell", { text: bind("row.number") }),
+          node("sheet", "Sheet", "table", "detail", {
+            closeLabel: "Close invoice details",
+          }),
+          ...children,
+        ],
+        states: [],
+        actions: [],
+      };
+    }
+
+    async function childFailures(...children: Node[]) {
+      const { entries } = await loadRegistry();
+      const ids = new Set(children.map((child) => child.id));
+      return gate1(sheetWith(...children), { ...library, entries })
+        .filter(({ location }) => ids.has(location))
+        .map(({ rule, location }) => [rule, location]);
+    }
+
+    it("takes a Heading title and a body of Heading, Text, Amount, StatusTag and Stack", async () => {
+      expect(
+        await childFailures(
+          node("sheet-title", "Heading", "sheet", "title", {
+            text: "INV-0142",
+            level: 2,
+          }),
+          node("sheet-group", "Heading", "sheet", "body", {
+            text: "Payment",
+            level: 3,
+          }),
+          node("sheet-note", "Text", "sheet", "body", { text: "Due Oct 24" }),
+          node("sheet-amount", "Amount", "sheet", "body", {
+            value: 4800,
+            currency: "USD",
+            display: "card",
+          }),
+          node("sheet-status", "StatusTag", "sheet", "body", {
+            status: "awaiting",
+          }),
+          node("sheet-facts", "Stack", "sheet", "body")
+        )
+      ).toEqual([]);
+    });
+
+    it.each([
+      [
+        "a Card",
+        node("sheet-card", "Card", "sheet", "body"),
+        ["slot-allow", "sheet-card"],
+      ],
+      [
+        "a Button",
+        node("sheet-pay", "Button", "sheet", "body", {
+          text: "Approve and pay",
+          intent: "primary",
+        }),
+        ["slot-allow", "sheet-pay"],
+      ],
+      [
+        "a DataTable",
+        node("sheet-lines", "DataTable", "sheet", "body", {
+          rows: bind("invoices"),
+          columns: ["Invoice"],
+        }),
+        ["slot-allow", "sheet-lines"],
+      ],
+      [
+        "a Text as its title",
+        node("sheet-title", "Text", "sheet", "title", { text: "INV-0142" }),
+        ["slot-allow", "sheet-title"],
+      ],
+    ])("fails %s in a Sheet, naming it", async (_, child, failure) => {
+      expect(await childFailures(child)).toEqual([failure]);
+    });
+  });
+
   // Sheet renders IconButton as its close button; a UI spec never places one
   // (#212). The library has the entry, and the code step sees it, so it's
   // the internal mark that keeps it out of a UI spec.

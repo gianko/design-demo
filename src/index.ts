@@ -40,6 +40,7 @@ export {
   type ScreenHostProps,
   type ScreenStateParameters,
 } from "./components/Screen/screen-state.tsx";
+export { Sheet, type SheetProps } from "./components/Sheet/Sheet.tsx";
 export { Stack, type StackProps } from "./components/Stack/Stack.tsx";
 export {
   StatusTag,
