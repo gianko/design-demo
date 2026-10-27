@@ -89,10 +89,15 @@ function overflowing(root: Element): RenderFinding[] {
   }
 
   // Collisions: two texts whose line boxes overlap by more than the slack.
+  // A modal dialog (a Sheet) draws in the top layer, over the inert page
+  // behind its scrim, so its text covers the page's rather than colliding
+  // with it: only texts in the same layer can collide.
+  const layer = (element: Element) => element.closest(":modal");
   for (let i = 0; i < texts.length; i++) {
     for (let j = i + 1; j < texts.length; j++) {
       const a = texts[i]!;
       const b = texts[j]!;
+      if (layer(a.element) !== layer(b.element)) continue;
       const overlap = a.rects.some((r) =>
         b.rects.some(
           (s) =>

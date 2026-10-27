@@ -5,8 +5,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 // wraps out of the bottom of a fixed-height control. Clip: a long name cut
 // off by `overflow: hidden` with no ellipsis. Collide: two labels painted
 // over each other. Pass: the same content truncated with an ellipsis, broken
-// anywhere, or given room, and a visually hidden status region, as Screen
-// renders one, whose copy runs past its 1px box because no one sees it.
+// anywhere, or given room, a visually hidden status region, as Screen
+// renders one, whose copy runs past its 1px box because no one sees it, and a
+// modal dialog, as a Sheet opens, whose text covers the page's behind it
+// rather than colliding with it.
 const meta = {
   title: "GateFixtures/TextOverflow",
   args: { variant: "pass" },
@@ -45,6 +47,15 @@ const meta = {
           <div role="status" className="sr-only">
             <p>Reminder sent to Northwind. We'll tell you when they pay.</p>
           </div>
+          <dialog
+            aria-label="Invoice details"
+            className="m-0 border-0 bg-surface p-page text-body text-ink backdrop:bg-scrim"
+            ref={(dialog) => {
+              if (dialog && !dialog.open) dialog.showModal();
+            }}
+          >
+            <p>Invoice INV-0142, due Oct 24</p>
+          </dialog>
         </>
       )}
     </div>
