@@ -2,6 +2,7 @@
 // exports its `id`, and `lint` for its static half, `render` for its render
 // half, or both.
 
+import * as edgeTreatment from "./edge-treatment.ts";
 import * as gradientAsDecoration from "./gradient-as-decoration.ts";
 import * as motionTokens from "./motion-tokens.ts";
 import * as nestedCards from "./nested-cards.ts";
@@ -22,6 +23,7 @@ export const tasteRules = [
   noAllCaps,
   skippedHeading,
   nestedCards,
+  edgeTreatment,
 ];
 
 // The rules ESLint runs as `taste/<id>`.
