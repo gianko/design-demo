@@ -19,6 +19,6 @@ The rows are the fixtures' `overdueInvoices`: bind the DataTable's rows to it, a
 | `empty` | nothing overdue (`overdue-invoices/empty`) | the PageHeader and an EmptyState: "No overdue invoices", and that invoices past their due date show up here |
 | `rows-selected` | rows selected (`overdue-invoices/rows-selected`) | the DataTable with rows selected, and the ActionBar with the Send reminders Button |
 | `reminders-sent` | reminders sent (`overdue-invoices/reminders-sent`) | the DataTable with no rows selected, and a success Toast where the ActionBar was: "Reminders sent for 2 overdue invoices." |
-| `reminders-failed` | reminders failed (`overdue-invoices/reminders-failed`) | the DataTable with the rows still selected, a failure Toast saying what happened and what to do next, and the ActionBar still there to retry |
+| `reminders-failed` | reminders failed (`overdue-invoices/reminders-failed`) | the DataTable with the rows still selected, and the ActionBar still there to retry, with a failure Toast inside it, above its Button, saying what happened and what to do next |
 
 Pending is not a screen state: it is the Button's own state while `send-reminders` runs.
