@@ -8,6 +8,7 @@ import { defineEntry } from "../../registry/entry.ts";
 export const actionBarEntry = defineEntry({
   name: "ActionBar",
   use: "The bulk-action bar; put the action's Button here, show it `when: [rows-selected]`, and leave it out of the success state so it becomes that state's Toast. Keep it in the failure state too, so the admin can retry with the rows still selected, and put that state's failure Toast in its body, above the Button. Place it right after the DataTable it acts on. For an action on one thing use its Card's footer; for the screen's own action use PageHeader's actions.",
+  surface: "raised",
   props: z.object({}),
   slots: { body: { allow: ["Button", "Toast"] } },
 });

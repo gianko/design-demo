@@ -6,6 +6,7 @@ import { defineEntry } from "../../registry/entry.ts";
 export const cardEntry = defineEntry({
   name: "Card",
   use: "A flat surface grouping the facts about one thing, such as an invoice or a payment: its title in header (a Heading, in a row with its StatusTag when it has one), its content in body, its action in footer. Never put a Card inside a Card. For layout without a surface use Stack.",
+  surface: "flat",
   props: z.object({}),
   slots: {
     header: { allow: ["Heading", "Text", "StatusTag", "Stack"] },

@@ -78,6 +78,7 @@ const entries = [
   defineEntry({
     name: "Card",
     use: "A surface.",
+    surface: "flat",
     props: z.object({}),
     slots: {
       header: { allow: ["Heading", "Tag", "Stack"] },
@@ -747,6 +748,26 @@ describe("gate 1", () => {
       expect(check(spec)).toEqual([]);
     });
 
+    // The flag on the entry is what makes a surface, so a component that
+    // opts in where it's defined is checked with no change to gate 1.
+    it("fails a Card in any component its entry marks a flat surface", () => {
+      const flatPanel = entries.map((entry) =>
+        entry.name === "Panel" ? { ...entry, surface: "flat" as const } : entry
+      );
+      const spec = clean();
+      spec.nodes.push(
+        node("row", "Stack", "panel", "body"),
+        node("inner", "Card", "row", "body")
+      );
+
+      expect(
+        gate1(spec, { ...context, entries: flatPanel }).map(
+          ({ rule, location }) => [rule, location]
+        )
+      ).toEqual([["nested-cards", "inner"]]);
+      expect(check(spec)).toEqual([]);
+    });
+
     it("ends its walk on Cards whose parents loop", () => {
       const spec = withCard();
       spec.nodes.push(
@@ -1218,7 +1239,9 @@ describe("gate 1 against the library's registry", () => {
       [
         "a Card",
         node("sheet-card", "Card", "sheet", "body"),
-        ["slot-allow", "sheet-card"],
+        // The Sheet is a surface of its own, so the DataTable it sits in
+        // isn't the Card's nearest surface: only the slot is wrong.
+        [["slot-allow", "sheet-card"]],
       ],
       [
         "a Button",
@@ -1226,7 +1249,7 @@ describe("gate 1 against the library's registry", () => {
           text: "Approve and pay",
           intent: "primary",
         }),
-        ["slot-allow", "sheet-pay"],
+        [["slot-allow", "sheet-pay"]],
       ],
       [
         "a DataTable",
@@ -1234,15 +1257,15 @@ describe("gate 1 against the library's registry", () => {
           rows: bind("invoices"),
           columns: ["Invoice"],
         }),
-        ["slot-allow", "sheet-lines"],
+        [["slot-allow", "sheet-lines"]],
       ],
       [
         "a Text as its title",
         node("sheet-title", "Text", "sheet", "title", { text: "INV-0142" }),
-        ["slot-allow", "sheet-title"],
+        [["slot-allow", "sheet-title"]],
       ],
-    ])("fails %s in a Sheet, naming it", async (_, child, failure) => {
-      expect(await childFailures(child)).toEqual([failure]);
+    ])("fails %s in a Sheet, naming it", async (_, child, failures) => {
+      expect(await childFailures(child)).toEqual(failures);
     });
   });
 
@@ -1334,6 +1357,158 @@ describe("gate 1 against the library's registry", () => {
       expect(await checkWithFixtures(spec)).toEqual([
         ["slot-allow", "stray-text"],
       ]);
+    });
+  });
+
+  // Card, DataTable and EmptyState paint the same flat surface, so none sits
+  // anywhere beneath another (#246); a raised or overlay surface such as a
+  // Sheet isn't one of them.
+  describe("surfaces inside surfaces", () => {
+    function summaryWith(...children: Node[]) {
+      return {
+        audience: "contractor",
+        nodes: [
+          node("screen", "Screen", null, null, { audience: "contractor" }),
+          node("column", "Stack", "screen", "body"),
+          node("title", "Heading", "column", "body", {
+            text: "My invoices",
+            level: 1,
+          }),
+          node("summary", "Card", "column", "body"),
+          node("summary-note", "Text", "summary", "body", {
+            text: "Paid within 30 days",
+          }),
+          ...children,
+        ],
+        states: [],
+        actions: [],
+      };
+    }
+
+    async function checkSurfaces(spec: unknown) {
+      const { entries } = await loadRegistry();
+      const fixtures = {
+        variants: { default: fixtureVariant("default").data },
+        operations: operationNames,
+      };
+      return gate1(spec, { audience: "contractor", entries, fixtures });
+    }
+
+    const table = (id: string, parent: string, slot: string) => [
+      node(id, "DataTable", parent, slot, {
+        rows: bind("invoices"),
+        columns: ["Invoice"],
+      }),
+      node(`${id}-number`, "Text", id, "cell", { text: bind("row.number") }),
+    ];
+
+    it("fails a Card in a Card's body, naming both", async () => {
+      expect(
+        await checkSurfaces(
+          summaryWith(node("inner", "Card", "summary", "body"))
+        )
+      ).toEqual([
+        {
+          gate: "gate 1",
+          rule: "nested-cards",
+          location: "inner",
+          message:
+            'The Card "inner" sits inside the Card "summary"; a surface never goes inside a surface: put it beside the Card, or use a Stack for layout.',
+        },
+      ]);
+    });
+
+    it("fails an EmptyState in a Card's body, naming both", async () => {
+      expect(
+        await checkSurfaces(
+          summaryWith(
+            node("empty", "EmptyState", "summary", "body", {
+              title: "No invoices yet",
+            })
+          )
+        )
+      ).toEqual([
+        {
+          gate: "gate 1",
+          rule: "nested-cards",
+          location: "empty",
+          message:
+            'The EmptyState "empty" sits inside the Card "summary"; a surface never goes inside a surface: put it beside the Card, or use a Stack for layout.',
+        },
+      ]);
+    });
+
+    it("fails a DataTable in a Stack in a Card's body, naming both", async () => {
+      expect(
+        await checkSurfaces(
+          summaryWith(
+            node("lines", "Stack", "summary", "body"),
+            ...table("table", "lines", "body")
+          )
+        )
+      ).toEqual([
+        {
+          gate: "gate 1",
+          rule: "nested-cards",
+          location: "table",
+          message:
+            'The DataTable "table" sits inside the Card "summary"; a surface never goes inside a surface: put it beside the Card, or use a Stack for layout.',
+        },
+      ]);
+    });
+
+    it("passes a Card, an EmptyState and a DataTable side by side", async () => {
+      expect(
+        await checkSurfaces(
+          summaryWith(
+            node("empty", "EmptyState", "column", "body", {
+              title: "No invoices yet",
+            }),
+            ...table("table", "column", "body")
+          )
+        )
+      ).toEqual([]);
+    });
+
+    it("passes a Sheet in a DataTable's detail slot", async () => {
+      expect(
+        await checkSurfaces(
+          summaryWith(
+            ...table("table", "column", "body"),
+            node("sheet", "Sheet", "table", "detail", {
+              closeLabel: "Close invoice details",
+            }),
+            node("sheet-title", "Heading", "sheet", "title", {
+              text: bind("row.number"),
+              level: 2,
+            })
+          )
+        )
+      ).toEqual([]);
+    });
+
+    // The Sheet is the Card's nearest surface, and an overlay one, so the
+    // DataTable above it isn't what the Card sits on: telling it to move
+    // beside the DataTable would be wrong advice. The Sheet's slot names the
+    // real problem.
+    it("fails a Card in a Sheet in a DataTable's detail only on the Sheet's slot", async () => {
+      expect(
+        (
+          await checkSurfaces(
+            summaryWith(
+              ...table("table", "column", "body"),
+              node("sheet", "Sheet", "table", "detail", {
+                closeLabel: "Close invoice details",
+              }),
+              node("sheet-title", "Heading", "sheet", "title", {
+                text: bind("row.number"),
+                level: 2,
+              }),
+              node("sheet-card", "Card", "sheet", "body")
+            )
+          )
+        ).map(({ rule, location }) => [rule, location])
+      ).toEqual([["slot-allow", "sheet-card"]]);
     });
   });
 

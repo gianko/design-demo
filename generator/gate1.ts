@@ -169,7 +169,7 @@ function checks(spec: UiSpec, { entries, audience, fixtures }: Gate1Context) {
   failures.push(...stateChecks(spec, byId, fixtures));
   failures.push(...headingChecks(screen));
   failures.push(...motionChecks(spec, byId, screen));
-  failures.push(...nestingChecks(spec, byId));
+  failures.push(...nestingChecks(spec, byId, entryOf));
 
   // The audience is the screen brief's, on the spec and on its Screen.
   if (spec.audience !== audience) {
@@ -479,28 +479,30 @@ function motionChecks(
   return failures.list;
 }
 
-// No Card sits anywhere beneath another Card, through any slot and any
-// depth of layout nodes (`nested-cards` in lint/taste/RULES.md): a surface
-// inside a surface is the SaaS-card kit the brief bans.
-function nestingChecks(spec: UiSpec, byId: Map<string, UiNode>): Failure[] {
+// No flat surface (an entry whose `surface` is flat: Card, DataTable,
+// EmptyState) sits beneath another, through any slot and any depth of layout
+// nodes (`nested-cards` in lint/taste/RULES.md): a surface inside a surface
+// is the SaaS-card kit the brief bans. Only the nearest surface above counts,
+// and it is the one named: a raised or overlay one (a Toast, a Sheet) floats
+// as its own, so what's in it isn't inside the flat surface beneath.
+function nestingChecks(
+  spec: UiSpec,
+  byId: Map<string, UiNode>,
+  entryOf: Map<string, RegistryEntry>
+): Failure[] {
   const failures: Failure[] = [];
-  const parentOf = (node: UiNode) =>
-    node.parent === null ? undefined : byId.get(node.parent);
+  const surfaceOf = (node: UiNode) => entryOf.get(node.component)?.surface;
   for (const node of spec.nodes) {
-    if (node.component !== "Card") continue;
-    const seen = new Set<UiNode>([node]);
-    for (let at = parentOf(node); at && !seen.has(at); at = parentOf(at)) {
-      seen.add(at);
-      if (at.component === "Card") {
-        failures.push(
-          fail(
-            "nested-cards",
-            node.id,
-            `It sits inside the Card "${at.id}"; never put a Card inside a Card.`
-          )
-        );
-        break;
-      }
+    if (surfaceOf(node) !== "flat") continue;
+    const above = ancestors(node, byId).find((at) => surfaceOf(at));
+    if (above && surfaceOf(above) === "flat") {
+      failures.push(
+        fail(
+          "nested-cards",
+          node.id,
+          `The ${node.component} "${node.id}" sits inside the ${above.component} "${above.id}"; a surface never goes inside a surface: put it beside the ${above.component}, or use a Stack for layout.`
+        )
+      );
     }
   }
   return failures;
