@@ -8,6 +8,7 @@ import * as motionTokens from "./motion-tokens.ts";
 import * as nestedCards from "./nested-cards.ts";
 import * as noAllCaps from "./no-all-caps.ts";
 import * as noPill from "./no-pill.ts";
+import * as noPureNeutralText from "./no-pure-neutral-text.ts";
 import * as skippedHeading from "./skipped-heading.ts";
 import * as tabularNumerals from "./tabular-numerals.ts";
 import * as textOverflow from "./text-overflow.ts";
@@ -24,6 +25,7 @@ export const tasteRules = [
   skippedHeading,
   nestedCards,
   edgeTreatment,
+  noPureNeutralText,
 ];
 
 // The rules ESLint runs as `taste/<id>`.

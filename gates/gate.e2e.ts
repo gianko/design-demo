@@ -281,6 +281,26 @@ describe("in CI", () => {
       "shadow",
       /"Next payment" is a painted surface inside another/,
     ],
+    [
+      "no-pure-neutral-text",
+      "fail",
+      /"Ada Lovelace" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ],
+    [
+      "no-pure-neutral-text",
+      "fail",
+      /"Approve and pay" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ],
+    [
+      "no-pure-neutral-text",
+      "fail",
+      /The placeholder "Search invoices" is set in oklab\(0 0 0 \/ 0\.5\)/,
+    ],
+    [
+      "no-pure-neutral-text",
+      "fail",
+      /"Invoice 1042" is set in rgb\(0, 0, 0\), which has no chroma/,
+    ],
   ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
     // The report prints each finding as a JSON string, quotes escaped.
     const printed = finding.source.replaceAll('"', '\\\\?"');
