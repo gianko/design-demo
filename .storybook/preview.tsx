@@ -24,9 +24,13 @@ const preview: Preview = {
     // hooks (ADR 0011), so every story renders inside a ScreenHost. A state
     // story names its state and fixture variant in `parameters.screenState`
     // (generator/screen-stories.ts); the rest start in the default state.
+    // A kept screen's stories also carry its declared states in
+    // `parameters.screenStates`, so a confirmed action shows the data of the
+    // state it enters.
     (Story, { parameters }) => (
       <ScreenHost
         screenState={(parameters as ScreenStateParameters).screenState}
+        states={(parameters as ScreenStateParameters).screenStates}
       >
         <Story />
       </ScreenHost>

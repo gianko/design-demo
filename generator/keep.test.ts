@@ -114,6 +114,27 @@ export function ${rep.name}() {
     );
   });
 
+  // So a confirmed action shows the data of the state it enters in every
+  // story (ADR 0011, the stagger): the preview hands them to ScreenHost.
+  it("gives every story the declared states, each with its fixture variant", async () => {
+    const rep = repDir({
+      states: [
+        { name: "rows-selected", fixture: "bulk-pay/rows-selected" },
+        { name: "payment-scheduled", fixture: "bulk-pay/payment-scheduled" },
+      ],
+    });
+
+    await keep(rep.dir);
+
+    const stories = readFileSync(
+      join(rep.kept, `${rep.name}.stories.tsx`),
+      "utf8"
+    );
+    expect(stories).toMatch(
+      /const meta = \{[^;]*parameters: \{\s*screenStates: \[\s*\{ name: "rows-selected", fixture: "bulk-pay\/rows-selected" \},\s*\{\s*name: "payment-scheduled",\s*fixture: "bulk-pay\/payment-scheduled",?\s*\},?\s*\],?\s*\},?\s*\} satisfies Meta/
+    );
+  });
+
   it("refuses a rep that didn't pass, and writes nothing", async () => {
     const rep = repDir({ endReason: "code-attempts-exhausted" });
 

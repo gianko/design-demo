@@ -1,7 +1,9 @@
 // A generated screen's stories: the default, then one per declared screen
-// state, each naming the fixture variant it renders. The render pass gates
-// exactly these, and `pnpm keep` commits them beside the kept screen, so a
-// kept screen is gated as it was generated (spec § Keep).
+// state, each naming the fixture variant it renders. Every story also carries
+// the declared states, so a confirmed action shows the data of the state it
+// enters. The render pass gates exactly these, and `pnpm keep` commits them
+// beside the kept screen, so a kept screen is gated as it was generated
+// (spec § Keep).
 //
 // The title's last segment is the slug, so `pnpm gate <slug>` selects them.
 
@@ -32,6 +34,9 @@ export function storyStates({ states }: Pick<ScreenStoriesInput, "states">) {
 // The story parameter the Storybook preview hands to ScreenHost (ADR 0011),
 // in the library's own shape.
 const parameter: keyof ScreenStateParameters = "screenState";
+// And the declared states every story's host takes, so a confirmed action
+// shows the data of the state it enters (the stagger).
+const declaredParameter: keyof ScreenStateParameters = "screenStates";
 
 export function screenStories({ slug, name, states }: ScreenStoriesInput) {
   const stories = storyStates({ states }).map(({ exportName, state }) => {
@@ -50,6 +55,16 @@ export function screenStories({ slug, name, states }: ScreenStoriesInput) {
       : "{}";
     return `export const ${exportName}: Story = ${body};\n`;
   });
+  const declaredStates = states.map(
+    ({ name: state, fixture }): Record<keyof HostedState, string> => ({
+      name: state,
+      fixture,
+    })
+  );
+  const metaParameters =
+    declaredStates.length > 0
+      ? `\n  parameters: { ${declaredParameter}: ${JSON.stringify(declaredStates)} },`
+      : "";
   return `// Written by \`pnpm keep\`: the default and one story per declared screen
 // state, each with its fixture variant.
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -57,7 +72,7 @@ import { ${name} } from "./${name}.tsx";
 
 const meta = {
   title: ${JSON.stringify(`Screens/${slug}`)},
-  component: ${name},
+  component: ${name},${metaParameters}
 } satisfies Meta<typeof ${name}>;
 
 export default meta;

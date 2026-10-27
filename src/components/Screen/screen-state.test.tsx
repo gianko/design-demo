@@ -7,7 +7,7 @@
 // The stories compose with the Storybook preview, whose ScreenHost hosts
 // them as it does in the gate.
 
-import { composeStories } from "@storybook/react-vite";
+import { composeStories, composeStory } from "@storybook/react-vite";
 import {
   act,
   cleanup,
@@ -15,10 +15,21 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import preview from "../../../.storybook/preview.tsx";
+import { Button } from "../Button/Button.tsx";
+import { DataTable } from "../DataTable/DataTable.tsx";
+import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
-import { ScreenHost, useFixtureData } from "./screen-state.tsx";
+import { Screen } from "./Screen.tsx";
+import {
+  ScreenHost,
+  useAction,
+  useFixtureData,
+  useSelectedRows,
+  type HostedState,
+  type ScreenStateParameters,
+} from "./screen-state.tsx";
 import * as stories from "./Screen.stories.tsx";
 
 const { SendReminder, ReminderFails, ReminderSent } = composeStories(
@@ -179,6 +190,140 @@ it("reads the data of the fixture variant its host names", () => {
     "Oct 8",
     "Nothing due",
   ]);
+});
+
+// A confirmed action has changed the data, so the state it enters shows that
+// state's own fixture variant, which the UI spec declares beside it: the paid
+// rows' statuses change, and those rows flip (ADR 0011, the stagger). A
+// failed one changes nothing, as it keeps the selection.
+describe("the data of the state an action enters", () => {
+  const declared: HostedState[] = [
+    { name: "rows-selected", fixture: "bulk-pay/rows-selected" },
+    { name: "payment-scheduled", fixture: "bulk-pay/payment-scheduled" },
+    { name: "payment-failed", fixture: "bulk-pay/payment-failed" },
+  ];
+
+  function BulkPay() {
+    const { payQueue } = useFixtureData();
+    const selected = useSelectedRows();
+    const pay = useAction("payInvoices", {
+      success: "payment-scheduled",
+      failure: "payment-failed",
+    });
+    return (
+      <Screen audience="admin">
+        <DataTable
+          selectable
+          rows={payQueue}
+          columns={["Invoice", "Status"]}
+          cell={(row) => (
+            <>
+              <Text text={row.number} />
+              <StatusTag status={row.status} />
+            </>
+          )}
+        />
+        <Button
+          intent="primary"
+          text="Pay selected"
+          pending={pay.pending}
+          onClick={() => pay.run(selected)}
+        />
+      </Screen>
+    );
+  }
+
+  const statuses = () =>
+    screen.getAllByRole("row").flatMap((row) => {
+      const tag = row.querySelector('[data-component="StatusTag"]');
+      return tag
+        ? [
+            `${tag.textContent}${row.hasAttribute("data-flip") ? " (flips)" : ""}`,
+          ]
+        : [];
+    });
+
+  const pay = async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Pay selected" }));
+    await act(() => vi.advanceTimersByTimeAsync(1800));
+  };
+
+  it("shows the success state's variant once the action is confirmed, flipping the rows it changed", async () => {
+    render(
+      <ScreenHost screenState={declared[0]} states={declared}>
+        <BulkPay />
+      </ScreenHost>
+    );
+    expect(statuses()).toEqual(["Awaiting", "Awaiting", "Awaiting"]);
+
+    await pay();
+
+    expect(screenState()).toBe("payment-scheduled");
+    expect(statuses()).toEqual([
+      "Scheduled (flips)",
+      "Scheduled (flips)",
+      "Scheduled (flips)",
+    ]);
+  });
+
+  it("keeps the data it had when the action fails", async () => {
+    render(
+      <ScreenHost
+        screenState={{
+          name: "rows-selected",
+          fixture: "bulk-pay/payment-failed",
+        }}
+        states={declared}
+      >
+        <BulkPay />
+      </ScreenHost>
+    );
+
+    await pay();
+
+    expect(screenState()).toBe("payment-failed");
+    expect(statuses()).toEqual(["Awaiting", "Awaiting", "Awaiting"]);
+    expect(screen.getAllByRole("checkbox", { checked: true })).toHaveLength(4);
+  });
+
+  it("keeps its data on a confirm when its host doesn't know the state's variant", async () => {
+    render(
+      <ScreenHost screenState={declared[0]}>
+        <BulkPay />
+      </ScreenHost>
+    );
+
+    await pay();
+
+    expect(screenState()).toBe("payment-scheduled");
+    expect(statuses()).toEqual(["Awaiting", "Awaiting", "Awaiting"]);
+  });
+
+  // A kept screen's stories carry the declared states in
+  // `parameters.screenStates` (generator/screen-stories.ts), and the
+  // Storybook preview hands them to the host.
+  it("takes the declared states from a story's parameters", async () => {
+    const RowsSelected = composeStory(
+      {
+        parameters: {
+          screenState: declared[0],
+          screenStates: declared,
+        } satisfies ScreenStateParameters,
+        render: () => <BulkPay />,
+      },
+      { title: "Screens/bulk-pay" },
+      preview
+    );
+    render(<RowsSelected />);
+
+    await pay();
+
+    expect(statuses()).toEqual([
+      "Scheduled (flips)",
+      "Scheduled (flips)",
+      "Scheduled (flips)",
+    ]);
+  });
 });
 
 it("starts in the screen state its host names", () => {
