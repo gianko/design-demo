@@ -2,6 +2,7 @@
 // exports its `id`, and `lint` for its static half, `render` for its render
 // half, or both.
 
+import * as contentHiddenAtRest from "./content-hidden-at-rest.ts";
 import * as edgeTreatment from "./edge-treatment.ts";
 import * as gradientAsDecoration from "./gradient-as-decoration.ts";
 import * as grayOnColor from "./gray-on-color.ts";
@@ -22,6 +23,7 @@ export const tasteRules = [
   typeOnScale,
   tabularNumerals,
   textOverflow,
+  contentHiddenAtRest,
   gradientAsDecoration,
   noAllCaps,
   skippedHeading,

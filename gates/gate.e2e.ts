@@ -261,6 +261,26 @@ describe("in CI", () => {
       /"Northwind Logistics GmbH" is clipped without an ellipsis/,
     ],
     [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
+    [
+      "content-hidden-at-rest",
+      "opacity",
+      /"Northwind Logistics GmbH" stays at opacity 0/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "visibility",
+      /"Paid" stays at visibility: hidden/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "clip",
+      /"Invoice 2024-0117" stays clipped to nothing/,
+    ],
+    [
+      "content-hidden-at-rest",
+      "clip",
+      /"Due in 14 days" stays clipped to nothing/,
+    ],
     ["no-all-caps", "fail", /"Overdue" is set in uppercase/],
     ["no-all-caps", "fail", /"AMOUNT" is in all caps/],
     [
