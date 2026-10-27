@@ -4,7 +4,7 @@ The component library is built on Radix Primitives and Tailwind v4. The token bu
 
 ## Decisions that come with it
 
-- **Library components take no `className`.** They change appearance only through typed variant props, so the registry describes everything a screen can change. Stack and Grid take token-union props for layout spacing.
+- **Library components take no `className`.** They change appearance only through typed variant props, so the registry describes everything a screen can change. Stack takes token-union props for layout spacing.
 - **Variants are written with `tailwind-variants/lite`**, one `tv()` per component with a slot for each Radix part. Nothing merges classes and `tailwind-merge` is never installed: it silently drops custom size tokens (`twMerge("text-caption text-fg")` → `"text-fg"`).
 - **Density is a CSS scope.** `data-density="admin|contractor"` on a screen root flips the density variables; components use density-role tokens and never know which density they're in. This answers the open consequence of [ADR 0001](0001-density-by-audience.md).
 - **Theme is an explicit `data-theme="light|dark"` attribute**, light by default, so Storybook, visual baselines and Figma captures can pin a mode. No automatic OS following in P0.
