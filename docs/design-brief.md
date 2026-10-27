@@ -70,7 +70,7 @@ Colour is assigned by role; components never name a hue.
   |---|---|---|---|---|---|
   | 6px | 6px | 4px | 8px | 12px | Round |
 
-  Nothing is fully rounded except avatars. Nested corners stay concentric (inner = outer − padding). _Why: softened corners keep some warmth without the friendly-app look; one radius everywhere is a default, not a choice._
+  Nothing is fully rounded except avatars. Nested corners stay concentric (inner = outer − padding) where the spacing scale allows; where it doesn't, the radius table wins. _Why: softened corners keep some warmth without the friendly-app look; one radius everywhere is a default, not a choice._
 - **Elevation, three levels**: flat (page and cards, separated by a `line` hairline), raised (sticky and floating bars, toasts: one soft plum-tinted shadow), overlay (modal, sheet, menu: a deeper shadow and a scrim). A shadow means "this floats", never "this is a box". In dark mode, levels are lighter surfaces.
 
 ## Motion
