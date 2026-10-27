@@ -90,7 +90,7 @@ Motion confirms what the user just did. It is the system's signature, so it is p
 
 ## Icons and copy
 
-- **Phosphor**, regular weight: 16px on admin screens, 20px on contractor screens.
+- **Phosphor**, regular weight: 16px on admin screens, 20px on contractor screens. An icon takes the colour of its control's label (`ink` on a quiet control, `disabled` when disabled); there is no separate icon colour.
 - **Copy** is second person, active and specific: "Your money is on its way", "Approve and pay", "Arrives Oct 20", never "soon". No exclamation marks, no emoji, no jokes in errors. Errors say what happened and what to do next. Admin copy is terser; the warmth stays.
 
 ## Banned
