@@ -1,9 +1,0 @@
-/* The view transition name ActionBar and Toast share (ADR 0011): entering an
-   action's success state, whose Toast carries the same name and whose UI spec
-   leaves the bar out, morphs the bar into the toast. Gate 1 keeps one of each
-   per screen state, so the name is unique in every snapshot. No token class
-   sets a view transition name, and arbitrary properties fail token lint, so
-   it is set here, on the component's own marker. */
-[data-component="ActionBar"] {
-  view-transition-name: action-result;
-}
