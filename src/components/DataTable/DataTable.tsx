@@ -1,10 +1,17 @@
-import { Children, Fragment, isValidElement, type ReactNode } from "react";
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  useState,
+  type ReactNode,
+} from "react";
 import { tv } from "tailwind-variants/lite";
 import type { PropsOf } from "../../registry/entry.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Checkbox } from "../Checkbox/Checkbox.tsx";
 import { defaultState } from "../Screen/default-state.ts";
 import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
+import { StatusTag, type StatusTagProps } from "../StatusTag/StatusTag.tsx";
 import type { dataTableEntry } from "./DataTable.registry.ts";
 
 // The screen's list: a native table on a flat surface, one row per item. A
@@ -19,6 +26,10 @@ import type { dataTableEntry } from "./DataTable.registry.ts";
 // the state never rests on colour alone.
 // Rows don't answer hover: nothing in them opens yet. A column whose cell is
 // an Amount puts its header at the end edge, above the cents.
+// When the statuses its StatusTags are bound to change, such as an action's
+// confirmed result, the rows whose status changed are marked `data-flip`
+// and flip in the stagger src/styles.css sets out (ADR 0011). A table
+// renders its first statuses still: nothing animates on page load.
 export const dataTable = tv({
   slots: {
     root: "overflow-x-auto rounded-surface border border-line bg-surface",
@@ -70,6 +81,33 @@ function cellsOf(node: ReactNode) {
   return nodes;
 }
 
+// What a row's StatusTags show, from its cell nodes.
+function statusOf(nodes: readonly ReactNode[]) {
+  return nodes
+    .flatMap((node) =>
+      isValidElement<StatusTagProps>(node) && node.type === StatusTag
+        ? [node.props.status]
+        : []
+    )
+    .join(" ");
+}
+
+// Each row's statuses as last rendered, the rows whose status changed in the
+// last change that changed any, and how many times each row has flipped,
+// which keys its element so a row that flips again replays its flip.
+type Statuses = {
+  shown: ReadonlyMap<string, string>;
+  flipped: ReadonlySet<string>;
+  flips: ReadonlyMap<string, number>;
+};
+
+function sameStatuses(
+  a: ReadonlyMap<string, string>,
+  b: ReadonlyMap<string, string>
+) {
+  return a.size === b.size && [...a].every(([id, s]) => b.get(id) === s);
+}
+
 export function DataTable<R extends Row>({
   rows,
   columns,
@@ -104,6 +142,33 @@ export function DataTable<R extends Row>({
     }
     return nodes;
   });
+  // A row flips when its status changes, not when it first appears; a change
+  // that changes no status (rows added or removed) leaves the last flips be.
+  const shown = new Map(rows.map((row, r) => [row.id, statusOf(cells[r]!)]));
+  const [statuses, setStatuses] = useState<Statuses>(() => ({
+    shown,
+    flipped: new Set(),
+    flips: new Map(),
+  }));
+  if (!sameStatuses(statuses.shown, shown)) {
+    const changed = rows
+      .map((row) => row.id)
+      .filter((id) => {
+        const was = statuses.shown.get(id);
+        return was !== undefined && was !== shown.get(id);
+      });
+    setStatuses({
+      shown,
+      flipped: changed.length > 0 ? new Set(changed) : statuses.flipped,
+      flips: new Map([
+        ...statuses.flips,
+        ...changed.map(
+          (id) => [id, (statuses.flips.get(id) ?? 0) + 1] as const
+        ),
+      ]),
+    });
+  }
+
   const money = columns.map((_, i) => {
     const node = cells[0]?.[i];
     return isValidElement(node) && node.type === Amount;
@@ -148,7 +213,11 @@ export function DataTable<R extends Row>({
             const isSelected = selected.has(row.id);
             const each = dataTable({ selected: isSelected });
             return (
-              <tr key={row.id} className={each.row()}>
+              <tr
+                key={`${row.id} ${statuses.flips.get(row.id) ?? 0}`}
+                className={each.row()}
+                data-flip={statuses.flipped.has(row.id) || undefined}
+              >
                 {selectable && (
                   <td className={each.select()}>
                     <div className={each.selector()}>
