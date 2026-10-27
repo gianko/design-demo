@@ -114,6 +114,7 @@ function UnderTheTable() {
   return (
     <Stack gap="xs">
       <DataTable
+        selectable
         rows={data.invoices}
         columns={["Invoice", "Contractor", "Amount", "Due", "Status"]}
         cell={(row) => (

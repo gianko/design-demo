@@ -41,6 +41,7 @@ function BulkPay() {
     <>
       <output aria-label="Screen state">{state}</output>
       <DataTable
+        selectable
         rows={data.invoices}
         columns={["Invoice"]}
         cell={(row) => <Text text={row.number} />}
