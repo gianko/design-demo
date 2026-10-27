@@ -7,8 +7,10 @@ import { defaultState } from "../Screen/default-state.ts";
 import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
 import type { dataTableEntry } from "./DataTable.registry.ts";
 
-// The screen's list: a native table on a flat surface, one row per item, each
-// with a Checkbox first. DataTable owns ticking rows and the ScreenHost holds
+// The screen's list: a native table on a flat surface, one row per item. A
+// selectable table puts a Checkbox first in each row, and one that isn't has
+// none and never touches the selection (#203). DataTable owns ticking rows and
+// the ScreenHost holds
 // the selection (ADR 0011): a tick that leaves rows ticked enters
 // `rows-selected` if the screen isn't in it, after a failure too, and one
 // that leaves none returns to the default state, each in the same update. A
@@ -71,11 +73,16 @@ function cellsOf(node: ReactNode) {
 export function DataTable<R extends Row>({
   rows,
   columns,
+  selectable = false,
   cell,
 }: DataTableProps<R>) {
   const { state } = useScreenState();
   const selection = useSelection();
-  const selected: ReadonlySet<string> = new Set(selection.selected);
+  // A table that isn't selectable shows no selection, even one the host
+  // starts with.
+  const selected: ReadonlySet<string> = new Set(
+    selectable ? selection.selected : []
+  );
 
   const select = (next: ReadonlySet<string>) => {
     const target = next.size > 0 ? rowsSelected : defaultState;
@@ -111,18 +118,20 @@ export function DataTable<R extends Row>({
       <table className={slots.table()}>
         <thead>
           <tr className={slots.headerRow()}>
-            <th scope="col" className={slots.select()}>
-              <div className={slots.selector()}>
-                <Checkbox
-                  label="Select all rows"
-                  checked={all}
-                  disabled={rows.length === 0}
-                  onCheckedChange={(on) =>
-                    select(new Set(on ? rows.map((row) => row.id) : []))
-                  }
-                />
-              </div>
-            </th>
+            {selectable && (
+              <th scope="col" className={slots.select()}>
+                <div className={slots.selector()}>
+                  <Checkbox
+                    label="Select all rows"
+                    checked={all}
+                    disabled={rows.length === 0}
+                    onCheckedChange={(on) =>
+                      select(new Set(on ? rows.map((row) => row.id) : []))
+                    }
+                  />
+                </div>
+              </th>
+            )}
             {columns.map((name, i) => (
               <th
                 key={i}
@@ -140,15 +149,17 @@ export function DataTable<R extends Row>({
             const each = dataTable({ selected: isSelected });
             return (
               <tr key={row.id} className={each.row()}>
-                <td className={each.select()}>
-                  <div className={each.selector()}>
-                    <Checkbox
-                      label={`Select ${row.id}`}
-                      checked={isSelected}
-                      onCheckedChange={(on) => toggle(row.id, on)}
-                    />
-                  </div>
-                </td>
+                {selectable && (
+                  <td className={each.select()}>
+                    <div className={each.selector()}>
+                      <Checkbox
+                        label={`Select ${row.id}`}
+                        checked={isSelected}
+                        onCheckedChange={(on) => toggle(row.id, on)}
+                      />
+                    </div>
+                  </td>
+                )}
                 {cells[r]!.map((node, i) => (
                   <td key={i} className={each.cell()}>
                     {node}
