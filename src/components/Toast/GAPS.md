@@ -34,10 +34,10 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Toast 
 
 **Alternative:** the library moves focus on a `confirm` that removes the focused element, to the Toast (`tabIndex={-1}`) or to the DataTable the bar acted on.
 
-## Toast's view transition rules live in a stylesheet the barrel imports
+## Toast's view transition rules live in a stylesheet of its own
 
 **Undecided:** no token class sets a view transition name (ActionBar gap #236), so Toast needs its own CSS file, as ActionBar has. But Toast's registry entry imports `Toast.tsx` for `variantEnum`, and the generator loads entries under tsx on node, which can't import a `.css` file. ActionBar's entry reads no `tv()` config, so its `.tsx` can import its stylesheet. Toast's entering duration (`slow`, the brief's "toast entering") also has no class, while every other View Transition timing lives in `src/styles.css`.
 
-**Call:** `Toast.css` sets the success Toast's name to ActionBar's `action-result`, a failure Toast's to `action-failure`, and `slow` / `slow-exit` for those groups when motion is allowed (under `confirm` only, for `action-result`). The barrel (`src/index.ts`) imports it, not `Toast.tsx`, so Storybook and generated screens get it and the registry still loads. Style expectations in the stories assert both names. Rendering Toast without the barrel (a unit test) gives no names, which jsdom can't see anyway.
+**Call:** `Toast.css` sets the success Toast's name to ActionBar's `action-result`, a failure Toast's to `action-failure`, and `slow` / `slow-exit` for those groups when motion is allowed (under `confirm` only, for `action-result`). `Toast.tsx` imports it, as ActionBar's does, and the `tv()` config moved to `toast.ts`, which the registry entry imports instead of `Toast.tsx`, so the registry still loads under node (#245). Style expectations in the stories assert both names.
 
 **Alternative:** #236's named utilities (`vt-action-result`, `vt-action-failure`) as classes in the `tv()` config, and the toast's timing beside the others in `src/styles.css`, so no component carries a stylesheet.

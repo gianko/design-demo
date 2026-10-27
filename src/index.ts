@@ -48,6 +48,3 @@ export {
 } from "./components/StatusTag/StatusTag.tsx";
 export { Text, type TextProps } from "./components/Text/Text.tsx";
 export { Toast, type ToastProps } from "./components/Toast/Toast.tsx";
-// Toast's view transition names and entering duration. Toast.tsx can't import
-// it, since its registry entry, loaded under node, imports Toast.tsx.
-import "./components/Toast/Toast.css";
