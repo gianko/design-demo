@@ -6,7 +6,8 @@ import { resolve } from "node:path";
 
 export type RuleRow = {
   id: string;
-  p0: boolean;
+  // The Ships cell is **P0** or **P1**: the rule is on.
+  shipped: boolean;
   origin: string;
   // "static", "render" or "static + render".
   check: string;
@@ -29,10 +30,10 @@ export function ruleRows(markdown = readFileSync(rulesMd, "utf8")): RuleRow[] {
       const cells = line
         .split(" | ")
         .map((cell) => cell.replace(/^\| |\s\|$/g, ""));
-      const [id, p0, origin, check, failsWhen, designBriefLine] = cells;
+      const [id, ships, origin, check, failsWhen, designBriefLine] = cells;
       return {
         id: id!.replaceAll("`", ""),
-        p0: p0 === "**P0**",
+        shipped: ships === "**P0**" || ships === "**P1**",
         origin: origin!,
         check: check!,
         failsWhen: failsWhen!,
