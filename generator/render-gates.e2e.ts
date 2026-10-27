@@ -133,8 +133,9 @@ export function Smoke() {
 
   // ADR 0011's open-sheet render: a DataTable with a detail slot adds the
   // default state with its first row's Sheet open, in both themes. The
-  // nameless button sits only in the Sheet, so only that render fails gate 4,
-  // which shows the render gates run on the open sheet. (The clean screen
+  // nameless, empty button sits only in the Sheet, so only that render fails
+  // gate 4 (its name) and gate 7 (its hit area), which shows both render
+  // gates run on the open sheet. (The clean screen
   // above, with no detail slot, gets no such render.)
   it("adds the open-sheet render in both themes for a DataTable with a detail slot, through every render gate", async () => {
     const tsx = `import {
@@ -184,6 +185,19 @@ export function Smoke() {
     });
 
     expect(
+      result.failures.map(({ gate, rule, renders }) => [gate, rule, renders])
+    ).toEqual(
+      ["light", "dark"].flatMap((theme) => [
+        ["gate 4", "button-name", [`${theme} · default, sheet open`]],
+        ["gate 7 render", "target-size", [`${theme} · default, sheet open`]],
+      ])
+    );
+    expect(result.failures.map(failureLine)).toContainEqual(
+      expect.stringMatching(
+        /^gate 7 render · target-size · .*dialog\[data-component="Sheet"\].*<button type="button"><\/button>/
+      )
+    );
+    expect(
       result.renders.map(({ theme, state, gates }) => [theme, state, gates])
     ).toEqual(
       expect.arrayContaining([
@@ -195,17 +209,11 @@ export function Smoke() {
         ...["light", "dark"].map((theme) => [
           theme,
           "default, sheet open",
-          { "gate 4": "fail", "gate 7 render": "pass" },
+          { "gate 4": "fail", "gate 7 render": "fail" },
         ]),
       ])
     );
     expect(result.renders).toHaveLength(4);
-    expect(result.failures.map(failureLine)).toEqual(
-      ["light", "dark"].map(
-        (theme) =>
-          `gate 4 · button-name · button[type="button"] <button type="button"></button> · Buttons must have discernible text (in ${theme} · default, sheet open)`
-      )
-    );
   }, 120_000);
 
   it("records both render gates as not-run when the screen doesn't build", async () => {

@@ -3,7 +3,9 @@
 // the declared states, so a confirmed action shows the data of the state it
 // enters. The default story also declares the screen's actions, which the
 // `action-transitions` taste rule clicks through
-// (.storybook/screen-actions.ts). The render pass gates exactly these, and
+// (.storybook/screen-actions.ts). Each DataTable with a detail slot adds
+// ADR 0011's open-sheet render: the default state with its first row's Sheet
+// open. The render pass gates exactly these, and
 // `pnpm keep` commits them beside the kept screen, so a kept screen is gated
 // as it was generated (spec § Keep).
 //
