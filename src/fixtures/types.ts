@@ -40,6 +40,24 @@ export type Payment = {
 
 export type Total = { amount: number; currency: "USD" };
 
+// A payment a contractor's bank sent back. It stays failed until it's
+// retried into the next run, then it's scheduled, as its invoice is.
+export type FailedPayment = {
+  id: string;
+  // The invoice it paid.
+  invoiceId: string;
+  contractorId: string;
+  contractor: string;
+  amount: number;
+  currency: "USD";
+  status: "failed" | "scheduled";
+  // Why the bank sent it back.
+  reason: string;
+  // When it bounced.
+  date: string;
+  dateLabel: string;
+};
+
 // One status's share of a payment run.
 export type RunGroup = {
   status: InvoiceStatus;
@@ -79,4 +97,7 @@ export type FixtureData = {
   // Every contractor's overdue invoices, by number: the admin's reminders
   // list; empty when nothing is overdue.
   overdueInvoices: readonly Invoice[];
+  // The payments contractors' banks sent back, by invoice: the admin's
+  // retry list; empty when none bounced.
+  failedPayments: readonly FailedPayment[];
 };

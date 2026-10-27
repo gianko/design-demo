@@ -29,6 +29,12 @@ describe("fixtures", () => {
       "reminders-sent",
       "reminders-failed",
     ],
+    "failed-payments": [
+      "empty",
+      "rows-selected",
+      "payments-retried",
+      "retry-failed",
+    ],
   };
 
   it("names the default and one <brief>/<state> variant per screen state", () => {
@@ -313,6 +319,51 @@ describe("fixtures", () => {
     expect(fixtureVariant(name).data).toEqual(fixtureVariant("default").data);
   });
 
+  it("lists the admin the payment that bounced, for the failed invoice, with the bank's reason", () => {
+    expect(fixtureVariant("default").data.failedPayments).toEqual([
+      {
+        id: "PAY-0146",
+        invoiceId: "INV-0146",
+        contractorId: "jonah-whitfield-abernathy",
+        contractor: "Jonah Whitfield-Abernathy",
+        amount: 1620,
+        currency: "USD",
+        status: "failed",
+        reason: "The bank closed the account.",
+        date: "2026-10-13",
+        dateLabel: "Oct 13",
+      },
+    ]);
+  });
+
+  it("has no failed payments in failed-payments/empty", () => {
+    expect(fixtureVariant("failed-payments/empty").data.failedPayments).toEqual(
+      []
+    );
+  });
+
+  it.each(["failed-payments/rows-selected", "failed-payments/retry-failed"])(
+    "starts %s with every failed payment selected, and the data as it was",
+    (name) => {
+      const { data, selected } = fixtureVariant(name);
+
+      expect(selected).toEqual(["PAY-0146"]);
+      expect(data).toEqual(fixtureVariant("default").data);
+    }
+  );
+
+  it("schedules the retried payment and its invoice, and only them, in failed-payments/payments-retried", () => {
+    const { data } = fixtureVariant("failed-payments/payments-retried");
+
+    expect(data.failedPayments.map((each) => [each.id, each.status])).toEqual([
+      ["PAY-0146", "scheduled"],
+    ]);
+    expect(statuses("failed-payments/payments-retried")).toEqual({
+      ...statuses("default"),
+      "INV-0146": "scheduled",
+    });
+  });
+
   // Runs one operation under a variant, and reports how it stood just before
   // and at 1,800ms.
   async function settleOperation(
@@ -425,6 +476,43 @@ describe("fixtures", () => {
         await settleOperation(
           "overdue-invoices/reminders-failed",
           (operations) => operations.sendReminder("INV-0142")
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("retryPayments", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.retryPayments(["PAY-0146"])
+      );
+
+    it.each([
+      "default",
+      "failed-payments/rows-selected",
+      "failed-payments/payments-retried",
+      "invoice-queue/payment-failed",
+    ])("succeeds after exactly 1,800ms under %s", async (name) => {
+      expect(await settle(name)).toEqual({
+        early: undefined,
+        settled: "resolved",
+      });
+    });
+
+    it("fails after exactly 1,800ms under failed-payments/retry-failed, naming the payments", async () => {
+      const { early, settled } = await settle("failed-payments/retry-failed");
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*PAY-0146/);
+    });
+
+    it("leaves payInvoices succeeding where only retryPayments fails", async () => {
+      expect(
+        await settleOperation("failed-payments/retry-failed", (operations) =>
+          operations.payInvoices(["INV-0147"])
         )
       ).toEqual({ early: undefined, settled: "resolved" });
     });

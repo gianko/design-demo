@@ -89,7 +89,7 @@ describe("codePrompt", () => {
 
   // ADR 0011: the host holds the selection, not the fixture data (#188).
   // Every bulk operation acts on the Selection (#218).
-  it.each(["payInvoices", "sendReminders"])(
+  it.each(["payInvoices", "sendReminders", "retryPayments"])(
     "passes %s the selection from useSelectedRows",
     (operation) => {
       const [instructions] = codePrompt(
