@@ -76,6 +76,7 @@
   --ds-color-bg-paid: oklch(0.95 0.04 155);
   --ds-color-bg-scheduled: oklch(0.94 0.025 250);
   --ds-color-bg-failed: oklch(0.52 0.19 25);
+  --ds-color-bg-error: oklch(0.82 0.1 25);
   --ds-color-text-ink: oklch(0.27 0.025 330);
   --ds-color-text-ink-muted: oklch(0.5 0.025 330);
   --ds-color-text-accent: oklch(0.48 0.085 330);
@@ -86,6 +87,7 @@
   --ds-color-text-paid: oklch(0.45 0.1 155);
   --ds-color-text-scheduled: oklch(0.47 0.12 250);
   --ds-color-text-failed: oklch(0.995 0.003 330);
+  --ds-color-text-error: oklch(0.32 0.07 25);
   --ds-color-border-line: oklch(0.9 0.012 330);
   --ds-color-border-control: oklch(0.62 0.02 330);
   --ds-color-border-disabled: oklch(0.9 0.012 330);
@@ -112,6 +114,7 @@
   --ds-color-bg-paid: oklch(0.32 0.05 155);
   --ds-color-bg-scheduled: oklch(0.32 0.05 250);
   --ds-color-bg-failed: oklch(0.62 0.18 25);
+  --ds-color-bg-error: oklch(0.48 0.16 25);
   --ds-color-text-ink: oklch(0.94 0.01 330);
   --ds-color-text-ink-muted: oklch(0.74 0.02 330);
   --ds-color-text-accent: oklch(0.82 0.06 330);
@@ -122,6 +125,7 @@
   --ds-color-text-paid: oklch(0.84 0.1 155);
   --ds-color-text-scheduled: oklch(0.84 0.08 250);
   --ds-color-text-failed: oklch(0.18 0.03 25);
+  --ds-color-text-error: oklch(0.94 0.03 25);
   --ds-color-border-line: oklch(0.36 0.02 330);
   --ds-color-border-control: oklch(0.56 0.02 330);
   --ds-color-border-disabled: oklch(0.36 0.02 330);
@@ -200,6 +204,7 @@
   --background-color-paid: var(--ds-color-bg-paid);
   --background-color-scheduled: var(--ds-color-bg-scheduled);
   --background-color-failed: var(--ds-color-bg-failed);
+  --background-color-error: var(--ds-color-bg-error);
   --text-color-ink: var(--ds-color-text-ink);
   --text-color-ink-muted: var(--ds-color-text-ink-muted);
   --text-color-accent: var(--ds-color-text-accent);
@@ -210,6 +215,7 @@
   --text-color-paid: var(--ds-color-text-paid);
   --text-color-scheduled: var(--ds-color-text-scheduled);
   --text-color-failed: var(--ds-color-text-failed);
+  --text-color-error: var(--ds-color-text-error);
   --border-color-line: var(--ds-color-border-line);
   --border-color-control: var(--ds-color-border-control);
   --border-color-disabled: var(--ds-color-border-disabled);

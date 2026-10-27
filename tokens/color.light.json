@@ -33,7 +33,11 @@
       "overdue": { "$value": "{primitive.red.940}" },
       "paid": { "$value": "{primitive.green.950}" },
       "scheduled": { "$value": "{primitive.blue.940}" },
-      "failed": { "$value": "{primitive.red.520}" }
+      "failed": { "$value": "{primitive.red.520}" },
+      "error": {
+        "$description": "A failure Toast's surface: a calm red, apart from the status pairs, so status tags keep their colours to themselves.",
+        "$value": "{primitive.red.820}"
+      }
     },
     "text": {
       "ink": {
@@ -136,6 +140,14 @@
         "$extensions": {
           "design-demo": {
             "contrast": { "min": 4.5, "against": ["{color.bg.failed}"] }
+          }
+        }
+      },
+      "error": {
+        "$value": "{primitive.red.320}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.error}"] }
           }
         }
       }
