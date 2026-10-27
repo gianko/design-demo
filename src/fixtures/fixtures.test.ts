@@ -21,13 +21,16 @@ describe("fixtures", () => {
     "payment-run": ["empty"],
   };
 
+  // Later briefs add their own variants beside these.
   it("names the default and one <brief>/<state> variant per P0 screen state", () => {
-    expect(variantNames).toEqual([
-      "default",
-      ...Object.entries(p0States).flatMap(([brief, states]) =>
-        states.map((state) => `${brief}/${state}`)
-      ),
-    ]);
+    expect(variantNames).toEqual(
+      expect.arrayContaining([
+        "default",
+        ...Object.entries(p0States).flatMap(([brief, states]) =>
+          states.map((state) => `${brief}/${state}`)
+        ),
+      ])
+    );
   });
 
   it.each(variantNames)("reaches %s by name", (name) => {
@@ -405,6 +408,41 @@ describe("fixtures", () => {
     it("leaves sendReminder succeeding where only payInvoices fails", async () => {
       expect(
         await settleOperation("invoice-queue/payment-failed", (operations) =>
+          operations.sendReminder("INV-0142")
+        )
+      ).toEqual({ early: undefined, settled: "resolved" });
+    });
+  });
+
+  describe("requestRetry", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const settle = (name: string) =>
+      settleOperation(name, (operations) =>
+        operations.requestRetry("PAY-2026-10-17")
+      );
+
+    it.each(["default", "payment-failed/retry-requested"])(
+      "succeeds after exactly 1,800ms under %s",
+      async (name) => {
+        expect(await settle(name)).toEqual({
+          early: undefined,
+          settled: "resolved",
+        });
+      }
+    );
+
+    it("fails after exactly 1,800ms under payment-failed/retry-failed, naming the payment", async () => {
+      const { early, settled } = await settle("payment-failed/retry-failed");
+
+      expect(early).toBeUndefined();
+      expect(settled).toMatch(/^rejected: .*PAY-2026-10-17/);
+    });
+
+    it("leaves sendReminder succeeding where only requestRetry fails", async () => {
+      expect(
+        await settleOperation("payment-failed/retry-failed", (operations) =>
           operations.sendReminder("INV-0142")
         )
       ).toEqual({ early: undefined, settled: "resolved" });

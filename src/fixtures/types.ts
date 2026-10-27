@@ -40,6 +40,37 @@ export type Payment = {
 
 export type Total = { amount: number; currency: "USD" };
 
+// A payment you've received, and the invoices it paid.
+export type ReceivedPayment = {
+  id: string;
+  amount: number;
+  currency: "USD";
+  status: "paid";
+  date: string;
+  dateLabel: string;
+  // The invoices it paid, by number, and as one label: "INV-0124 and
+  // INV-0127".
+  invoiceNumbers: readonly string[];
+  invoicesLabel: string;
+  invoiceCount: number;
+  invoiceCountLabel: string;
+};
+
+// A payment to you that your bank sent back.
+export type BouncedPayment = {
+  id: string;
+  // The invoice it was paying.
+  invoiceNumber: string;
+  amount: number;
+  currency: "USD";
+  status: "failed";
+  // When it bounced.
+  date: string;
+  dateLabel: string;
+  // Why it bounced, in a sentence you can act on.
+  reason: string;
+};
+
 // One status's share of a payment run.
 export type RunGroup = {
   status: InvoiceStatus;
@@ -76,4 +107,9 @@ export type FixtureData = {
   reviewInvoice: Invoice | null;
   // The next payment run, totalled by status.
   paymentRun: PaymentRun;
+  // The payments you've received this year, newest first: empty for a
+  // contractor who hasn't been paid yet.
+  paymentsReceived: readonly ReceivedPayment[];
+  // Your one bounced payment, or null when there's none.
+  bouncedPayment: BouncedPayment | null;
 };

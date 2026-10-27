@@ -224,3 +224,56 @@ describe("the payment-status screen brief", () => {
     });
   });
 });
+
+// Spec #201 § The brief set: payments-received and payment-failed.
+describe.each([
+  {
+    slug: "payments-received",
+    audience: "contractor",
+    requires: {
+      components: [
+        "Screen",
+        "Heading",
+        "DataTable",
+        "Amount",
+        "Sheet",
+        "EmptyState",
+      ],
+      states: ["empty"],
+      actions: [],
+      transitions: ["row-to-sheet"],
+    },
+  },
+  {
+    slug: "payment-failed",
+    audience: "contractor",
+    requires: {
+      components: [
+        "Screen",
+        "Heading",
+        "Card",
+        "Amount",
+        "StatusTag",
+        "Button",
+        "Toast",
+      ],
+      states: ["retry-requested", "retry-failed"],
+      actions: ["request-retry"],
+      transitions: [],
+    },
+  },
+])("the $slug screen brief", (expected) => {
+  it("carries the spec's audience and pass criteria", () => {
+    expect(brief(`${expected.slug}.md`)).toMatchObject(expected);
+  });
+
+  // An action's result shows in a Toast and a list's empty state in an
+  // EmptyState, not in a live Text as the P0 five's do.
+  it("shows each state's result in a Toast or an EmptyState, never a live Text", () => {
+    const rows = stateTable(brief(`${expected.slug}.md`).text).slice(1);
+    for (const { state, shows } of rows) {
+      expect(shows, state).toMatch(state === "empty" ? /EmptyState/ : /Toast/);
+      expect(shows, state).not.toMatch(/live Text/);
+    }
+  });
+});
