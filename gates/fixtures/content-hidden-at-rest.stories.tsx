@@ -12,7 +12,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 // the rule has to wait for it to settle; a fade-out on copy marked
 // `aria-hidden`, at once, so axe never meets it half faded; a visually hidden status region, as Screen renders one; a
 // `hidden` note; and an idle loop that never settles, which the rule must
-// not wait on.
+// not wait on. Under reduced motion the reveal is a `fast` fade and the loop
+// stops, as motion-reduced asks.
 type Variant = "pass" | "opacity" | "visibility" | "clip";
 
 const animate =
@@ -57,11 +58,14 @@ const meta = {
       {variant === "pass" && (
         <>
           <div
-            ref={animate([{ opacity: 0 }, { opacity: 1 }], {
-              delay: 5000,
-              duration: 240,
-              fill: "backwards",
-            })}
+            ref={(element) => {
+              element?.animate(
+                [{ opacity: 0 }, { opacity: 1 }],
+                matchMedia("(prefers-reduced-motion: reduce)").matches
+                  ? { duration: 120 }
+                  : { delay: 5000, duration: 240, fill: "backwards" }
+              );
+            }}
           >
             <p>Northwind Logistics GmbH</p>
           </div>
@@ -73,7 +77,7 @@ const meta = {
           </div>
           <p hidden>Due in 14 days</p>
           <div aria-hidden="true" className="h-edge w-4xl overflow-hidden">
-            <div className="h-full animate-progress-sweep bg-accent" />
+            <div className="h-full animate-progress-sweep bg-accent motion-reduce:animate-none" />
           </div>
         </>
       )}
