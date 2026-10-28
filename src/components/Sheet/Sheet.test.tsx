@@ -7,7 +7,7 @@
 // end edge and back out past it, on its own name, so the row never has one.
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { Heading } from "../Heading/Heading.tsx";
 import { Text } from "../Text/Text.tsx";
@@ -138,22 +138,14 @@ it("stays open after a click inside the panel", () => {
 // and the host that closes it, both through transitionSheet.
 function OneRow() {
   const [open, setOpen] = useState(false);
-  const row = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <button
-        ref={row}
-        onClick={(event) =>
-          transitionSheet("open", event.currentTarget, () => setOpen(true))
-        }
-      >
+      <button onClick={() => transitionSheet("open", () => setOpen(true))}>
         INV-0142 row
       </button>
       {open && (
         <SheetHost
-          onClose={() =>
-            transitionSheet("close", row.current, () => setOpen(false))
-          }
+          onClose={() => transitionSheet("close", () => setOpen(false))}
         >
           <InvoiceSheet />
         </SheetHost>

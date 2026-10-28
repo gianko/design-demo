@@ -149,8 +149,8 @@ async function opensSheetOf(
 
   const root = canvas.querySelector('[data-component="DataTable"]')!;
   await expect(root.contains(sheet)).toBe(false);
-  // The row it opened from carried the sheet's name only in the old view, so
-  // no row carries it now.
+  // The sheet slides in from the end edge on its own name, so no row
+  // carries it.
   await expect(root.querySelector(".vt-row-detail")).toBeNull();
   for (const row of root.querySelectorAll("tbody tr")) {
     await expect(getComputedStyle(row).viewTransitionName).toBe("none");

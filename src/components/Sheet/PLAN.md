@@ -2,7 +2,7 @@
 
 ## Use
 
-ADR 0011's line first, as written: "row detail; only in a DataTable's `detail` slot". The registry `use` adds what goes in it and when to reach for a sibling: a level 2 Heading bound to the row in `title`, the row's facts in `body` as Text, Amount, StatusTag and Stack; read-only, so no Button and no Card. It renders its own close button and closes on Escape. The facts of one thing on the screen itself, not behind a row, are a Card.
+ADR 0011's line first, as written: "row detail; only in a DataTable's `detail` slot". The registry `use` adds what goes in it and when to reach for a sibling: a level 2 Heading bound to the row in `title`, the row's facts in `body` as Text, Amount, StatusTag and Stack; read-only, so no Button and no Card. It renders its own close button and closes on Escape or a click on the scrim. The facts of one thing on the screen itself, not behind a row, are a Card.
 
 ## Anatomy
 
@@ -24,7 +24,7 @@ Props:
 DataTable owns the open sheet (ADR 0011), so Sheet holds no open state. `sheet-host.tsx` exports:
 
 - `SheetHost`: a context provider DataTable wraps around the opened row's `detail` node, carrying `onClose`. The close button, Escape and a click on the scrim all call it. With no host (Sheet's own stories), they do nothing.
-- `transitionSheet(direction, origin, update)`: runs DataTable's open or close update inside a View Transition typed `sheet-open` or `sheet-close`, with the row's element as `origin`, so the row expands into the sheet and the sheet shrinks back into the row. It marks `origin` with `data-sheet-origin` for whichever snapshot shows the row, never both, so the shared name stays unique. Without View Transitions (jsdom) it runs the update directly.
+- `transitionSheet(direction, update)`: runs DataTable's open or close update inside a View Transition typed `sheet-open` or `sheet-close`, so the sheet slides in from the end edge and back out past it. The row gets no name and no mark: the sheet's name is its own. Without View Transitions (jsdom) it runs the update directly.
 
 Sheet returns focus itself: it remembers what had focus when it opened (the row, which a keyboard user opened with Enter) and focuses it again when it unmounts. That is what ADR 0006 asked of Radix's `onCloseAutoFocus`.
 
@@ -51,10 +51,10 @@ The sheet itself isn't a control, so it has no hover, pressed or disabled. Its o
 | `title` | `flex min-h-control grow items-center` | A one-line title centres on the control-height close button. |
 | `body` | `flex min-h-0 flex-col gap-md overflow-y-auto` | Parts one gap apart, as Card's are; the body scrolls, not the panel. |
 
-`Sheet.css`, beside the component, sets what no token class can: the view transition name and the sheet's timings (the ActionBar gap #236 pattern).
+src/styles.css sets what no token class can, with the library's other view transitions (ADR 0006): the view transition name and the sheet's slide.
 
-- `view-transition-name: row-detail` on the Sheet and on whichever row carries `data-sheet-origin`.
-- Open at `slow` with `standard`; close at `slow-exit` with `exit` ("`slow` 320ms (sheet …)", "exits run at about 70%").
+- `vt-row-detail`, the utility setting `view-transition-name: row-detail`, on the Sheet only.
+- Slide in at `slow` with `standard`; slide out at `slow-exit` with `exit` ("`slow` 320ms (sheet …)", "exits run at about 70%"). The slide's keyframes, `sheet-in` and `sheet-out`, are in `tokens/keyframes.css` (ADR 0005); `--end-edge` in src/styles.css points them at the right in LTR and the left in RTL.
 
 ## A11y contract
 
@@ -70,10 +70,10 @@ The sheet itself isn't a control, so it has no hover, pressed or disabled. Its o
 
 | User action | Transition | Motion |
 |---|---|---|
-| Clicks a row, or presses Enter on it | `sheet-open`, run by `transitionSheet` | The `row-detail` group morphs from the row's box to the sheet's at `slow`, `standard`; the row's image fades out at `slow-exit`, `exit`, and the sheet's fades in at `slow`. The scrim fades in with the page's crossfade. |
-| Presses Escape or the close button, or clicks the scrim | `sheet-close` | The group morphs back from the sheet to the row at `slow-exit`, `exit`. |
+| Clicks a row, or presses Enter on it | `sheet-open`, run by `transitionSheet` | The sheet's image, the new view's `row-detail`, slides in from the end edge (the right in LTR, the left in RTL) to its resting place at `slow`, `standard` (`sheet-in`). The scrim fades in with the page's crossfade. The row isn't named, so nothing morphs from it. |
+| Presses Escape or the close button, or clicks the scrim | `sheet-close` | The sheet's image, the old view's `row-detail`, slides back out past the end edge at `slow-exit`, `exit` (`sheet-out`). The scrim fades out with the page's crossfade. |
 
-No `settle`: opening a sheet confirms nothing ("settle … only for confirming something the user did"). No keyframes of its own, so nothing animates on page load: a story renders the sheet already open, still. Reduced motion: src/styles.css already turns every View Transition into a `fast` crossfade with no movement; Sheet.css's timings apply only under `prefers-reduced-motion: no-preference`.
+No `settle`: opening a sheet confirms nothing ("settle … only for confirming something the user did"). The slide runs only inside the View Transition, so nothing animates on page load: a story renders the sheet already open, still, at the resting place the slide ends on. A phone's full-width sheet slides the same way, its own width. Reduced motion: src/styles.css turns every View Transition into a `fast` crossfade with no movement; the slide applies only under `prefers-reduced-motion: no-preference`.
 
 ## Against defaults
 
@@ -81,11 +81,10 @@ The default is shadcn's `Sheet` (Radix Dialog): `fixed inset-y-0 right-0 h-full 
 
 How this one differs:
 
-- **It expands from the row, not slides in from the edge.** Signature transition: "a row expands into the invoice-detail sheet".
 - **Raised surface and an overlay shadow, no border.** "A shadow means this floats"; one edge treatment (`edge-treatment`).
 - **Rounded on the corners that face the page, at the surface radius.** "One radius everywhere is a default, not a choice."
 - **A plum-tinted scrim, not black at 50%.** "Every neutral is tinted toward plum."
 - **Read-only: no footer, no actions, no description slot.** Spec: "Sheet is read-only"; row-scoped actions are out of P1.
 - **The close button is in the header row, at the control height**, not a small absolutely placed `X`; 44px on contractor screens.
 - **The width is a token, `w-sheet`,** not a fraction of the screen.
-- **Matches the default**, where the brief is silent: the end edge, full height, a modal dialog with Escape and a close button.
+- **Matches the default**, where the brief is silent or agrees: the end edge, full height, a modal dialog with Escape and a close button, and the slide in from that edge (signature transition: "the invoice-detail sheet slides in from the edge", #292).

@@ -182,35 +182,43 @@ describe("toast transitions", () => {
   });
 });
 
-// Row → sheet (ADR 0011): opening runs at `slow` with `standard` easing,
-// since opening confirms nothing, and the row's image fades out at the exit
-// duration; closing runs at `slow-exit` with `exit`.
+// Row → sheet (ADR 0011): the row's Sheet, the only element named
+// `row-detail`, slides in from the end edge at `slow` with `standard` easing,
+// since opening confirms nothing, and back out past it at `slow-exit` with
+// `exit`. Its image is on one side of each transition only, the new view's
+// on open and the old view's on close, so the group has nothing to morph.
 describe("sheet transitions", () => {
-  it("open at slow, never settling, the row fading out at slow-exit", () => {
-    for (const pseudo of ["group", "new"] as const) {
-      expect(computed(pseudo, "sheet-open", motion, "row-detail")).toEqual({
-        name: undefined,
-        duration: token("duration-slow"),
-        easing: token("ease-standard"),
-      });
-    }
-    expect(computed("old", "sheet-open", motion, "row-detail")).toEqual({
-      name: undefined,
+  it("slide the sheet in from the end edge at slow, never settling", () => {
+    expect(computed("new", "sheet-open", motion, "row-detail")).toEqual({
+      name: "sheet-in",
+      duration: token("duration-slow"),
+      easing: token("ease-standard"),
+    });
+  });
+
+  it("slide the sheet out past the end edge at slow-exit with exit easing", () => {
+    expect(computed("old", "sheet-close", motion, "row-detail")).toEqual({
+      name: "sheet-out",
       duration: token("duration-slow-exit"),
       easing: token("ease-exit"),
     });
   });
 
-  it.each(["group", "new", "old"] as const)(
-    "close the %s at slow-exit with exit easing",
-    (pseudo) => {
-      expect(computed(pseudo, "sheet-close", motion, "row-detail")).toEqual({
-        name: undefined,
-        duration: token("duration-slow-exit"),
-        easing: token("ease-exit"),
-      });
-    }
-  );
+  // The end edge is the right in a left-to-right document and the left in a
+  // right-to-left one; the keyframes slide along it by `--end-edge`.
+  it("find the end edge on the right, or on the left in RTL", () => {
+    const edge = (selector: string) =>
+      [...sheet()]
+        .flatMap((rule) =>
+          rule instanceof CSSLayerBlockRule ? [...rule.cssRules] : [rule]
+        )
+        .filter((rule) => rule instanceof CSSStyleRule)
+        .find((rule) => rule.selectorText === selector)
+        ?.style.getPropertyValue("--end-edge")
+        .trim();
+    expect(edge(":root")).toBe("1");
+    expect(edge(':root[dir="rtl"]')).toBe("-1");
+  });
 });
 
 describe("named transitions under reduced motion", () => {

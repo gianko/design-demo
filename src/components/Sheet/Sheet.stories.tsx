@@ -20,7 +20,7 @@ const panel = (canvas: HTMLElement) =>
 // has taken focus; at the end edge, full height, the sheet width or the whole
 // of a narrower window; a surface's padding and radius on the corners facing
 // the page only; the overlay surface and shadow, and no border; the view
-// transition name the row shares (ADR 0011); and a close button the
+// transition name it slides in and out on (ADR 0011); and a close button the
 // density's control height square, in the header's top row.
 async function holdsPlaceAndShape(
   canvas: HTMLElement,

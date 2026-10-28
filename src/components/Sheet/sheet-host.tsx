@@ -27,30 +27,15 @@ export function useSheetClose() {
   return useContext(SheetHostContext);
 }
 
-// The class that gives the sheet's view transition name (src/styles.css), on
-// whichever view shows the row and not the sheet, so the name is unique in
-// each.
-const origin = "vt-row-detail";
-
 // Opens or closes a sheet as ADR 0011's row → sheet: `update` is DataTable's
 // state change, run inside a View Transition typed `sheet-open` or
-// `sheet-close`, which src/styles.css times. `from` is the row's element: on
-// open it carries the shared name in the old view, so the row expands into the
-// sheet; on close in the new view, so the sheet shrinks back into it, and
-// loses it once the transition ends. With no row, the sheet fades in or out
-// on its own. Without View Transitions (jsdom) the update runs directly.
+// `sheet-close`, which src/styles.css times. The Sheet carries its own view
+// transition name and the row none, so the sheet slides in from the end edge
+// and back out past it, and the scrim fades with the page. Without View
+// Transitions (jsdom) the update runs directly.
 export function transitionSheet(
   direction: "open" | "close",
-  from: Element | null,
   update: () => void
 ) {
-  if (direction === "open") from?.classList.add(origin);
-  const finished = inViewTransition(() => {
-    if (direction === "open") from?.classList.remove(origin);
-    else from?.classList.add(origin);
-    flushSync(update);
-  }, [`sheet-${direction}`]);
-  if (direction === "close") {
-    void finished.then(() => from?.classList.remove(origin));
-  }
+  void inViewTransition(() => flushSync(update), [`sheet-${direction}`]);
 }
