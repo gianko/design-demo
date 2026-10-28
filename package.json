@@ -9,6 +9,7 @@
   "scripts": {
     "typecheck": "tsc",
     "tokens": "node tokens/build.ts",
+    "tokens:paint": "node tokens/paint.ts",
     "figma:sync-tokens": "node figma/sync-tokens.ts",
     "figma:walk-capture": "node figma/walk-capture.ts",
     "gate": "node gates/run.ts",

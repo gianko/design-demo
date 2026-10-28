@@ -484,6 +484,31 @@ describe("the Figma payload", () => {
     }
   });
 
+  // Rounding culori's sRGB lands a step off Chrome's for these three, so a
+  // capture left their fills literal (#273). Values painted in the pinned
+  // image, as the issue's triage table records them.
+  it.each([
+    ["Light", "color/bg/surface-raised", [247, 244, 247]],
+    ["Light", "color/text/disabled", [134, 125, 133]],
+    ["Light", "color/text/scheduled", [22, 93, 155]],
+  ] as const)(
+    "gives %s %s the 8-bit colour Chrome paints, not culori's rounding",
+    (mode, role, painted) => {
+      const { alias } = variable("Color", role).valuesByMode[mode] as {
+        alias: string;
+      };
+      const { r, g, b } = variable("Primitives", alias).valuesByMode.Value as {
+        r: number;
+        g: number;
+        b: number;
+      };
+
+      expect([r, g, b].map((channel) => Math.round(channel * 255))).toEqual(
+        painted
+      );
+    }
+  );
+
   it("pads each theme's shadow to the same layer count and binds every field", () => {
     const raised = payload.effectStyles.find(
       (s) => s.name === "shadow/raised"

@@ -24,6 +24,23 @@ export function playwrightInImage(
   playwrightArgs: string[],
   env: Record<string, string | undefined>
 ): string[] {
+  return nodeInImage(
+    [
+      "node_modules/@playwright/test/cli.js",
+      "test",
+      `--config=${config}`,
+      ...playwrightArgs,
+    ],
+    env
+  );
+}
+
+// `docker run` arguments for `node <nodeArgs>` in the image, set up as for
+// playwrightInImage.
+export function nodeInImage(
+  nodeArgs: string[],
+  env: Record<string, string | undefined> = {}
+): string[] {
   return [
     "run",
     "--rm",
@@ -42,9 +59,6 @@ export function playwrightInImage(
     "--workdir=/work",
     playwrightImage(),
     "node",
-    "node_modules/@playwright/test/cli.js",
-    "test",
-    `--config=${config}`,
-    ...playwrightArgs,
+    ...nodeArgs,
   ];
 }

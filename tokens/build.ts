@@ -1,6 +1,8 @@
 // The hand-written token build of ADR 0005. It reads the DTCG sources in this
 // folder, validates them, and writes tokens.css, tokens.ts and figma.json. Run it with
-// `pnpm tokens`; `--source <dir>` and `--out <dir>` point it elsewhere.
+// `pnpm tokens`; `--source <dir>` and `--out <dir>` point it elsewhere. Figma's
+// colours come from the painted-colour snapshot beside them, painted.json,
+// which `pnpm tokens:paint` writes (tokens/paint.ts).
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -53,7 +55,8 @@ export type Check =
   | "neutral-elevation"
   | "banned-font"
   | "keyframes"
-  | "figma";
+  | "figma"
+  | "painted";
 
 export type Failure = {
   check: Check;
@@ -62,7 +65,17 @@ export type Failure = {
   message: string;
 };
 
-export type Sources = { files: Record<string, unknown>; keyframes: string };
+/**
+ * The painted-colour snapshot: each colour value the build gives Figma, keyed
+ * by its opaque oklch() (see paintedKey), and the 8-bit sRGB Chrome paints it
+ * as in the pinned image. `pnpm tokens:paint` writes it (#273).
+ */
+export type Painted = Record<string, [r: number, g: number, b: number]>;
+export type Sources = {
+  files: Record<string, unknown>;
+  keyframes: string;
+  painted: Painted;
+};
 export type Built = { ok: true; css: string; ts: string; figma: string };
 export type BuildResult = Built | { ok: false; failures: Failure[] };
 
@@ -328,7 +341,39 @@ type Resolved = Token & { resolved: unknown };
 
 // ── Build ─────────────────────────────────────────────────────────────────
 
-export function build({ files, keyframes }: Sources): BuildResult {
+export function build(sources: Sources): BuildResult {
+  return buildWith(sources, (color) => sources.painted[color]);
+}
+
+/**
+ * The colour values the build gives Figma, as the painted-colour snapshot
+ * keys them: what `pnpm tokens:paint` paints. Throws if the sources don't
+ * build for any other reason.
+ */
+export function figmaColors(
+  sources: Pick<Sources, "files" | "keyframes">
+): string[] {
+  const colors = new Set<string>();
+  const result = buildWith(sources, (color) => {
+    colors.add(color);
+    return [0, 0, 0];
+  });
+  if (!result.ok) {
+    throw new Error(
+      result.failures
+        .map(({ path, file, message }) => `${path} in ${file} ${message}`)
+        .join("\n")
+    );
+  }
+  return [...colors].sort();
+}
+
+type PaintedLookup = (color: string) => Painted[string] | undefined;
+
+function buildWith(
+  { files, keyframes }: Pick<Sources, "files" | "keyframes">,
+  painted: PaintedLookup
+): BuildResult {
   const failures = new Failures();
 
   for (const file of sourceFiles) {
@@ -418,7 +463,7 @@ export function build({ files, keyframes }: Sources): BuildResult {
   if (failures.list.length) return { ok: false, failures: failures.list };
 
   // Payload checks assume valid, matching modes.
-  const figma = emitFigma(resolvedFiles, failures);
+  const figma = emitFigma(resolvedFiles, failures, painted);
   if (failures.list.length) return { ok: false, failures: failures.list };
 
   return {
@@ -1065,30 +1110,16 @@ export type FigmaPayload = {
 
 const title = (name: string) => name[0]!.toUpperCase() + name.slice(1);
 const toRgb = converter("rgb");
+
 /**
- * A colour channel, clamped to Figma's 0–1 and rounded to the 8-bit step the
- * browser paints: a capture binds a fill only when the values match (#59).
+ * A colour's key in the painted-colour snapshot: its oklch() as tokens.css
+ * writes it, without alpha, which Chrome doesn't paint into the colour.
  */
-const channel = (value: number) =>
-  Number((Math.round(Math.min(1, Math.max(0, value)) * 255) / 255).toFixed(6));
+export const paintedKey = ({ components }: ColorValue) =>
+  cssColor({ colorSpace: "oklch", components });
 
-function rgba(value: ColorValue): Rgba {
-  const { r, g, b } = toRgb(oklch(value));
-  return {
-    r: channel(r),
-    g: channel(g),
-    b: channel(b),
-    // Captures never bind alpha, so it keeps its authored precision.
-    a: Number(Math.min(1, Math.max(0, value.alpha ?? 1)).toFixed(4)),
-  };
-}
-
-/** A colour stays an alias where its source writes one, so roles alias Primitives. */
-function figmaColor(written: unknown, resolved: ColorValue): FigmaValue {
-  return typeof written === "string"
-    ? { alias: tokenNames(written.slice(1, -1)).figma }
-    : rgba(resolved);
-}
+/** An 8-bit channel as Figma's 0–1. */
+const channel = (value: number) => Number((value / 255).toFixed(6));
 
 // Each colour namespace maps to the Figma fills it may be picked for (ADR 0005).
 const colorScopes: Record<string, string[]> = {
@@ -1151,13 +1182,52 @@ const emptyLayer: ShadowLayer = {
 
 function emitFigma(
   files: Map<string, Resolved[]>,
-  failures: Failures
+  failures: Failures,
+  painted: PaintedLookup
 ): FigmaPayload {
   const payload: FigmaPayload = {
     collections: [],
     textStyles: [],
     effectStyles: [],
   };
+
+  /**
+   * A colour as the 8-bit sRGB Chrome paints it, from the painted-colour
+   * snapshot: a capture binds a fill only when the values match (#59), and
+   * rounding culori's conversion lands a step off Chrome's for some colours
+   * (#273).
+   */
+  const rgba = (value: ColorValue, token: Resolved): Rgba => {
+    const key = paintedKey(value);
+    const rgb = painted(key);
+    if (!rgb) {
+      failures.add(
+        "painted",
+        token.path,
+        token.file,
+        `gives Figma ${key}, which tokens/painted.json has no painted colour for; run \`pnpm tokens:paint\` to paint it in the pinned image`
+      );
+    }
+    const [r, g, b] = rgb ?? [0, 0, 0];
+    return {
+      r: channel(r),
+      g: channel(g),
+      b: channel(b),
+      // Captures never bind alpha, so it keeps its authored precision.
+      a: Number(Math.min(1, Math.max(0, value.alpha ?? 1)).toFixed(4)),
+    };
+  };
+
+  /** A colour stays an alias where its source writes one, so roles alias Primitives. */
+  const figmaColor = (
+    written: unknown,
+    resolved: ColorValue,
+    token: Resolved
+  ): FigmaValue =>
+    typeof written === "string"
+      ? { alias: tokenNames(written.slice(1, -1)).figma }
+      : rgba(resolved, token);
+
   for (const [name, scope] of Object.entries(collections)) {
     if (notInFigma.includes(name)) continue;
     const modes = scope?.modes ?? [];
@@ -1209,7 +1279,7 @@ function emitFigma(
             "COLOR",
             scopes,
             cssVar,
-            (t) => figmaColor(t.value, t.resolved as ColorValue),
+            (t) => figmaColor(t.value, t.resolved as ColorValue, t),
             token.path
           );
           break;
@@ -1363,7 +1433,7 @@ function emitFigma(
                   undefined,
                   (t) => {
                     const { written, resolved } = at(t);
-                    return figmaColor(written?.color, resolved.color);
+                    return figmaColor(written?.color, resolved.color, t);
                   },
                   token.path
                 );
@@ -1407,11 +1477,17 @@ function emitFigma(
 
 /** The build's JSON output, which sits among the sources but isn't one. */
 export const figmaPayloadFile = "figma.json";
+/** The painted-colour snapshot, written by `pnpm tokens:paint`. */
+export const paintedFile = "painted.json";
 
 export async function readSources(dir: string): Promise<Sources> {
   const files: Record<string, unknown> = {};
   for (const entry of (await readdir(dir)).sort()) {
-    if (!entry.endsWith(".json") || entry === figmaPayloadFile) continue;
+    if (
+      !entry.endsWith(".json") ||
+      [figmaPayloadFile, paintedFile].includes(entry)
+    )
+      continue;
     files[entry.slice(0, -".json".length)] = JSON.parse(
       await readFile(join(dir, entry), "utf8")
     );
@@ -1419,7 +1495,19 @@ export async function readSources(dir: string): Promise<Sources> {
   return {
     files,
     keyframes: await readFile(join(dir, "keyframes.css"), "utf8"),
+    painted: await readPainted(join(dir, paintedFile)),
   };
+}
+
+// Without a snapshot, every colour is unpainted, and the build says how to
+// paint them.
+async function readPainted(file: string): Promise<Painted> {
+  try {
+    return JSON.parse(await readFile(file, "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+    throw error;
+  }
 }
 
 async function main(args: string[]): Promise<number> {
