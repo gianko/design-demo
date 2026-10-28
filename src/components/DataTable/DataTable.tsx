@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ComponentType,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
@@ -68,7 +69,9 @@ export const dataTable = tv({
     // which stays its own width at the start edge. Inline, so the tag sits on
     // the cell's line as it does on its own.
     room: "inline-grid justify-items-start *:col-start-1 *:row-start-1",
-    word: "invisible",
+    // A flex box, so the word's tag inside takes its own width and height,
+    // off any line of text.
+    word: "invisible flex",
     select: "w-0 pl-xs align-middle",
     // A flex box, so the Checkbox sits centred in the row rather than on the
     // cell's text baseline.
@@ -175,17 +178,17 @@ function sameStatuses(
 }
 
 // A StatusTag cell's node in its room: the tag first, so the room's baseline
-// is the tag's, then every word StatusTag can show, each sized as the tag
-// sizes its own (#276).
+// is the tag's, then every word StatusTag can show, each in StatusTag's own
+// box with no status colour, so it's as wide as the tag showing it (#276).
 function StatusRoom({ children }: { children: ReactNode }) {
   const slots = dataTable();
-  const tag = statusTag().root();
+  const { root } = statusTag();
   return (
     <span className={slots.room()}>
       {children}
       {Object.values(statusWords).map((word) => (
-        <span key={word} aria-hidden className={`${tag} ${slots.word()}`}>
-          {word}
+        <span key={word} aria-hidden className={slots.word()}>
+          <span className={root()}>{word}</span>
         </span>
       ))}
     </span>
@@ -278,13 +281,13 @@ export function DataTable<R extends Row>({
   }
 
   // The columns whose cells are of one component, read from the first row's.
-  const columnsOf = (component: unknown) =>
+  const columnsOf = (component: ComponentType<never>) =>
     columns.map((_, i) => {
       const node = cells[0]?.[i];
       return isValidElement(node) && node.type === component;
     });
-  const money = columnsOf(Amount);
-  const status = columnsOf(StatusTag);
+  const moneyColumns = columnsOf(Amount);
+  const statusColumns = columnsOf(StatusTag);
   const chosen = rows.filter((row) => selected.has(row.id)).length;
   const all =
     chosen === 0 ? false : chosen === rows.length ? true : ("mixed" as const);
@@ -319,7 +322,7 @@ export function DataTable<R extends Row>({
                 <th
                   key={i}
                   scope="col"
-                  className={dataTable({ money: money[i] }).header()}
+                  className={dataTable({ money: moneyColumns[i] }).header()}
                 >
                   {name}
                 </th>
@@ -373,7 +376,11 @@ export function DataTable<R extends Row>({
                   )}
                   {cells[r]!.map((node, i) => (
                     <td key={i} className={each.cell()}>
-                      {status[i] ? <StatusRoom>{node}</StatusRoom> : node}
+                      {statusColumns[i] ? (
+                        <StatusRoom>{node}</StatusRoom>
+                      ) : (
+                        node
+                      )}
                     </td>
                   ))}
                 </tr>

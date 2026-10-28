@@ -11,7 +11,7 @@ import { Amount } from "../Amount/Amount.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Sheet } from "../Sheet/Sheet.tsx";
 import { Stack } from "../Stack/Stack.tsx";
-import { StatusTag } from "../StatusTag/StatusTag.tsx";
+import { StatusTag, statusWords } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { DataTable } from "./DataTable.tsx";
 
@@ -169,9 +169,15 @@ const sheetOpen = { layout: "fullscreen" } as const;
 
 // Style expectations (ADR 0012) every story holds: rows are the density's
 // row height, headers are the body size at weight 600 (#185), and the money
-// column's header ends where its amounts do.
+// column's header ends where its amounts do. A story with more than one
+// table holds each of them to it.
 async function holdsRowsAndHeaders(canvas: HTMLElement, density: string) {
-  const root = canvas.querySelector('[data-component="DataTable"]')!;
+  for (const root of canvas.querySelectorAll('[data-component="DataTable"]')) {
+    await holdsTable(root, density);
+  }
+}
+
+async function holdsTable(root: Element, density: string) {
   const height = density === "contractor" ? 60 : 46;
   const size = density === "contractor" ? "16px" : "14px";
   for (const row of root.querySelectorAll("tr")) {
@@ -244,16 +250,25 @@ async function flipsInStagger(
 // awaiting approval in rows-selected, every one scheduled once the payment
 // is confirmed. The two states sit one above the other, each as its own
 // table at the same width, so a play function, which only reads, can hold
-// one against the other.
+// one against the other. Below them the same invoices show every status
+// StatusTag has, one each, so the widest word is on the canvas whichever it
+// is; every other cell reads as it does above.
+const payQueue = fixtureVariant("bulk-pay/rows-selected").data.payQueue;
+const everyStatus: Invoice[] = (
+  Object.keys(statusWords) as Invoice["status"][]
+).map((status, i) => {
+  const each = payQueue[i % payQueue.length]!;
+  return { ...each, id: `${each.id}-${status}`, status };
+});
+
 function PayQueueStates() {
   return (
     <Stack gap="sm">
-      <InvoiceQueue
-        rows={fixtureVariant("bulk-pay/rows-selected").data.payQueue}
-      />
+      <InvoiceQueue rows={payQueue} />
       <InvoiceQueue
         rows={fixtureVariant("bulk-pay/payment-scheduled").data.payQueue}
       />
+      <InvoiceQueue rows={everyStatus} />
     </Stack>
   );
 }
@@ -270,13 +285,15 @@ async function columnsHoldStill(canvas: HTMLElement, density: string) {
   const headersOf = (root: HTMLElement) => [
     ...root.querySelectorAll<HTMLElement>("th"),
   ];
-  const xs = tables.map((root) =>
+  const headerOffsets = tables.map((root) =>
     headersOf(root).map(
       (header) =>
         header.getBoundingClientRect().left - root.getBoundingClientRect().left
     )
   );
-  for (const each of xs.slice(1)) await expect(each).toEqual(xs[0]);
+  for (const offsets of headerOffsets.slice(1)) {
+    await expect(offsets).toEqual(headerOffsets[0]);
+  }
   const widest = Math.max(
     ...[
       ...canvas.querySelectorAll<HTMLElement>('[data-component="StatusTag"]'),

@@ -63,7 +63,7 @@ Status columns hold still (#276): a column whose cell node is a StatusTag keeps 
 | | opens, not selected | `hover:bg-surface-hover active:bg-surface-pressed` |
 | `cell` | always | `px-xs align-middle text-body text-nowrap text-ink *:text-nowrap` (a Text's paragraph sets its own wrap, so the cell holds its node to one line too) |
 | `room` | a StatusTag cell | `inline-grid justify-items-start *:col-start-1 *:row-start-1`, around the cell's tag and every status word |
-| `word` | a StatusTag cell | `invisible`, with StatusTag's own `root` base classes, on each `aria-hidden` word |
+| `word` | a StatusTag cell | `invisible flex`, on each `aria-hidden` word, around a box with StatusTag's own `root` classes and no status colour |
 | `select` | always | `w-0 pl-xs align-middle` |
 | `selector` | always | `flex`, a box in the select cell so the Checkbox centres in the row instead of sitting on the text baseline |
 
