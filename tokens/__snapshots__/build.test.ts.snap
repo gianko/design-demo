@@ -48,6 +48,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-motion-duration-base-exit: 168ms;
   --ds-motion-duration-slow-exit: 224ms;
   --ds-motion-duration-loop: 1280ms;
+  --ds-motion-timeout-toast: 5000ms;
   --ds-motion-delay-stagger: 40ms;
   --ds-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ds-motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -412,25 +413,27 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   }
 }
 
-/* The row's Sheet slides in from the end edge and back out past it (ADR 0011),
-   its own width, so it starts and ends just out of the window. \`--end-edge\`
-   is 1 where the end edge is the right and -1 where it is the left
-   (src/styles.css). */
-@keyframes sheet-in {
+/* A row's Sheet (ADR 0011) and an action's Toast (ADR 0013) slide in from the
+   end edge and back out past it: their own width and \`--slide-past\` beyond
+   it, so each starts and ends just out of the window. A sheet is flush with
+   the window's edge, so it slides no further; a toast sits the page padding
+   in from it. \`--end-edge\` is 1 where the end edge is the right and -1 where
+   it is the left (src/styles.css). */
+@keyframes slide-in {
   from {
-    translate: calc(var(--end-edge) * 100%);
+    translate: calc(var(--end-edge) * (100% + var(--slide-past)));
   }
   to {
     translate: 0;
   }
 }
 
-@keyframes sheet-out {
+@keyframes slide-out {
   from {
     translate: 0;
   }
   to {
-    translate: calc(var(--end-edge) * 100%);
+    translate: calc(var(--end-edge) * (100% + var(--slide-past)));
   }
 }
 "
@@ -502,6 +505,9 @@ export type Animate = (typeof animate)[number];
 
 export const zIndex = ["raised", "overlay", "toast"] as const;
 export type ZIndex = (typeof zIndex)[number];
+
+// Timers' lengths in ms, the one kind of token value code reads (ADR 0005).
+export const timeout = { toast: 5000 } as const;
 "
 `;
 
@@ -2673,6 +2679,14 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "css": true,
           "valuesByMode": {
             "Value": 1280
+          }
+        },
+        {
+          "name": "motion/timeout/toast",
+          "type": "TIMING",
+          "css": true,
+          "valuesByMode": {
+            "Value": 5000
           }
         },
         {

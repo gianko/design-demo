@@ -27,15 +27,17 @@ import { inViewTransition } from "./view-transition.ts";
 // hooks and the Screen it renders see the same one. The host also holds the
 // fixture variant, whose data `useFixtureData` reads for bound props and
 // operation arguments (ADR 0004), and the selection: the rows DataTable has
-// ticked, which `useSelectedRows` reads for an action's argument. Given the
-// UI spec's declared states, a confirmed action brings the data of the state
-// it enters, so the statuses it changed change on screen (the stagger).
+// ticked, which `useSelectedRows` reads for an action's argument. The
+// selection is no screen state: changing it enters none and runs no View
+// Transition (ADR 0013). Given the UI spec's declared states, a confirmed
+// action brings the data of the state it enters, so the statuses it changed
+// change on screen (the stagger).
 
 export { defaultState };
 
 // `confirm` follows a confirmed result and is the only type `ease-settle`
-// runs under; `fail` follows a failed one. An untyped change (DataTable
-// selection) runs `base`, `standard`.
+// runs under; `fail` follows a failed one. An untyped change runs `base`,
+// `standard`.
 export type TransitionType = "confirm" | "fail";
 
 type ScreenStateContext = {
@@ -50,8 +52,8 @@ type ScreenStateContext = {
   operations: Operations;
   // The ids of the ticked rows, in the order they were ticked.
   selected: readonly string[];
-  // Sets the selection, entering `name` in the same update when given.
-  select: (ids: readonly string[], name?: string) => void;
+  // Sets the selection.
+  select: (ids: readonly string[]) => void;
 };
 
 const HostContext = createContext<ScreenStateContext | null>(null);
@@ -69,11 +71,14 @@ export type HostedState = { name: string; fixture: VariantName };
 // `openSheet` is the open-sheet render's (ADR 0011): which of the screen's
 // DataTables with a detail slot, counted from 0 in document order, starts
 // with its first row's Sheet open. The preview sets DataTable's
-// `openDetailAttribute` around the story from it.
+// `openDetailAttribute` around the story from it. `tickRows` is the
+// rows-ticked render's (ADR 0013): which of its DataTables with actions
+// starts with every row ticked, through DataTable's `tickRowsAttribute`.
 export type ScreenStateParameters = {
   screenState?: HostedState;
   screenStates?: readonly HostedState[];
   openSheet?: number;
+  tickRows?: number;
 };
 
 export type ScreenHostProps = {
@@ -86,7 +91,8 @@ export type ScreenHostProps = {
   // a state they don't name, the data never changes.
   states?: readonly HostedState[];
   // The selection the host starts with, such as a story's every row; the
-  // fixture variant's when not given.
+  // fixture variant's when not given, such as a failure variant's rows kept
+  // ticked for a retry.
   selected?: readonly string[];
   // The fixture variant whose operations the screen's actions settle under,
   // when it isn't the screen state's: the action-transitions rule starts a
@@ -148,13 +154,9 @@ export function ScreenHost({
     [states]
   );
   const select = useCallback(
-    (ids: readonly string[], name?: string) => {
-      const setSelected = () =>
-        setEntered((last) => ({ ...last, selected: ids }));
-      if (name === undefined) setSelected();
-      else enter(name, undefined, setSelected);
-    },
-    [enter]
+    (ids: readonly string[]) =>
+      setEntered((last) => ({ ...last, selected: ids })),
+    []
   );
   const value = useMemo(
     () => ({ state, entries, enter, data, operations, selected, select }),
@@ -194,8 +196,7 @@ export function useSelectedRows(): string[] {
   return useMemo(() => [...selected], [selected]);
 }
 
-// DataTable's read and write of the selection: `select(ids, name)` changes
-// it, entering `name` in the same update when given.
+// DataTable's read and write of the selection: `select(ids)` changes it.
 export function useSelection() {
   const { selected, select } = useHost("useSelection");
   return { selected, select };

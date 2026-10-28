@@ -14,9 +14,9 @@
 //   closes it;
 // - a screen's declared actions (its `screenActions` parameter, as
 //   `action-transitions` reads it): clicking each one's Button in its start
-//   state, settling under each outcome's fixture variant (bar → toast, the
-//   failure toast); a story that
-//   declares none has each Button in an ActionBar clicked instead.
+//   state, settling under each outcome's fixture variant (the success and
+//   the failure toast); a story that declares none has each enabled Button
+//   in a DataTable's actions footer clicked instead.
 //
 // Each drive runs in a page of its own, so the render's page, which the
 // baseline shot reads next, never leaves its media or state.
@@ -86,7 +86,7 @@ export const render: RenderRule = {
       // Read off the render's own page, which reading doesn't change.
       const labels = await page
         .locator(root)
-        .locator(barButtons)
+        .locator(footerButtons)
         .evaluateAll((buttons) =>
           buttons.map((button) => button.textContent!.trim())
         );
@@ -97,7 +97,7 @@ export const render: RenderRule = {
               reduced,
               reduced
                 .locator(root)
-                .locator(barButtons)
+                .locator(footerButtons)
                 .filter({ hasText: label }),
               `Clicking ${quote(label)}`
             )
@@ -109,9 +109,10 @@ export const render: RenderRule = {
   },
 };
 
-// The Buttons an ActionBar holds that a click can run.
-const barButtons =
-  '[data-component="ActionBar"] [data-component="Button"]:not([disabled], [aria-busy="true"])';
+// The Buttons a DataTable's actions footer holds that a click can run: a
+// table holds no other Button (its Sheet renders after it).
+const footerButtons =
+  '[data-component="DataTable"] [data-component="Button"]:not([disabled], [aria-busy="true"])';
 
 // One recorded animation or transition, and the drive it ran under.
 type Ran = {

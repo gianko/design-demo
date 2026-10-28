@@ -18,6 +18,24 @@ function StuckDates({ fill }: { fill: boolean }) {
   );
 }
 
+// Dates in a box a row high, scrolled to the top, so the later ones lie
+// past its bottom edge, out of view, and a note right below the box, where
+// the hidden dates would be: as a capped DataTable's footer sits under rows
+// scrolled out of its body (ADR 0013).
+function ScrolledPastNote() {
+  return (
+    <div>
+      <div className="h-row w-4xl overflow-auto">
+        <p>Oct 24</p>
+        <p>Nov 2</p>
+        <p>Dec 1</p>
+        <p>Jan 5</p>
+      </div>
+      <p>3 invoices selected</p>
+    </div>
+  );
+}
+
 // text-overflow (lint/taste/RULES.md), one failure per story. Spill: an IBAN
 // with no break opportunity runs out of a narrow column, and a long label
 // wraps out of the bottom of a fixed-height control. Clip: a long name cut
@@ -29,7 +47,8 @@ function StuckDates({ fill }: { fill: boolean }) {
 // one sees it, a modal dialog, as a Sheet opens, whose text covers the page's
 // behind it rather than colliding with it, and the stuck label with an
 // opaque fill, as a long DataTable's header row has, which covers the dates
-// scrolling under it.
+// scrolling under it, and a note below dates scrolled out of their box, which
+// don't show where the note is.
 const meta = {
   title: "GateFixtures/TextOverflow",
   args: { variant: "pass" },
@@ -79,6 +98,7 @@ const meta = {
             <p>Invoice INV-0142, due Oct 24</p>
           </dialog>
           <StuckDates fill />
+          <ScrolledPastNote />
         </>
       )}
     </div>

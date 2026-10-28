@@ -63,3 +63,6 @@ export type Animate = (typeof animate)[number];
 
 export const zIndex = ["raised", "overlay", "toast"] as const;
 export type ZIndex = (typeof zIndex)[number];
+
+// Timers' lengths in ms, the one kind of token value code reads (ADR 0005).
+export const timeout = { toast: 5000 } as const;

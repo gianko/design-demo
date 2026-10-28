@@ -1,5 +1,9 @@
 import type { Preview } from "@storybook/react-vite";
-import { openDetailAttribute } from "../src/components/DataTable/DataTable.tsx";
+import {
+  openDetailAttribute,
+  tickRowsAttribute,
+} from "../src/components/DataTable/DataTable.tsx";
+import { holdToastAttribute } from "../src/components/Toast/Toast.tsx";
 import { ScreenHost, type ScreenStateParameters } from "../src/index.ts";
 import "../src/styles.css";
 import { densities, themes, type Density, type Theme } from "./globals";
@@ -40,21 +44,28 @@ const preview: Preview = {
     // `parameters.screenStates`, so a confirmed action shows the data of the
     // state it enters. A screen's open-sheet story names in
     // `parameters.openSheet` which detail table starts with its first row's
-    // Sheet open (ADR 0011), which DataTable reads from its test attribute
-    // on a box-less element around the story.
+    // Sheet open (ADR 0011), and its rows-ticked story in
+    // `parameters.tickRows` which table with actions starts with every row
+    // ticked (ADR 0013), as an action clicked in a table's footer does too;
+    // DataTable reads each from its test attribute on a box-less element
+    // around the story.
     (Story, { parameters, globals }) => {
-      const { screenState, screenStates, openSheet } =
+      const { screenState, screenStates, openSheet, tickRows } =
         parameters as ScreenStateParameters;
-      const start = actionStart(
+      const { tickRows: ticked = tickRows, ...start } = actionStart(
         parameters as ScreenActionParameters & ScreenStateParameters,
         globals as ScreenActionGlobals
       ) ?? { screenState };
+      const attributes = {
+        ...(openSheet !== undefined && { [openDetailAttribute]: openSheet }),
+        ...(ticked !== undefined && { [tickRowsAttribute]: ticked }),
+      };
       return (
         <ScreenHost {...start} states={screenStates}>
-          {openSheet === undefined ? (
+          {Object.keys(attributes).length === 0 ? (
             <Story />
           ) : (
-            <div className="contents" {...{ [openDetailAttribute]: openSheet }}>
+            <div className="contents" {...attributes}>
               <Story />
             </div>
           )}
@@ -64,12 +75,14 @@ const preview: Preview = {
     // Theme and density are CSS scopes, so this sets the two attributes. It
     // also paints the page, as whatever hosts a screen does, so a component
     // with no surface of its own sits on the page role, not on the browser's
-    // white.
+    // white. A story is a still render, the same each run for the gate and
+    // a Figma capture, so a success Toast in it holds its timer (ADR 0013).
     (Story, { globals }) => (
       <div
         className="bg-page"
         data-theme={globals.theme}
         data-density={globals.density}
+        {...{ [holdToastAttribute]: "" }}
       >
         <Story />
       </div>

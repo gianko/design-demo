@@ -23,6 +23,14 @@
         "$value": { "value": 1280, "unit": "ms" }
       }
     },
+    "timeout": {
+      "$type": "duration",
+      "$description": "How long something stays before it leaves on its own: a timer's length, not an animation's, so no class. tokens.ts carries the values for code (ADR 0005).",
+      "toast": {
+        "$description": "How long a success toast stays before it leaves on its own; its timer pauses while hovered, focused within or the tab is hidden.",
+        "$value": { "value": 5000, "unit": "ms" }
+      }
+    },
     "delay": {
       "$type": "duration",
       "stagger": {

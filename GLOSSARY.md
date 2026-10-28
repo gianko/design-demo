@@ -104,6 +104,10 @@ _Avoid_: Promoted screen, reference screen, saved screen
 A screen story of the default state with the first row's Sheet open, one for each DataTable with a `detail` slot, gated, baselined and captured like a screen state. It isn't a screen state: the open sheet is DataTable's own state, set from the start through a library test attribute, `data-test-open-detail`, which only this story sets (from its `openSheet` parameter).
 _Avoid_: Sheet state, detail-open state
 
+**Rows-ticked render**:
+A screen story of the default state with every row of a table ticked, one for each DataTable with `actions`, gated, baselined and captured like a screen state. It isn't a screen state: the selection is the table's own, set from the start through a library test attribute, `data-test-tick-rows`, which only this story (from its `tickRows` parameter) and an action clicked in a table's footer set.
+_Avoid_: Rows-selected state, selection state
+
 ## Quality
 
 **Gate**:

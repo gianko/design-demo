@@ -6,6 +6,9 @@
 // its selector names it, or every name with `*`, under the transition type
 // it names if any, and in the media it sits in; a typed selector outranks an
 // untyped one, a named one an unnamed one, and a later rule an earlier one.
+// A rule on `:only-child` applies to an image that is alone in its pair: an
+// element in the new view only (entering) or the old view only (leaving);
+// one on `:not(:only-child)` to an image with a partner.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -16,7 +19,7 @@ type Type = "confirm" | "fail" | "sheet-open" | "sheet-close" | undefined;
 type Media = { reducedMotion: boolean };
 
 const selector =
-  /^(?::root:active-view-transition-type\(([\w-]+)\))?::view-transition-(group|new|old)\((\*|[\w-]+)\)$/;
+  /^(?::root:active-view-transition-type\(([\w-]+)\))?::view-transition-(group|new|old)\((\*|[\w-]+)\)(:only-child|:not\(:only-child\))?$/;
 
 function sheet() {
   const style = document.createElement("style");
@@ -34,12 +37,13 @@ function sheet() {
 const unnamed = "root";
 
 // The declarations that win on one view-transition pseudo-element of the
-// group `name`.
+// group `name`, its image `alone` in its pair or not.
 function computed(
   pseudo: Pseudo,
   type: Type,
   { reducedMotion }: Media,
-  name = unnamed
+  name = unnamed,
+  alone = false
 ) {
   const winners = new Map<string, { rank: number; value: string }>();
   const apply = (rule: CSSStyleRule, order: number) => {
@@ -51,11 +55,17 @@ function computed(
       if (!one.includes("::view-transition")) continue;
       const match = selector.exec(one);
       if (!match) throw new Error(`An unexpected selector: ${one}`);
-      const [, typed, target, group] = match;
+      const [, typed, target, group, onlyChild] = match;
       if (target !== pseudo || (typed && typed !== type)) continue;
       if (group !== "*" && group !== name) continue;
+      if (onlyChild && (onlyChild === ":only-child") !== alone) continue;
+      // Specificity, then order: the type and `:only-child` each a
+      // pseudo-class, a name a type selector, `*` nothing.
       const rank =
-        (typed ? 2_000_000 : 0) + (group === "*" ? 0 : 1_000_000) + order;
+        (typed ? 2_000_000 : 0) +
+        (onlyChild ? 1_000_000 : 0) +
+        (group === "*" ? 0 : 100_000) +
+        order;
       for (const property of Array.from(rule.style)) {
         const known = winners.get(property);
         if (!known || known.rank <= rank) {
@@ -84,10 +94,13 @@ function computed(
     name: value("animation-name"),
     duration: value("animation-duration"),
     easing: value("animation-timing-function"),
+    slidePast: value("--slide-past")?.trim(),
+    opacity: value("opacity"),
   };
 }
 
 const token = (name: string) => `var(--ds-motion-${name})`;
+const tokens = join(import.meta.dirname, "../tokens");
 const types: Type[] = [undefined, "confirm", "fail"];
 const motion = { reducedMotion: false };
 const reduced = { reducedMotion: true };
@@ -132,53 +145,84 @@ describe("screen-state transitions", () => {
   });
 });
 
-// Toast's timing (ADR 0011): a toast enters at `slow` and leaves at
-// `slow-exit`. The bar's group, `action-result`, is timed as a toast only
-// under `confirm`, where the bar becomes the toast; the bar entering with
-// rows-selected keeps `base`. A failure toast, `action-failure`, is timed so
-// under any type.
+// Toast's slide (ADR 0013): a toast, the only element named `toast`, slides
+// in from the end edge when it enters, its image alone in the new view: at
+// `slow`, settling under `confirm`, the transition a success enters in, and
+// with `standard` under `fail`. It slides back out past the end edge at
+// `slow-exit` with `exit` whenever it leaves, its image alone in the old
+// view: closed, timed out or gone with its state. No fade and no scale. A
+// toast that replaces another, or shows again where it was, slides nowhere.
 describe("toast transitions", () => {
-  it("time the bar becoming a toast as a toast entering, under confirm", () => {
-    for (const pseudo of ["group", "new"] as const) {
-      expect(computed(pseudo, "confirm", motion, "action-result")).toEqual({
-        name: undefined,
-        duration: token("duration-slow"),
-        easing: token("ease-settle"),
-      });
-    }
-    expect(computed("old", "confirm", motion, "action-result")).toEqual({
-      name: undefined,
-      duration: token("duration-slow-exit"),
-      easing: token("ease-exit"),
+  it("slide a success toast in from the end edge at slow, settling, under confirm", () => {
+    expect(computed("new", "confirm", motion, "toast", true)).toMatchObject({
+      name: "slide-in",
+      duration: token("duration-slow"),
+      easing: token("ease-settle"),
     });
   });
 
-  it("keep base for the bar entering with rows-selected", () => {
-    expect(computed("group", undefined, motion, "action-result")).toEqual({
-      name: undefined,
-      duration: token("duration-base"),
+  it("slide a failure toast in from the end edge at slow, never settling, under fail", () => {
+    expect(computed("new", "fail", motion, "toast", true)).toMatchObject({
+      name: "slide-in",
+      duration: token("duration-slow"),
       easing: token("ease-standard"),
     });
-    expect(computed("old", undefined, motion, "action-result")).toEqual({
-      name: undefined,
-      duration: token("duration-base-exit"),
-      easing: token("ease-exit"),
-    });
   });
 
-  it.each(types)("time a failure toast as a toast, under %s", (type) => {
-    for (const pseudo of ["group", "new"] as const) {
-      expect(computed(pseudo, type, motion, "action-failure").duration).toBe(
-        token("duration-slow")
-      );
+  it.each(types)(
+    "slide a leaving toast out past the end edge, under %s",
+    (type) => {
+      expect(computed("old", type, motion, "toast", true)).toMatchObject({
+        name: "slide-out",
+        duration: token("duration-slow-exit"),
+        easing: token("ease-exit"),
+      });
     }
-    expect(computed("old", type, motion, "action-failure").duration).toBe(
-      token("duration-slow-exit")
+  );
+
+  // No fade and no scale (#299): the old toast's image is hidden, the new
+  // one shows at once, and the group neither moves nor resizes.
+  it.each(types)(
+    "swap at once, with no fade or scale, when a toast replaces another, under %s",
+    (type) => {
+      for (const pseudo of ["group", "new", "old"] as const) {
+        expect(computed(pseudo, type, motion, "toast").name).toBe("none");
+      }
+      expect(computed("old", type, motion, "toast").opacity).toBe("0");
+      expect(computed("new", type, motion, "toast").opacity).toBeUndefined();
+    }
+  );
+
+  it.each(types)("show a leaving toast as it slides out, under %s", (type) => {
+    expect(
+      computed("old", type, motion, "toast", true).opacity
+    ).toBeUndefined();
+  });
+
+  // The toast sits the page padding in from the window's edge, so its own
+  // width doesn't take it out of the window: it slides a step further, one
+  // wider than either density's page padding (the slide's pseudo-elements
+  // hang off the root, outside the screen's density scope).
+  it("slide a toast past the page padding of either density", () => {
+    const { slidePast } = computed("new", "confirm", motion, "toast", true);
+    expect(slidePast).toBe("var(--ds-space-2xl)");
+    expect(computed("old", undefined, motion, "toast", true).slidePast).toBe(
+      slidePast
     );
-    // A failure never settles.
-    expect(computed("new", "fail", motion, "action-failure").easing).toBe(
-      token("ease-standard")
-    );
+    const px = (file: string, path: string[]) =>
+      path.reduce<Record<string, unknown>>(
+        (at, key) => at[key] as Record<string, unknown>,
+        JSON.parse(readFileSync(join(tokens, file), "utf8"))
+      ).$value as { value: number };
+    const past = px("space.json", ["space", "2xl"]).value;
+    for (const density of ["admin", "contractor"]) {
+      const page = px(`density.${density}.json`, [
+        "density",
+        "padding",
+        "page",
+      ]);
+      expect(past, density).toBeGreaterThan(page.value);
+    }
   });
 });
 
@@ -190,7 +234,7 @@ describe("toast transitions", () => {
 describe("sheet transitions", () => {
   it("slide the sheet in from the end edge at slow, never settling", () => {
     expect(computed("new", "sheet-open", motion, "row-detail")).toEqual({
-      name: "sheet-in",
+      name: "slide-in",
       duration: token("duration-slow"),
       easing: token("ease-standard"),
     });
@@ -198,7 +242,7 @@ describe("sheet transitions", () => {
 
   it("slide the sheet out past the end edge at slow-exit with exit easing", () => {
     expect(computed("old", "sheet-close", motion, "row-detail")).toEqual({
-      name: "sheet-out",
+      name: "slide-out",
       duration: token("duration-slow-exit"),
       easing: token("ease-exit"),
     });
@@ -221,20 +265,25 @@ describe("sheet transitions", () => {
   });
 });
 
+// Under reduced motion, nothing moves: a sheet or a toast entering or
+// leaving alone crossfades at `fast` like everything else.
 describe("named transitions under reduced motion", () => {
   it.each([
-    ["action-result", "confirm"],
-    ["action-failure", "fail"],
+    ["toast", "confirm"],
+    ["toast", "fail"],
+    ["toast", undefined],
     ["row-detail", "sheet-open"],
     ["row-detail", "sheet-close"],
   ] as const)("crossfade %s at fast, under %s", (name, type) => {
     expect(computed("group", type, reduced, name).name).toBe("none");
-    for (const pseudo of ["new", "old"] as const) {
-      expect(computed(pseudo, type, reduced, name)).toEqual({
-        name: undefined,
-        duration: token("duration-fast"),
-        easing: token("ease-standard"),
-      });
+    for (const alone of [false, true]) {
+      for (const pseudo of ["new", "old"] as const) {
+        expect(computed(pseudo, type, reduced, name, alone)).toEqual({
+          name: undefined,
+          duration: token("duration-fast"),
+          easing: token("ease-standard"),
+        });
+      }
     }
   });
 });
@@ -260,8 +309,8 @@ describe("view transitions in one place", () => {
     expect(touching).toEqual([]);
   });
 
-  it("has no ActionBar, Toast or Sheet stylesheet, and nothing imports one", () => {
-    for (const name of ["ActionBar", "Toast", "Sheet"]) {
+  it("has no Toast or Sheet stylesheet, and nothing imports one", () => {
+    for (const name of ["Toast", "Sheet"]) {
       expect(existsSync(join(src, "components", name, `${name}.css`))).toBe(
         false
       );
@@ -269,7 +318,7 @@ describe("view transitions in one place", () => {
     const importing = files(src)
       .filter((file) => /\.tsx?$/.test(file))
       .filter((file) =>
-        /import\s+["'][^"']*\/(ActionBar|Toast|Sheet)\.css["']/.test(
+        /import\s+["'][^"']*\/(Toast|Sheet)\.css["']/.test(
           readFileSync(file, "utf8")
         )
       )
@@ -278,8 +327,7 @@ describe("view transitions in one place", () => {
   });
 
   it.each([
-    ["vt-action-result", "action-result"],
-    ["vt-action-failure", "action-failure"],
+    ["vt-toast", "toast"],
     ["vt-row-detail", "row-detail"],
   ])("defines %s as a utility setting %s", (utility, name) => {
     const text = readFileSync(join(src, "styles.css"), "utf8");

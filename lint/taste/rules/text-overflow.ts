@@ -93,7 +93,50 @@ function overflowing(root: Element): RenderFinding[] {
   // behind its scrim, so its text covers the page's rather than colliding
   // with it: only texts in the same layer can collide. So does a stuck box
   // (`position: sticky`) with an opaque fill, such as a long DataTable's
-  // header row, over the content scrolling under it (#296).
+  // header row, over the content scrolling under it (#296). A line box is
+  // held to what shows of it: the part inside every box above it that
+  // scrolls or clips, so rows scrolled out of a capped DataTable's body
+  // don't collide with its footer below the body (ADR 0013). A box in the
+  // top layer, or fixed to the window, isn't clipped by the boxes above it.
+  const shown = (element: Element, rects: readonly DOMRect[]) => {
+    const view = {
+      left: -Infinity,
+      top: -Infinity,
+      right: Infinity,
+      bottom: Infinity,
+    };
+    let escaped = false;
+    for (
+      let box: Element | null = element;
+      box && !escaped && box !== root.parentElement;
+      box = box.parentElement
+    ) {
+      const style = getComputedStyle(box);
+      escaped = box.matches(":modal") || style.position === "fixed";
+      const rect = box.getBoundingClientRect();
+      if (style.overflowX !== "visible") {
+        view.left = Math.max(view.left, rect.left + box.clientLeft);
+        view.right = Math.min(
+          view.right,
+          rect.left + box.clientLeft + box.clientWidth
+        );
+      }
+      if (style.overflowY !== "visible") {
+        view.top = Math.max(view.top, rect.top + box.clientTop);
+        view.bottom = Math.min(
+          view.bottom,
+          rect.top + box.clientTop + box.clientHeight
+        );
+      }
+    }
+    return rects.map((r) => ({
+      left: Math.max(r.left, view.left),
+      top: Math.max(r.top, view.top),
+      right: Math.min(r.right, view.right),
+      bottom: Math.min(r.bottom, view.bottom),
+    }));
+  };
+  const showing = texts.map((text) => shown(text.element, text.rects));
   const layer = (element: Element) => element.closest(":modal");
   const stuck = (element: Element) => {
     for (let box: Element | null = element; box; box = box.parentElement) {
@@ -111,8 +154,8 @@ function overflowing(root: Element): RenderFinding[] {
       const b = texts[j]!;
       if (layer(a.element) !== layer(b.element)) continue;
       if (stuck(a.element) !== stuck(b.element)) continue;
-      const overlap = a.rects.some((r) =>
-        b.rects.some(
+      const overlap = showing[i]!.some((r) =>
+        showing[j]!.some(
           (s) =>
             Math.min(r.right, s.right) - Math.max(r.left, s.left) > slack &&
             Math.min(r.bottom, s.bottom) - Math.max(r.top, s.top) > slack

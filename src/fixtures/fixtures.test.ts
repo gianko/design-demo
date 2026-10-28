@@ -16,36 +16,16 @@ describe("fixtures", () => {
   const p0States = {
     "payment-status": ["empty", "reminder-sent", "reminder-failed"],
     "payment-overview": ["empty"],
-    "invoice-queue": [
-      "empty",
-      "rows-selected",
-      "payment-scheduled",
-      "payment-failed",
-    ],
+    "invoice-queue": ["empty", "payment-scheduled", "payment-failed"],
     "invoice-review": ["payment-scheduled", "payment-failed"],
     "payment-run": ["empty"],
   };
 
   // Each P1 brief's `requires.states`, as spec § The P1 set lists them.
   const p1States = {
-    "bulk-pay": [
-      "empty",
-      "rows-selected",
-      "payment-scheduled",
-      "payment-failed",
-    ],
-    "overdue-invoices": [
-      "empty",
-      "rows-selected",
-      "reminders-sent",
-      "reminders-failed",
-    ],
-    "failed-payments": [
-      "empty",
-      "rows-selected",
-      "payments-retried",
-      "retry-failed",
-    ],
+    "bulk-pay": ["empty", "payment-scheduled", "payment-failed"],
+    "overdue-invoices": ["empty", "reminders-sent", "reminders-failed"],
+    "failed-payments": ["empty", "payments-retried", "retry-failed"],
     contractors: ["empty"],
     "run-history": ["empty"],
     "my-invoices": ["empty"],
@@ -345,13 +325,12 @@ describe("fixtures", () => {
     expect(fixtureVariant("invoice-queue/empty").data.invoices).toEqual([]);
   });
 
-  it.each([
-    "invoice-queue/rows-selected",
-    "invoice-queue/payment-failed",
-    "invoice-review/payment-failed",
-  ])("leaves the invoices as they were under %s", (name) => {
-    expect(fixtureVariant(name).data).toEqual(fixtureVariant("default").data);
-  });
+  it.each(["invoice-queue/payment-failed", "invoice-review/payment-failed"])(
+    "leaves the invoices as they were under %s",
+    (name) => {
+      expect(fixtureVariant(name).data).toEqual(fixtureVariant("default").data);
+    }
+  );
 
   const statuses = (name: string) =>
     Object.fromEntries(
@@ -417,7 +396,7 @@ describe("fixtures", () => {
     expect(queued("bulk-pay/empty")).toEqual([]);
   });
 
-  it.each(["bulk-pay/rows-selected", "bulk-pay/payment-failed"])(
+  it.each(["bulk-pay/payment-failed"])(
     "leaves the invoices as they were under %s, with the awaiting ones selected",
     (name) => {
       const variant = fixtureVariant(name);
@@ -455,15 +434,14 @@ describe("fixtures", () => {
     ).toEqual([]);
   });
 
-  it.each([
-    "overdue-invoices/rows-selected",
-    "overdue-invoices/reminders-failed",
-  ])("starts %s with every overdue invoice selected", (name) => {
-    expect(fixtureVariant(name).selected).toEqual(["INV-0142", "INV-0144"]);
-  });
+  it.each(["overdue-invoices/reminders-failed"])(
+    "starts %s with every overdue invoice selected",
+    (name) => {
+      expect(fixtureVariant(name).selected).toEqual(["INV-0142", "INV-0144"]);
+    }
+  );
 
   it.each([
-    "overdue-invoices/rows-selected",
     "overdue-invoices/reminders-sent",
     "overdue-invoices/reminders-failed",
   ])("leaves the invoices as they were under %s", (name) => {
@@ -525,7 +503,7 @@ describe("fixtures", () => {
     expect(data.bouncedPayment).toBeNull();
   });
 
-  it.each(["failed-payments/rows-selected", "failed-payments/retry-failed"])(
+  it.each(["failed-payments/retry-failed"])(
     "starts %s with every failed payment selected, and the data as it was",
     (name) => {
       const { data, selected } = fixtureVariant(name);
@@ -742,11 +720,9 @@ describe("fixtures", () => {
 
     it.each([
       "default",
-      "invoice-queue/rows-selected",
       "invoice-queue/payment-scheduled",
       "invoice-review/payment-scheduled",
       "payment-status/reminder-failed",
-      "bulk-pay/rows-selected",
       "bulk-pay/payment-scheduled",
     ])("succeeds after exactly 1,800ms under %s", async (name) => {
       expect(await settle(name)).toEqual({
@@ -807,7 +783,6 @@ describe("fixtures", () => {
 
     it.each([
       "default",
-      "overdue-invoices/rows-selected",
       "overdue-invoices/reminders-sent",
       "payment-status/reminder-failed",
     ])("succeeds after exactly 1,800ms under %s", async (name) => {
@@ -847,7 +822,6 @@ describe("fixtures", () => {
 
     it.each([
       "default",
-      "failed-payments/rows-selected",
       "failed-payments/payments-retried",
       "invoice-queue/payment-failed",
     ])("succeeds after exactly 1,800ms under %s", async (name) => {

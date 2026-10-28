@@ -6,7 +6,7 @@ import { iconNames } from "./icons.tsx";
 // name from the shared icon map, which no tv() variant spells.
 export const iconButtonEntry = defineEntry({
   name: "IconButton",
-  use: "The close button Sheet renders in its header. For an action a person takes use a Button, which names what happens in words.",
+  use: "The close button Sheet renders in its header and Toast beside its copy. For an action a person takes use a Button, which names what happens in words.",
   // Sheet renders it; the spec step never sees it (#212).
   internal: true,
   props: z.object({

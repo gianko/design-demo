@@ -1,13 +1,10 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { expect, waitFor } from "storybook/test";
 import { fixtureVariant, type Invoice } from "../../fixtures/fixtures.ts";
-import {
-  ScreenHost,
-  useFixtureData,
-  type ScreenStateParameters,
-} from "../Screen/screen-state.tsx";
+import { ScreenHost, useFixtureData } from "../Screen/screen-state.tsx";
 import { Amount } from "../Amount/Amount.tsx";
+import { Button } from "../Button/Button.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Sheet } from "../Sheet/Sheet.tsx";
 import { Stack } from "../Stack/Stack.tsx";
@@ -15,17 +12,31 @@ import { StatusTag, statusWords } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { DataTable } from "./DataTable.tsx";
 
+// The selected count's three forms, as invoice-queue's UI spec writes them.
+const selectionText = {
+  none: "No invoices selected",
+  one: "1 invoice selected",
+  other: "{count} invoices selected",
+};
+
 // invoice-queue's table, as its generated screen renders it: the rows are
-// the fixture variant's invoices, and each column's cell reads the row. It is
-// selectable, since Approve and pay acts on the Selection, which comes from
-// the host (ADR 0011). With selection off it is the same list with nothing to
-// act on (#203). With `detail`, a row opens its invoice's Sheet.
+// the fixture variant's invoices, and each column's cell reads the row.
+// Approve and pay acts on the Selection, which comes from the host (ADR
+// 0011), so it sits in the table's actions footer, which makes the table
+// selectable (ADR 0013); `pending` holds it pending, as `useAction` does
+// while the payment runs. Without actions it is the same list with nothing
+// to act on (#203). With `reminders`, Send reminders sits before it. With
+// `detail`, a row opens its invoice's Sheet.
 function InvoiceQueue({
-  selectable = true,
+  withActions = true,
+  pending = false,
+  reminders = false,
   detail = false,
   rows,
 }: {
-  selectable?: boolean;
+  withActions?: boolean;
+  pending?: boolean;
+  reminders?: boolean;
   detail?: boolean;
   rows?: readonly Invoice[];
 }) {
@@ -34,7 +45,15 @@ function InvoiceQueue({
     <DataTable
       rows={rows ?? data.invoices}
       columns={["Invoice", "Contractor", "Amount", "Due", "Status"]}
-      selectable={selectable}
+      {...(withActions && {
+        selectionText,
+        actions: (
+          <>
+            {reminders && <Button intent="secondary" text="Send reminders" />}
+            <Button intent="primary" text="Approve and pay" pending={pending} />
+          </>
+        ),
+      })}
       cell={(row) => (
         <>
           <Text text={row.number} />
@@ -95,11 +114,11 @@ function invoiceSheet(row: Invoice) {
 function OpensRow({
   number,
   by,
-  selectable,
+  withActions,
 }: {
   number: string;
   by: "click" | "Enter";
-  selectable: boolean;
+  withActions: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -118,7 +137,7 @@ function OpensRow({
   }, [number, by]);
   return (
     <div ref={ref}>
-      <InvoiceQueue selectable={selectable} detail />
+      <InvoiceQueue withActions={withActions} detail />
     </div>
   );
 }
@@ -175,7 +194,88 @@ const sheetOpen = { layout: "fullscreen" } as const;
 async function holdsRowsAndHeaders(canvas: HTMLElement, density: string) {
   for (const root of canvas.querySelectorAll('[data-component="DataTable"]')) {
     await holdsTable(root, density);
+    await holdsFooter(root, density);
   }
+}
+
+// The actions footer (ADR 0013): the frame's last child, after the
+// scrolling body; null in a table without actions.
+const footerOf = (root: Element) => {
+  const last = root.lastElementChild as HTMLElement;
+  return last === bodyOf(root) ? null : last;
+};
+
+// Style expectations (ADR 0012) of the actions footer: only a table with one
+// has checkboxes. It sits in the frame, outside the scrolling body, as wide
+// as the frame's view, set off from the rows by a `line` rule, with the
+// cells' side padding and a row's height while the count and the Buttons
+// share a line; nothing in it spills past its edges. The Buttons sit at its
+// end edge, disabled while no row is ticked, and change with the rows'
+// `selected` fill, at its duration and easing.
+async function holdsFooter(root: Element, density: string) {
+  const footer = footerOf(root);
+  const boxes = [...root.querySelectorAll<HTMLInputElement>("tbody input")];
+  if (!footer) {
+    await expect(root.querySelectorAll("input")).toHaveLength(0);
+    return;
+  }
+  await expect(bodyOf(root).contains(footer)).toBe(false);
+  const style = getComputedStyle(footer);
+  const frame = getComputedStyle(root);
+  await expect(style.borderTopWidth).toBe("1px");
+  await expect(style.borderTopStyle).toBe("solid");
+  await expect(style.borderTopColor).toBe(frame.borderTopColor);
+  const cell = getComputedStyle(root.querySelector("td:not(:has(input))")!);
+  await expect([style.paddingLeft, style.paddingRight]).toEqual([
+    cell.paddingLeft,
+    cell.paddingRight,
+  ]);
+
+  const edge = footer.getBoundingClientRect();
+  const view = root.getBoundingClientRect();
+  // Within half a pixel: scrolled sideways to its end, the frame's scroll
+  // offset can fall between pixels, and the stuck footer with it.
+  await expect(edge.left).toBeCloseTo(view.left + root.clientLeft, 0);
+  await expect(edge.width).toBeCloseTo(root.clientWidth, 0);
+  for (const each of footer.querySelectorAll("*")) {
+    const box = each.getBoundingClientRect();
+    await expect(box.left).toBeGreaterThanOrEqual(edge.left);
+    await expect(box.right).toBeLessThanOrEqual(edge.right);
+    await expect(box.bottom).toBeLessThanOrEqual(edge.bottom);
+  }
+  const [count, group] = [...footer.children].map((each) =>
+    each.getBoundingClientRect()
+  );
+  const height = density === "contractor" ? 60 : 46;
+  if (group!.top < count!.bottom) {
+    await expect(edge.height).toBe(height);
+  } else {
+    await expect(edge.height).toBeGreaterThan(height);
+  }
+
+  const buttons = [
+    ...footer.querySelectorAll<HTMLButtonElement>('[data-component="Button"]'),
+  ];
+  await expect(buttons.at(-1)!.getBoundingClientRect().right).toBeCloseTo(
+    edge.right - parseFloat(style.paddingRight),
+    0
+  );
+  const row = getComputedStyle(root.querySelector("tbody tr")!);
+  const ticked = boxes.some((box) => box.checked);
+  for (const button of buttons) {
+    const motion = getComputedStyle(button);
+    await expect(button.disabled).toBe(!ticked);
+    await expect(motion.transitionDuration).toBe(row.transitionDuration);
+    await expect(motion.transitionTimingFunction).toBe(
+      row.transitionTimingFunction
+    );
+  }
+}
+
+// The words the footer's start edge shows.
+async function countReads(canvas: HTMLElement, words: string) {
+  const root = canvas.querySelector('[data-component="DataTable"]')!;
+  await expect(footerOf(root)!.firstElementChild!.textContent).toBe(words);
 }
 
 async function holdsTable(root: Element, density: string) {
@@ -248,13 +348,13 @@ async function flipsInStagger(
 }
 
 // bulk-pay's queue either side of Pay selected (#276): every invoice
-// awaiting approval in rows-selected, every one scheduled once the payment
+// awaiting approval before it, every one scheduled once the payment
 // is confirmed. The two states sit one above the other, each as its own
 // table at the same width, so a play function, which only reads, can hold
 // one against the other. Below them the same invoices show every status
 // StatusTag has, one each, so the widest word is on the canvas whichever it
 // is; every other cell reads as it does above.
-const payQueue = fixtureVariant("bulk-pay/rows-selected").data.payQueue;
+const payQueue = fixtureVariant("default").data.payQueue;
 const everyStatus: Invoice[] = (
   Object.keys(statusWords) as Invoice["status"][]
 ).map((status, i) => {
@@ -344,23 +444,31 @@ const stopOf = (row: Element, stop: Stop) =>
 // row's (counted from 0), as Tab or Shift+Tab moves it, scrolling the body
 // if focus asks. Focus then passes to the wrapper, which Tab skips, and is
 // blurred there, so the gate's own Tab starts before the table, as it does
-// elsewhere, rather than after the blurred stop.
+// elsewhere, rather than after the blurred stop. With `sideways`, the frame
+// is scrolled sideways to its end first, as on a phone.
 function Scrolled({
   rows,
   focus,
   at = 0,
+  sideways = false,
   children,
 }: {
   rows?: number;
   focus?: Stop;
   at?: number;
+  sideways?: boolean;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const body = bodyOf(
-      ref.current!.querySelector('[data-component="DataTable"]')!
-    );
+    const root = ref.current!.querySelector('[data-component="DataTable"]')!;
+    // Again once the fonts have loaded, which widen the columns.
+    const toEnd = () => (root.scrollLeft = root.scrollWidth);
+    if (sideways) {
+      toEnd();
+      void document.fonts.ready.then(toEnd);
+    }
+    const body = bodyOf(root);
     const tr = [...body.querySelectorAll("tbody tr")];
     if (rows !== undefined) {
       body.scrollTop = tr[0]!.getBoundingClientRect().height * (rows + 0.5);
@@ -369,7 +477,7 @@ function Scrolled({
     stopOf(tr[at]!, focus).focus();
     ref.current!.focus({ preventScroll: true });
     ref.current!.blur();
-  }, [rows, focus, at]);
+  }, [rows, focus, at, sideways]);
   return (
     <div ref={ref} tabIndex={-1}>
       {children}
@@ -392,6 +500,13 @@ async function scrollsUnderTheCap(canvas: HTMLElement, density: string) {
   await expect(body.getBoundingClientRect().height).toBe(cap);
   await expect(body.scrollHeight).toBeGreaterThan(body.clientHeight);
   await expect(body.scrollTop).toBeGreaterThan(0);
+  // The footer sits below the capped body, outside its scroll, so the count
+  // and the Buttons stay in view while the rows scroll (ADR 0013).
+  const footer = footerOf(root)!.getBoundingClientRect();
+  await expect(footer.top).toBe(body.getBoundingClientRect().bottom);
+  await expect(footer.bottom).toBe(
+    root.getBoundingClientRect().bottom - root.clientTop
+  );
 
   const headerRow = root.querySelector("thead tr")!;
   const header = getComputedStyle(headerRow);
@@ -438,12 +553,14 @@ async function focusClearsHeader(
   await expect(focused.bottom).toBeLessThanOrEqual(body.bottom);
 }
 
-const rowsSelected = {
-  screenState: {
-    name: "rows-selected",
-    fixture: "invoice-queue/rows-selected",
-  },
-} satisfies ScreenStateParameters;
+// The three invoices awaiting approval, ticked as the admin leaves them
+// before Approve and pay: a starting selection in the default state, since
+// the selection is no screen state (ADR 0013).
+const awaitingTicked: Decorator = (Story) => (
+  <ScreenHost selected={["INV-0147", "INV-0148", "INV-0149"]}>
+    <Story />
+  </ScreenHost>
+);
 
 const meta = {
   title: "Components/DataTable",
@@ -468,21 +585,76 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-// The queue as the admin finds it: nothing selected.
-export const Default: Story = { render: () => <InvoiceQueue /> };
-
-// The three invoices awaiting approval, ready for Approve and pay: the
-// variant's own selection.
-export const RowsSelected: Story = {
+// The queue as the admin finds it: nothing selected, so the footer says so
+// and Approve and pay is disabled.
+export const Default: Story = {
   render: () => <InvoiceQueue />,
-  parameters: rowsSelected,
+  play: async ({ canvasElement, globals }) => {
+    await holdsRowsAndHeaders(canvasElement, globals.density);
+    await countReads(canvasElement, "No invoices selected");
+  },
 };
 
-// Every row, which no variant starts with, so the story hosts its own.
+// One invoice ticked: the footer's one form, and Approve and pay enabled.
+export const OneSelected: Story = {
+  render: () => (
+    <ScreenHost selected={["INV-0147"]}>
+      <InvoiceQueue />
+    </ScreenHost>
+  ),
+  play: async ({ canvasElement, globals }) => {
+    await holdsRowsAndHeaders(canvasElement, globals.density);
+    await countReads(canvasElement, "1 invoice selected");
+  },
+};
+
+// The three invoices awaiting approval, ready for Approve and pay, counted
+// in the footer's other form.
+export const ThreeSelected: Story = {
+  render: () => <InvoiceQueue />,
+  decorators: [awaitingTicked],
+  play: async ({ canvasElement, globals }) => {
+    await holdsRowsAndHeaders(canvasElement, globals.density);
+    await countReads(canvasElement, "3 invoices selected");
+  },
+};
+
+// Approve and pay running on the three: the selection is locked until it
+// settles, so every Checkbox is aria-disabled but still focusable, and keeps
+// its rest look, the three still ticked and their rows still filled.
+export const Pending: Story = {
+  render: () => <InvoiceQueue pending />,
+  decorators: [awaitingTicked],
+  play: async ({ canvasElement, globals }) => {
+    await holdsRowsAndHeaders(canvasElement, globals.density);
+    await countReads(canvasElement, "3 invoices selected");
+    const root = canvasElement.querySelector('[data-component="DataTable"]')!;
+    const boxes = [...root.querySelectorAll<HTMLInputElement>("input")];
+    await expect(boxes).toHaveLength(9);
+    for (const box of boxes) {
+      await expect(box.getAttribute("aria-disabled")).toBe("true");
+      await expect(box.disabled).toBe(false);
+      await expect(box.tabIndex).toBe(0);
+    }
+    const ticked = boxes.filter((box) => box.checked);
+    await expect(ticked).toHaveLength(3);
+    const accent = getComputedStyle(
+      root.querySelector('[data-component="Button"]')!
+    ).backgroundColor;
+    for (const box of ticked) {
+      await expect(
+        getComputedStyle(box.nextElementSibling!).backgroundColor
+      ).toBe(accent);
+    }
+    const pay = root.querySelector<HTMLButtonElement>("button")!;
+    await expect(pay.getAttribute("aria-busy")).toBe("true");
+  },
+};
+
+// Every row.
 export const AllSelected: Story = {
   render: () => (
     <ScreenHost
-      screenState={rowsSelected.screenState}
       selected={[
         "INV-0142",
         "INV-0144",
@@ -497,7 +669,10 @@ export const AllSelected: Story = {
       <InvoiceQueue />
     </ScreenHost>
   ),
-  parameters: rowsSelected,
+  play: async ({ canvasElement, globals }) => {
+    await holdsRowsAndHeaders(canvasElement, globals.density);
+    await countReads(canvasElement, "8 invoices selected");
+  },
 };
 
 // Approve and pay confirmed: the three invoices that were awaiting approval
@@ -551,8 +726,8 @@ export const ManyStatusesFlip: Story = {
     ]),
 };
 
-// bulk-pay's queue in rows-selected, all awaiting, above the same queue in
-// payment-scheduled, all scheduled: the columns hold still between the two
+// bulk-pay's queue before Pay selected, all awaiting, above the same queue
+// in payment-scheduled, all scheduled: the columns hold still between the two
 // (#276), since the Status column keeps room for the widest status word.
 export const ColumnsHoldWhenStatusesChange: Story = {
   render: () => <PayQueueStates />,
@@ -567,18 +742,20 @@ export const ColumnsHoldWhenStatusesChangeOnPhone: Story = {
   tags: ["phone"],
 };
 
-// A table nothing acts on: no checkboxes in the header or the rows, so the
-// first column starts at the table's edge. Even in a fixture variant that
-// starts with rows selected, no row fills: the table shows no Selection.
+// A table nothing acts on, with no actions: no checkboxes in the header or
+// the rows, so the first column starts at the table's edge, and no footer.
+// Even in a host that starts with rows selected, no row fills: the table
+// shows no Selection.
 export const NotSelectable: Story = {
-  render: () => <InvoiceQueue selectable={false} />,
-  parameters: rowsSelected,
+  render: () => <InvoiceQueue withActions={false} />,
+  decorators: [awaitingTicked],
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     const root = canvasElement.querySelector('[data-component="DataTable"]')!;
     await expect(
       root.querySelectorAll('[data-component="Checkbox"]')
     ).toHaveLength(0);
+    await expect(footerOf(root)).toBeNull();
     const rows = [...root.querySelectorAll("tbody tr")];
     await expect(
       rows.map((row) => getComputedStyle(row).backgroundColor)
@@ -604,6 +781,32 @@ export const Phone: Story = {
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     await scrollsSideways(canvasElement);
+  },
+};
+
+// The actions footer on a phone (ADR 0013), with three invoices ticked and
+// two actions, the frame scrolled sideways to its end: the footer stays in
+// the frame's view rather than scrolling away with the columns, and the
+// count and the Buttons take a line each rather than spill, the Buttons at
+// the end edge.
+export const ActionsOnPhone: Story = {
+  render: () => (
+    <Scrolled sideways>
+      <InvoiceQueue reminders />
+    </Scrolled>
+  ),
+  decorators: [awaitingTicked],
+  tags: ["phone"],
+  play: async ({ canvasElement, globals }) => {
+    await holdsRowsAndHeaders(canvasElement, globals.density);
+    await scrollsSideways(canvasElement);
+    await countReads(canvasElement, "3 invoices selected");
+    const root = canvasElement.querySelector('[data-component="DataTable"]')!;
+    await expect(root.scrollLeft).toBeGreaterThan(0);
+    const [count, buttons] = [...footerOf(root)!.children].map((each) =>
+      each.getBoundingClientRect()
+    );
+    await expect(buttons!.top).toBeGreaterThanOrEqual(count!.bottom);
   },
 };
 
@@ -636,7 +839,7 @@ export const ManyRowsOnPhone: Story = {
 export const FocusScrollsDownToRow: Story = {
   render: () => (
     <Scrolled focus="row" at={15}>
-      <InvoiceQueue rows={manyRows} selectable={false} detail />
+      <InvoiceQueue rows={manyRows} withActions={false} detail />
     </Scrolled>
   ),
   play: ({ canvasElement, globals }) =>
@@ -649,14 +852,14 @@ export const FocusScrollsDownToRow: Story = {
 export const FocusScrollsUpToRow: Story = {
   render: () => (
     <Scrolled rows={3} focus="row" at={3}>
-      <InvoiceQueue rows={manyRows} selectable={false} detail />
+      <InvoiceQueue rows={manyRows} withActions={false} detail />
     </Scrolled>
   ),
   play: ({ canvasElement, globals }) =>
     focusClearsHeader(canvasElement, globals.density, "row", 3),
 };
 
-// The same with a selectable table's checkboxes: the 4th row's, half under
+// The same with a table with actions and its checkboxes: the 4th row's, half under
 // the header row, scrolls into view below it.
 export const FocusScrollsUpToCheckbox: Story = {
   render: () => (
@@ -671,12 +874,12 @@ export const FocusScrollsUpToCheckbox: Story = {
 // A table whose rows open their invoice's Sheet, none open yet: each row
 // takes focus, and answers hover and press.
 export const WithDetail: Story = {
-  render: () => <InvoiceQueue selectable={false} detail />,
+  render: () => <InvoiceQueue withActions={false} detail />,
 };
 
 // Row → sheet (ADR 0011): clicking INV-0148's row opens its Sheet.
 export const OpensOnClick: Story = {
-  render: () => <OpensRow number="INV-0148" by="click" selectable={false} />,
+  render: () => <OpensRow number="INV-0148" by="click" withActions={false} />,
   parameters: sheetOpen,
   play: ({ canvasElement, globals }) =>
     opensSheetOf(canvasElement, globals.density, "INV-0148", 0),
@@ -684,17 +887,18 @@ export const OpensOnClick: Story = {
 
 // The keyboard path: Enter on the focused INV-0145 row opens its Sheet.
 export const OpensOnEnter: Story = {
-  render: () => <OpensRow number="INV-0145" by="Enter" selectable={false} />,
+  render: () => <OpensRow number="INV-0145" by="Enter" withActions={false} />,
   parameters: sheetOpen,
   play: ({ canvasElement, globals }) =>
     opensSheetOf(canvasElement, globals.density, "INV-0145", 0),
 };
 
-// A selectable table with a detail slot: with three invoices ticked, clicking
+// A table with actions and a detail slot: with three invoices ticked, clicking
 // the ticked INV-0148's row opens its Sheet, and the three stay ticked.
 export const SelectableOpensOnClick: Story = {
-  render: () => <OpensRow number="INV-0148" by="click" selectable />,
-  parameters: { ...rowsSelected, ...sheetOpen },
+  render: () => <OpensRow number="INV-0148" by="click" withActions />,
+  parameters: sheetOpen,
+  decorators: [awaitingTicked],
   play: ({ canvasElement, globals }) =>
     opensSheetOf(canvasElement, globals.density, "INV-0148", 3),
 };
@@ -702,8 +906,9 @@ export const SelectableOpensOnClick: Story = {
 // Enter on an unticked row of the same table opens its Sheet without
 // ticking it.
 export const SelectableOpensOnEnter: Story = {
-  render: () => <OpensRow number="INV-0142" by="Enter" selectable />,
-  parameters: { ...rowsSelected, ...sheetOpen },
+  render: () => <OpensRow number="INV-0142" by="Enter" withActions />,
+  parameters: sheetOpen,
+  decorators: [awaitingTicked],
   play: ({ canvasElement, globals }) =>
     opensSheetOf(canvasElement, globals.density, "INV-0142", 3),
 };

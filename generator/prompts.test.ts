@@ -190,7 +190,6 @@ describe("specPrompt", () => {
     expect(listedVariants(turn)).toEqual([
       "default",
       "bulk-pay/empty",
-      "bulk-pay/rows-selected",
       "bulk-pay/payment-scheduled",
       "bulk-pay/payment-failed",
     ]);
@@ -299,5 +298,32 @@ describe("Sheet's use line", () => {
 
     expect(sheet.use).toMatch(/amount and status first/);
     expect(sheet.use).toMatch(/only the facts the table's columns don't show/);
+  });
+});
+
+// ADR 0013: the spec step gives a Toast its close button's name, as it does
+// a Sheet's, and reads in its use line that it is fixed to the corner, has a
+// close button, and that a success dismisses itself.
+describe("Toast's entry", () => {
+  it("requires a closeLabel, and says where it sits and how it leaves", async () => {
+    const { system } = specPrompt(
+      "# Design brief",
+      await loadRegistry(),
+      "{}",
+      fixtures
+    );
+    const json = system[2]!.text.replace(/^<registry>\n|\n<\/registry>$/g, "");
+    const toast = (
+      JSON.parse(json) as {
+        name: string;
+        use: string;
+        props: { required: string[] };
+      }[]
+    ).find(({ name }) => name === "Toast")!;
+
+    expect(toast.props.required).toContain("closeLabel");
+    expect(toast.use).toMatch(/fixed to the window's bottom end corner/);
+    expect(toast.use).toMatch(/its own close button/);
+    expect(toast.use).toMatch(/success Toast dismisses itself/);
   });
 });

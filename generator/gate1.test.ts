@@ -60,12 +60,6 @@ const entries = [
     slots: { cell: {}, detail: { allow: ["Sheet"] } },
   }),
   defineEntry({
-    name: "ActionBar",
-    use: "The bulk-action bar.",
-    props: z.object({}),
-    slots: { body: {} },
-  }),
-  defineEntry({
     name: "Toast",
     use: "The live result of an action.",
     props: z.object({ text: z.string() }),
@@ -188,12 +182,6 @@ function clean() {
           level: 2,
         }),
         "empty"
-      ),
-      // The bar hands off to the toast when the action succeeds.
-      shownIn(node("bar", "ActionBar", "screen", "body"), "default"),
-      runs(
-        node("bar-button", "Button", "bar", "body", { label: "Remind" }),
-        "remind"
       ),
       shownIn(
         node("sent-toast", "Toast", "screen", "body", { text: "Sent" }),
@@ -678,15 +666,7 @@ describe("gate 1", () => {
     });
   });
 
-  describe("ActionBar, Toast and Sheet", () => {
-    it("fails a second ActionBar shown in the same state, naming it", () => {
-      const spec = clean();
-      // Shown in every state, so beside the first bar in default.
-      spec.nodes.push(node("second-bar", "ActionBar", "screen", "body"));
-
-      expect(check(spec)).toEqual([["one-action-bar", "second-bar"]]);
-    });
-
+  describe("Toast and Sheet", () => {
     it("fails a second Toast shown in the same state, naming it", () => {
       const spec = clean();
       // Inside the panel, which shows in sent too.
@@ -718,35 +698,6 @@ describe("gate 1", () => {
       spec.nodes.push(node("stray-sheet", "Sheet", parent, slot));
 
       expect(check(spec)).toEqual([["sheet-in-detail", "stray-sheet"]]);
-    });
-
-    it("fails a Button in an ActionBar that runs no action, naming it", () => {
-      const spec = clean();
-      // Nested a level down inside the bar.
-      spec.nodes.push(
-        node("bar-panel", "Panel", "bar", "body", { title: "More" }),
-        node("idle-button", "Button", "bar-panel", "body", { label: "Later" })
-      );
-
-      expect(check(spec)).toEqual([["action-bar-button", "idle-button"]]);
-    });
-
-    // Only a failure Toast sits in a bar (#243). This library's Toast has no
-    // tone, so a Toast nested a level down in the bar, out of sight of a
-    // check that reads only the bar's own children, has none either.
-    it("fails a Toast in an ActionBar whose tone isn't failure, naming it", () => {
-      const spec = clean();
-      nodeOf(spec, "bar").when = ["default", "sent"];
-      spec.nodes = spec.nodes.filter((n) => n.id !== "sent-toast");
-      spec.nodes.push(
-        node("bar-panel", "Panel", "bar", "body", { title: "More" }),
-        shownIn(
-          node("bar-toast", "Toast", "bar-panel", "body", { text: "Sent" }),
-          "sent"
-        )
-      );
-
-      expect(check(spec)).toEqual([["bar-toast-tone", "bar-toast"]]);
     });
   });
 
@@ -921,118 +872,217 @@ describe("gate 1 against the library's registry", () => {
     ]);
   });
 
-  // DataTable selection is off by default (#203); invoice-queue's brief is
-  // unchanged, and the UI spec that meets it turns selection on.
-  it("passes an invoice-queue UI spec whose DataTable is selectable, which meets the brief's pass criteria", async () => {
-    const live = (id: string, state: string, text: string) =>
-      shownIn(node(id, "Text", "column", "body", { text, live: true }), state);
-    const spec = {
-      audience: "admin",
-      nodes: [
-        node("screen", "Screen", null, null, { audience: "admin" }),
-        node("column", "Stack", "screen", "body"),
-        node("header", "PageHeader", "column", "body"),
-        node("title", "Heading", "header", "title", {
-          text: "Invoices",
-          level: 1,
-        }),
-        runs(
+  // A DataTable's actions footer (ADR 0013): a table is selectable exactly
+  // when it has actions, which take only Buttons, each running an action, and
+  // such a table gives its selected count's three forms, `other` holding the
+  // `{count}` the library fills.
+  describe("a DataTable's actions footer", () => {
+    const selectionText = {
+      none: "No invoices selected",
+      one: "1 invoice selected",
+      other: "{count} invoices selected",
+    };
+    // invoice-queue as its brief asks for it, Approve and pay in the
+    // table's footer.
+    function invoiceQueue() {
+      const live = (id: string, state: string, text: string) =>
+        shownIn(
+          node(id, "Text", "column", "body", { text, live: true }),
+          state
+        );
+      return {
+        audience: "admin",
+        nodes: [
+          node("screen", "Screen", null, null, { audience: "admin" }),
+          node("column", "Stack", "screen", "body"),
+          node("header", "PageHeader", "column", "body"),
+          node("title", "Heading", "header", "title", {
+            text: "Invoices",
+            level: 1,
+          }),
           shownIn(
-            node("pay", "Button", "header", "actions", {
+            node("table", "DataTable", "column", "body", {
+              rows: bind("invoices"),
+              columns: ["Invoice", "Contractor", "Amount", "Due", "Status"],
+              selectionText,
+            }),
+            "default",
+            "payment-scheduled",
+            "payment-failed"
+          ),
+          node("number", "Text", "table", "cell", { text: bind("row.number") }),
+          node("contractor", "Text", "table", "cell", {
+            text: bind("row.contractor"),
+          }),
+          node("amount", "Amount", "table", "cell", {
+            value: bind("row.amount"),
+            currency: bind("row.currency"),
+            display: "table",
+          }),
+          node("due", "Text", "table", "cell", { text: bind("row.dueLabel") }),
+          node("status", "StatusTag", "table", "cell", {
+            status: bind("row.status"),
+          }),
+          runs(
+            node("pay", "Button", "table", "actions", {
               text: "Approve and pay",
               intent: "primary",
             }),
-            "rows-selected"
+            "approve-and-pay"
           ),
-          "approve-and-pay"
-        ),
-        shownIn(
-          node("table", "DataTable", "column", "body", {
-            rows: bind("invoices"),
-            columns: ["Invoice", "Contractor", "Amount", "Due", "Status"],
-            selectable: true,
-          }),
-          "default",
-          "rows-selected",
-          "payment-scheduled",
-          "payment-failed"
-        ),
-        node("number", "Text", "table", "cell", { text: bind("row.number") }),
-        node("contractor", "Text", "table", "cell", {
-          text: bind("row.contractor"),
-        }),
-        node("amount", "Amount", "table", "cell", {
-          value: bind("row.amount"),
-          currency: bind("row.currency"),
-          display: "table",
-        }),
-        node("due", "Text", "table", "cell", { text: bind("row.dueLabel") }),
-        node("status", "StatusTag", "table", "cell", {
-          status: bind("row.status"),
-        }),
-        shownIn(
-          node("empty", "Text", "column", "body", {
-            text: "No invoices to pay. New ones show up here when contractors send them.",
-          }),
-          "empty"
-        ),
-        live(
-          "scheduled",
-          "payment-scheduled",
-          "3 invoices scheduled for the Oct 24 run."
-        ),
-        live(
-          "failed",
-          "payment-failed",
-          "The payment didn't go through. Nothing was paid; try again."
-        ),
-      ],
-      states: [
-        { name: "empty", fixture: "invoice-queue/empty" },
-        { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
-        {
-          name: "payment-scheduled",
-          fixture: "invoice-queue/payment-scheduled",
-        },
-        { name: "payment-failed", fixture: "invoice-queue/payment-failed" },
-      ],
-      actions: [
-        {
-          name: "approve-and-pay",
-          operation: "payInvoices",
-          pending: "pay",
-          to: { success: "payment-scheduled", failure: "payment-failed" },
-        },
-      ],
-    };
-    const { entries } = await loadRegistry();
-    const fixtures = {
-      variants: Object.fromEntries(
-        variantNames.map((name) => [name, fixtureVariant(name).data])
-      ),
-      operations: operationNames,
-    };
-    const { requires } = readScreenBrief(
-      join(import.meta.dirname, "../evals/briefs/invoice-queue.md")
-    );
+          shownIn(
+            node("empty", "Text", "column", "body", {
+              text: "No invoices to pay. New ones show up here when contractors send them.",
+            }),
+            "empty"
+          ),
+          live(
+            "scheduled",
+            "payment-scheduled",
+            "3 invoices scheduled for the Oct 24 run."
+          ),
+          live(
+            "failed",
+            "payment-failed",
+            "The payment didn't go through. Nothing was paid; try again."
+          ),
+        ],
+        states: [
+          { name: "empty", fixture: "invoice-queue/empty" },
+          {
+            name: "payment-scheduled",
+            fixture: "invoice-queue/payment-scheduled",
+          },
+          { name: "payment-failed", fixture: "invoice-queue/payment-failed" },
+        ],
+        actions: [
+          {
+            name: "approve-and-pay",
+            operation: "payInvoices",
+            pending: "pay",
+            to: { success: "payment-scheduled", failure: "payment-failed" },
+          },
+        ],
+      };
+    }
 
-    expect(
-      gate1(spec, {
+    const table = (spec: ReturnType<typeof invoiceQueue>) =>
+      nodeOf(spec as ReturnType<typeof clean>, "table");
+
+    async function checkQueue(spec: ReturnType<typeof invoiceQueue>) {
+      const { entries } = await loadRegistry();
+      const fixtures = {
+        variants: Object.fromEntries(
+          variantNames.map((name) => [name, fixtureVariant(name).data])
+        ),
+        operations: operationNames,
+      };
+      return gate1(spec, {
         audience: "admin",
         slug: "invoice-queue",
         entries,
         fixtures,
-      })
-    ).toEqual([]);
-    expect(checkPassCriteria(requires, wireSchema().parse(spec))).toEqual({
-      met: true,
-      missing: [],
+      });
+    }
+
+    it("passes invoice-queue with Approve and pay in the footer, which meets the brief's pass criteria", async () => {
+      const spec = invoiceQueue();
+      const { requires } = readScreenBrief(
+        join(import.meta.dirname, "../evals/briefs/invoice-queue.md")
+      );
+
+      expect(await checkQueue(spec)).toEqual([]);
+      expect(checkPassCriteria(requires, wireSchema().parse(spec))).toEqual({
+        met: true,
+        missing: [],
+      });
+    });
+
+    it("fails a table with actions and no selectionText, naming the table", async () => {
+      const spec = invoiceQueue();
+      const at = table(spec);
+      at.props = at.props.filter((prop) => prop.name !== "selectionText");
+
+      expect(await checkQueue(spec)).toEqual([
+        {
+          gate: "gate 1",
+          rule: "selection-text",
+          location: "table",
+          message:
+            'It has actions, so it gives selectionText: { "none", "one", "other" }, the footer\'s selected count with no row, one row and more rows ticked, such as "No invoices selected", "1 invoice selected" and "{count} invoices selected".',
+        },
+      ]);
+    });
+
+    // `{count}` written in the one form, where it isn't needed, and left
+    // out of the other form, where it is.
+    it("fails a selectionText whose other form has no {count}, even with one in another form", async () => {
+      const spec = invoiceQueue();
+      setProp(table(spec), "selectionText", {
+        none: "No invoices selected",
+        one: "{count} invoice selected",
+        other: "Several invoices selected",
+      });
+
+      expect(await checkQueue(spec)).toEqual([
+        {
+          gate: "gate 1",
+          rule: "selection-count",
+          location: "table",
+          message:
+            'Its selectionText\'s other form, "Several invoices selected", has no {count}; write it where the number goes, such as "{count} invoices selected", and the library fills it in.',
+        },
+      ]);
+    });
+
+    // A Toast is what an action shows next to the footer, so it's the
+    // component most likely to be put in it.
+    it("fails anything but a Button in the actions slot", async () => {
+      const spec = invoiceQueue();
+      spec.nodes.push(
+        shownIn(
+          node("failed-here", "Toast", "table", "actions", {
+            text: "The payment didn't go through.",
+            tone: "failure",
+            closeLabel: "Close payment result",
+          }),
+          "payment-failed"
+        )
+      );
+
+      expect(
+        (await checkQueue(spec)).map(({ rule, location, message }) => [
+          rule,
+          location,
+          message,
+        ])
+      ).toEqual([
+        [
+          "slot-allow",
+          "failed-here",
+          "DataTable's actions slot takes only Button, not Toast.",
+        ],
+      ]);
+    });
+
+    it("fails a footer Button that runs no action", async () => {
+      const spec = invoiceQueue();
+      spec.nodes.push(
+        node("export", "Button", "table", "actions", {
+          text: "Export",
+          intent: "secondary",
+        })
+      );
+
+      expect(
+        (await checkQueue(spec)).map(({ rule, location }) => [rule, location])
+      ).toEqual([["table-action-button", "export"]]);
     });
   });
 
-  // ADR 0011's pay confirmation with the library's own ActionBar and Toast:
-  // the bar shows while rows are selected and after a failure, and the
-  // success state shows a Toast where the bar was.
+  // ADR 0013's pay confirmation with the library's own DataTable and Toast:
+  // the action's Button in the table's footer, and a Toast last in the
+  // Screen in each state the action enters.
   describe("the pay confirmation", () => {
     function payConfirmation() {
       return {
@@ -1048,40 +1098,38 @@ describe("gate 1 against the library's registry", () => {
           node("table", "DataTable", "column", "body", {
             rows: bind("invoices"),
             columns: ["Invoice"],
-            selectable: true,
+            selectionText: {
+              none: "No invoices selected",
+              one: "1 invoice selected",
+              other: "{count} invoices selected",
+            },
           }),
           node("number", "Text", "table", "cell", { text: bind("row.number") }),
-          shownIn(
-            node("bar", "ActionBar", "column", "body"),
-            "rows-selected",
-            "payment-failed"
-          ),
-          // The failure Toast sits in the bar, above its Button, so the two
-          // stick as one (#243).
-          shownIn(
-            node("failed", "Toast", "bar", "body", {
-              text: "The payment didn't go through. Nothing was paid; try again.",
-              tone: "failure",
-            }),
-            "payment-failed"
-          ),
           runs(
-            node("pay", "Button", "bar", "body", {
+            node("pay", "Button", "table", "actions", {
               text: "Approve and pay",
               intent: "primary",
             }),
             "approve-and-pay"
           ),
           shownIn(
+            node("failed", "Toast", "column", "body", {
+              text: "The payment didn't go through. Nothing was paid; try again.",
+              tone: "failure",
+              closeLabel: "Close payment result",
+            }),
+            "payment-failed"
+          ),
+          shownIn(
             node("scheduled", "Toast", "column", "body", {
               text: "Invoices scheduled for the next run.",
               tone: "success",
+              closeLabel: "Close payment result",
             }),
             "payment-scheduled"
           ),
         ],
         states: [
-          { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
           {
             name: "payment-scheduled",
             fixture: "invoice-queue/payment-scheduled",
@@ -1115,33 +1163,21 @@ describe("gate 1 against the library's registry", () => {
       }).map(({ rule, location }) => [rule, location]);
     }
 
-    it("passes, and has the bar-to-toast transition", async () => {
+    it("passes, and has the table-action-to-toast transition", async () => {
       const spec = payConfirmation();
 
       expect(await checkQueue(spec)).toEqual([]);
       expect(
         checkPassCriteria(
           {
-            components: ["ActionBar", "Toast"],
+            components: ["DataTable", "Toast"],
             states: [],
             actions: ["approve-and-pay"],
-            transitions: ["bar-to-toast"],
+            transitions: ["table-action-to-toast"],
           },
           wireSchema().parse(spec)
         )
       ).toEqual({ met: true, missing: [] });
-    });
-
-    it("fails a second ActionBar in the failure state", async () => {
-      const spec = payConfirmation();
-      spec.nodes.push(
-        shownIn(
-          node("retry-bar", "ActionBar", "column", "body"),
-          "payment-failed"
-        )
-      );
-
-      expect(await checkQueue(spec)).toEqual([["one-action-bar", "retry-bar"]]);
     });
 
     it("fails a second Toast in the success state", async () => {
@@ -1151,6 +1187,7 @@ describe("gate 1 against the library's registry", () => {
           node("also", "Toast", "column", "body", {
             text: "Paid.",
             tone: "success",
+            closeLabel: "Close payment result",
           }),
           "payment-scheduled"
         )
@@ -1159,74 +1196,20 @@ describe("gate 1 against the library's registry", () => {
       expect(await checkQueue(spec)).toEqual([["one-toast", "also"]]);
     });
 
-    it("fails a Toast in a state no action enters", async () => {
+    // Ticking rows enters no state (ADR 0013), so the default state is
+    // where the action is run from, and no Toast shows there.
+    it("fails a Toast in the default state", async () => {
       const spec = payConfirmation();
-      nodeOf(spec, "scheduled").when = ["rows-selected"];
+      nodeOf(spec, "scheduled").when = ["default", "payment-scheduled"];
 
       expect(await checkQueue(spec)).toEqual([["toast-state", "scheduled"]]);
     });
 
-    it("fails a success Toast inside the bar, naming it", async () => {
+    it("fails an ActionBar placed in a UI spec as unregistered", async () => {
       const spec = payConfirmation();
-      setProp(nodeOf(spec, "failed"), "tone", "success");
+      spec.nodes.push(node("bar", "ActionBar", "column", "body"));
 
-      expect(await checkQueue(spec)).toEqual([["bar-toast-tone", "failed"]]);
-    });
-
-    it("fails a failure Toast beside the bar its state shows, naming it", async () => {
-      const spec = payConfirmation();
-      nodeOf(spec, "failed").parent = "column";
-
-      expect(await checkQueue(spec)).toEqual([
-        ["failure-toast-in-bar", "failed"],
-      ]);
-    });
-
-    it("passes a failure Toast in a state that shows no ActionBar", async () => {
-      const spec = payConfirmation();
-      nodeOf(spec, "bar").when = ["rows-selected"];
-      nodeOf(spec, "failed").parent = "column";
-
-      expect(await checkQueue(spec)).toEqual([]);
-    });
-
-    it("names the fix in each repair message", async () => {
-      const success = payConfirmation();
-      setProp(nodeOf(success, "failed"), "tone", "success");
-      const beside = payConfirmation();
-      nodeOf(beside, "failed").parent = "column";
-      const { entries } = await loadRegistry();
-      const fixtures = {
-        variants: Object.fromEntries(
-          variantNames.map((name) => [name, fixtureVariant(name).data])
-        ),
-        operations: operationNames,
-      };
-      const messages = [success, beside].flatMap((spec) =>
-        gate1(spec, {
-          audience: "admin",
-          slug: "invoice-queue",
-          entries,
-          fixtures,
-        }).map(({ message }) => message)
-      );
-
-      expect(messages).toEqual([
-        expect.stringMatching(/Give it tone failure/),
-        expect.stringMatching(/Move it into the ActionBar "bar"'s body slot/),
-      ]);
-    });
-
-    it("fails a Button in the bar that runs no action", async () => {
-      const spec = payConfirmation();
-      spec.nodes.push(
-        node("later", "Button", "bar", "body", {
-          text: "Later",
-          intent: "secondary",
-        })
-      );
-
-      expect(await checkQueue(spec)).toEqual([["action-bar-button", "later"]]);
+      expect(await checkQueue(spec)).toEqual([["registered-component", "bar"]]);
     });
   });
 
@@ -1796,6 +1779,13 @@ describe("the committed bulk-pay UI spec", () => {
 
   it("passes gate 1", async () => {
     expect(await check(committed())).toEqual([]);
+  });
+
+  it("meets its brief's pass criteria, table-action-to-toast included", () => {
+    expect(brief.requires.transitions).toEqual(["table-action-to-toast"]);
+    expect(
+      checkPassCriteria(brief.requires, wireSchema().parse(committed()))
+    ).toEqual({ met: true, missing: [] });
   });
 
   it("fails a state that names invoice-queue's empty variant, a real one", async () => {

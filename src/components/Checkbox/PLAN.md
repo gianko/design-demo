@@ -20,6 +20,7 @@ Props:
 - `label`: the accessible name, a string, such as "Select INV-0142". Required: an unnamed checkbox fails axe, and only the caller knows the row.
 - `checked`: `false` (the default), `true` or `"mixed"`, the WAI-ARIA values; `"mixed"` is the header's when some rows are selected.
 - `disabled`: boolean.
+- `locked`: boolean (#297). DataTable sets it on every Checkbox while an action in its footer runs, so the selection holds still until the action settles (ADR 0013).
 - React's own: `onCheckedChange(checked: boolean)` and `ref`. The component is controlled: DataTable owns selection (spec § PageHeader, Checkbox and DataTable; ADR 0011), so a click only reports the change, and the box shows what `checked` says.
 
 No visible-label variant: Checkbox as a form field is out of P0 (spec § Rules every brief follows: "Not in P0: form screens (Input, Select, Checkbox as a field)").
@@ -37,8 +38,9 @@ No look variant: one row selector, one look. No size: density sets it (ADR 0002)
 | pressed | unchecked: `surface-pressed`; checked or mixed: `accent-pressed` | "`accent-pressed`", "`surface-pressed`" |
 | focus-visible | 2px heather outline, 2px off the box | "The focus ring shows on keyboard focus only" |
 | disabled | unchecked: `surface` square, `disabled` edge; checked or mixed: `disabled` fill, no edge, `disabled` mark; no hover or pressed | "`disabled` and its text are a flat, quiet neutral"; "A disabled control keeps its intent's shape"; "natively disabled and leaves the tab order" |
+| locked | its rest look, ticked or not, with no hover or pressed; still focusable | ADR 0013: while a footer action runs, the rows it acts on are the rows shown ticked, so the boxes keep showing them, as a pending Button keeps its rest colours; ticking does nothing, so nothing answers the pointer |
 
-No pending: a checkbox starts no operation; selecting rows enters `rows-selected` through DataTable (ADR 0011).
+No pending: a checkbox starts no operation; selecting rows changes DataTable's selection, which is no screen state (ADR 0013). Locked is the pending of the action in DataTable's footer, seen from the boxes; DataTable's Pending story holds it as a style expectation.
 
 ## Token map
 
@@ -48,9 +50,10 @@ No pending: a checkbox starts no operation; selecting rows enters `rows-selected
 | `input` | always | `peer absolute inset-0 appearance-none outline-none` (the box draws the ring) |
 | `box` | always | `size-icon rounded-tag border transition-colors duration-fast ease-standard peer-focus-visible:focus-ring` |
 | | unchecked | `border-control bg-surface` |
-| | unchecked, enabled | `pointer-events-none relative before:absolute before:inset-0 before:rounded-tag before:transition-colors before:duration-fast before:ease-standard peer-hover:before:bg-surface-hover peer-active:before:bg-surface-pressed`: the translucent hover lies over the `surface` fill (#250) |
+| | unchecked, enabled | `pointer-events-none relative before:absolute before:inset-0 before:rounded-tag before:transition-colors before:duration-fast before:ease-standard` |
+| | unchecked, enabled, not locked | `peer-hover:before:bg-surface-hover peer-active:before:bg-surface-pressed`: the translucent hover lies over the `surface` fill (#250) |
 | | checked or mixed | `border-transparent bg-accent` |
-| | checked or mixed, enabled | `peer-hover:bg-accent-hover peer-active:bg-accent-pressed` |
+| | checked or mixed, enabled, not locked | `peer-hover:bg-accent-hover peer-active:bg-accent-pressed` |
 | | unchecked, disabled | `border-disabled bg-surface` |
 | | checked or mixed, disabled | `border-transparent bg-disabled` |
 | `mark` | always | `pointer-events-none absolute size-icon` |
@@ -65,6 +68,7 @@ A checked box's edge is transparent, so the fill runs to the corner and the box 
 - **Accessible name**: `label`, as visually hidden text inside the `<label>`.
 - **Keyboard**: Space toggles, native; Tab reaches it. Focus ring on `:focus-visible` only, drawn on the box, since the input has no look of its own.
 - **Disabled**: native `disabled`, so it leaves the tab order and is announced unavailable.
+- **Locked**: `aria-disabled="true"`, so it is announced unavailable but keeps its place in the tab order and focus doesn't drop while the action runs; a click or Space reports nothing, so the box keeps showing what `checked` says.
 - **Busy**: none; it starts no operation.
 - **Target size**: the input fills the root, a square of `min-h-target`: 24×24px admin (the WCAG 2.2 floor), 44×44px contractor (the 44px minimum). Asserted as a style expectation.
 
@@ -73,7 +77,7 @@ A checked box's edge is transparent, so the fill runs to the corner and the box 
 | User action | Motion |
 |---|---|
 | hover, press | box fill colour, `transition-colors duration-fast ease-standard` ("`fast` 120ms (press, hover colour)") |
-| toggles | fill and edge colour cross over at the same `fast` transition; the mark appears with the new state. Selection's `base` motion belongs to the row and to `rows-selected`, which DataTable owns (ADR 0011). |
+| toggles | fill and edge colour cross over at the same `fast` transition; the mark appears with the new state. Selection's `base` motion belongs to the row and to the footer's Buttons, which DataTable owns (ADR 0013). |
 
 No `settle`: selecting isn't a confirmed result. Reduced motion: the colour transition is already a `fast` crossfade and nothing moves, so it stays.
 

@@ -54,7 +54,7 @@ The sheet itself isn't a control, so it has no hover, pressed or disabled. Its o
 src/styles.css sets what no token class can, with the library's other view transitions (ADR 0006): the view transition name and the sheet's slide.
 
 - `vt-row-detail`, the utility setting `view-transition-name: row-detail`, on the Sheet only.
-- Slide in at `slow` with `standard`; slide out at `slow-exit` with `exit` ("`slow` 320ms (sheet …)", "exits run at about 70%"). The slide's keyframes, `sheet-in` and `sheet-out`, are in `tokens/keyframes.css` (ADR 0005); `--end-edge` in src/styles.css points them at the right in LTR and the left in RTL.
+- Slide in at `slow` with `standard`; slide out at `slow-exit` with `exit` ("`slow` 320ms (sheet …)", "exits run at about 70%"). The slide's keyframes, `slide-in` and `slide-out`, shared with the Toast (ADR 0013), are in `tokens/keyframes.css` (ADR 0005); `--end-edge` in src/styles.css points them at the right in LTR and the left in RTL.
 
 ## A11y contract
 
@@ -70,8 +70,8 @@ src/styles.css sets what no token class can, with the library's other view trans
 
 | User action | Transition | Motion |
 |---|---|---|
-| Clicks a row, or presses Enter on it | `sheet-open`, run by `transitionSheet` | The sheet's image, the new view's `row-detail`, slides in from the end edge (the right in LTR, the left in RTL) to its resting place at `slow`, `standard` (`sheet-in`). The scrim fades in with the page's crossfade. The row isn't named, so nothing morphs from it. |
-| Presses Escape or the close button, or clicks the scrim | `sheet-close` | The sheet's image, the old view's `row-detail`, slides back out past the end edge at `slow-exit`, `exit` (`sheet-out`). The scrim fades out with the page's crossfade. |
+| Clicks a row, or presses Enter on it | `sheet-open`, run by `transitionSheet` | The sheet's image, the new view's `row-detail`, slides in from the end edge (the right in LTR, the left in RTL) to its resting place at `slow`, `standard` (`slide-in`). The scrim fades in with the page's crossfade. The row isn't named, so nothing morphs from it. |
+| Presses Escape or the close button, or clicks the scrim | `sheet-close` | The sheet's image, the old view's `row-detail`, slides back out past the end edge at `slow-exit`, `exit` (`slide-out`). The scrim fades out with the page's crossfade. |
 
 No `settle`: opening a sheet confirms nothing ("settle … only for confirming something the user did"). The slide runs only inside the View Transition, so nothing animates on page load: a story renders the sheet already open, still, at the resting place the slide ends on. A phone's full-width sheet slides the same way, its own width. Reduced motion: src/styles.css turns every View Transition into a `fast` crossfade with no movement; the slide applies only under `prefers-reduced-motion: no-preference`.
 

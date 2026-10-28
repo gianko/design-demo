@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActionBar,
   Button,
   DataTable,
   Heading,
+  ScreenHost,
   Sheet,
   Text,
   useFixtureData,
@@ -16,7 +16,8 @@ import {
 // Animation moves a note as it loads; Transition moves it through a CSS
 // transition once it has painted; Slow fades it, but over `base`; Loop runs
 // the progress sweep without the static edge reduced motion asks for;
-// Clicked moves the note when the ActionBar's Button is clicked; Row moves
+// Clicked moves the note when the Button in a table's actions footer is
+// clicked; Row moves
 // it inside the Sheet the first row opens. Pass does each of those as the
 // brief asks: it slides where motion is welcome, and under reduced motion
 // only fades, over `fast`. The animations are the Web Animations API's, so no
@@ -73,20 +74,32 @@ function Transitions() {
   );
 }
 
-// The note an ActionBar's Button brings in.
+// The note a Button in a table's actions footer brings in, its one row
+// ticked, so the Button is enabled.
 function Clicks({ honoured }: { honoured: boolean }) {
   const note = useRef<HTMLParagraphElement>(null);
+  const invoices = useFixtureData().invoices.slice(0, 1);
   return (
-    <>
+    <ScreenHost selected={invoices.map((each) => each.id)}>
       <p ref={note}>Invoice 2024-0117</p>
-      <ActionBar>
-        <Button
-          intent="primary"
-          text="Show details"
-          onClick={() => arrive(note.current!, honoured)}
-        />
-      </ActionBar>
-    </>
+      <DataTable
+        rows={invoices}
+        columns={["Invoice"]}
+        cell={(row) => <Text text={row.number} />}
+        selectionText={{
+          none: "No invoices selected",
+          one: "1 invoice selected",
+          other: "{count} invoices selected",
+        }}
+        actions={
+          <Button
+            intent="primary"
+            text="Show details"
+            onClick={() => arrive(note.current!, honoured)}
+          />
+        }
+      />
+    </ScreenHost>
   );
 }
 

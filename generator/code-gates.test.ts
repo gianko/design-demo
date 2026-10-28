@@ -121,19 +121,24 @@ export function Reminder() {
   });
   return (
     <Screen audience="admin">
-      {state === "rows-selected" && (
-        <Button
-          text="Approve and pay"
-          intent="primary"
-          pending={approveAndPay.pending}
-          onClick={() => approveAndPay.run(selected)}
-        />
-      )}
+      {state === "payment-failed" && <Text text="Nothing was paid." />}
       <DataTable
         rows={data.invoices}
         columns={["Invoice"]}
-        selectable
+        selectionText={{
+          none: "No invoices selected",
+          one: "1 invoice selected",
+          other: "{count} invoices selected",
+        }}
         cell={(row) => <Text text={row.number} />}
+        actions={
+          <Button
+            text="Approve and pay"
+            intent="primary"
+            pending={approveAndPay.pending}
+            onClick={() => approveAndPay.run(selected)}
+          />
+        }
       />
     </Screen>
   );

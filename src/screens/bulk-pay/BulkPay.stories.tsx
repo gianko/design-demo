@@ -1,5 +1,6 @@
 // Written by `pnpm keep`: the default and one story per declared screen
-// state, each with its fixture variant.
+// state, each with its fixture variant, then the default with every row of
+// each table with actions ticked.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { BulkPay } from "./BulkPay.tsx";
 
@@ -9,7 +10,6 @@ const meta = {
   parameters: {
     screenStates: [
       { name: "empty", fixture: "bulk-pay/empty" },
-      { name: "rows-selected", fixture: "bulk-pay/rows-selected" },
       { name: "payment-scheduled", fixture: "bulk-pay/payment-scheduled" },
       { name: "payment-failed", fixture: "bulk-pay/payment-failed" },
     ],
@@ -26,7 +26,8 @@ export const Default: Story = {
       {
         name: "pay-selected",
         label: "Pay selected",
-        from: "rows-selected",
+        from: "default",
+        tickRows: 0,
         to: {
           success: {
             name: "payment-scheduled",
@@ -46,12 +47,6 @@ export const Empty: Story = {
   parameters: { screenState: { name: "empty", fixture: "bulk-pay/empty" } },
 };
 
-export const RowsSelected: Story = {
-  parameters: {
-    screenState: { name: "rows-selected", fixture: "bulk-pay/rows-selected" },
-  },
-};
-
 export const PaymentScheduled: Story = {
   parameters: {
     screenState: {
@@ -66,3 +61,5 @@ export const PaymentFailed: Story = {
     screenState: { name: "payment-failed", fixture: "bulk-pay/payment-failed" },
   },
 };
+
+export const DefaultRowsTicked: Story = { parameters: { tickRows: 0 } };

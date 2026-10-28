@@ -230,6 +230,18 @@ describe("the naming chain", () => {
     );
   });
 
+  // How long a success Toast stays is a timer, not an animation's length,
+  // so it has no class, and its value is the one tokens.ts carries, for
+  // the Toast's timer (ADR 0005).
+  it("gives the toast timeout no class and writes its value to tokens.ts", () => {
+    expect(tokenNames("motion.timeout.toast").className).toBeUndefined();
+    expect(utilities("duration-toast")).not.toContain(".duration-toast");
+    expect(built.ts).toContain(
+      "export const timeout = { toast: 5000 } as const;"
+    );
+    expect(built.ts).not.toMatch(/export const duration = \[[^\]]*"toast"/);
+  });
+
   it("compiles nothing outside the tokens", () => {
     for (const className of [
       "bg-ink",
@@ -307,7 +319,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(97);
+    expect(variables.filter((v) => v.css)).toHaveLength(98);
   });
 
   // ADR 0001 lists container padding among what density changes.
@@ -430,6 +442,13 @@ describe("the Figma payload", () => {
 
   // A table's header row and 10 rows at the density's row height, 46px and
   // 60px (#296): a longer table scrolls inside its frame.
+  it("carries the toast timeout as a 5000ms timing", () => {
+    expect(variable("Motion", "motion/timeout/toast")).toMatchObject({
+      type: "TIMING",
+      valuesByMode: { Value: 5000 },
+    });
+  });
+
   it("caps a table's height by density: 506px admin, 660px contractor", () => {
     expect(variable("Density", "density/max-height/table")).toMatchObject({
       type: "FLOAT",

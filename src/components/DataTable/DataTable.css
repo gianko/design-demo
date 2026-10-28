@@ -1,7 +1,10 @@
 /* A row that opens its Sheet takes focus, and its ring, `focus-ring`, sits
    inside the row: the table's surface scrolls sideways, so it clips anything
-   drawn outside its rows. No token class sets an inset offset. */
-[data-component="DataTable"] tr:focus-visible {
+   drawn outside its rows. The table itself, which focus reaches when a
+   confirmed result disables the footer Button that had it, keeps its ring
+   inside too. No token class sets an inset offset. */
+[data-component="DataTable"] tr:focus-visible,
+[data-component="DataTable"] table:focus-visible {
   outline-offset: calc(var(--ds-size-height-edge) * -2);
 }
 

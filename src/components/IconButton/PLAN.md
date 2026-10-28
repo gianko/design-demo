@@ -2,7 +2,7 @@
 
 ## Use
 
-The close button Sheet renders in its header; never place it in a UI spec yourself. For an action a person takes use a Button, which names what happens in words.
+The close button Sheet renders in its header and Toast beside its copy (ADR 0013); never place it in a UI spec yourself. For an action a person takes use a Button, which names what happens in words.
 
 It is an **internal entry** (ADR 0004, like Checkbox): the spec step never sees it, gate 1 rejects a UI spec node naming it, and the code step sees it marked `internal`. It becomes public only when a brief has an honest use for one (spec § After P1).
 

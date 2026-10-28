@@ -8,7 +8,7 @@ I've spent 15 years making designers' work ship at award level. This repo encode
 
 | A generated screen, kept and gated | A library component at admin density |
 |---|---|
-| ![payment-status after a reminder is sent, contractor density](gates/baselines/screens-payment-status--reminder-sent--light-contractor.png) | ![DataTable with three rows selected, admin density](gates/baselines/components-datatable--rows-selected--light-admin.png) |
+| ![payment-status after a reminder is sent, contractor density](gates/baselines/screens-payment-status--reminder-sent--light-contractor.png) | ![DataTable with three rows selected, admin density](gates/baselines/components-datatable--three-selected--light-admin.png) |
 
 ## What it is
 

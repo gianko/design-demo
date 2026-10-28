@@ -1,7 +1,7 @@
 // @vitest-environment node
-// requires.transitions (ADR 0011): each transition is a structural pattern
-// in the final UI spec, so a UI spec that has the components but places
-// them otherwise misses it.
+// requires.transitions (ADR 0011, ADR 0013): each transition is a structural
+// pattern in the final UI spec, so a UI spec that has the components but
+// places them otherwise misses it.
 
 import { describe, expect, it } from "vitest";
 import { checkPassCriteria } from "./pass-criteria.ts";
@@ -19,10 +19,17 @@ function node(
   return { id, component, parent, slot, props: [], when, action };
 }
 
-// The pay confirmation and the row sheet, as ADR 0011 lays them out: the
-// bar shows while rows are selected and after a failure, holding the failure
-// Toast above its Button then (#243), and the success state shows the
-// success Toast in the bar's place.
+function toast(id: string, tone: string, when: string[]): UiNode {
+  return {
+    ...node(id, "Toast", "screen", "body", when),
+    props: [{ name: "tone", value: JSON.stringify(tone) }],
+  };
+}
+
+// The pay confirmation and the row sheet, as ADR 0013 lays them out: the
+// action's Button in the DataTable's actions footer, and the Toasts last in
+// the Screen, the success one in the success state and the failure one in
+// the failure state.
 function queue(): UiSpec {
   return {
     audience: "admin",
@@ -33,19 +40,11 @@ function queue(): UiSpec {
       node("number", "Text", "table", "cell"),
       node("sheet", "Sheet", "table", "detail"),
       node("sheet-number", "Text", "sheet", "body"),
-      node("bar", "ActionBar", "column", "body", [
-        "rows-selected",
-        "payment-failed",
-      ]),
-      {
-        ...node("failed", "Toast", "bar", "body", ["payment-failed"]),
-        props: [{ name: "tone", value: '"failure"' }],
-      },
-      node("pay", "Button", "bar", "body", [], "pay"),
-      node("scheduled", "Toast", "column", "body", ["payment-scheduled"]),
+      node("pay", "Button", "table", "actions", [], "pay"),
+      toast("failed", "failure", ["payment-failed"]),
+      toast("scheduled", "success", ["payment-scheduled"]),
     ],
     states: [
-      { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
       { name: "payment-scheduled", fixture: "invoice-queue/payment-scheduled" },
       { name: "payment-failed", fixture: "invoice-queue/payment-failed" },
     ],
@@ -75,45 +74,65 @@ function edit(spec: UiSpec, id: string, change: Partial<UiNode>) {
 }
 
 describe("requires.transitions", () => {
-  it("finds both patterns in ADR 0011's layout", () => {
-    expect(missing("bar-to-toast", queue())).toEqual([]);
+  it("finds both patterns in ADR 0013's layout", () => {
+    expect(missing("table-action-to-toast", queue())).toEqual([]);
     expect(missing("row-to-sheet", queue())).toEqual([]);
   });
 
   it("misses every transition when there's no UI spec", () => {
-    expect(missing("bar-to-toast", undefined)).toEqual([
-      "transition bar-to-toast",
+    expect(missing("table-action-to-toast", undefined)).toEqual([
+      "transition table-action-to-toast",
     ]);
   });
 
-  describe("bar-to-toast", () => {
-    it("finds the action's Button nested deeper in the bar", () => {
+  describe("table-action-to-toast", () => {
+    it("finds Toasts nested deeper in the Screen, written before the table", () => {
       const spec = queue();
-      spec.nodes.push(node("group", "Stack", "bar", "body"));
-      edit(spec, "pay", { parent: "group" });
+      spec.nodes.unshift(node("results", "Stack", "screen", "body"));
+      edit(spec, "scheduled", { parent: "results" });
+      edit(spec, "failed", { parent: "results" });
 
-      expect(missing("bar-to-toast", spec)).toEqual([]);
+      expect(missing("table-action-to-toast", spec)).toEqual([]);
     });
 
     it.each<[string, (spec: UiSpec) => UiSpec]>([
       [
-        "the action's Button sits outside an ActionBar",
-        (spec) => edit(spec, "pay", { parent: "column" }),
+        "the action's Button sits outside the table, in the page",
+        (spec) => edit(spec, "pay", { parent: "column", slot: "body" }),
       ],
       [
-        "the ActionBar's Button runs a different action",
+        "the action's Button sits in another component's actions slot",
+        (spec) => {
+          spec.nodes.push(node("header", "PageHeader", "column", "body"));
+          return edit(spec, "pay", { parent: "header" });
+        },
+      ],
+      [
+        "the footer's Button runs a different action",
         (spec) => edit(spec, "pay", { action: "remind" }),
       ],
       [
-        "the ActionBar also shows in the success state",
-        (spec) => edit(spec, "bar", { when: [] }),
+        "the table shows only in the action's own outcomes, so it can't be run",
+        (spec) =>
+          edit(spec, "table", {
+            when: ["payment-scheduled", "payment-failed"],
+          }),
       ],
       [
         "the success state shows no Toast",
         (spec) => edit(spec, "scheduled", { when: ["payment-failed"] }),
       ],
       [
-        "the Toast sits in a part of the screen hidden in the success state",
+        "the success state's Toast is a failure one",
+        (spec) =>
+          edit(
+            spec,
+            "scheduled",
+            toast("scheduled", "failure", ["payment-scheduled"])
+          ),
+      ],
+      [
+        "the success Toast sits in a part of the screen hidden in the success state",
         (spec) => {
           spec.nodes.push(
             node("panel", "Stack", "column", "body", ["payment-failed"])
@@ -122,20 +141,16 @@ describe("requires.transitions", () => {
         },
       ],
       [
-        "the Button never shows, so the action can't be run from the bar",
-        (spec) => edit(spec, "pay", { when: ["payment-scheduled"] }),
+        "the failure state shows no Toast",
+        (spec) => edit(spec, "failed", { when: ["payment-scheduled"] }),
       ],
       [
-        "the bar shows only in the failure state, which needs a run first",
-        (spec) => edit(spec, "bar", { when: ["payment-failed"] }),
-      ],
-      [
-        "the bar shows with nothing selected but not in rows-selected",
-        (spec) => edit(spec, "bar", { when: ["default", "payment-failed"] }),
+        "the failure state's Toast has no tone",
+        (spec) => edit(spec, "failed", { props: [] }),
       ],
     ])("misses it when %s", (_, change) => {
-      expect(missing("bar-to-toast", change(queue()))).toEqual([
-        "transition bar-to-toast",
+      expect(missing("table-action-to-toast", change(queue()))).toEqual([
+        "transition table-action-to-toast",
       ]);
     });
   });

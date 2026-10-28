@@ -9,7 +9,7 @@ import { densities } from "../.storybook/globals.ts";
 
 // ADR 0011's signature transitions, each a structural pattern the pass
 // criteria look for in the final UI spec.
-export const transitions = ["bar-to-toast", "row-to-sheet"] as const;
+export const transitions = ["table-action-to-toast", "row-to-sheet"] as const;
 export type Transition = (typeof transitions)[number];
 
 const frontmatter = z.object({

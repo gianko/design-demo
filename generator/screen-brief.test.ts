@@ -90,7 +90,7 @@ const p0Five = [
         "Amount",
         "Button",
       ],
-      states: ["empty", "rows-selected", "payment-scheduled", "payment-failed"],
+      states: ["empty", "payment-scheduled", "payment-failed"],
       actions: ["approve-and-pay"],
     },
   },
@@ -133,14 +133,13 @@ const p1Briefs = [
         "DataTable",
         "StatusTag",
         "Amount",
-        "ActionBar",
         "Button",
         "Toast",
         "EmptyState",
       ],
-      states: ["empty", "rows-selected", "payment-scheduled", "payment-failed"],
+      states: ["empty", "payment-scheduled", "payment-failed"],
       actions: ["pay-selected"],
-      transitions: ["bar-to-toast"],
+      transitions: ["table-action-to-toast"],
     },
   },
   {
@@ -155,14 +154,13 @@ const p1Briefs = [
         "Amount",
         "Sheet",
         "Heading",
-        "ActionBar",
         "Button",
         "Toast",
         "EmptyState",
       ],
-      states: ["empty", "rows-selected", "reminders-sent", "reminders-failed"],
+      states: ["empty", "reminders-sent", "reminders-failed"],
       actions: ["send-reminders"],
-      transitions: ["bar-to-toast", "row-to-sheet"],
+      transitions: ["table-action-to-toast", "row-to-sheet"],
     },
   },
   {
@@ -175,14 +173,13 @@ const p1Briefs = [
         "DataTable",
         "StatusTag",
         "Amount",
-        "ActionBar",
         "Button",
         "Toast",
         "EmptyState",
       ],
-      states: ["empty", "rows-selected", "payments-retried", "retry-failed"],
+      states: ["empty", "payments-retried", "retry-failed"],
       actions: ["retry-payments"],
-      transitions: ["bar-to-toast"],
+      transitions: ["table-action-to-toast"],
     },
   },
   {
@@ -326,11 +323,12 @@ describe("a screen brief's requires.transitions", () => {
     return path;
   }
 
-  it("takes ADR 0011's transition ids", () => {
+  it("takes ADR 0013's transition ids", () => {
     expect(
-      readScreenBrief(planted("  transitions: [bar-to-toast, row-to-sheet]\n"))
-        .requires.transitions
-    ).toEqual(["bar-to-toast", "row-to-sheet"]);
+      readScreenBrief(
+        planted("  transitions: [table-action-to-toast, row-to-sheet]\n")
+      ).requires.transitions
+    ).toEqual(["table-action-to-toast", "row-to-sheet"]);
   });
 
   it("defaults to none", () => {
@@ -586,7 +584,6 @@ describe("the coverage rule", () => {
 
   it("counts every public component but Stack", async () => {
     expect(await counted()).toEqual([
-      "ActionBar",
       "Amount",
       "Button",
       "Card",
