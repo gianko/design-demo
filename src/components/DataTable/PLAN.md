@@ -35,7 +35,7 @@ No look variant and no size: one table, density sets its size (ADR 0002). Select
 | row selected | the row fills with `selected`; its box is ticked | "One accent … for … selection"; `selected` is a colour role; "Colour alone never communicates state": the tick says it too |
 | some selected | the header box shows a dash | as above; Checkbox's `mixed` |
 | all selected | the header box is ticked | as above |
-| empty (no rows) | the header row alone, its box disabled | "An empty screen is an invitation to act" belongs to the screen's Heading and Text (spec § Library widening); the table only stops offering a selection it can't make |
+| empty (no rows) | the header row alone, its box disabled. No screen shows it: in its `empty` state a screen shows an EmptyState in the DataTable's place (`when: [empty]`, EmptyState's PLAN), so it has no story and a unit test holds it (#290) | "An empty screen is an invitation to act" belongs to the screen's EmptyState, which took over from P0's Heading and Text (spec § Library widening); the table only stops offering a selection it can't make |
 | hover, pressed, focus-visible | Checkbox's own; in a table with no `detail` slot the row doesn't change | "Banned: hover lift on cards or rows"; such a row opens nothing |
 | row that opens, hover / pressed | the row fills with `surface-hover` / `surface-pressed`, a tint and no lift; a selected row keeps `selected` | "Banned: hover lift on cards or rows": a tint isn't a lift; `surface-hover` and `surface-pressed` "deepen a neutral control" |
 | row that opens, focus-visible | `focus-ring`, inset by twice its width so the surface, which scrolls sideways and so clips, doesn't cut it | focus is never colour alone; the ring is the library's one focus treatment |
