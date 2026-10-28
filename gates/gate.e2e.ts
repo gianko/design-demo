@@ -270,6 +270,7 @@ describe("in CI", () => {
       /"Northwind Logistics GmbH" is clipped without an ellipsis/,
     ],
     [textOverflow.id, "collide", /"Awaiting" collides with "Paid"/],
+    [textOverflow.id, "stuck", /"Due" collides with "Nov 2"/],
     [
       "content-hidden-at-rest",
       "opacity",
