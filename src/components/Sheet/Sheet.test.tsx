@@ -2,9 +2,9 @@
 // SheetHost and closes it through the host, inside a View Transition that
 // transitionSheet runs. jsdom has neither showModal nor View Transitions, so
 // `document.startViewTransition` is stubbed as the browser's boundary: it
-// records each transition's types and whether the row carried the shared
-// name, the `vt-row-detail` class the Sheet carries too, on either side of
-// its update.
+// records each transition's types and whether the row carried a view
+// transition name on either side of its update. The Sheet slides in from the
+// end edge and back out past it, on its own name, so the row never has one.
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useRef, useState } from "react";
@@ -34,7 +34,7 @@ it("is a dialog named by its title", () => {
   render(<InvoiceSheet />);
 
   expect(screen.getByRole("dialog", { name: "INV-0142" })).toBeTruthy();
-  // The view transition name the row it opened from shares (ADR 0011).
+  // Its own view transition name, which slides it in and out (ADR 0011).
   expect(screen.getByRole("dialog").classList).toContain("vt-row-detail");
   expect(screen.getByText("Due Oct 24")).toBeTruthy();
 });
@@ -176,9 +176,9 @@ it("takes focus when it opens, and gives it back to the row when it closes", () 
   expect(document.activeElement).toBe(row());
 });
 
-it("opens and closes in View Transitions, the row carrying the shared name only in the view without the sheet", async () => {
+it("opens and closes in View Transitions, the row never sharing the sheet's name", async () => {
   const seen = () => ({
-    rowNamed: row().classList.contains("vt-row-detail"),
+    rowNamed: [...row().classList].some((name) => name.startsWith("vt-")),
     sheet: screen.queryByRole("dialog") !== null,
   });
   const transitions: unknown[] = [];
@@ -212,13 +212,13 @@ it("opens and closes in View Transitions, the row carrying the shared name only 
   expect(transitions).toEqual([
     {
       types: ["sheet-open"],
-      before: { rowNamed: true, sheet: false },
+      before: { rowNamed: false, sheet: false },
       after: { rowNamed: false, sheet: true },
     },
     {
       types: ["sheet-close"],
       before: { rowNamed: false, sheet: true },
-      after: { rowNamed: true, sheet: false },
+      after: { rowNamed: false, sheet: false },
     },
   ]);
   await Promise.all(finishing);
