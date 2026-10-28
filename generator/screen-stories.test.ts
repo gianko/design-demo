@@ -5,6 +5,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { ScreenStateParameters } from "../src/components/Screen/screen-state.tsx";
 import { screenStories } from "./screen-stories.ts";
 import type { UiNode } from "./ui-spec.ts";
 import { repo } from "../repo.ts";
@@ -37,13 +38,16 @@ const withSheet = [
   node("invoice", "Sheet", "invoices", "detail"),
 ];
 
-// The comment lines before the first import.
-const header = (source: string) => source.slice(0, source.indexOf("import "));
+// The comment lines the source opens with.
+const header = (source: string) => source.match(/^(\/\/.*\n)*/)![0];
+
+// The story parameter an open-sheet render sets.
+const openSheet: keyof ScreenStateParameters = "openSheet";
 
 const stories = (nodes: UiNode[]) =>
   screenStories({
-    slug: "bulk-pay",
-    name: "BulkPay",
+    slug: "invoices",
+    name: "Invoices",
     states: [{ name: "empty", fixture: "bulk-pay/empty" }],
     nodes,
     actions: [],
@@ -74,7 +78,7 @@ describe("screenStories' header", () => {
     const kept = readFileSync(join(repo, path), "utf8");
 
     expect(header(kept)).toBe(
-      header(stories(kept.includes("openSheet:") ? withSheet : withoutSheet))
+      header(stories(kept.includes(`${openSheet}:`) ? withSheet : withoutSheet))
     );
   });
 });
