@@ -173,6 +173,7 @@ export async function generate(
       const failures = gate1(reply, {
         entries: registry.entries,
         audience: brief.audience,
+        slug: brief.slug,
         fixtures,
       });
       return {
@@ -341,8 +342,21 @@ async function runStep<Output>(
   input: StepInput<Output>
 ): Promise<{ output?: Output } | { error: string }> {
   const { step, config, promptHash } = input;
+  // The first user turn carries its own cache breakpoint after the system
+  // prompt's, so a repair request, which resends it unchanged, and another
+  // rep of the same screen brief read it from the cache (#275). Repair turns
+  // after it stay plain strings.
   const messages: Anthropic.MessageParam[] = [
-    { role: "user", content: input.user },
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: input.user,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+    },
   ];
   for (let n = 1; ; n++) {
     const attemptDir = join(dir, `attempt-${n}-${step}`);

@@ -202,7 +202,8 @@ describe("generate", () => {
   it("hands the render pass the attempt's TSX, audience, screen states, nodes and actions, and records its renders", async () => {
     const withState = {
       ...smokeSpec,
-      states: [{ name: "empty", fixture: "payment-status/empty" }],
+      // The smoke brief has no fixture variants of its own (#275).
+      states: [{ name: "empty", fixture: "default" }],
     };
     const { model } = stubModel(
       message(JSON.stringify(withState)),
@@ -363,8 +364,15 @@ describe("generate", () => {
     // The screen brief rides in the user turn, after the cached prefix.
     expect(JSON.stringify(spec!.messages)).toContain("Smoke: welcome back");
     expect(JSON.stringify(code!.messages)).toContain("Smoke: welcome back");
+    // Each step's first user turn is one cached text block (#275).
     const [turn] = code!.messages;
-    expect(turn!.content).toContain(JSON.stringify(smokeSpec));
+    expect(turn!.content).toEqual([
+      {
+        type: "text",
+        text: expect.stringContaining(JSON.stringify(smokeSpec)),
+        cache_control: { type: "ephemeral" },
+      },
+    ]);
   }, 120_000);
 
   it("ends after three spec attempts that fail gate 1, without a code attempt", async () => {
@@ -513,6 +521,20 @@ Fix every failure above and send the whole UI spec again.`;
     expect(
       readFileSync(join(dir, "attempt-1-spec/repair-turn.txt"), "utf8")
     ).toBe(turn + "\n");
+    // #275: the first user turn, the screen brief and its fixture paths, has
+    // its own cache breakpoint, so the repair request reads it from the
+    // cache: it resends the turn exactly as it was first sent.
+    expect(first!.messages[0]).toEqual({
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: expect.stringContaining("Smoke: welcome back"),
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+    });
+    expect(second!.messages[0]).toEqual(first!.messages[0]);
     expect(readJson(join(dir, "attempt-2-spec/ui-spec.json"))).toEqual(
       smokeSpec
     );
@@ -522,7 +544,8 @@ Fix every failure above and send the whole UI spec again.`;
   it("repairs a TSX file with one repair turn, deduplicated, collapsed across theme × state and capped per gate, then passes", async () => {
     const withState = {
       ...smokeSpec,
-      states: [{ name: "empty", fixture: "payment-status/empty" }],
+      // The smoke brief has no fixture variants of its own (#275).
+      states: [{ name: "empty", fixture: "default" }],
     };
     // An unnamed button, which axe fails in every theme × screen state, and
     // 25 intrinsic elements, which gate 2 fails one line each.

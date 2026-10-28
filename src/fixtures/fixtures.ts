@@ -548,6 +548,20 @@ const variants = {
 export type VariantName = keyof typeof variants;
 export const variantNames = Object.keys(variants) as VariantName[];
 
+// The fixture variants one screen may use: `default`, which every screen
+// shares, and its own, named `<slug>/<state>`. The generator's spec step
+// lists only these, and its gate 1 holds a UI spec to them (#275).
+export function screenVariants<T>(
+  variants: Readonly<Record<string, T>>,
+  slug: string
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(variants).filter(
+      ([name]) => name === "default" || name.startsWith(`${slug}/`)
+    )
+  );
+}
+
 export type Operations = {
   sendReminder: (invoiceId: string) => Promise<void>;
   payInvoices: (invoiceIds: readonly string[]) => Promise<void>;

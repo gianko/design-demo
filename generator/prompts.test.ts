@@ -1,13 +1,16 @@
 // The steps' prompts (ADR 0004). The spec step's teaches bindings, and its
-// user turn lists the paths each fixture variant can bind, after a cached
-// prefix that holds only the design brief, the registry and the wire schema
-// (spec § Gate 1 and the spec step). The code step's wires that data.
+// user turn lists the paths the brief's fixture variants can bind, after a
+// cached prefix that holds only the design brief, the registry and the wire
+// schema (spec § Gate 1 and the spec step). The code step's wires that data.
 
+import { readdirSync } from "node:fs";
+import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { fixtureVariant, variantNames } from "../src/fixtures/fixtures.ts";
 import { rowSlots } from "./gate1.ts";
 import { codePrompt, specPrompt } from "./prompts.ts";
 import { type LibraryRegistry, loadRegistry } from "./registry.ts";
-import type { ScreenBrief } from "./screen-brief.ts";
+import { readScreenBrief, type ScreenBrief } from "./screen-brief.ts";
 
 const registry = {
   serialized: { spec: "[]", code: '["code"]' },
@@ -35,6 +38,15 @@ const fixtures = {
 
 const fixtureTypes =
   "export type FixtureData = { reviewInvoice: Invoice | null };";
+
+// The real fixtures and screen briefs, as generate() reads them.
+const allVariants = Object.fromEntries(
+  variantNames.map((name) => [name, fixtureVariant(name).data])
+);
+const briefs = join(import.meta.dirname, "../evals/briefs");
+const readBrief = (slug: string) => readScreenBrief(join(briefs, `${slug}.md`));
+const listedVariants = (turn: string) =>
+  [...turn.matchAll(/^Fixture variant "(.+)":$/gm)].map(([, name]) => name);
 
 // ADR 0004: the code step wires data. Bound props and operation arguments
 // read the host's fixture variant through the library's hook.
@@ -152,10 +164,10 @@ describe("specPrompt", () => {
     expect(system[0]!.text).toContain('{"bind":"<path>"}');
   });
 
-  it("lists every fixture variant's bindable paths and values in the user turn", () => {
+  it("lists the bindable paths and values of the brief's own fixture variants in the user turn", () => {
     const { user } = specPrompt("# Design brief", registry, "{}", fixtures);
 
-    const turn = user(brief);
+    const turn = user({ ...brief, slug: "payment-status" });
     expect(turn).toContain(`Fixture variant "default":
 - invoices.0.number: "INV-0142"
 - invoices.0.amount: 4800
@@ -165,6 +177,35 @@ describe("specPrompt", () => {
 - invoices: []
 - overdueInvoice: null`);
     expect(turn).toContain("# A screen brief");
+  });
+
+  // #275: every variant's paths came to 538k chars, 297k uncached input
+  // tokens on bulk-pay's spec call. A brief uses `default` and its own
+  // `<slug>/<state>` variants (glossary: Fixture variant).
+  it("lists only default and the variants named for the brief's slug", () => {
+    const prompt = specPrompt("# Design brief", registry, "{}", allVariants);
+
+    const turn = prompt.user(readBrief("bulk-pay"));
+
+    expect(listedVariants(turn)).toEqual([
+      "default",
+      "bulk-pay/empty",
+      "bulk-pay/rows-selected",
+      "bulk-pay/payment-scheduled",
+      "bulk-pay/payment-failed",
+    ]);
+  });
+
+  it("leaves out a variant whose name only starts with the brief's slug", () => {
+    const { user } = specPrompt("# Design brief", registry, "{}", {
+      ...fixtures,
+      "payment-status-extra/empty": {},
+    });
+
+    expect(listedVariants(user({ ...brief, slug: "payment-status" }))).toEqual([
+      "default",
+      "payment-status/empty",
+    ]);
   });
 
   it("keeps the fixtures out of the cached prefix, and in the prompt hash", () => {
@@ -180,6 +221,32 @@ describe("specPrompt", () => {
       "<wire_schema>\n{}\n</wire_schema>",
     ]);
     expect(changed.hash).not.toBe(prompt.hash);
+  });
+
+  // One spec prompt hash per run, as the eval report shows it (#275), though
+  // each brief's turn lists only its own variants.
+  it("hashes every variant's paths, whichever brief it is asked for", () => {
+    const prompt = specPrompt("# Design brief", registry, "{}", fixtures);
+    const changed = specPrompt("# Design brief", registry, "{}", {
+      ...fixtures,
+      "payment-status/empty": { invoices: [], overdueInvoice: {} },
+    });
+
+    expect(prompt.user(brief)).toBe(changed.user(brief));
+    expect(changed.hash).not.toBe(prompt.hash);
+  });
+});
+
+// #275's size guard: bulk-pay's turn was 538k chars with every variant
+// listed. Scoped, the largest brief's is about 95k.
+describe("the spec step's user turn", () => {
+  const { user } = specPrompt("# Design brief", registry, "{}", allVariants);
+  const slugs = readdirSync(briefs)
+    .filter((file) => file.endsWith(".md"))
+    .map((file) => basename(file, ".md"));
+
+  it.each(slugs)("stays within 150,000 chars for %s", (slug) => {
+    expect(user(readBrief(slug)).length).toBeLessThanOrEqual(150_000);
   });
 });
 
