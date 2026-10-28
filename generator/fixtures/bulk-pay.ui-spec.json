@@ -148,7 +148,8 @@
           "name": "text",
           "value": "\"The payment didn't go through, so nothing was scheduled. Check your funding account, then try again.\""
         },
-        { "name": "tone", "value": "\"failure\"" }
+        { "name": "tone", "value": "\"failure\"" },
+        { "name": "closeLabel", "value": "\"Close payment result\"" }
       ],
       "when": ["payment-failed"],
       "action": null
@@ -163,7 +164,8 @@
           "name": "text",
           "value": "\"3 invoices scheduled for the Oct 24 run.\""
         },
-        { "name": "tone", "value": "\"success\"" }
+        { "name": "tone", "value": "\"success\"" },
+        { "name": "closeLabel", "value": "\"Close payment result\"" }
       ],
       "when": ["payment-scheduled"],
       "action": null

@@ -4,7 +4,7 @@ import type { PropsOf } from "../../registry/entry.ts";
 import type { iconButtonEntry } from "./IconButton.registry.ts";
 import { Icon } from "./icons.tsx";
 
-// The close button Sheet renders. A square at the density's control height,
+// The close button Sheet and Toast render. A square at the density's control height,
 // so it lines up with Buttons in a row and meets the 44px contractor target,
 // holding one Phosphor glyph at the density's icon size. It is bare at rest,
 // as a quiet Button is, so it never competes with what it closes; hover and

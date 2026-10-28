@@ -99,6 +99,11 @@ function host(fixture: VariantName) {
 const region = () => screen.getByRole("status");
 const toast = () =>
   document.querySelector<HTMLElement>('[data-component="Toast"]');
+// The copy a Toast shows, without its close button's hidden name.
+const copyOf = (element: HTMLElement | null) =>
+  element?.querySelector("p")?.textContent;
+const close = () =>
+  fireEvent.click(screen.getByRole("button", { name: closeLabel }));
 const button = () =>
   screen.getByRole<HTMLButtonElement>("button", { name: "Approve and pay" });
 const pay = async () => {
@@ -147,7 +152,7 @@ it("shows the success Toast last in the Screen once the payment is confirmed, an
   await pay();
 
   expect(transitions.at(-1)).toEqual(["confirm"]);
-  expect(toast()!.textContent).toBe(scheduled);
+  expect(copyOf(toast())).toBe(scheduled);
   expect(toast()!.dataset.tone).toBe("success");
   expect(region().textContent).toBe(scheduled);
 });
@@ -158,7 +163,7 @@ it("shows the failure Toast once the payment fails, the rows still ticked, and a
   await pay();
 
   expect(transitions.at(-1)).toEqual(["fail"]);
-  expect(toast()!.textContent).toBe(failed);
+  expect(copyOf(toast())).toBe(failed);
   expect(toast()!.dataset.tone).toBe("failure");
   expect(screen.getByText("3 invoices selected")).toBeTruthy();
   expect(region().textContent).toBe(failed);
@@ -216,4 +221,188 @@ it("dismisses a success Toast after the toast duration token, the screen staying
   expect(toast()).toBeNull();
   expect(transitions.length).toBe(entered + 1);
   expect(screenState()).toBe("payment-scheduled");
+});
+
+// The timer pauses while the Toast is hovered, and resumes where it left
+// off once the pointer leaves.
+it("pauses a success Toast's timer while it is hovered", async () => {
+  host("default");
+  await pay();
+  await wait(2000);
+
+  fireEvent.pointerEnter(toast()!);
+  await wait(toastMs * 2);
+  expect(toast()).not.toBeNull();
+
+  fireEvent.pointerLeave(toast()!);
+  await wait(toastMs - 2000 - 1);
+  expect(toast()).not.toBeNull();
+  await wait(1);
+  expect(toast()).toBeNull();
+});
+
+// Focus within holds it too: a keyboard user on its close button.
+it("pauses a success Toast's timer while focus is within it", async () => {
+  host("default");
+  await pay();
+  await wait(1000);
+
+  act(() => screen.getByRole("button", { name: closeLabel }).focus());
+  await wait(toastMs * 2);
+  expect(toast()).not.toBeNull();
+
+  act(() => screen.getByRole("table").focus());
+  await wait(toastMs - 1000 - 1);
+  expect(toast()).not.toBeNull();
+  await wait(1);
+  expect(toast()).toBeNull();
+});
+
+// A Toast nobody can see doesn't run down: the timer holds while the tab is
+// hidden.
+it("pauses a success Toast's timer while the tab is hidden", async () => {
+  const visibility = (state: DocumentVisibilityState) => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => state,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+  };
+  host("default");
+  await pay();
+  await wait(3000);
+
+  visibility("hidden");
+  try {
+    await wait(toastMs * 2);
+    expect(toast()).not.toBeNull();
+  } finally {
+    visibility("visible");
+    delete (document as { visibilityState?: unknown }).visibilityState;
+  }
+  await wait(toastMs - 3000 - 1);
+  expect(toast()).not.toBeNull();
+  await wait(1);
+  expect(toast()).toBeNull();
+});
+
+// A failure has to be read and acted on, so it never leaves on its own.
+it("never dismisses a failure Toast on its own", async () => {
+  host("invoice-queue/payment-failed");
+  await pay();
+
+  await wait(toastMs * 10);
+
+  expect(toast()!.dataset.tone).toBe("failure");
+});
+
+it.each([
+  ["success", "default"],
+  ["failure", "invoice-queue/payment-failed"],
+] as const)(
+  "dismisses a %s Toast with its close button, through a View Transition, the screen staying in its state",
+  async (tone, fixture) => {
+    host(fixture);
+    await pay();
+    const state = screenState();
+    const entered = transitions.length;
+
+    close();
+
+    expect(toast()).toBeNull();
+    expect(transitions.length).toBe(entered + 1);
+    expect(screenState()).toBe(state);
+    expect(tone).toBe(state === "payment-scheduled" ? "success" : "failure");
+  }
+);
+
+// Closing with the keyboard removes the button that had focus; focus lands
+// on the Screen, as it does when a state change removes the focused element
+// and nothing takes its place (ADR 0011).
+it("moves focus to the Screen when the close button that had it goes", async () => {
+  host("invoice-queue/payment-failed");
+  await pay();
+  const closeButton = screen.getByRole("button", { name: closeLabel });
+  act(() => closeButton.focus());
+
+  close();
+
+  expect(document.activeElement).toBe(screen.getByRole("main"));
+});
+
+// ADR 0013: a Toast shows each time its state is entered, even after it was
+// closed or timed out.
+it("shows a failure Toast again when a retry fails again, after it was closed", async () => {
+  host("invoice-queue/payment-failed");
+  await pay();
+  close();
+  expect(toast()).toBeNull();
+
+  await pay();
+
+  expect(toast()!.dataset.tone).toBe("failure");
+  expect(region().textContent).toBe(failed);
+});
+
+it("shows a success Toast again when a new payment is confirmed, after it timed out", async () => {
+  host("default");
+  await pay();
+  await wait(toastMs);
+  expect(toast()).toBeNull();
+
+  fireEvent.click(screen.getAllByRole("checkbox")[1]!);
+  await pay();
+
+  expect(toast()!.dataset.tone).toBe("success");
+  // Its timer starts again, from the full duration.
+  await wait(toastMs - 1);
+  expect(toast()).not.toBeNull();
+  await wait(1);
+  expect(toast()).toBeNull();
+});
+
+// One Toast at a time: a retry that's confirmed replaces the failure with
+// the success.
+it("replaces the failure Toast with the success one when a retry is confirmed", async () => {
+  render(
+    <ScreenHost
+      screenState={{
+        name: "payment-failed",
+        fixture: "invoice-queue/payment-failed",
+      }}
+      settleUnder="invoice-queue/payment-scheduled"
+    >
+      <BulkPay />
+    </ScreenHost>
+  );
+  expect(toast()!.dataset.tone).toBe("failure");
+
+  await pay();
+
+  const toasts = document.querySelectorAll<HTMLElement>(
+    '[data-component="Toast"]'
+  );
+  expect([...toasts].map((each) => each.dataset.tone)).toEqual(["success"]);
+});
+
+// Gate renders and Figma captures start a story in its state and must be
+// the same each run (ADR 0013): a Toast in the state its host starts in is
+// a still render of that state, its timer held.
+it("holds the timer of a success Toast in the state its host starts in", async () => {
+  render(
+    <ScreenHost
+      screenState={{
+        name: "payment-scheduled",
+        fixture: "invoice-queue/payment-scheduled",
+      }}
+    >
+      <BulkPay />
+    </ScreenHost>
+  );
+
+  await wait(toastMs * 10);
+
+  expect(toast()!.dataset.tone).toBe("success");
 });

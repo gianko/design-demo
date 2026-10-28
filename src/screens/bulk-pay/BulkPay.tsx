@@ -73,12 +73,14 @@ export function BulkPay() {
           <Toast
             text="The payment didn't go through, so nothing was scheduled. Check your funding account, then try again."
             tone="failure"
+            closeLabel="Close payment result"
           />
         )}
         {state === "payment-scheduled" && (
           <Toast
             text="3 invoices scheduled for the Oct 24 run."
             tone="success"
+            closeLabel="Close payment result"
           />
         )}
       </Stack>

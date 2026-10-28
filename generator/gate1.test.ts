@@ -1044,6 +1044,7 @@ describe("gate 1 against the library's registry", () => {
           node("failed-here", "Toast", "table", "actions", {
             text: "The payment didn't go through.",
             tone: "failure",
+            closeLabel: "Close payment result",
           }),
           "payment-failed"
         )
@@ -1115,6 +1116,7 @@ describe("gate 1 against the library's registry", () => {
             node("failed", "Toast", "column", "body", {
               text: "The payment didn't go through. Nothing was paid; try again.",
               tone: "failure",
+              closeLabel: "Close payment result",
             }),
             "payment-failed"
           ),
@@ -1122,6 +1124,7 @@ describe("gate 1 against the library's registry", () => {
             node("scheduled", "Toast", "column", "body", {
               text: "Invoices scheduled for the next run.",
               tone: "success",
+              closeLabel: "Close payment result",
             }),
             "payment-scheduled"
           ),
@@ -1184,6 +1187,7 @@ describe("gate 1 against the library's registry", () => {
           node("also", "Toast", "column", "body", {
             text: "Paid.",
             tone: "success",
+            closeLabel: "Close payment result",
           }),
           "payment-scheduled"
         )
