@@ -12,6 +12,21 @@
   scroll-padding-top: var(--ds-density-height-row);
 }
 
+/* The actions footer (ADR 0013): the element after the scrolling body. Its
+   Buttons are enabled and disabled as rows are ticked, so the change runs
+   with the rows' `selected` fill, at `base`, rather than at Button's own
+   `fast`; under reduced motion both are `fast`. Button takes no class, so
+   the footer sets the duration here. */
+[data-component="DataTable"] > :not(:has(> table)) [data-component="Button"] {
+  transition-duration: var(--ds-motion-duration-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="DataTable"] > :not(:has(> table)) [data-component="Button"] {
+    transition-duration: var(--ds-motion-duration-fast);
+  }
+}
+
 /* The stagger (ADR 0011). When bound statuses change, DataTable marks each
    row whose status changed with `data-flip`, and only those rows flip, in row
    order, one `delay-stagger` apart; from the 8th on they flip together, so a

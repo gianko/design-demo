@@ -1,5 +1,6 @@
 import {
   Children,
+  cloneElement,
   Fragment,
   isValidElement,
   useLayoutEffect,
@@ -12,6 +13,7 @@ import {
 import { tv } from "tailwind-variants/lite";
 import type { PropsOf } from "../../registry/entry.ts";
 import { Amount } from "../Amount/Amount.tsx";
+import { Button, type ButtonProps } from "../Button/Button.tsx";
 import { Checkbox } from "../Checkbox/Checkbox.tsx";
 import { defaultState } from "../Screen/default-state.ts";
 import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
@@ -53,12 +55,20 @@ import "./DataTable.css";
 // and flip in the stagger DataTable.css sets out (ADR 0011). A table
 // renders its first statuses still: nothing animates on page load.
 // A table of more than 10 rows scrolls inside its frame, under a header row
-// stuck to the top (#296); the frame has room below its body for a footer.
+// stuck to the top (#296).
+// A table with actions is selectable, and only such a table (ADR 0013): the
+// actions are its footer, inside the frame below the scrolling body, always
+// shown while it has rows. The footer says how many rows are ticked, in the
+// selectionText form for that number, and holds the actions' Buttons at its
+// end edge, disabled while no row is ticked. While one of them is pending,
+// the selection is locked: every Checkbox is aria-disabled and ticking does
+// nothing until the action settles. When a confirmed result clears the
+// selection and so disables the footer Button that had focus, focus moves to
+// the table.
 export const dataTable = tv({
   slots: {
     // The frame: the flat surface. It scrolls sideways if the columns outgrow
-    // a narrow screen, so it clips the table's corners too. Room below the
-    // body is left for a footer (#296).
+    // a narrow screen, so it clips the table's corners too.
     root: "overflow-x-auto rounded-surface border border-line bg-surface",
     // The body: up to the header row and 10 rows at the density's row
     // height, then it scrolls down (#296). As wide as the table, and at
@@ -66,7 +76,9 @@ export const dataTable = tv({
     // clips the corners as before. Focus scrolls a row clear of the header
     // row (DataTable.css).
     body: "max-h-table w-max min-w-full overflow-y-auto",
-    table: "w-full border-collapse",
+    // Focus can land on the table from script (a footer Button disabled
+    // under it), but it is no control, so it shows no ring.
+    table: "w-full border-collapse outline-hidden",
     headerRow: "h-row",
     header:
       "px-xs align-middle text-column-header whitespace-nowrap text-ink-muted",
@@ -87,6 +99,19 @@ export const dataTable = tv({
     // A flex box, so the Checkbox sits centred in the row rather than on the
     // cell's text baseline.
     selector: "flex",
+    // The actions footer: below the body, outside its scroll, set off from
+    // the rows by a `line` rule, a row high with the cells' side padding.
+    // It is the frame's width and stuck to its start edge, so when a wide
+    // table scrolls sideways on a phone the footer stays in view, and its
+    // count and Buttons wrap onto lines of their own rather than spill.
+    footer:
+      "sticky start-0 flex min-h-row flex-wrap items-center justify-between gap-x-sm gap-y-xs border-t border-line px-xs py-3xs",
+    // The selected count: plain text, not a live region, since the Checkbox
+    // just ticked already says what changed. A control high, so on a line of
+    // its own it sits like the Buttons below it.
+    count: "flex min-h-control items-center text-body text-ink-muted",
+    // The Buttons, at the end edge, on a line of their own when they wrap.
+    buttons: "ms-auto flex flex-wrap justify-end gap-xs",
   },
   variants: {
     selected: { true: { row: "bg-selected" }, false: {} },
@@ -136,7 +161,19 @@ export type DataTableProps<R extends Row = Row> = Omit<
   cell: (row: R) => ReactNode;
   // The detail slot: the Sheet a row opens, for that row.
   detail?: (row: R) => ReactNode;
+  // The actions slot: the footer's Buttons, which act on the Selection.
+  actions?: ReactNode;
 };
+
+type SelectionText = NonNullable<DataTableProps["selectionText"]>;
+
+// What the footer says with `count` rows ticked: the UI spec's words, the
+// library putting in only the number (ADR 0013).
+function selectedCount(text: SelectionText, count: number) {
+  if (count === 0) return text.none;
+  if (count === 1) return text.one;
+  return text.other.replaceAll("{count}", String(count));
+}
 
 const rowsSelected = "rows-selected";
 
@@ -227,19 +264,32 @@ function StatusRoom({ children }: { children: ReactNode }) {
 export function DataTable<R extends Row>({
   rows,
   columns,
-  selectable = false,
+  selectionText,
   cell,
   detail,
+  actions,
 }: DataTableProps<R>) {
   const { state } = useScreenState();
   const selection = useSelection();
-  // A table that isn't selectable shows no selection, even one the host
-  // starts with.
+  // Only a table with actions is selectable; one without shows no
+  // selection, even one the host starts with.
+  const selectable = actions !== undefined;
   const selected: ReadonlySet<string> = new Set(
     selectable ? selection.selected : []
   );
+  const buttons = cellsOf(actions);
+  // A footer Button's action is running: the selection holds still until it
+  // settles, so the rows it acts on are the rows shown ticked.
+  const locked = buttons.some(
+    (node) =>
+      isValidElement<ButtonProps>(node) &&
+      node.type === Button &&
+      node.props.pending === true &&
+      node.props.disabled !== true
+  );
 
   const select = (next: ReadonlySet<string>) => {
+    if (locked) return;
     const target = next.size > 0 ? rowsSelected : defaultState;
     selection.select([...next], state === target ? undefined : target);
   };
@@ -313,6 +363,28 @@ export function DataTable<R extends Row>({
   const all =
     chosen === 0 ? false : chosen === rows.length ? true : ("mixed" as const);
 
+  // The footer's Buttons are disabled while no row is ticked. When that
+  // disables the one that had focus, as a confirmed result clearing the
+  // selection does, focus moves to the table, next to what was acted on
+  // (ADR 0013). A browser may blur a Button as it's disabled, before this
+  // runs, so the footer notes a blur of that kind.
+  const disabled = chosen === 0;
+  const table = useRef<HTMLTableElement>(null);
+  const footer = useRef<HTMLDivElement>(null);
+  const blurredAsDisabled = useRef(false);
+  useLayoutEffect(() => {
+    const had = blurredAsDisabled.current;
+    blurredAsDisabled.current = false;
+    if (!disabled || !footer.current) return;
+    const focused = document.activeElement;
+    const kept =
+      focused instanceof HTMLElement &&
+      footer.current.contains(focused) &&
+      focused.matches(":disabled");
+    const dropped = had && (!focused || focused === document.body);
+    if (kept || dropped) table.current!.focus({ preventScroll: true });
+  }, [disabled]);
+
   const slots = dataTable({ scrolls: rows.length > rowsInView });
   return (
     <>
@@ -323,7 +395,12 @@ export function DataTable<R extends Row>({
         className={slots.root()}
       >
         <div className={slots.body()}>
-          <table className={slots.table()}>
+          <table
+            ref={table}
+            // Focusable from script only, in a table with a footer.
+            tabIndex={selectable ? -1 : undefined}
+            className={slots.table()}
+          >
             <thead>
               <tr className={slots.headerRow()}>
                 {selectable && (
@@ -333,6 +410,7 @@ export function DataTable<R extends Row>({
                         label="Select all rows"
                         checked={all}
                         disabled={rows.length === 0}
+                        locked={locked}
                         onCheckedChange={(on) =>
                           select(new Set(on ? rows.map((row) => row.id) : []))
                         }
@@ -389,6 +467,7 @@ export function DataTable<R extends Row>({
                           <Checkbox
                             label={`Select ${row.id}`}
                             checked={isSelected}
+                            locked={locked}
                             onCheckedChange={(on) => toggle(row.id, on)}
                           />
                         </div>
@@ -409,6 +488,30 @@ export function DataTable<R extends Row>({
             </tbody>
           </table>
         </div>
+        {selectable && rows.length > 0 && (
+          <div
+            ref={footer}
+            className={slots.footer()}
+            onBlur={(event) => {
+              blurredAsDisabled.current =
+                event.relatedTarget === null &&
+                event.target.matches(":disabled");
+            }}
+          >
+            <p className={slots.count()}>
+              {selectionText && selectedCount(selectionText, chosen)}
+            </p>
+            <div className={slots.buttons()}>
+              {buttons.map((node) =>
+                isValidElement<ButtonProps>(node) && node.type === Button
+                  ? cloneElement(node, {
+                      disabled: node.props.disabled === true || disabled,
+                    })
+                  : node
+              )}
+            </div>
+          </div>
+        )}
       </div>
       {opened && <SheetHost onClose={closeDetail}>{detail(opened)}</SheetHost>}
     </>

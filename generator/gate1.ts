@@ -184,6 +184,7 @@ function checks(
   failures.push(...stateChecks(spec, byId, fixtures, allFixtures.variants));
   failures.push(...headingChecks(screen));
   failures.push(...motionChecks(spec, byId, screen));
+  failures.push(...footerChecks(spec, byId));
   failures.push(...nestingChecks(spec, byId, entryOf));
 
   // The audience is the screen brief's, on the spec and on its Screen.
@@ -499,6 +500,63 @@ function motionChecks(
     }
   }
   return failures.list;
+}
+
+// A DataTable's actions footer (ADR 0013): each Button in it runs an action,
+// since it acts on the Selection; and a table with actions gives
+// selectionText, the selected count's three forms, whose `other` form holds
+// the `{count}` the library replaces with the number of ticked rows. That
+// the slot takes only Buttons is its registry allow-list's.
+const countMark = "{count}";
+
+function footerChecks(spec: UiSpec, byId: Map<string, UiNode>): Failure[] {
+  const failures: Failure[] = [];
+  const example =
+    '"No invoices selected", "1 invoice selected" and "{count} invoices selected"';
+  for (const table of spec.nodes) {
+    if (table.component !== "DataTable") continue;
+    const actions = spec.nodes.filter(
+      (node) => node.slot === "actions" && parentOf(node, byId) === table
+    );
+    for (const button of actions) {
+      if (button.component === "Button" && button.action === null) {
+        failures.push(
+          fail(
+            "table-action-button",
+            button.id,
+            `It sits in the DataTable "${table.id}"'s actions footer but runs no action; give it the action it runs on the selected rows.`
+          )
+        );
+      }
+    }
+    if (actions.length === 0) continue;
+    const text = propValue(table, "selectionText");
+    if (text === undefined) {
+      failures.push(
+        fail(
+          "selection-text",
+          table.id,
+          `It has actions, so it gives selectionText: { "none", "one", "other" }, the footer's selected count with no row, one row and more rows ticked, such as ${example}.`
+        )
+      );
+      continue;
+    }
+    // A selectionText that doesn't parse is props-parse's to report.
+    const other: unknown =
+      text.ok && typeof text.value === "object" && text.value !== null
+        ? (text.value as Record<string, unknown>).other
+        : undefined;
+    if (typeof other === "string" && !other.includes(countMark)) {
+      failures.push(
+        fail(
+          "selection-count",
+          table.id,
+          `Its selectionText's other form, ${JSON.stringify(other)}, has no ${countMark}; write it where the number goes, such as "{count} invoices selected", and the library fills it in.`
+        )
+      );
+    }
+  }
+  return failures;
 }
 
 // No flat surface (an entry whose `surface` is flat: Card, DataTable,

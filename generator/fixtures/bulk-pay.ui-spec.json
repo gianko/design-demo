@@ -54,7 +54,10 @@
           "name": "columns",
           "value": "[\"Invoice\",\"Contractor\",\"Amount\",\"Due\",\"Status\"]"
         },
-        { "name": "selectable", "value": "true" }
+        {
+          "name": "selectionText",
+          "value": "{\"none\":\"No invoices selected\",\"one\":\"1 invoice selected\",\"other\":\"{count} invoices selected\"}"
+        }
       ],
       "when": [
         "default",
@@ -114,6 +117,18 @@
       "action": null
     },
     {
+      "id": "pay-button",
+      "component": "Button",
+      "parent": "invoice-table",
+      "slot": "actions",
+      "props": [
+        { "name": "text", "value": "\"Pay selected\"" },
+        { "name": "intent", "value": "\"primary\"" }
+      ],
+      "when": [],
+      "action": "pay-selected"
+    },
+    {
       "id": "empty-queue",
       "component": "EmptyState",
       "parent": "page-stack",
@@ -129,18 +144,9 @@
       "action": null
     },
     {
-      "id": "pay-bar",
-      "component": "ActionBar",
-      "parent": "page-stack",
-      "slot": "body",
-      "props": [],
-      "when": ["rows-selected", "payment-failed"],
-      "action": null
-    },
-    {
       "id": "failure-toast",
       "component": "Toast",
-      "parent": "pay-bar",
+      "parent": "page-stack",
       "slot": "body",
       "props": [
         {
@@ -151,18 +157,6 @@
       ],
       "when": ["payment-failed"],
       "action": null
-    },
-    {
-      "id": "pay-button",
-      "component": "Button",
-      "parent": "pay-bar",
-      "slot": "body",
-      "props": [
-        { "name": "text", "value": "\"Pay selected\"" },
-        { "name": "intent", "value": "\"primary\"" }
-      ],
-      "when": [],
-      "action": "pay-selected"
     },
     {
       "id": "success-toast",

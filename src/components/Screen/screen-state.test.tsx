@@ -268,21 +268,27 @@ describe("the data of the state an action enters", () => {
     return (
       <Screen audience="admin">
         <DataTable
-          selectable
           rows={payQueue}
           columns={["Invoice", "Status"]}
+          selectionText={{
+            none: "No invoices selected",
+            one: "1 invoice selected",
+            other: "{count} invoices selected",
+          }}
           cell={(row) => (
             <>
               <Text text={row.number} />
               <StatusTag status={row.status} />
             </>
           )}
-        />
-        <Button
-          intent="primary"
-          text="Pay selected"
-          pending={pay.pending}
-          onClick={() => pay.run(selected)}
+          actions={
+            <Button
+              intent="primary"
+              text="Pay selected"
+              pending={pay.pending}
+              onClick={() => pay.run(selected)}
+            />
+          }
         />
       </Screen>
     );

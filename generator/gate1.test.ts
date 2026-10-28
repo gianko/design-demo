@@ -921,112 +921,212 @@ describe("gate 1 against the library's registry", () => {
     ]);
   });
 
-  // DataTable selection is off by default (#203); invoice-queue's brief is
-  // unchanged, and the UI spec that meets it turns selection on.
-  it("passes an invoice-queue UI spec whose DataTable is selectable, which meets the brief's pass criteria", async () => {
-    const live = (id: string, state: string, text: string) =>
-      shownIn(node(id, "Text", "column", "body", { text, live: true }), state);
-    const spec = {
-      audience: "admin",
-      nodes: [
-        node("screen", "Screen", null, null, { audience: "admin" }),
-        node("column", "Stack", "screen", "body"),
-        node("header", "PageHeader", "column", "body"),
-        node("title", "Heading", "header", "title", {
-          text: "Invoices",
-          level: 1,
-        }),
-        runs(
+  // A DataTable's actions footer (ADR 0013): a table is selectable exactly
+  // when it has actions, which take only Buttons, each running an action, and
+  // such a table gives its selected count's three forms, `other` holding the
+  // `{count}` the library fills.
+  describe("a DataTable's actions footer", () => {
+    const selectionText = {
+      none: "No invoices selected",
+      one: "1 invoice selected",
+      other: "{count} invoices selected",
+    };
+    // invoice-queue as its brief asks for it, Approve and pay in the
+    // table's footer.
+    function invoiceQueue() {
+      const live = (id: string, state: string, text: string) =>
+        shownIn(
+          node(id, "Text", "column", "body", { text, live: true }),
+          state
+        );
+      return {
+        audience: "admin",
+        nodes: [
+          node("screen", "Screen", null, null, { audience: "admin" }),
+          node("column", "Stack", "screen", "body"),
+          node("header", "PageHeader", "column", "body"),
+          node("title", "Heading", "header", "title", {
+            text: "Invoices",
+            level: 1,
+          }),
           shownIn(
-            node("pay", "Button", "header", "actions", {
+            node("table", "DataTable", "column", "body", {
+              rows: bind("invoices"),
+              columns: ["Invoice", "Contractor", "Amount", "Due", "Status"],
+              selectionText,
+            }),
+            "default",
+            "rows-selected",
+            "payment-scheduled",
+            "payment-failed"
+          ),
+          node("number", "Text", "table", "cell", { text: bind("row.number") }),
+          node("contractor", "Text", "table", "cell", {
+            text: bind("row.contractor"),
+          }),
+          node("amount", "Amount", "table", "cell", {
+            value: bind("row.amount"),
+            currency: bind("row.currency"),
+            display: "table",
+          }),
+          node("due", "Text", "table", "cell", { text: bind("row.dueLabel") }),
+          node("status", "StatusTag", "table", "cell", {
+            status: bind("row.status"),
+          }),
+          runs(
+            node("pay", "Button", "table", "actions", {
               text: "Approve and pay",
               intent: "primary",
             }),
-            "rows-selected"
+            "approve-and-pay"
           ),
-          "approve-and-pay"
-        ),
-        shownIn(
-          node("table", "DataTable", "column", "body", {
-            rows: bind("invoices"),
-            columns: ["Invoice", "Contractor", "Amount", "Due", "Status"],
-            selectable: true,
-          }),
-          "default",
-          "rows-selected",
-          "payment-scheduled",
-          "payment-failed"
-        ),
-        node("number", "Text", "table", "cell", { text: bind("row.number") }),
-        node("contractor", "Text", "table", "cell", {
-          text: bind("row.contractor"),
-        }),
-        node("amount", "Amount", "table", "cell", {
-          value: bind("row.amount"),
-          currency: bind("row.currency"),
-          display: "table",
-        }),
-        node("due", "Text", "table", "cell", { text: bind("row.dueLabel") }),
-        node("status", "StatusTag", "table", "cell", {
-          status: bind("row.status"),
-        }),
-        shownIn(
-          node("empty", "Text", "column", "body", {
-            text: "No invoices to pay. New ones show up here when contractors send them.",
-          }),
-          "empty"
-        ),
-        live(
-          "scheduled",
-          "payment-scheduled",
-          "3 invoices scheduled for the Oct 24 run."
-        ),
-        live(
-          "failed",
-          "payment-failed",
-          "The payment didn't go through. Nothing was paid; try again."
-        ),
-      ],
-      states: [
-        { name: "empty", fixture: "invoice-queue/empty" },
-        { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
-        {
-          name: "payment-scheduled",
-          fixture: "invoice-queue/payment-scheduled",
-        },
-        { name: "payment-failed", fixture: "invoice-queue/payment-failed" },
-      ],
-      actions: [
-        {
-          name: "approve-and-pay",
-          operation: "payInvoices",
-          pending: "pay",
-          to: { success: "payment-scheduled", failure: "payment-failed" },
-        },
-      ],
-    };
-    const { entries } = await loadRegistry();
-    const fixtures = {
-      variants: Object.fromEntries(
-        variantNames.map((name) => [name, fixtureVariant(name).data])
-      ),
-      operations: operationNames,
-    };
-    const { requires } = readScreenBrief(
-      join(import.meta.dirname, "../evals/briefs/invoice-queue.md")
-    );
+          shownIn(
+            node("empty", "Text", "column", "body", {
+              text: "No invoices to pay. New ones show up here when contractors send them.",
+            }),
+            "empty"
+          ),
+          live(
+            "scheduled",
+            "payment-scheduled",
+            "3 invoices scheduled for the Oct 24 run."
+          ),
+          live(
+            "failed",
+            "payment-failed",
+            "The payment didn't go through. Nothing was paid; try again."
+          ),
+        ],
+        states: [
+          { name: "empty", fixture: "invoice-queue/empty" },
+          { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
+          {
+            name: "payment-scheduled",
+            fixture: "invoice-queue/payment-scheduled",
+          },
+          { name: "payment-failed", fixture: "invoice-queue/payment-failed" },
+        ],
+        actions: [
+          {
+            name: "approve-and-pay",
+            operation: "payInvoices",
+            pending: "pay",
+            to: { success: "payment-scheduled", failure: "payment-failed" },
+          },
+        ],
+      };
+    }
 
-    expect(
-      gate1(spec, {
+    const table = (spec: ReturnType<typeof invoiceQueue>) =>
+      nodeOf(spec as ReturnType<typeof clean>, "table");
+
+    async function checkQueue(spec: ReturnType<typeof invoiceQueue>) {
+      const { entries } = await loadRegistry();
+      const fixtures = {
+        variants: Object.fromEntries(
+          variantNames.map((name) => [name, fixtureVariant(name).data])
+        ),
+        operations: operationNames,
+      };
+      return gate1(spec, {
         audience: "admin",
         slug: "invoice-queue",
         entries,
         fixtures,
-      })
-    ).toEqual([]);
-    expect(checkPassCriteria(requires, wireSchema().parse(spec))).toEqual({
-      met: true,
-      missing: [],
+      });
+    }
+
+    it("passes invoice-queue with Approve and pay in the footer, which meets the brief's pass criteria", async () => {
+      const spec = invoiceQueue();
+      const { requires } = readScreenBrief(
+        join(import.meta.dirname, "../evals/briefs/invoice-queue.md")
+      );
+
+      expect(await checkQueue(spec)).toEqual([]);
+      expect(checkPassCriteria(requires, wireSchema().parse(spec))).toEqual({
+        met: true,
+        missing: [],
+      });
+    });
+
+    it("fails a table with actions and no selectionText, naming the table", async () => {
+      const spec = invoiceQueue();
+      const at = table(spec);
+      at.props = at.props.filter((prop) => prop.name !== "selectionText");
+
+      expect(await checkQueue(spec)).toEqual([
+        {
+          gate: "gate 1",
+          rule: "selection-text",
+          location: "table",
+          message:
+            'It has actions, so it gives selectionText: { "none", "one", "other" }, the footer\'s selected count with no row, one row and more rows ticked, such as "No invoices selected", "1 invoice selected" and "{count} invoices selected".',
+        },
+      ]);
+    });
+
+    // `{count}` written in the one form, where it isn't needed, and left
+    // out of the other form, where it is.
+    it("fails a selectionText whose other form has no {count}, even with one in another form", async () => {
+      const spec = invoiceQueue();
+      setProp(table(spec), "selectionText", {
+        none: "No invoices selected",
+        one: "{count} invoice selected",
+        other: "Several invoices selected",
+      });
+
+      expect(await checkQueue(spec)).toEqual([
+        {
+          gate: "gate 1",
+          rule: "selection-count",
+          location: "table",
+          message:
+            'Its selectionText\'s other form, "Several invoices selected", has no {count}; write it where the number goes, such as "{count} invoices selected", and the library fills it in.',
+        },
+      ]);
+    });
+
+    // A Toast is what an action shows next to the footer, so it's the
+    // component most likely to be put in it.
+    it("fails anything but a Button in the actions slot", async () => {
+      const spec = invoiceQueue();
+      spec.nodes.push(
+        shownIn(
+          node("failed-here", "Toast", "table", "actions", {
+            text: "The payment didn't go through.",
+            tone: "failure",
+          }),
+          "payment-failed"
+        )
+      );
+
+      expect(
+        (await checkQueue(spec)).map(({ rule, location, message }) => [
+          rule,
+          location,
+          message,
+        ])
+      ).toEqual([
+        [
+          "slot-allow",
+          "failed-here",
+          "DataTable's actions slot takes only Button, not Toast.",
+        ],
+      ]);
+    });
+
+    it("fails a footer Button that runs no action", async () => {
+      const spec = invoiceQueue();
+      spec.nodes.push(
+        node("export", "Button", "table", "actions", {
+          text: "Export",
+          intent: "secondary",
+        })
+      );
+
+      expect(
+        (await checkQueue(spec)).map(({ rule, location }) => [rule, location])
+      ).toEqual([["table-action-button", "export"]]);
     });
   });
 
@@ -1048,7 +1148,6 @@ describe("gate 1 against the library's registry", () => {
           node("table", "DataTable", "column", "body", {
             rows: bind("invoices"),
             columns: ["Invoice"],
-            selectable: true,
           }),
           node("number", "Text", "table", "cell", { text: bind("row.number") }),
           shownIn(

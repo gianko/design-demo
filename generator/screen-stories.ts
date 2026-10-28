@@ -175,7 +175,10 @@ ${stories.join("\n")}`;
 // Button's literal label, the first state (the default, then each declared
 // one) its Button shows in, and the state and fixture variant of each
 // outcome. Its Button is the Button node that runs it, or else its pending
-// node.
+// node. A Button in a DataTable's actions footer is disabled until a row is
+// ticked (ADR 0013), so it is clicked in rows-selected, whose fixture variant
+// starts with rows ticked, where it shows there.
+const footerStart = "rows-selected";
 function screenActions({
   states,
   nodes,
@@ -202,11 +205,18 @@ function screenActions({
     } catch {
       // Gate 1 rejects a value that isn't JSON; no label then.
     }
+    const inFooter =
+      button?.slot === "actions" &&
+      byId.get(button.parent ?? "")?.component === "DataTable";
+    const starts =
+      inFooter && order.includes(footerStart) && showsIn(button, footerStart)
+        ? [footerStart]
+        : order;
     return {
       name: action.name,
       label: typeof label === "string" ? label : null,
       from:
-        (button && order.find((state) => showsIn(button, state))) ??
+        (button && starts.find((state) => showsIn(button, state))) ??
         defaultState,
       to: {
         success: hosted(action.to.success),

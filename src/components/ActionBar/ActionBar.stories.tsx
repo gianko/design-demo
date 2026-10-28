@@ -16,6 +16,17 @@ import { ActionBar } from "./ActionBar.tsx";
 const bar = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="ActionBar"]')!;
 
+// Only a table with actions is selectable (ADR 0013), so until the bar goes
+// (#298) the tables under it have a footer holding a second action.
+const footer = {
+  selectionText: {
+    none: "No invoices selected",
+    one: "1 invoice selected",
+    other: "{count} invoices selected",
+  },
+  actions: <Button intent="secondary" text="Send reminders" />,
+};
+
 // Style expectations (ADR 0012) every story holds: the view transition name
 // Toast shares (ADR 0011); sticky, so it floats above the window's edge once
 // the table it follows runs past it; one 8px step around its Buttons, so the
@@ -188,7 +199,7 @@ function UnderTheTable() {
   return (
     <Stack gap="xs">
       <DataTable
-        selectable
+        {...footer}
         rows={data.invoices}
         columns={["Invoice", "Contractor", "Amount", "Due", "Status"]}
         cell={(row) => (
@@ -236,10 +247,10 @@ export const WithSelectedRows: Story = {
 };
 
 // invoice-queue's failure state under its table three times over, in a
-// scroller the window's height, so the table runs past the bottom edge and
-// the bar sticks there, as on a long queue. The failure Toast rides in the
-// bar, so the two stick as one and the Toast never covers the Buttons
-// (#243).
+// scroller no taller than the table's capped frame (#296), so the table, its
+// footer included, runs past the bottom edge and the bar sticks there, as on
+// a long queue. The failure Toast rides in the bar, so the two stick as one
+// and the Toast never covers the Buttons (#243).
 function FailedOnALongTable() {
   const data = useFixtureData();
   const rows = [0, 1, 2].flatMap((copy) =>
@@ -248,10 +259,10 @@ function FailedOnALongTable() {
     )
   );
   return (
-    <div data-scroller className="h-dvh overflow-y-auto">
+    <div data-scroller className="max-h-table overflow-y-auto">
       <Stack gap="xs">
         <DataTable
-          selectable
+          {...footer}
           rows={rows}
           // One column, so the stuck bar floats over the rows' empty end, as
           // text-overflow holds any text the bar covers to collide with its

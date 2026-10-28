@@ -142,8 +142,15 @@ function PayConfirmation() {
   });
   return (
     <Stack gap="xs">
+      {/* Only a table with actions is selectable (ADR 0013): until the bar
+          goes (#298), its footer holds a second action. */}
       <DataTable
-        selectable
+        selectionText={{
+          none: "No invoices selected",
+          one: "1 invoice selected",
+          other: "{count} invoices selected",
+        }}
+        actions={<Button intent="secondary" text="Send reminders" />}
         rows={data.invoices}
         columns={["Invoice", "Contractor", "Amount", "Due", "Status"]}
         cell={(row) => (

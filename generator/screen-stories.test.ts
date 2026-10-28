@@ -83,6 +83,42 @@ describe("screenStories' header", () => {
   });
 });
 
+// The action-transitions rule clicks an action's Button in the first state
+// it shows in. A Button in a DataTable's actions footer shows in every state
+// the table does, but is disabled until a row is ticked (ADR 0013), so it is
+// clicked in rows-selected, whose fixture variant starts with rows ticked.
+describe("screenStories' declared actions", () => {
+  it("clicks a footer Button in rows-selected, though it shows in the default state too", () => {
+    const pay: UiNode = {
+      ...node("pay", "Button", "invoices", "actions"),
+      props: [{ name: "text", value: '"Pay selected"' }],
+      action: "pay-selected",
+    };
+    const source = screenStories({
+      slug: "bulk-pay",
+      name: "BulkPay",
+      states: [
+        { name: "rows-selected", fixture: "bulk-pay/rows-selected" },
+        { name: "payment-scheduled", fixture: "bulk-pay/payment-scheduled" },
+        { name: "payment-failed", fixture: "bulk-pay/payment-failed" },
+      ],
+      nodes: [...withoutSheet, pay],
+      actions: [
+        {
+          name: "pay-selected",
+          operation: "payInvoices",
+          pending: "pay",
+          to: { success: "payment-scheduled", failure: "payment-failed" },
+        },
+      ],
+    });
+
+    expect(source).toContain(
+      '"name":"pay-selected","label":"Pay selected","from":"rows-selected"'
+    );
+  });
+});
+
 // Each kept screen's stories, relative to the repo root.
 function keptStories() {
   return readdirSync(join(repo, "src/screens")).flatMap((slug) =>

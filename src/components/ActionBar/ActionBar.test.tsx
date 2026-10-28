@@ -41,11 +41,18 @@ function BulkPay() {
   return (
     <>
       <output aria-label="Screen state">{state}</output>
+      {/* Only a table with actions is selectable (ADR 0013): until the bar
+          goes (#298), its footer holds a second action. */}
       <DataTable
-        selectable
         rows={data.invoices}
         columns={["Invoice"]}
+        selectionText={{
+          none: "No invoices selected",
+          one: "1 invoice selected",
+          other: "{count} invoices selected",
+        }}
         cell={(row) => <Text text={row.number} />}
+        actions={<Button text="Send reminders" intent="secondary" />}
       />
       {(state === "rows-selected" || state === "payment-failed") && (
         <ActionBar>

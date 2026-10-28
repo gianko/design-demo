@@ -11,7 +11,11 @@ import type { checkboxEntry } from "./Checkbox.registry.ts";
 // dash, so the state never rests on colour alone. The edge goes transparent
 // rather than away, so the box keeps its size. Disabled keeps the shape and
 // drains the colour, as Button's does: an empty box keeps its edge, a filled
-// one only its fill.
+// one only its fill. Locked, while an action on the selection runs (ADR
+// 0013), it keeps its rest look, so the boxes still show the rows the action
+// acts on, but loses hover and press, since ticking does nothing; it stays
+// focusable, as a pending Button does, and says it's unavailable through
+// `aria-disabled`.
 export const checkbox = tv({
   slots: {
     root: "relative inline-flex aspect-square min-h-target items-center justify-center",
@@ -33,6 +37,7 @@ export const checkbox = tv({
       true: { mark: "text-disabled" },
       false: { mark: "text-on-accent" },
     },
+    locked: { true: {}, false: {} },
   },
   compoundVariants: [
     {
@@ -43,12 +48,21 @@ export const checkbox = tv({
       // rest on any surface rather than the fill giving way. Positioned, the
       // box would sit over the input, so it lets the pointer through to it.
       class: {
-        box: "pointer-events-none relative border-control bg-surface before:absolute before:inset-0 before:rounded-tag before:transition-colors before:duration-fast before:ease-standard peer-hover:before:bg-surface-hover peer-active:before:bg-surface-pressed",
+        box: "pointer-events-none relative border-control bg-surface before:absolute before:inset-0 before:rounded-tag before:transition-colors before:duration-fast before:ease-standard",
+      },
+    },
+    {
+      checked: false,
+      disabled: false,
+      locked: false,
+      class: {
+        box: "peer-hover:before:bg-surface-hover peer-active:before:bg-surface-pressed",
       },
     },
     {
       checked: [true, "mixed"],
       disabled: false,
+      locked: false,
       class: {
         box: "peer-hover:bg-accent-hover peer-active:bg-accent-pressed",
       },
@@ -60,7 +74,7 @@ export const checkbox = tv({
     },
     { checked: [true, "mixed"], disabled: true, class: { box: "bg-disabled" } },
   ],
-  defaultVariants: { checked: false, disabled: false },
+  defaultVariants: { checked: false, disabled: false, locked: false },
 });
 
 export type CheckboxProps = PropsOf<typeof checkboxEntry> & {
@@ -75,10 +89,11 @@ export function Checkbox({
   label,
   checked = false,
   disabled = false,
+  locked = false,
   onCheckedChange,
   ref,
 }: CheckboxProps) {
-  const slots = checkbox({ checked, disabled });
+  const slots = checkbox({ checked, disabled, locked });
   return (
     <label data-component="Checkbox" className={slots.root()}>
       <input
@@ -95,7 +110,12 @@ export function Checkbox({
         // and the box shows what `checked` says.
         checked={checked === true}
         disabled={disabled}
-        onChange={(event) => onCheckedChange?.(event.target.checked)}
+        // Locked: unavailable but still focusable, and a click or Space
+        // reports nothing, so the box keeps showing what `checked` says.
+        aria-disabled={(locked && !disabled) || undefined}
+        onChange={(event) => {
+          if (!locked) onCheckedChange?.(event.target.checked);
+        }}
       />
       <span aria-hidden className={slots.box()} />
       {checked !== false && (

@@ -87,3 +87,19 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 **Call:** `DataTable.css` sets `outline-offset: calc(var(--ds-size-height-edge) * -2)` on a focused DataTable row, so `focus-ring` sits just inside the row.
 
 **Alternative:** an inset focus-ring utility in the token build (`focus-ring-inset`), which any clipped focusable (a list row, a tab) could reuse.
+
+## The footer's Buttons take the rows' transition through CSS
+
+**Undecided:** ADR 0013 has the footer's Buttons change between disabled and enabled with the rows' `selected` fill, at `base` with `standard`. Button's colours change at `fast`, and Button takes no class, so DataTable can't hand it `duration-base`.
+
+**Call:** `DataTable.css` sets `transition-duration` to `base` on a Button in the footer (`fast` under reduced motion). A transition runs at the duration of the style it ends in, so the footer Button's hover eases in at `fast` but out at `base`.
+
+**Alternative:** a code-only Button prop, or a variant, for a Button whose availability follows a selection, so the duration is Button's own and only the disabled change runs at `base`.
+
+## The footer locks the selection by reading its Buttons' pending
+
+**Undecided:** ADR 0013 locks the selection while a footer Button's action is pending, but a generated screen holds no state (ADR 0011), and the pending comes from `useAction` in the screen, not from the host.
+
+**Call:** DataTable reads `pending` off the Button elements in its `actions` slot, as it reads its `cell` nodes' components, and locks while any is pending and not disabled. It likewise renders each footer Button disabled while no row is ticked. The screen wires nothing beyond what any Button with an action gets.
+
+**Alternative:** the `ScreenHost` keeps a count of running actions that `useAction` raises and lowers, which DataTable reads; that would also lock the selection for an action run from outside the footer, which ADR 0013 rules out (only a footer acts on a selection).

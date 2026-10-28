@@ -26,5 +26,11 @@ export const checkboxEntry = defineEntry({
       .describe(
         "This row can't be selected now; the checkbox leaves the tab order."
       ),
+    locked: z
+      .boolean()
+      .optional()
+      .describe(
+        "The selection is held while an action on it runs: ticking does nothing, but the checkbox keeps its look and its place in the tab order."
+      ),
   }),
 });
