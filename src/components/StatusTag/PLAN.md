@@ -12,7 +12,7 @@ Props, from spec § Component pieces 6 ("the five status pairs, each with its wo
 
 - `status`: `awaiting`, `overdue`, `paid`, `scheduled` or `failed`, required. The same five values as the fixtures' `InvoiceStatus`, so a `{ "bind": "overdueInvoice.status" }` prop fits.
 
-The words are the brief's own, from its status table: Awaiting, Overdue, Paid, Scheduled, Failed. Sentence case (one word each, so a capital first letter only).
+The words are the brief's own, from its status table: Awaiting, Overdue, Paid, Scheduled, Failed. Sentence case (one word each, so a capital first letter only). StatusTag exports them as `statusWords`, the one list it writes from, so a DataTable's Status column can keep room for the widest without naming them again (#276).
 
 ## Variants, sizes, states
 

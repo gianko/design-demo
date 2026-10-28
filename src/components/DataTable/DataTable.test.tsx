@@ -24,6 +24,7 @@ import {
 } from "../Screen/screen-state.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Sheet } from "../Sheet/Sheet.tsx";
+import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { DataTable, openDetailAttribute } from "./DataTable.tsx";
 
@@ -347,4 +348,29 @@ it("leaves rows out of the tab order, and opens nothing, with no detail slot", (
 
   expect(openSheet()).toBeNull();
   expect(row("INV-0148").tabIndex).toBe(-1);
+});
+
+// A Status column keeps room for every status word (#276), but a screen
+// reader hears only the word each cell's tag shows.
+it("reads only a status cell's own word, not the words its column keeps room for", () => {
+  render(
+    <ScreenHost>
+      <DataTable
+        rows={[
+          { id: "INV-0147", status: "awaiting" as const },
+          { id: "INV-0145", status: "scheduled" as const },
+        ]}
+        columns={["Invoice", "Status"]}
+        cell={(row) => (
+          <>
+            <Text text={row.id} />
+            <StatusTag status={row.status} />
+          </>
+        )}
+      />
+    </ScreenHost>
+  );
+
+  expect(screen.getByRole("row", { name: "INV-0147 Awaiting" })).toBeTruthy();
+  expect(screen.getByRole("row", { name: "INV-0145 Scheduled" })).toBeTruthy();
 });
