@@ -5,7 +5,7 @@
 
 import { readdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fixtureVariant, variantNames } from "../src/fixtures/fixtures.ts";
 import { rowSlots } from "./gate1.ts";
 import { codePrompt, specPrompt } from "./prompts.ts";
@@ -234,6 +234,31 @@ describe("specPrompt", () => {
 
     expect(prompt.user(brief)).toBe(changed.user(brief));
     expect(changed.hash).not.toBe(prompt.hash);
+  });
+
+  // Which variants a brief's turn lists steers the model as the paths do, so
+  // a change to the rule is a new spec prompt version (#275), though the
+  // hash stays one per run.
+  it("hashes the rule that picks a brief's variants", async () => {
+    const prompt = specPrompt("# Design brief", registry, "{}", fixtures);
+    vi.resetModules();
+    vi.doMock("../src/fixtures/fixtures.ts", async (original) => ({
+      ...(await original<typeof import("../src/fixtures/fixtures.ts")>()),
+      screenVariantsRule: "fixture variants: default only",
+    }));
+    try {
+      const reruled = (await import("./prompts.ts")).specPrompt(
+        "# Design brief",
+        registry,
+        "{}",
+        fixtures
+      );
+
+      expect(reruled.hash).not.toBe(prompt.hash);
+    } finally {
+      vi.doUnmock("../src/fixtures/fixtures.ts");
+      vi.resetModules();
+    }
   });
 });
 

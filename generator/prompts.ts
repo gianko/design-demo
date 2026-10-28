@@ -10,7 +10,10 @@
 import { createHash } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Step } from "./config.ts";
-import { screenVariants } from "../src/fixtures/fixtures.ts";
+import {
+  screenVariants,
+  screenVariantsRule,
+} from "../src/fixtures/fixtures.ts";
 import { rowSlots } from "./gate1.ts";
 import type { LibraryRegistry } from "./registry.ts";
 import { repairWording } from "./repair.ts";
@@ -66,8 +69,9 @@ export type StepPrompt<A extends unknown[]> = {
 // turn, so the cached prefix stays the design brief, the registry and the
 // wire schema (spec § Gate 1 and the spec step); listing every variant's
 // sent bulk-pay's turn to 297k tokens (#275). The hash covers every
-// variant's paths, since they steer the model as the words do, and stays one
-// version per run whichever briefs it runs.
+// variant's paths and the rule that picks a brief's, since they steer the
+// model as the words do, and stays one version per run whichever briefs it
+// runs.
 export function specPrompt(
   designBrief: string,
   registry: LibraryRegistry,
@@ -96,6 +100,7 @@ export function specPrompt(
       specInstructions,
       designBrief,
       specUser,
+      screenVariantsRule,
       pathListing(fixtures),
       repairWords("spec")
     ),

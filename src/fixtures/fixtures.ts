@@ -550,7 +550,10 @@ export const variantNames = Object.keys(variants) as VariantName[];
 
 // The fixture variants one screen may use: `default`, which every screen
 // shares, and its own, named `<slug>/<state>`. The generator's spec step
-// lists only these, and its gate 1 holds a UI spec to them (#275).
+// lists only these, and its gate 1 holds a UI spec to them (#275). The rule
+// is also written out, for the spec prompt's hash to cover; change both
+// together.
+export const screenVariantsRule = "fixture variants: default + <slug>/…";
 export function screenVariants<T>(
   variants: Readonly<Record<string, T>>,
   slug: string
