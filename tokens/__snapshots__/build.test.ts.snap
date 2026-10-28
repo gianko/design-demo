@@ -62,81 +62,81 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
 
 :root,
 [data-theme="light"] {
-  --ds-color-bg-page: oklch(0.985 0.004 330);
-  --ds-color-bg-surface: oklch(0.995 0.003 330);
-  --ds-color-bg-surface-raised: oklch(0.97 0.006 330);
-  --ds-color-bg-surface-overlay: oklch(0.995 0.003 330);
-  --ds-color-bg-surface-hover: oklch(0.27 0.025 330 / 0.06);
-  --ds-color-bg-surface-pressed: oklch(0.27 0.025 330 / 0.11);
-  --ds-color-bg-selected: oklch(0.95 0.025 330);
-  --ds-color-bg-accent: oklch(0.48 0.085 330);
-  --ds-color-bg-accent-hover: oklch(0.43 0.085 330);
-  --ds-color-bg-accent-pressed: oklch(0.39 0.08 330);
-  --ds-color-bg-progress: oklch(0.82 0.06 330);
-  --ds-color-bg-disabled: oklch(0.95 0.006 330);
-  --ds-color-bg-scrim: oklch(0.27 0.025 330 / 0.4);
-  --ds-color-bg-awaiting: oklch(0.95 0.05 85);
-  --ds-color-bg-overdue: oklch(0.94 0.03 25);
-  --ds-color-bg-paid: oklch(0.95 0.04 155);
-  --ds-color-bg-scheduled: oklch(0.94 0.025 250);
-  --ds-color-bg-failed: oklch(0.52 0.19 25);
-  --ds-color-bg-error: oklch(0.82 0.1 25);
-  --ds-color-text-ink: oklch(0.27 0.025 330);
-  --ds-color-text-ink-muted: oklch(0.5 0.025 330);
-  --ds-color-text-accent: oklch(0.48 0.085 330);
-  --ds-color-text-on-accent: oklch(0.995 0.003 330);
-  --ds-color-text-disabled: oklch(0.6 0.015 330);
-  --ds-color-text-awaiting: oklch(0.45 0.09 70);
-  --ds-color-text-overdue: oklch(0.48 0.16 25);
-  --ds-color-text-paid: oklch(0.45 0.1 155);
-  --ds-color-text-scheduled: oklch(0.47 0.12 250);
-  --ds-color-text-failed: oklch(0.995 0.003 330);
-  --ds-color-text-error: oklch(0.32 0.07 25);
-  --ds-color-border-line: oklch(0.9 0.012 330);
-  --ds-color-border-control: oklch(0.62 0.02 330);
-  --ds-color-border-disabled: oklch(0.9 0.012 330);
-  --ds-color-ring-focus: oklch(0.48 0.085 330);
-  --ds-shadow-raised: 0px 1px 2px 0px oklch(0.27 0.025 330 / 0.06), 0px 4px 12px 0px oklch(0.27 0.025 330 / 0.08);
-  --ds-shadow-overlay: 0px 8px 24px 0px oklch(0.27 0.025 330 / 0.12), 0px 24px 48px 0px oklch(0.27 0.025 330 / 0.14);
+  --ds-color-bg-page: rgb(252 249 251); /* oklch(0.985 0.004 330) */
+  --ds-color-bg-surface: rgb(255 253 254); /* oklch(0.995 0.003 330) */
+  --ds-color-bg-surface-raised: rgb(248 244 247); /* oklch(0.97 0.006 330) */
+  --ds-color-bg-surface-overlay: rgb(255 253 254); /* oklch(0.995 0.003 330) */
+  --ds-color-bg-surface-hover: rgb(46 34 44 / 0.06); /* oklch(0.27 0.025 330 / 0.06) */
+  --ds-color-bg-surface-pressed: rgb(46 34 44 / 0.11); /* oklch(0.27 0.025 330 / 0.11) */
+  --ds-color-bg-selected: rgb(249 233 247); /* oklch(0.95 0.025 330) */
+  --ds-color-bg-accent: rgb(120 75 116); /* oklch(0.48 0.085 330) */
+  --ds-color-bg-accent-hover: rgb(106 61 102); /* oklch(0.43 0.085 330) */
+  --ds-color-bg-accent-pressed: rgb(93 52 89); /* oklch(0.39 0.08 330) */
+  --ds-color-bg-progress: rgb(219 183 215); /* oklch(0.82 0.06 330) */
+  --ds-color-bg-disabled: rgb(241 237 240); /* oklch(0.95 0.006 330) */
+  --ds-color-bg-scrim: rgb(46 34 44 / 0.4); /* oklch(0.27 0.025 330 / 0.4) */
+  --ds-color-bg-awaiting: rgb(254 237 201); /* oklch(0.95 0.05 85) */
+  --ds-color-bg-overdue: rgb(255 228 225); /* oklch(0.94 0.03 25) */
+  --ds-color-bg-paid: rgb(218 247 227); /* oklch(0.95 0.04 155) */
+  --ds-color-bg-scheduled: rgb(223 237 252); /* oklch(0.94 0.025 250) */
+  --ds-color-bg-failed: rgb(190 34 42); /* oklch(0.52 0.19 25) */
+  --ds-color-bg-error: rgb(255 171 163); /* oklch(0.82 0.1 25) */
+  --ds-color-text-ink: rgb(46 34 44); /* oklch(0.27 0.025 330) */
+  --ds-color-text-ink-muted: rgb(108 94 106); /* oklch(0.5 0.025 330) */
+  --ds-color-text-accent: rgb(120 75 116); /* oklch(0.48 0.085 330) */
+  --ds-color-text-on-accent: rgb(255 253 254); /* oklch(0.995 0.003 330) */
+  --ds-color-text-disabled: rgb(134 125 132); /* oklch(0.6 0.015 330) */
+  --ds-color-text-awaiting: rgb(117 75 16); /* oklch(0.45 0.09 70) */
+  --ds-color-text-overdue: rgb(165 41 43); /* oklch(0.48 0.16 25) */
+  --ds-color-text-paid: rgb(23 101 60); /* oklch(0.45 0.1 155) */
+  --ds-color-text-scheduled: rgb(23 93 155); /* oklch(0.47 0.12 250) */
+  --ds-color-text-failed: rgb(255 253 254); /* oklch(0.995 0.003 330) */
+  --ds-color-text-error: rgb(81 35 32); /* oklch(0.32 0.07 25) */
+  --ds-color-border-line: rgb(227 219 226); /* oklch(0.9 0.012 330) */
+  --ds-color-border-control: rgb(141 130 140); /* oklch(0.62 0.02 330) */
+  --ds-color-border-disabled: rgb(227 219 226); /* oklch(0.9 0.012 330) */
+  --ds-color-ring-focus: rgb(120 75 116); /* oklch(0.48 0.085 330) */
+  --ds-shadow-raised: 0px 1px 2px 0px rgb(46 34 44 / 0.06), 0px 4px 12px 0px rgb(46 34 44 / 0.08); /* oklch(0.27 0.025 330 / 0.06), oklch(0.27 0.025 330 / 0.08) */
+  --ds-shadow-overlay: 0px 8px 24px 0px rgb(46 34 44 / 0.12), 0px 24px 48px 0px rgb(46 34 44 / 0.14); /* oklch(0.27 0.025 330 / 0.12), oklch(0.27 0.025 330 / 0.14) */
 }
 
 [data-theme="dark"] {
-  --ds-color-bg-page: oklch(0.19 0.018 330);
-  --ds-color-bg-surface: oklch(0.23 0.02 330);
-  --ds-color-bg-surface-raised: oklch(0.27 0.025 330);
-  --ds-color-bg-surface-overlay: oklch(0.29 0.025 330);
-  --ds-color-bg-surface-hover: oklch(0.94 0.01 330 / 0.06);
-  --ds-color-bg-surface-pressed: oklch(0.94 0.01 330 / 0.11);
-  --ds-color-bg-selected: oklch(0.3 0.04 330);
-  --ds-color-bg-accent: oklch(0.82 0.06 330);
-  --ds-color-bg-accent-hover: oklch(0.79 0.06 330);
-  --ds-color-bg-accent-pressed: oklch(0.75 0.06 330);
-  --ds-color-bg-progress: oklch(0.48 0.085 330);
-  --ds-color-bg-disabled: oklch(0.27 0.025 330);
-  --ds-color-bg-scrim: oklch(0.1 0.02 330 / 0.6);
-  --ds-color-bg-awaiting: oklch(0.32 0.05 75);
-  --ds-color-bg-overdue: oklch(0.32 0.07 25);
-  --ds-color-bg-paid: oklch(0.32 0.05 155);
-  --ds-color-bg-scheduled: oklch(0.32 0.05 250);
-  --ds-color-bg-failed: oklch(0.62 0.18 25);
-  --ds-color-bg-error: oklch(0.48 0.16 25);
-  --ds-color-text-ink: oklch(0.94 0.01 330);
-  --ds-color-text-ink-muted: oklch(0.74 0.02 330);
-  --ds-color-text-accent: oklch(0.82 0.06 330);
-  --ds-color-text-on-accent: oklch(0.22 0.03 330);
-  --ds-color-text-disabled: oklch(0.55 0.015 330);
-  --ds-color-text-awaiting: oklch(0.86 0.1 85);
-  --ds-color-text-overdue: oklch(0.82 0.1 25);
-  --ds-color-text-paid: oklch(0.84 0.1 155);
-  --ds-color-text-scheduled: oklch(0.84 0.08 250);
-  --ds-color-text-failed: oklch(0.18 0.03 25);
-  --ds-color-text-error: oklch(0.94 0.03 25);
-  --ds-color-border-line: oklch(0.36 0.02 330);
-  --ds-color-border-control: oklch(0.56 0.02 330);
-  --ds-color-border-disabled: oklch(0.36 0.02 330);
-  --ds-color-ring-focus: oklch(0.82 0.06 330);
-  --ds-shadow-raised: 0px 0px 0px 1px oklch(0.36 0.02 330);
-  --ds-shadow-overlay: 0px 0px 0px 1px oklch(0.4 0.02 330), 0px 24px 48px 0px oklch(0.1 0.02 330 / 0.4);
+  --ds-color-bg-page: rgb(24 17 24); /* oklch(0.19 0.018 330) */
+  --ds-color-bg-surface: rgb(34 26 33); /* oklch(0.23 0.02 330) */
+  --ds-color-bg-surface-raised: rgb(46 34 44); /* oklch(0.27 0.025 330) */
+  --ds-color-bg-surface-overlay: rgb(51 39 49); /* oklch(0.29 0.025 330) */
+  --ds-color-bg-surface-hover: rgb(239 233 238 / 0.06); /* oklch(0.94 0.01 330 / 0.06) */
+  --ds-color-bg-surface-pressed: rgb(239 233 238 / 0.11); /* oklch(0.94 0.01 330 / 0.11) */
+  --ds-color-bg-selected: rgb(57 38 55); /* oklch(0.3 0.04 330) */
+  --ds-color-bg-accent: rgb(219 183 215); /* oklch(0.82 0.06 330) */
+  --ds-color-bg-accent-hover: rgb(209 173 205); /* oklch(0.79 0.06 330) */
+  --ds-color-bg-accent-pressed: rgb(196 161 192); /* oklch(0.75 0.06 330) */
+  --ds-color-bg-progress: rgb(120 75 116); /* oklch(0.48 0.085 330) */
+  --ds-color-bg-disabled: rgb(46 34 44); /* oklch(0.27 0.025 330) */
+  --ds-color-bg-scrim: rgb(6 2 6 / 0.6); /* oklch(0.1 0.02 330 / 0.6) */
+  --ds-color-bg-awaiting: rgb(66 47 19); /* oklch(0.32 0.05 75) */
+  --ds-color-bg-overdue: rgb(81 35 32); /* oklch(0.32 0.07 25) */
+  --ds-color-bg-paid: rgb(28 58 39); /* oklch(0.32 0.05 155) */
+  --ds-color-bg-scheduled: rgb(30 53 75); /* oklch(0.32 0.05 250) */
+  --ds-color-bg-failed: rgb(222 78 75); /* oklch(0.62 0.18 25) */
+  --ds-color-bg-error: rgb(165 41 43); /* oklch(0.48 0.16 25) */
+  --ds-color-text-ink: rgb(239 233 238); /* oklch(0.94 0.01 330) */
+  --ds-color-text-ink-muted: rgb(178 166 177); /* oklch(0.74 0.02 330) */
+  --ds-color-text-accent: rgb(219 183 215); /* oklch(0.82 0.06 330) */
+  --ds-color-text-on-accent: rgb(35 21 33); /* oklch(0.22 0.03 330) */
+  --ds-color-text-disabled: rgb(119 111 118); /* oklch(0.55 0.015 330) */
+  --ds-color-text-awaiting: rgb(239 204 131); /* oklch(0.86 0.1 85) */
+  --ds-color-text-overdue: rgb(255 171 163); /* oklch(0.82 0.1 25) */
+  --ds-color-text-paid: rgb(149 222 174); /* oklch(0.84 0.1 155) */
+  --ds-color-text-scheduled: rgb(163 207 253); /* oklch(0.84 0.08 250) */
+  --ds-color-text-failed: rgb(29 12 11); /* oklch(0.18 0.03 25) */
+  --ds-color-text-error: rgb(255 228 225); /* oklch(0.94 0.03 25) */
+  --ds-color-border-line: rgb(67 57 66); /* oklch(0.36 0.02 330) */
+  --ds-color-border-control: rgb(124 112 122); /* oklch(0.56 0.02 330) */
+  --ds-color-border-disabled: rgb(67 57 66); /* oklch(0.36 0.02 330) */
+  --ds-color-ring-focus: rgb(219 183 215); /* oklch(0.82 0.06 330) */
+  --ds-shadow-raised: 0px 0px 0px 1px rgb(67 57 66); /* oklch(0.36 0.02 330) */
+  --ds-shadow-overlay: 0px 0px 0px 1px rgb(78 68 77), 0px 24px 48px 0px rgb(6 2 6 / 0.4); /* oklch(0.4 0.02 330), oklch(0.1 0.02 330 / 0.4) */
 }
 
 :root,
@@ -638,7 +638,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "Value": {
               "r": 0.52549,
               "g": 0.490196,
-              "b": 0.521569,
+              "b": 0.517647,
               "a": 1
             }
           }
@@ -714,7 +714,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [],
           "valuesByMode": {
             "Value": {
-              "r": 0.968627,
+              "r": 0.972549,
               "g": 0.956863,
               "b": 0.968627,
               "a": 1
@@ -1078,7 +1078,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [],
           "valuesByMode": {
             "Value": {
-              "r": 0.086275,
+              "r": 0.090196,
               "g": 0.364706,
               "b": 0.607843,
               "a": 1

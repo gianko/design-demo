@@ -44,7 +44,7 @@ The capture is done when, for every frame:
 - `literal` is empty: every opaque fill and stroke is bound. A `fills mixed` entry is text with more than one fill; check it by eye in Figma.
 - `missing` lists only kinds the screen doesn't use (a screen with no rounded corners binds no radius). Name each one to the human, who confirms it.
 
-Anything else, show it to the human and stop. A `literal` paint usually means the variable's Figma value drifted from the colour the browser painted, so the capture couldn't match it. Compare the two before anything else ([issue #59](https://github.com/gianko/design-demo/issues/59)).
+Anything else, show it to the human and stop. A `literal` paint usually means the variable's Figma value differs from the `rgb()` that `tokens/tokens.css` declares for it, most often because the tokens weren't synced after a colour changed, so the capture couldn't match it. Compare the two before anything else ([#59](https://github.com/gianko/design-demo/issues/59), [#285](https://github.com/gianko/design-demo/issues/285)).
 
 These misses are known and expected ([issue #15](https://github.com/gianko/design-demo/issues/15)): alpha colours (the scrim, transparent borders), `min-height`, text and effect styles, and motion. They are no reason to recapture.
 

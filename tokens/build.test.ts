@@ -33,8 +33,11 @@ it.each(["light", "dark"])(
   "makes %s's hover and pressed the theme's ink at a low alpha, pressed stronger",
   (theme) => {
     const block = blockOf(built.css, `[data-theme="${theme}"]`);
+    // Each colour's authored oklch(), from the comment beside its rgb().
     const value = (name: string) =>
-      block.match(new RegExp(`--ds-color-${name}: (oklch\\([^)]*\\));`))?.[1];
+      block.match(
+        new RegExp(`--ds-color-${name}: [^;]*; /\\* (oklch\\([^)]*\\)) \\*/`)
+      )?.[1];
     const ink = value("text-ink")!.match(/^oklch\(([^)]*)\)$/)![1];
     const translucent = (role: string) => {
       const [, components, alpha] =
@@ -58,7 +61,9 @@ describe("the overlay surface", () => {
     const dark = blockOf(built.css, '[data-theme="dark"]');
     const lightness = (role: string) =>
       Number(
-        dark.match(new RegExp(`--ds-color-bg-${role}: oklch\\(([0-9.]+) `))?.[1]
+        dark.match(
+          new RegExp(`--ds-color-bg-${role}: [^;]*; /\\* oklch\\(([0-9.]+) `)
+        )?.[1]
       );
 
     expect(lightness("surface-overlay")).toBeGreaterThan(
@@ -461,12 +466,12 @@ describe("the Figma payload", () => {
     }
   );
 
-  // A capture binds a fill only when Figma's value is the colour the browser
-  // painted, so every channel sits on the 8-bit step the browser rounds to.
-  it("gives each colour the 8-bit sRGB value the browser paints", () => {
+  // A capture binds a fill only when Figma's value is the colour it reads, so
+  // every channel sits on an 8-bit step, as rgb() in tokens.css does (#59).
+  it("gives each colour an 8-bit sRGB value", () => {
     const eightBit = ({ r, g, b }: { r: number; g: number; b: number }) =>
       [r, g, b].map((channel) => Math.round(channel * 255));
-    // Dark's page: oklch(0.19 0.018 330) paints 24,17,24; red is 24.496.
+    // Dark's page: oklch(0.19 0.018 330) is 24,17,24; red is 24.496.
     const page = variable("Primitives", "primitive/neutral/190").valuesByMode
       .Value as { r: number; g: number; b: number };
     expect(eightBit(page)).toEqual([24, 17, 24]);
@@ -484,16 +489,17 @@ describe("the Figma payload", () => {
     }
   });
 
-  // Rounding culori's sRGB lands a step off Chrome's for these three, so a
-  // capture left their fills literal (#273). Values painted in the pinned
-  // image, as the issue's triage table records them.
+  // Each sits within 0.05 of a rounding boundary in one channel (247.513,
+  // 132.491, 22.533), where Chrome's and Figma's converters disagreed on
+  // oklch() (#273, #285). With rgb() in tokens.css no converter runs, so
+  // these are culori's sRGB rounded, as #285's triage records them.
   it.each([
-    ["Light", "color/bg/surface-raised", [247, 244, 247]],
-    ["Light", "color/text/disabled", [134, 125, 133]],
-    ["Light", "color/text/scheduled", [22, 93, 155]],
+    ["Light", "color/bg/surface-raised", [248, 244, 247]],
+    ["Light", "color/text/disabled", [134, 125, 132]],
+    ["Light", "color/text/scheduled", [23, 93, 155]],
   ] as const)(
-    "gives %s %s the 8-bit colour Chrome paints, not culori's rounding",
-    (mode, role, painted) => {
+    "gives %s %s its sRGB rounded to the nearest 8-bit step",
+    (mode, role, expected) => {
       const { alias } = variable("Color", role).valuesByMode[mode] as {
         alias: string;
       };
@@ -504,8 +510,50 @@ describe("the Figma payload", () => {
       };
 
       expect([r, g, b].map((channel) => Math.round(channel * 255))).toEqual(
-        painted
+        expected
       );
+    }
+  );
+
+  // Figma's capture reads a colour as the string the browser computes and
+  // converts it itself, so CSS and Figma carry the same 8-bit rgb() and no
+  // converter runs between them (#285).
+  it.each(["Light", "Dark"])(
+    "declares each %s colour in tokens.css as the rgb() Figma gets, with its oklch beside it",
+    (mode) => {
+      const block = blockOf(built.css, `[data-theme="${mode.toLowerCase()}"]`);
+      const rgb = (name: string) => {
+        let value = variable("Color", name).valuesByMode[mode];
+        while (typeof value === "object" && "alias" in value) {
+          value = variable("Primitives", value.alias).valuesByMode.Value;
+        }
+        const { r, g, b, a } = value as Record<"r" | "g" | "b" | "a", number>;
+        const channels = [r, g, b].map((c) => Math.round(c * 255)).join(" ");
+        return a === 1 ? `rgb(${channels})` : `rgb(${channels} / ${a})`;
+      };
+      const roles = payload.collections
+        .find((c) => c.name === "Color")!
+        .variables.filter((v) => v.type === "COLOR" && v.css);
+
+      expect(roles.length).toBeGreaterThan(30);
+      for (const { name } of roles) {
+        expect(block).toMatch(
+          new RegExp(
+            `--ds-${name.split("/").join("-")}: ${escape(rgb(name))}; /\\* oklch\\([^)]*\\) \\*/\n`
+          )
+        );
+      }
+      for (const { name, effects } of payload.effectStyles) {
+        const declared = block.match(
+          new RegExp(`--ds-${name.split("/").join("-")}: ([^;]*);`)
+        )![1]!;
+        const colours = effects
+          .map(({ bind }) => rgb(bind.color))
+          // An empty padding layer isn't declared in CSS.
+          .filter((colour) => colour !== "rgb(0 0 0 / 0)");
+        expect(declared.match(/rgb\([^)]*\)/g)).toEqual(colours);
+      }
+      expect(block.replace(/\/\*.*?\*\//g, "")).not.toContain("oklch(");
     }
   );
 
@@ -587,6 +635,8 @@ describe("the Figma payload", () => {
     ).toBe(false);
   });
 });
+
+const escape = (text: string) => text.replace(/[()/.]/g, "\\$&");
 
 function blockOf(css: string, selector: string): string {
   const start = css.indexOf(`${selector} {`);
