@@ -15,6 +15,9 @@
       "270": {
         "$value": { "colorSpace": "oklch", "components": [0.27, 0.025, 330] }
       },
+      "290": {
+        "$value": { "colorSpace": "oklch", "components": [0.29, 0.025, 330] }
+      },
       "310": {
         "$value": { "colorSpace": "oklch", "components": [0.31, 0.024, 330] }
       },

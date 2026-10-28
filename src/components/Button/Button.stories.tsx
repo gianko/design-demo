@@ -43,7 +43,7 @@ export const Secondary: Story = {
 export const Quiet: Story = { args: { intent: "quiet", text: "View invoice" } };
 
 // A secondary and a quiet button on each surface level they sit on: the
-// page, a card's surface and a raised bar. Hover shows as a step from rest on
+// page, a card's surface, a raised bar and an overlay such as a Sheet. Hover shows as a step from rest on
 // every one, in both themes; the secondary's fill stays under its hover
 // rather than giving way to it (#250).
 export const OnEachSurface: Story = {
@@ -63,13 +63,17 @@ export const OnEachSurface: Story = {
         <Button intent="secondary" text="Send reminder" />
         <Button intent="quiet" text="View invoice" />
       </div>
+      <div className="flex gap-xs bg-surface-overlay p-2xs">
+        <Button intent="secondary" text="Send reminder" />
+        <Button intent="quiet" text="View invoice" />
+      </div>
     </div>
   ),
   play: async ({ canvasElement }) => {
     const buttons = [
       ...canvasElement.querySelectorAll('[data-component="Button"]'),
     ];
-    await expect(buttons).toHaveLength(6);
+    await expect(buttons).toHaveLength(8);
     await expect(faintHovers(buttons)).toEqual([]);
   },
 };

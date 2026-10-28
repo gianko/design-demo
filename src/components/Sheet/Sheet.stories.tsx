@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { converter } from "culori";
 import type { ReactNode } from "react";
 import { expect } from "storybook/test";
+import { colour } from "../../../.storybook/canvas-colour.ts";
 import { faintHovers } from "../../../.storybook/hover-step.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Heading } from "../Heading/Heading.tsx";
@@ -9,16 +11,21 @@ import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { Sheet } from "./Sheet.tsx";
 
+const oklch = converter("oklch");
+
 const panel = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLDialogElement>('[data-component="Sheet"]')!;
 
 // Style expectations (ADR 0012) every story holds: an open modal dialog that
 // has taken focus; at the end edge, full height, the sheet width or the whole
 // of a narrower window; a surface's padding and radius on the corners facing
-// the page only; the overlay shadow and no border; the view transition name
-// the row shares (ADR 0011); and a close button the density's control
-// height square, in the header's top row.
-async function holdsPlaceAndShape(canvas: HTMLElement, density: string) {
+// the page only; the overlay surface and shadow, and no border; the view
+// transition name the row shares (ADR 0011); and a close button the
+// density's control height square, in the header's top row.
+async function holdsPlaceAndShape(
+  canvas: HTMLElement,
+  { theme, density }: { theme: string; density: string }
+) {
   const sheet = panel(canvas);
   await expect(sheet.matches(":modal")).toBe(true);
   await expect(document.activeElement).toBe(sheet);
@@ -45,6 +52,18 @@ async function holdsPlaceAndShape(canvas: HTMLElement, density: string) {
   ]).toEqual([radius, radius, "0px", "0px"]);
   await expect(style.boxShadow).not.toBe("none");
   await expect(style.borderTopWidth).toBe("0px");
+  // The overlay surface, which in dark is a step lighter than the raised
+  // bars and toasts it floats above (#252).
+  const role = (name: string) =>
+    style.getPropertyValue(`--ds-color-bg-${name}`);
+  await expect(colour(style.backgroundColor)).toBe(
+    colour(role("surface-overlay"))
+  );
+  if (theme === "dark") {
+    await expect(oklch(style.backgroundColor)!.l).toBeGreaterThan(
+      oklch(role("surface-raised"))!.l
+    );
+  }
   await expect(style.viewTransitionName).toBe("row-detail");
   await expect(
     getComputedStyle(sheet, "::backdrop").backgroundColor
@@ -90,7 +109,10 @@ const meta = {
     ),
   ],
   play: ({ canvasElement, globals }) =>
-    holdsPlaceAndShape(canvasElement, globals.density),
+    holdsPlaceAndShape(canvasElement, {
+      theme: globals.theme,
+      density: globals.density,
+    }),
 } satisfies Meta<typeof Sheet>;
 
 export default meta;

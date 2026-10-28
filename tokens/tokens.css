@@ -62,6 +62,7 @@
   --ds-color-bg-page: oklch(0.985 0.004 330);
   --ds-color-bg-surface: oklch(0.995 0.003 330);
   --ds-color-bg-surface-raised: oklch(0.97 0.006 330);
+  --ds-color-bg-surface-overlay: oklch(0.995 0.003 330);
   --ds-color-bg-surface-hover: oklch(0.27 0.025 330 / 0.06);
   --ds-color-bg-surface-pressed: oklch(0.27 0.025 330 / 0.11);
   --ds-color-bg-selected: oklch(0.95 0.025 330);
@@ -100,6 +101,7 @@
   --ds-color-bg-page: oklch(0.19 0.018 330);
   --ds-color-bg-surface: oklch(0.23 0.02 330);
   --ds-color-bg-surface-raised: oklch(0.27 0.025 330);
+  --ds-color-bg-surface-overlay: oklch(0.29 0.025 330);
   --ds-color-bg-surface-hover: oklch(0.94 0.01 330 / 0.06);
   --ds-color-bg-surface-pressed: oklch(0.94 0.01 330 / 0.11);
   --ds-color-bg-selected: oklch(0.3 0.04 330);
@@ -190,6 +192,7 @@
   --background-color-page: var(--ds-color-bg-page);
   --background-color-surface: var(--ds-color-bg-surface);
   --background-color-surface-raised: var(--ds-color-bg-surface-raised);
+  --background-color-surface-overlay: var(--ds-color-bg-surface-overlay);
   --background-color-surface-hover: var(--ds-color-bg-surface-hover);
   --background-color-surface-pressed: var(--ds-color-bg-surface-pressed);
   --background-color-selected: var(--ds-color-bg-selected);

@@ -5,6 +5,7 @@
       "page": { "$value": "{primitive.neutral.985}" },
       "surface": { "$value": "{primitive.neutral.995}" },
       "surface-raised": { "$value": "{primitive.neutral.970}" },
+      "surface-overlay": { "$value": "{primitive.neutral.995}" },
       "surface-hover": {
         "$description": "The theme's ink, translucent, so a neutral control's hover shows on every surface.",
         "$value": {
@@ -64,6 +65,7 @@
                 "{color.bg.page}",
                 "{color.bg.surface}",
                 "{color.bg.surface-raised}",
+                "{color.bg.surface-overlay}",
                 "{color.bg.surface-hover}",
                 "{color.bg.surface-pressed}",
                 "{color.bg.selected}"
@@ -81,7 +83,8 @@
               "against": [
                 "{color.bg.page}",
                 "{color.bg.surface}",
-                "{color.bg.surface-raised}"
+                "{color.bg.surface-raised}",
+                "{color.bg.surface-overlay}"
               ]
             }
           }
@@ -181,7 +184,8 @@
               "against": [
                 "{color.bg.page}",
                 "{color.bg.surface}",
-                "{color.bg.surface-raised}"
+                "{color.bg.surface-raised}",
+                "{color.bg.surface-overlay}"
               ]
             }
           }
@@ -199,7 +203,11 @@
           "design-demo": {
             "contrast": {
               "min": 3,
-              "against": ["{color.bg.page}", "{color.bg.surface}"]
+              "against": [
+                "{color.bg.page}",
+                "{color.bg.surface}",
+                "{color.bg.surface-overlay}"
+              ]
             }
           }
         }

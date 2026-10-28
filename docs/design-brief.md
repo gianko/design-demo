@@ -46,7 +46,7 @@ One quiet family; hierarchy comes from size and weight, not from a second face.
 
 Colour is assigned by role; components never name a hue.
 
-- **Roles**: `page`, `surface`, `surface-raised`, `ink`, `ink-muted`, `line`, `accent`, `on-accent`, `selected`, status pairs for `awaiting`, `overdue`, `paid`, `scheduled`, `failed`, and an `error` pair for an action that failed (a failure toast), kept apart from the status pairs so a failed action never reads as one more overdue invoice.
+- **Roles**: `page`, `surface`, `surface-raised`, `surface-overlay`, `ink`, `ink-muted`, `line`, `accent`, `on-accent`, `selected`, status pairs for `awaiting`, `overdue`, `paid`, `scheduled`, `failed`, and an `error` pair for an action that failed (a failure toast), kept apart from the status pairs so a failed action never reads as one more overdue invoice.
 - **State roles**: `accent-hover` and `accent-pressed` deepen the accent; `surface-hover` and `surface-pressed` deepen a neutral control; `control` is the 3:1 edge of an input or secondary button (`line` stays a hairline between surfaces); `disabled` and its text are a flat, quiet neutral; `scrim` sits behind overlays. Each has its own value in dark mode. A disabled control keeps its intent's shape: a filled button keeps a `disabled` fill, a bordered one keeps its edge in `disabled`, and a bare one stays bare.
 - **One accent, heather** (about `#80527A` light, `#D8B4D2` dark): a dusty berry for primary actions, selection and focus only. _Why: one accent keeps "what can I do here" obvious._
 - **The focus ring shows on keyboard focus only** (`:focus-visible`), never on click. _Why: a ring on a clicked button reads as "selected"._
