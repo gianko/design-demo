@@ -1,12 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { expect, waitFor } from "storybook/test";
 import { fixtureVariant, type Invoice } from "../../fixtures/fixtures.ts";
-import {
-  ScreenHost,
-  useFixtureData,
-  type ScreenStateParameters,
-} from "../Screen/screen-state.tsx";
+import { ScreenHost, useFixtureData } from "../Screen/screen-state.tsx";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button } from "../Button/Button.tsx";
 import { Heading } from "../Heading/Heading.tsx";
@@ -352,13 +348,13 @@ async function flipsInStagger(
 }
 
 // bulk-pay's queue either side of Pay selected (#276): every invoice
-// awaiting approval in rows-selected, every one scheduled once the payment
+// awaiting approval before it, every one scheduled once the payment
 // is confirmed. The two states sit one above the other, each as its own
 // table at the same width, so a play function, which only reads, can hold
 // one against the other. Below them the same invoices show every status
 // StatusTag has, one each, so the widest word is on the canvas whichever it
 // is; every other cell reads as it does above.
-const payQueue = fixtureVariant("bulk-pay/rows-selected").data.payQueue;
+const payQueue = fixtureVariant("default").data.payQueue;
 const everyStatus: Invoice[] = (
   Object.keys(statusWords) as Invoice["status"][]
 ).map((status, i) => {
@@ -557,12 +553,14 @@ async function focusClearsHeader(
   await expect(focused.bottom).toBeLessThanOrEqual(body.bottom);
 }
 
-const rowsSelected = {
-  screenState: {
-    name: "rows-selected",
-    fixture: "invoice-queue/rows-selected",
-  },
-} satisfies ScreenStateParameters;
+// The three invoices awaiting approval, ticked as the admin leaves them
+// before Approve and pay: a starting selection in the default state, since
+// the selection is no screen state (ADR 0013).
+const awaitingTicked: Decorator = (Story) => (
+  <ScreenHost selected={["INV-0147", "INV-0148", "INV-0149"]}>
+    <Story />
+  </ScreenHost>
+);
 
 const meta = {
   title: "Components/DataTable",
@@ -597,26 +595,24 @@ export const Default: Story = {
   },
 };
 
-// One invoice ticked, which no variant starts with, so the story hosts its
-// own: the footer's one form, and Approve and pay enabled.
+// One invoice ticked: the footer's one form, and Approve and pay enabled.
 export const OneSelected: Story = {
   render: () => (
-    <ScreenHost screenState={rowsSelected.screenState} selected={["INV-0147"]}>
+    <ScreenHost selected={["INV-0147"]}>
       <InvoiceQueue />
     </ScreenHost>
   ),
-  parameters: rowsSelected,
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     await countReads(canvasElement, "1 invoice selected");
   },
 };
 
-// The three invoices awaiting approval, ready for Approve and pay: the
-// variant's own selection, counted in the footer's other form.
-export const RowsSelected: Story = {
+// The three invoices awaiting approval, ready for Approve and pay, counted
+// in the footer's other form.
+export const ThreeSelected: Story = {
   render: () => <InvoiceQueue />,
-  parameters: rowsSelected,
+  decorators: [awaitingTicked],
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     await countReads(canvasElement, "3 invoices selected");
@@ -628,7 +624,7 @@ export const RowsSelected: Story = {
 // its rest look, the three still ticked and their rows still filled.
 export const Pending: Story = {
   render: () => <InvoiceQueue pending />,
-  parameters: rowsSelected,
+  decorators: [awaitingTicked],
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     await countReads(canvasElement, "3 invoices selected");
@@ -655,11 +651,10 @@ export const Pending: Story = {
   },
 };
 
-// Every row, which no variant starts with, so the story hosts its own.
+// Every row.
 export const AllSelected: Story = {
   render: () => (
     <ScreenHost
-      screenState={rowsSelected.screenState}
       selected={[
         "INV-0142",
         "INV-0144",
@@ -674,7 +669,6 @@ export const AllSelected: Story = {
       <InvoiceQueue />
     </ScreenHost>
   ),
-  parameters: rowsSelected,
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     await countReads(canvasElement, "8 invoices selected");
@@ -732,8 +726,8 @@ export const ManyStatusesFlip: Story = {
     ]),
 };
 
-// bulk-pay's queue in rows-selected, all awaiting, above the same queue in
-// payment-scheduled, all scheduled: the columns hold still between the two
+// bulk-pay's queue before Pay selected, all awaiting, above the same queue
+// in payment-scheduled, all scheduled: the columns hold still between the two
 // (#276), since the Status column keeps room for the widest status word.
 export const ColumnsHoldWhenStatusesChange: Story = {
   render: () => <PayQueueStates />,
@@ -750,11 +744,11 @@ export const ColumnsHoldWhenStatusesChangeOnPhone: Story = {
 
 // A table nothing acts on, with no actions: no checkboxes in the header or
 // the rows, so the first column starts at the table's edge, and no footer.
-// Even in a fixture variant that starts with rows selected, no row fills:
-// the table shows no Selection.
+// Even in a host that starts with rows selected, no row fills: the table
+// shows no Selection.
 export const NotSelectable: Story = {
   render: () => <InvoiceQueue withActions={false} />,
-  parameters: rowsSelected,
+  decorators: [awaitingTicked],
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     const root = canvasElement.querySelector('[data-component="DataTable"]')!;
@@ -801,7 +795,7 @@ export const ActionsOnPhone: Story = {
       <InvoiceQueue reminders />
     </Scrolled>
   ),
-  parameters: rowsSelected,
+  decorators: [awaitingTicked],
   tags: ["phone"],
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
@@ -903,7 +897,8 @@ export const OpensOnEnter: Story = {
 // the ticked INV-0148's row opens its Sheet, and the three stay ticked.
 export const SelectableOpensOnClick: Story = {
   render: () => <OpensRow number="INV-0148" by="click" withActions />,
-  parameters: { ...rowsSelected, ...sheetOpen },
+  parameters: sheetOpen,
+  decorators: [awaitingTicked],
   play: ({ canvasElement, globals }) =>
     opensSheetOf(canvasElement, globals.density, "INV-0148", 3),
 };
@@ -912,7 +907,8 @@ export const SelectableOpensOnClick: Story = {
 // ticking it.
 export const SelectableOpensOnEnter: Story = {
   render: () => <OpensRow number="INV-0142" by="Enter" withActions />,
-  parameters: { ...rowsSelected, ...sheetOpen },
+  parameters: sheetOpen,
+  decorators: [awaitingTicked],
   play: ({ canvasElement, globals }) =>
     opensSheetOf(canvasElement, globals.density, "INV-0142", 3),
 };

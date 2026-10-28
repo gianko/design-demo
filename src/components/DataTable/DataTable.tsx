@@ -15,8 +15,7 @@ import type { PropsOf } from "../../registry/entry.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button, type ButtonProps } from "../Button/Button.tsx";
 import { Checkbox } from "../Checkbox/Checkbox.tsx";
-import { defaultState } from "../Screen/default-state.ts";
-import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
+import { useSelection } from "../Screen/screen-state.tsx";
 import { SheetHost, transitionSheet } from "../Sheet/sheet-host.tsx";
 import {
   StatusTag,
@@ -30,13 +29,12 @@ import "./DataTable.css";
 // The screen's list: a native table on a flat surface, one row per item. A
 // selectable table puts a Checkbox first in each row, and one that isn't has
 // none and never touches the selection (#203). DataTable owns ticking rows and
-// the ScreenHost holds
-// the selection (ADR 0011): a tick that leaves rows ticked enters
-// `rows-selected` if the screen isn't in it, after a failure too, and one
-// that leaves none returns to the default state, each in the same update. A
-// confirmed action clears the selection and a failed one keeps it, both in
-// the host. A selected row fills with `selected` and its box is ticked, so
-// the state never rests on colour alone.
+// the ScreenHost holds the selection (ADR 0011). The selection is the
+// table's own, not a screen state (ADR 0013): ticking enters no state and
+// runs no View Transition. A confirmed action clears the selection and a
+// failed one keeps it, both in the host. A selected row fills with
+// `selected` and its box is ticked, so the state never rests on colour
+// alone.
 // A table with a detail slot opens a row's Sheet when the row is clicked or
 // Enter is pressed on it (ADR 0011), through transitionSheet's View
 // Transition, so the sheet slides in from the end edge and back out past it
@@ -175,11 +173,12 @@ function selectedCount(text: SelectionText, count: number) {
   return text.other.replaceAll("{count}", String(count));
 }
 
-const rowsSelected = "rows-selected";
-
 // Marks a table with a detail slot: what the open-sheet render (ADR 0011)
 // counts tables by.
 const detailAttribute = "data-detail";
+// Marks a table with actions: what the rows-ticked render (ADR 0013) counts
+// tables by.
+const actionsAttribute = "data-actions";
 
 // The open-sheet render's library test attribute (ADR 0011), which only the
 // Storybook preview sets, for a screen's open-sheet story: on an element
@@ -188,18 +187,23 @@ const detailAttribute = "data-detail";
 // first row's Sheet open, with no View Transition.
 export const openDetailAttribute = "data-test-open-detail";
 
-// Whether the open-detail attribute around `table` names it.
-function namedToOpen(table: HTMLElement) {
-  const scope = table.closest(`[${openDetailAttribute}]`);
+// The rows-ticked render's library test attribute (ADR 0013), which only
+// the Storybook preview sets, for a screen's rows-ticked story and for an
+// action clicked in a table's footer: on an element around the screen, it
+// names one of the tables with actions inside it, counted from 0 in document
+// order, and that table starts with every row ticked, with no View
+// Transition.
+export const tickRowsAttribute = "data-test-tick-rows";
+
+// Whether `attribute` around `table` names it, among the tables marked with
+// `marker`.
+function namedBy(table: HTMLElement, attribute: string, marker: string) {
+  const scope = table.closest(`[${attribute}]`);
   if (!scope) return false;
   const tables = [
-    ...scope.querySelectorAll(
-      `[data-component="DataTable"][${detailAttribute}]`
-    ),
+    ...scope.querySelectorAll(`[data-component="DataTable"][${marker}]`),
   ];
-  return (
-    tables.indexOf(table) === Number(scope.getAttribute(openDetailAttribute))
-  );
+  return tables.indexOf(table) === Number(scope.getAttribute(attribute));
 }
 
 // The nodes `cell` gives for one row, a fragment's children one each.
@@ -269,7 +273,6 @@ export function DataTable<R extends Row>({
   detail,
   actions,
 }: DataTableProps<R>) {
-  const { state } = useScreenState();
   const selection = useSelection();
   // Only a table with actions is selectable; one without shows no
   // selection, even one the host starts with.
@@ -289,21 +292,27 @@ export function DataTable<R extends Row>({
   );
 
   const select = (next: ReadonlySet<string>) => {
-    if (locked) return;
-    const target = next.size > 0 ? rowsSelected : defaultState;
-    selection.select([...next], state === target ? undefined : target);
+    if (!locked) selection.select([...next]);
   };
   // The open row's id.
   const [open, setOpen] = useState<string | null>(null);
   const opened = detail && rows.find((row) => row.id === open);
   // The open-sheet render (ADR 0011): the table the test attribute names
   // opens its first row before the first paint, as a state it starts in,
-  // with no View Transition.
+  // with no View Transition. The rows-ticked render (ADR 0013) ticks every
+  // row the same way.
   const root = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const first = rows[0];
-    if (detail && first && namedToOpen(root.current!)) setOpen(first.id);
-    // Only as the table first renders: once open, the sheet is the person's.
+    const at = root.current!;
+    if (detail && first && namedBy(at, openDetailAttribute, detailAttribute)) {
+      setOpen(first.id);
+    }
+    if (selectable && namedBy(at, tickRowsAttribute, actionsAttribute)) {
+      selection.select(rows.map((row) => row.id));
+    }
+    // Only as the table first renders: once open or ticked, the sheet and
+    // the rows are the person's.
   }, []);
   const openDetail = (id: string) => transitionSheet("open", () => setOpen(id));
   const closeDetail = () => transitionSheet("close", () => setOpen(null));
@@ -392,6 +401,7 @@ export function DataTable<R extends Row>({
         ref={root}
         data-component="DataTable"
         {...(detail && { [detailAttribute]: "" })}
+        {...(selectable && { [actionsAttribute]: "" })}
         className={slots.root()}
       >
         <div className={slots.body()}>

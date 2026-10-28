@@ -1,9 +1,5 @@
 // The library barrel. Every library component is exported from here, and
 // nothing outside the library imports a component any other way.
-export {
-  ActionBar,
-  type ActionBarProps,
-} from "./components/ActionBar/ActionBar.tsx";
 export { Amount, type AmountProps } from "./components/Amount/Amount.tsx";
 export { Button, type ButtonProps } from "./components/Button/Button.tsx";
 export { Card, type CardProps } from "./components/Card/Card.tsx";

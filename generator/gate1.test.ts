@@ -60,12 +60,6 @@ const entries = [
     slots: { cell: {}, detail: { allow: ["Sheet"] } },
   }),
   defineEntry({
-    name: "ActionBar",
-    use: "The bulk-action bar.",
-    props: z.object({}),
-    slots: { body: {} },
-  }),
-  defineEntry({
     name: "Toast",
     use: "The live result of an action.",
     props: z.object({ text: z.string() }),
@@ -188,12 +182,6 @@ function clean() {
           level: 2,
         }),
         "empty"
-      ),
-      // The bar hands off to the toast when the action succeeds.
-      shownIn(node("bar", "ActionBar", "screen", "body"), "default"),
-      runs(
-        node("bar-button", "Button", "bar", "body", { label: "Remind" }),
-        "remind"
       ),
       shownIn(
         node("sent-toast", "Toast", "screen", "body", { text: "Sent" }),
@@ -678,15 +666,7 @@ describe("gate 1", () => {
     });
   });
 
-  describe("ActionBar, Toast and Sheet", () => {
-    it("fails a second ActionBar shown in the same state, naming it", () => {
-      const spec = clean();
-      // Shown in every state, so beside the first bar in default.
-      spec.nodes.push(node("second-bar", "ActionBar", "screen", "body"));
-
-      expect(check(spec)).toEqual([["one-action-bar", "second-bar"]]);
-    });
-
+  describe("Toast and Sheet", () => {
     it("fails a second Toast shown in the same state, naming it", () => {
       const spec = clean();
       // Inside the panel, which shows in sent too.
@@ -718,35 +698,6 @@ describe("gate 1", () => {
       spec.nodes.push(node("stray-sheet", "Sheet", parent, slot));
 
       expect(check(spec)).toEqual([["sheet-in-detail", "stray-sheet"]]);
-    });
-
-    it("fails a Button in an ActionBar that runs no action, naming it", () => {
-      const spec = clean();
-      // Nested a level down inside the bar.
-      spec.nodes.push(
-        node("bar-panel", "Panel", "bar", "body", { title: "More" }),
-        node("idle-button", "Button", "bar-panel", "body", { label: "Later" })
-      );
-
-      expect(check(spec)).toEqual([["action-bar-button", "idle-button"]]);
-    });
-
-    // Only a failure Toast sits in a bar (#243). This library's Toast has no
-    // tone, so a Toast nested a level down in the bar, out of sight of a
-    // check that reads only the bar's own children, has none either.
-    it("fails a Toast in an ActionBar whose tone isn't failure, naming it", () => {
-      const spec = clean();
-      nodeOf(spec, "bar").when = ["default", "sent"];
-      spec.nodes = spec.nodes.filter((n) => n.id !== "sent-toast");
-      spec.nodes.push(
-        node("bar-panel", "Panel", "bar", "body", { title: "More" }),
-        shownIn(
-          node("bar-toast", "Toast", "bar-panel", "body", { text: "Sent" }),
-          "sent"
-        )
-      );
-
-      expect(check(spec)).toEqual([["bar-toast-tone", "bar-toast"]]);
     });
   });
 
@@ -956,7 +907,6 @@ describe("gate 1 against the library's registry", () => {
               selectionText,
             }),
             "default",
-            "rows-selected",
             "payment-scheduled",
             "payment-failed"
           ),
@@ -999,7 +949,6 @@ describe("gate 1 against the library's registry", () => {
         ],
         states: [
           { name: "empty", fixture: "invoice-queue/empty" },
-          { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
           {
             name: "payment-scheduled",
             fixture: "invoice-queue/payment-scheduled",
@@ -1130,9 +1079,9 @@ describe("gate 1 against the library's registry", () => {
     });
   });
 
-  // ADR 0011's pay confirmation with the library's own ActionBar and Toast:
-  // the bar shows while rows are selected and after a failure, and the
-  // success state shows a Toast where the bar was.
+  // ADR 0013's pay confirmation with the library's own DataTable and Toast:
+  // the action's Button in the table's footer, and a Toast last in the
+  // Screen in each state the action enters.
   describe("the pay confirmation", () => {
     function payConfirmation() {
       return {
@@ -1148,28 +1097,26 @@ describe("gate 1 against the library's registry", () => {
           node("table", "DataTable", "column", "body", {
             rows: bind("invoices"),
             columns: ["Invoice"],
+            selectionText: {
+              none: "No invoices selected",
+              one: "1 invoice selected",
+              other: "{count} invoices selected",
+            },
           }),
           node("number", "Text", "table", "cell", { text: bind("row.number") }),
-          shownIn(
-            node("bar", "ActionBar", "column", "body"),
-            "rows-selected",
-            "payment-failed"
-          ),
-          // The failure Toast sits in the bar, above its Button, so the two
-          // stick as one (#243).
-          shownIn(
-            node("failed", "Toast", "bar", "body", {
-              text: "The payment didn't go through. Nothing was paid; try again.",
-              tone: "failure",
-            }),
-            "payment-failed"
-          ),
           runs(
-            node("pay", "Button", "bar", "body", {
+            node("pay", "Button", "table", "actions", {
               text: "Approve and pay",
               intent: "primary",
             }),
             "approve-and-pay"
+          ),
+          shownIn(
+            node("failed", "Toast", "column", "body", {
+              text: "The payment didn't go through. Nothing was paid; try again.",
+              tone: "failure",
+            }),
+            "payment-failed"
           ),
           shownIn(
             node("scheduled", "Toast", "column", "body", {
@@ -1180,7 +1127,6 @@ describe("gate 1 against the library's registry", () => {
           ),
         ],
         states: [
-          { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
           {
             name: "payment-scheduled",
             fixture: "invoice-queue/payment-scheduled",
@@ -1214,33 +1160,21 @@ describe("gate 1 against the library's registry", () => {
       }).map(({ rule, location }) => [rule, location]);
     }
 
-    it("passes, and has the bar-to-toast transition", async () => {
+    it("passes, and has the table-action-to-toast transition", async () => {
       const spec = payConfirmation();
 
       expect(await checkQueue(spec)).toEqual([]);
       expect(
         checkPassCriteria(
           {
-            components: ["ActionBar", "Toast"],
+            components: ["DataTable", "Toast"],
             states: [],
             actions: ["approve-and-pay"],
-            transitions: ["bar-to-toast"],
+            transitions: ["table-action-to-toast"],
           },
           wireSchema().parse(spec)
         )
       ).toEqual({ met: true, missing: [] });
-    });
-
-    it("fails a second ActionBar in the failure state", async () => {
-      const spec = payConfirmation();
-      spec.nodes.push(
-        shownIn(
-          node("retry-bar", "ActionBar", "column", "body"),
-          "payment-failed"
-        )
-      );
-
-      expect(await checkQueue(spec)).toEqual([["one-action-bar", "retry-bar"]]);
     });
 
     it("fails a second Toast in the success state", async () => {
@@ -1258,74 +1192,20 @@ describe("gate 1 against the library's registry", () => {
       expect(await checkQueue(spec)).toEqual([["one-toast", "also"]]);
     });
 
-    it("fails a Toast in a state no action enters", async () => {
+    // Ticking rows enters no state (ADR 0013), so the default state is
+    // where the action is run from, and no Toast shows there.
+    it("fails a Toast in the default state", async () => {
       const spec = payConfirmation();
-      nodeOf(spec, "scheduled").when = ["rows-selected"];
+      nodeOf(spec, "scheduled").when = ["default", "payment-scheduled"];
 
       expect(await checkQueue(spec)).toEqual([["toast-state", "scheduled"]]);
     });
 
-    it("fails a success Toast inside the bar, naming it", async () => {
+    it("fails an ActionBar placed in a UI spec as unregistered", async () => {
       const spec = payConfirmation();
-      setProp(nodeOf(spec, "failed"), "tone", "success");
+      spec.nodes.push(node("bar", "ActionBar", "column", "body"));
 
-      expect(await checkQueue(spec)).toEqual([["bar-toast-tone", "failed"]]);
-    });
-
-    it("fails a failure Toast beside the bar its state shows, naming it", async () => {
-      const spec = payConfirmation();
-      nodeOf(spec, "failed").parent = "column";
-
-      expect(await checkQueue(spec)).toEqual([
-        ["failure-toast-in-bar", "failed"],
-      ]);
-    });
-
-    it("passes a failure Toast in a state that shows no ActionBar", async () => {
-      const spec = payConfirmation();
-      nodeOf(spec, "bar").when = ["rows-selected"];
-      nodeOf(spec, "failed").parent = "column";
-
-      expect(await checkQueue(spec)).toEqual([]);
-    });
-
-    it("names the fix in each repair message", async () => {
-      const success = payConfirmation();
-      setProp(nodeOf(success, "failed"), "tone", "success");
-      const beside = payConfirmation();
-      nodeOf(beside, "failed").parent = "column";
-      const { entries } = await loadRegistry();
-      const fixtures = {
-        variants: Object.fromEntries(
-          variantNames.map((name) => [name, fixtureVariant(name).data])
-        ),
-        operations: operationNames,
-      };
-      const messages = [success, beside].flatMap((spec) =>
-        gate1(spec, {
-          audience: "admin",
-          slug: "invoice-queue",
-          entries,
-          fixtures,
-        }).map(({ message }) => message)
-      );
-
-      expect(messages).toEqual([
-        expect.stringMatching(/Give it tone failure/),
-        expect.stringMatching(/Move it into the ActionBar "bar"'s body slot/),
-      ]);
-    });
-
-    it("fails a Button in the bar that runs no action", async () => {
-      const spec = payConfirmation();
-      spec.nodes.push(
-        node("later", "Button", "bar", "body", {
-          text: "Later",
-          intent: "secondary",
-        })
-      );
-
-      expect(await checkQueue(spec)).toEqual([["action-bar-button", "later"]]);
+      expect(await checkQueue(spec)).toEqual([["registered-component", "bar"]]);
     });
   });
 
@@ -1895,6 +1775,13 @@ describe("the committed bulk-pay UI spec", () => {
 
   it("passes gate 1", async () => {
     expect(await check(committed())).toEqual([]);
+  });
+
+  it("meets its brief's pass criteria, table-action-to-toast included", () => {
+    expect(brief.requires.transitions).toEqual(["table-action-to-toast"]);
+    expect(
+      checkPassCriteria(brief.requires, wireSchema().parse(committed()))
+    ).toEqual({ met: true, missing: [] });
   });
 
   it("fails a state that names invoice-queue's empty variant, a real one", async () => {

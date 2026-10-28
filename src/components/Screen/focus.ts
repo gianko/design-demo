@@ -1,11 +1,12 @@
 // Focus follows the view transition name (ADR 0011, #244). A screen-state
-// change can remove the element that has focus, such as the bar's pending
-// Button when a confirmed result leaves the bar out, and focus would fall to
-// the document. So after the change's update, if what had focus is gone,
+// change can remove the element that has focus, such as a pending Button
+// that the state a confirmed result enters leaves out, and focus would fall
+// to the document. So after the change's update, if what had focus is gone,
 // focus moves to the element that took over its name, the one the old
-// element turned into (the success Toast the bar became) if it takes focus,
-// or else to the Screen it was in. Both are focusable from script only
-// (`tabIndex={-1}`).
+// element turned into, if it takes focus, or else to the Screen it was in.
+// Both are focusable from script only (`tabIndex={-1}`). A footer Button
+// that a confirmed result disables isn't removed: DataTable moves its focus
+// to the table (ADR 0013).
 // If focus stays, or wasn't on anything, nothing moves.
 
 // The class prefix of the library's view transition names (src/styles.css).
@@ -23,7 +24,7 @@ function nameOf(element: Element): string | null {
 }
 
 // The name the focused element moves with: its own, or its nearest
-// ancestor's that has one (a Button in the bar moves with the bar).
+// ancestor's that has one (a Button moves with a named box around it).
 function carriedName(element: Element): string | null {
   for (let at: Element | null = element; at; at = at.parentElement) {
     const name = nameOf(at);

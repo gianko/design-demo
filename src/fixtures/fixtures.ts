@@ -504,19 +504,20 @@ const newContractor = dataset(
 );
 // No contractor has an invoice in.
 const noInvoices = dataset([]);
-// The awaiting ones: what invoice-queue's rows-selected and payment-failed
-// start with selected, and what its "3 invoices scheduled" schedules.
+// The awaiting ones: what invoice-queue's and bulk-pay's payment-failed
+// start with selected, for a retry, and what their "3 invoices scheduled"
+// schedules.
 const awaiting = invoices
   .filter((each) => each.status === "awaiting")
   .map((each) => each.id);
-// The overdue ones: what overdue-invoices' rows-selected and reminders-failed
-// start with selected. Nothing is overdue once they're left out.
+// The overdue ones: what overdue-invoices' reminders-failed starts with
+// selected, for a retry. Nothing is overdue once they're left out.
 const overdue = shared.overdueInvoices.map((each) => each.id);
 const nothingOverdue = dataset(
   invoices.filter((each) => each.status !== "overdue")
 );
-// The bounced payments: what failed-payments' rows-selected and retry-failed
-// start with selected, and what its payments-retried schedules, with their
+// The bounced payments: what failed-payments' retry-failed starts with
+// selected, for a retry, and what its payments-retried schedules, with their
 // invoices, yours included. None bounced once the failed invoices and yours
 // are left out.
 const bounced = shared.failedPayments.map((each) => each.id);
@@ -536,8 +537,9 @@ const nothingBounced = dataset(
 );
 
 // A variant is the data its screen state shows, the operations that fail
-// under it, and the rows selected when it starts (ADR 0011). The selection
-// sits outside the data, so no UI spec can bind it.
+// under it, and the rows selected when it starts (ADR 0011), such as a
+// failure's rows kept ticked for a retry. The selection is no screen state
+// (ADR 0013) and sits outside the data, so no UI spec can bind it.
 type Variant = {
   data: FixtureData;
   fails: readonly OperationName[];
@@ -551,11 +553,6 @@ const variants = {
   "payment-status/reminder-failed": { data: shared, fails: ["sendReminder"] },
   "payment-overview/empty": { data: newContractor, fails: [] },
   "invoice-queue/empty": { data: noInvoices, fails: [] },
-  "invoice-queue/rows-selected": {
-    data: shared,
-    fails: [],
-    selected: awaiting,
-  },
   "invoice-queue/payment-scheduled": { data: scheduled(awaiting), fails: [] },
   "invoice-queue/payment-failed": {
     data: shared,
@@ -569,7 +566,6 @@ const variants = {
   "invoice-review/payment-failed": { data: shared, fails: ["payInvoices"] },
   "payment-run/empty": { data: noInvoices, fails: [] },
   "bulk-pay/empty": { data: noInvoices, fails: [] },
-  "bulk-pay/rows-selected": { data: shared, fails: [], selected: awaiting },
   "bulk-pay/payment-scheduled": { data: scheduled(awaiting), fails: [] },
   "bulk-pay/payment-failed": {
     data: shared,
@@ -577,11 +573,6 @@ const variants = {
     selected: awaiting,
   },
   "overdue-invoices/empty": { data: nothingOverdue, fails: [] },
-  "overdue-invoices/rows-selected": {
-    data: shared,
-    fails: [],
-    selected: overdue,
-  },
   "overdue-invoices/reminders-sent": { data: shared, fails: [] },
   "overdue-invoices/reminders-failed": {
     data: shared,
@@ -589,11 +580,6 @@ const variants = {
     selected: overdue,
   },
   "failed-payments/empty": { data: nothingBounced, fails: [] },
-  "failed-payments/rows-selected": {
-    data: shared,
-    fails: [],
-    selected: bounced,
-  },
   "failed-payments/payments-retried": { data: retried, fails: [] },
   "failed-payments/retry-failed": {
     data: shared,

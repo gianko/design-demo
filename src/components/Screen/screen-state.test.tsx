@@ -253,10 +253,13 @@ it("reads the data of the fixture variant its host names", () => {
 // failed one changes nothing, as it keeps the selection.
 describe("the data of the state an action enters", () => {
   const declared: HostedState[] = [
-    { name: "rows-selected", fixture: "bulk-pay/rows-selected" },
     { name: "payment-scheduled", fixture: "bulk-pay/payment-scheduled" },
     { name: "payment-failed", fixture: "bulk-pay/payment-failed" },
   ];
+  // The default state with the awaiting invoices ticked, which bulk-pay's
+  // payQueue holds.
+  const start: HostedState = { name: "default", fixture: "default" };
+  const awaiting = ["INV-0147", "INV-0148", "INV-0149"];
 
   function BulkPay() {
     const { payQueue } = useFixtureData();
@@ -311,7 +314,7 @@ describe("the data of the state an action enters", () => {
 
   it("shows the success state's variant once the action is confirmed, flipping the rows it changed", async () => {
     render(
-      <ScreenHost screenState={declared[0]} states={declared}>
+      <ScreenHost screenState={start} states={declared} selected={awaiting}>
         <BulkPay />
       </ScreenHost>
     );
@@ -330,10 +333,7 @@ describe("the data of the state an action enters", () => {
   it("keeps the data it had when the action fails", async () => {
     render(
       <ScreenHost
-        screenState={{
-          name: "rows-selected",
-          fixture: "bulk-pay/payment-failed",
-        }}
+        screenState={{ name: "default", fixture: "bulk-pay/payment-failed" }}
         states={declared}
       >
         <BulkPay />
@@ -349,7 +349,7 @@ describe("the data of the state an action enters", () => {
 
   it("keeps its data on a confirm when its host doesn't know the state's variant", async () => {
     render(
-      <ScreenHost screenState={declared[0]}>
+      <ScreenHost screenState={start} selected={awaiting}>
         <BulkPay />
       </ScreenHost>
     );
@@ -362,20 +362,24 @@ describe("the data of the state an action enters", () => {
 
   // A kept screen's stories carry the declared states in
   // `parameters.screenStates` (generator/screen-stories.ts), and the
-  // Storybook preview hands them to the host.
-  it("takes the declared states from a story's parameters", async () => {
-    const RowsSelected = composeStory(
+  // Storybook preview hands them to the host. Its rows-ticked story names
+  // in `parameters.tickRows` which table with actions starts with every row
+  // ticked (ADR 0013), which DataTable reads from its test attribute.
+  it("takes the declared states and the table to tick from a story's parameters", async () => {
+    const RowsTicked = composeStory(
       {
         parameters: {
-          screenState: declared[0],
           screenStates: declared,
+          tickRows: 0,
         } satisfies ScreenStateParameters,
         render: () => <BulkPay />,
       },
       { title: "Screens/bulk-pay" },
       preview
     );
-    render(<RowsSelected />);
+    render(<RowsTicked />);
+    expect(screenState()).toBe("default");
+    expect(screen.getAllByRole("checkbox", { checked: true })).toHaveLength(4);
 
     await pay();
 
@@ -389,8 +393,9 @@ describe("the data of the state an action enters", () => {
   // The action-transitions and motion-reduced rules open a screen's default
   // story with the screenAction and screenOutcome globals
   // (.storybook/screen-actions.ts). The screen starts in the state the
-  // action's Button is clicked in, with that state's data and selection, and
-  // its operations settle as the outcome's variant says.
+  // action's Button is clicked in, with that state's data, every row of the
+  // table whose footer holds the Button ticked, and its operations settle
+  // as the outcome's variant says.
   describe("started before an action", () => {
     const startedBefore = (screenOutcome: Outcome) =>
       composeStory(
@@ -401,8 +406,9 @@ describe("the data of the state an action enters", () => {
               {
                 name: "pay-selected",
                 label: "Pay selected",
-                from: "rows-selected",
-                to: { success: declared[1]!, failure: declared[2]! },
+                from: "default",
+                tickRows: 0,
+                to: { success: declared[0]!, failure: declared[1]! },
               },
             ],
           } satisfies ScreenStateParameters & ScreenActionParameters,
@@ -419,11 +425,11 @@ describe("the data of the state an action enters", () => {
         }
       );
 
-    it("starts with the start state's rows ticked, not the outcome's data", () => {
+    it("starts with the footer table's rows ticked, not the outcome's data", () => {
       const Started = startedBefore("success");
       render(<Started />);
 
-      expect(screenState()).toBe("rows-selected");
+      expect(screenState()).toBe("default");
       expect(statuses()).toEqual(["Awaiting", "Awaiting", "Awaiting"]);
       expect(screen.getAllByRole("checkbox", { checked: true })).toHaveLength(
         4

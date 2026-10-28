@@ -383,13 +383,10 @@ function headingChecks(screen: ScreenModel): Failure[] {
   return failures.list;
 }
 
-// The structure the signature transitions ride on (ADR 0011): ActionBar and
-// Toast pair by one view transition name, so each state shows at most one of
-// each; a Toast is an action's result, so it shows only in states an action
-// enters; a Sheet is a DataTable row's detail; and an ActionBar's Buttons run
-// actions. A failure Toast in a state that shows an ActionBar sits inside
-// it, so the two stick as one on a long table, and only a failure Toast
-// sits in a bar, since a success one takes the bar's place (#243).
+// The structure the signature transitions ride on (ADR 0011, ADR 0013): a
+// Toast is an action's result, so each state shows at most one, and only in
+// states an action enters, never the default state; and a Sheet is a
+// DataTable row's detail.
 function motionChecks(
   spec: UiSpec,
   byId: Map<string, UiNode>,
@@ -397,70 +394,27 @@ function motionChecks(
 ): Failure[] {
   const failures = new FailureSet();
   for (const state of screen.states) {
-    for (const [component, rule] of [
-      ["ActionBar", "one-action-bar"],
-      ["Toast", "one-toast"],
-    ] as const) {
-      // In list order, so the one named is the one written later.
-      const shown = spec.nodes.filter(
-        (node) =>
-          node.component === component && screen.visibleIn(node).includes(state)
+    // In list order, so the one named is the one written later.
+    const shown = spec.nodes.filter(
+      (node) =>
+        node.component === "Toast" && screen.visibleIn(node).includes(state)
+    );
+    for (const extra of shown.slice(1)) {
+      failures.add(
+        fail(
+          "one-toast",
+          extra.id,
+          `A second Toast in state "${state}", after "${shown[0]!.id}"; a state shows at most one.`
+        )
       );
-      for (const extra of shown.slice(1)) {
-        failures.add(
-          fail(
-            rule,
-            extra.id,
-            `A second ${component} in state "${state}", after "${shown[0]!.id}"; a state shows at most one.`
-          )
-        );
-      }
     }
   }
 
   const entered = new Set(
     spec.actions.flatMap(({ to }) => [to.success, to.failure])
   );
-  // The ActionBar a node sits in, at any depth.
-  const barOf = (node: UiNode) =>
-    ancestors(node, byId).find((at) => at.component === "ActionBar");
-  const bars = spec.nodes.filter((node) => node.component === "ActionBar");
   for (const node of spec.nodes) {
     if (node.component === "Toast") {
-      const tone = propValue(node, "tone");
-      const failure = tone?.ok === true && tone.value === "failure";
-      const holder = barOf(node);
-      if (holder && !failure) {
-        const has =
-          tone?.ok === true ? `tone ${JSON.stringify(tone.value)}` : "no tone";
-        failures.add(
-          fail(
-            "bar-toast-tone",
-            node.id,
-            `It sits in the ActionBar "${holder.id}" with ${has}; only a failure Toast sits in a bar. Give it tone failure, or, for a success, move it out of the bar to where the bar was and leave the bar out of that state, so the bar becomes the toast.`
-          )
-        );
-      }
-      if (failure) {
-        // Inside a bar its state shows, it's placed; a second bar beside
-        // that one is one-action-bar's to report.
-        for (const state of screen.visibleIn(node)) {
-          if (holder && screen.visibleIn(holder).includes(state)) continue;
-          const beside = bars.find((bar) =>
-            screen.visibleIn(bar).includes(state)
-          );
-          if (beside) {
-            failures.add(
-              fail(
-                "failure-toast-in-bar",
-                node.id,
-                `It shows beside the ActionBar "${beside.id}" in state "${state}". Move it into the ActionBar "${beside.id}"'s body slot, before its Button, so the two stick as one.`
-              )
-            );
-            break;
-          }
-        }
-      }
       const stray = screen
         .visibleIn(node)
         .filter((state) => state === defaultState || !entered.has(state));
@@ -482,18 +436,6 @@ function motionChecks(
             "sheet-in-detail",
             node.id,
             "A Sheet sits only in a DataTable's detail slot."
-          )
-        );
-      }
-    }
-    if (node.component === "Button" && node.action === null) {
-      const bar = barOf(node);
-      if (bar) {
-        failures.add(
-          fail(
-            "action-bar-button",
-            node.id,
-            `It sits in the ActionBar "${bar.id}" but runs no action.`
           )
         );
       }

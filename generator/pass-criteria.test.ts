@@ -114,7 +114,9 @@ describe("requires.transitions", () => {
       [
         "the table shows only in the action's own outcomes, so it can't be run",
         (spec) =>
-          edit(spec, "table", { when: ["payment-scheduled", "payment-failed"] }),
+          edit(spec, "table", {
+            when: ["payment-scheduled", "payment-failed"],
+          }),
       ],
       [
         "the success state shows no Toast",
@@ -123,7 +125,11 @@ describe("requires.transitions", () => {
       [
         "the success state's Toast is a failure one",
         (spec) =>
-          edit(spec, "scheduled", toast("scheduled", "failure", ["payment-scheduled"])),
+          edit(
+            spec,
+            "scheduled",
+            toast("scheduled", "failure", ["payment-scheduled"])
+          ),
       ],
       [
         "the success Toast sits in a part of the screen hidden in the success state",

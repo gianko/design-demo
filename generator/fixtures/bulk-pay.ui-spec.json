@@ -59,12 +59,7 @@
           "value": "{\"none\":\"No invoices selected\",\"one\":\"1 invoice selected\",\"other\":\"{count} invoices selected\"}"
         }
       ],
-      "when": [
-        "default",
-        "rows-selected",
-        "payment-scheduled",
-        "payment-failed"
-      ],
+      "when": ["default", "payment-scheduled", "payment-failed"],
       "action": null
     },
     {
@@ -176,7 +171,6 @@
   ],
   "states": [
     { "name": "empty", "fixture": "bulk-pay/empty" },
-    { "name": "rows-selected", "fixture": "bulk-pay/rows-selected" },
     { "name": "payment-scheduled", "fixture": "bulk-pay/payment-scheduled" },
     { "name": "payment-failed", "fixture": "bulk-pay/payment-failed" }
   ],

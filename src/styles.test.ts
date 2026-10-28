@@ -133,12 +133,11 @@ describe("screen-state transitions", () => {
 });
 
 // Toast's timing (ADR 0011): a toast enters at `slow` and leaves at
-// `slow-exit`. The bar's group, `action-result`, is timed as a toast only
-// under `confirm`, where the bar becomes the toast; the bar entering with
-// rows-selected keeps `base`. A failure toast, `action-failure`, is timed so
-// under any type.
+// `slow-exit`. A success toast's group, `action-result`, is timed as a toast
+// only under `confirm`, the transition it enters in, and keeps `base`
+// otherwise. A failure toast, `action-failure`, is timed so under any type.
 describe("toast transitions", () => {
-  it("time the bar becoming a toast as a toast entering, under confirm", () => {
+  it("time a success toast as a toast entering, under confirm", () => {
     for (const pseudo of ["group", "new"] as const) {
       expect(computed(pseudo, "confirm", motion, "action-result")).toEqual({
         name: undefined,
@@ -153,7 +152,7 @@ describe("toast transitions", () => {
     });
   });
 
-  it("keep base for the bar entering with rows-selected", () => {
+  it("keep base for a success toast's group outside confirm", () => {
     expect(computed("group", undefined, motion, "action-result")).toEqual({
       name: undefined,
       duration: token("duration-base"),
@@ -260,8 +259,8 @@ describe("view transitions in one place", () => {
     expect(touching).toEqual([]);
   });
 
-  it("has no ActionBar, Toast or Sheet stylesheet, and nothing imports one", () => {
-    for (const name of ["ActionBar", "Toast", "Sheet"]) {
+  it("has no Toast or Sheet stylesheet, and nothing imports one", () => {
+    for (const name of ["Toast", "Sheet"]) {
       expect(existsSync(join(src, "components", name, `${name}.css`))).toBe(
         false
       );
@@ -269,7 +268,7 @@ describe("view transitions in one place", () => {
     const importing = files(src)
       .filter((file) => /\.tsx?$/.test(file))
       .filter((file) =>
-        /import\s+["'][^"']*\/(ActionBar|Toast|Sheet)\.css["']/.test(
+        /import\s+["'][^"']*\/(Toast|Sheet)\.css["']/.test(
           readFileSync(file, "utf8")
         )
       )

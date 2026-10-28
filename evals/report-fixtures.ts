@@ -69,7 +69,7 @@ function attempt(step: Step, n: number, ...failing: GateName[]): Attempt {
             {
               theme: "dark",
               density: "admin",
-              state: "rows-selected",
+              state: "payment-scheduled",
               gates: { "gate 4": "pass", "gate 7 render": "pass" },
             },
           ]
@@ -290,7 +290,7 @@ export function scratch(at: At, workDir: string, codeAttempts: number[]) {
     const render = join(dir, `attempt-${n}-code`, "render");
     const stories = {
       "screens-invoice-queue--default": "Default",
-      "screens-invoice-queue--rows-selected": "RowsSelected",
+      "screens-invoice-queue--payment-scheduled": "PaymentScheduled",
     };
     mkdirSync(join(render, "storybook-static"), { recursive: true });
     writeFileSync(

@@ -3,11 +3,11 @@ import { expect } from "storybook/test";
 import { colour } from "../../../.storybook/canvas-colour.ts";
 import { FocusedOn } from "../../../.storybook/focused-on.tsx";
 import type { VariantName } from "../../fixtures/fixtures.ts";
-import { ActionBar } from "../ActionBar/ActionBar.tsx";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button } from "../Button/Button.tsx";
 import { DataTable } from "../DataTable/DataTable.tsx";
 import {
+  ScreenHost,
   useAction,
   useFixtureData,
   useScreenState,
@@ -41,28 +41,18 @@ async function holdsErrorColours(toast: HTMLElement) {
 }
 
 // Style expectations (ADR 0012) every Toast holds: no border; the surface
-// radius and padding of its density; and the view transition name of its
-// tone (ADR 0011): ActionBar's for success, so the bar becomes the toast,
-// and one of its own for failure, so it enters while the bar stays. On its
-// own it is raised, with a shadow, and sticky at the end edge, as ActionBar
-// is; inside a bar (#243) the bar is the one floating surface, so the Toast
-// neither sticks nor casts a shadow nor stacks on its own. A one-line toast
-// is one control tall plus 16px, the bar's height. Stories that start in a
-// state with no toast check nothing here.
+// radius and padding of its density; the view transition name of its tone
+// (ADR 0011); raised, with a shadow, and sticky at the end edge. A one-line
+// toast is one control tall plus 16px. Stories that start in a state with no
+// toast check nothing here.
 async function holdsShapeAndName(canvas: HTMLElement, density: string) {
   const toast = find(canvas, "Toast");
   if (!toast) return;
   const style = getComputedStyle(toast);
   const contractor = density === "contractor";
-  if (toast.closest('[data-component="ActionBar"]')) {
-    await expect(style.position).not.toBe("sticky");
-    await expect(style.boxShadow).toBe("none");
-    await expect(style.zIndex).toBe("auto");
-  } else {
-    await expect(style.position).toBe("sticky");
-    await expect(style.bottom).toBe("16px");
-    await expect(style.boxShadow).not.toBe("none");
-  }
+  await expect(style.position).toBe("sticky");
+  await expect(style.bottom).toBe("16px");
+  await expect(style.boxShadow).not.toBe("none");
   await expect(style.borderTopWidth).toBe("0px");
   await expect(style.borderTopLeftRadius).toBe(contractor ? "12px" : "8px");
   const side = contractor ? "24px" : "20px";
@@ -107,7 +97,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-// The confirmed result: the bar's own raised surface, holding what was done.
+// The confirmed result: a raised surface, holding what was done.
 export const Success: Story = { args: { tone: "success", text: scheduled } };
 
 // The failed result: the error pair, saying what happened and what to do.
@@ -126,12 +116,11 @@ export const Phone: Story = {
   },
 };
 
-// The pay confirmation (ADR 0011), wired as bulk-pay's generated screen
-// wires it: the table of invoices; the bar while rows are selected and after
-// a failure; the success Toast where the bar was, with the bar left out; and
-// the failure Toast inside the bar, which stays, above its Button (#243). In
-// Storybook, Approve and pay settles after 1.8s under the story's fixture
-// variant, so the bar becomes the toast, or the failure toast enters in it.
+// The pay confirmation (ADR 0013), wired as bulk-pay's generated screen
+// wires it: the table of invoices with Approve and pay in its footer, and
+// the success or the failure Toast after the table, in the state the
+// payment enters. In Storybook, Approve and pay settles after 1.8s under the
+// story's fixture variant, so the success toast enters, or the failure one.
 function PayConfirmation() {
   const data = useFixtureData();
   const { state } = useScreenState();
@@ -142,15 +131,20 @@ function PayConfirmation() {
   });
   return (
     <Stack gap="xs">
-      {/* Only a table with actions is selectable (ADR 0013): until the bar
-          goes (#298), its footer holds a second action. */}
       <DataTable
         selectionText={{
           none: "No invoices selected",
           one: "1 invoice selected",
           other: "{count} invoices selected",
         }}
-        actions={<Button intent="secondary" text="Send reminders" />}
+        actions={
+          <Button
+            intent="primary"
+            text="Approve and pay"
+            pending={pay.pending}
+            onClick={() => pay.run(selected)}
+          />
+        }
         rows={data.invoices}
         columns={["Invoice", "Contractor", "Amount", "Due", "Status"]}
         cell={(row) => (
@@ -170,53 +164,44 @@ function PayConfirmation() {
       {state === "payment-scheduled" && (
         <Toast tone="success" text={scheduled} />
       )}
-      {(state === "rows-selected" || state === "payment-failed") && (
-        <ActionBar>
-          {state === "payment-failed" && <Toast tone="failure" text={failed} />}
-          <Button
-            intent="primary"
-            text="Approve and pay"
-            pending={pay.pending}
-            onClick={() => pay.run(selected)}
-          />
-        </ActionBar>
-      )}
+      {state === "payment-failed" && <Toast tone="failure" text={failed} />}
     </Stack>
   );
 }
 
-// Where the bar and the toast sit: the bar, or a toast on its own, ends
-// where the table does, so the toast lands where the bar was; a toast in the
-// bar sits inside it.
+// Where a toast sits: it ends where the table does.
 async function endsWithTheTable(canvas: HTMLElement) {
   const table = find(canvas, "DataTable")!.getBoundingClientRect();
-  const bar = find(canvas, "ActionBar");
-  const outer = bar ?? find(canvas, "Toast");
-  if (outer) {
-    await expect(outer.getBoundingClientRect().right).toBe(table.right);
+  const toast = find(canvas, "Toast");
+  if (toast) {
+    await expect(toast.getBoundingClientRect().right).toBe(table.right);
   }
 }
 
 const startIn = (name: string, fixture: VariantName) =>
   ({ screenState: { name, fixture } }) satisfies ScreenStateParameters;
 
-// Rows selected, and the payment will be confirmed: Approve and pay morphs
-// the bar into the success Toast through their shared name.
-export const BarBecomesToast: Story = {
+// The three invoices awaiting approval, ticked in the default state, as the
+// admin leaves them before Approve and pay, the payment settling under
+// `fixture`.
+const ticked = (fixture: VariantName) => () => (
+  <ScreenHost
+    screenState={{ name: "default", fixture }}
+    selected={["INV-0147", "INV-0148", "INV-0149"]}
+  >
+    <PayConfirmation />
+  </ScreenHost>
+);
+
+// Rows ticked, and the payment will be confirmed: Approve and pay brings in
+// the success Toast.
+export const ReadyToConfirm: Story = {
   args: Success.args,
-  parameters: startIn("rows-selected", "invoice-queue/rows-selected"),
-  render: () => <PayConfirmation />,
-  play: async ({ canvasElement, globals }) => {
-    await holdsShapeAndName(canvasElement, globals.density);
-    await endsWithTheTable(canvasElement);
-    await expect(
-      getComputedStyle(find(canvasElement, "ActionBar")!).viewTransitionName
-    ).toBe("action-result");
-  },
+  render: ticked("default"),
 };
 
-// Where BarBecomesToast lands: the paid rows scheduled, the bar gone, and
-// the success Toast in its place, carrying the name the bar had.
+// Where ReadyToConfirm lands: the paid rows scheduled, none ticked, and the
+// success Toast after the table.
 export const Confirmed: Story = {
   args: Success.args,
   parameters: startIn("payment-scheduled", "invoice-queue/payment-scheduled"),
@@ -224,30 +209,18 @@ export const Confirmed: Story = {
   play: async ({ canvasElement, globals }) => {
     await holdsShapeAndName(canvasElement, globals.density);
     await endsWithTheTable(canvasElement);
-    await expect(find(canvasElement, "ActionBar")).toBeNull();
-    await expect(
-      getComputedStyle(find(canvasElement, "Toast")!).viewTransitionName
-    ).toBe("action-result");
   },
 };
 
-// Rows selected, and the payment will fail: Approve and pay keeps the bar
-// and the selection, and the failure Toast enters on its own inside the bar.
-// The name is from when the Toast sat beside the bar, kept so the story's
-// baselines carry over; the Toast is inside the bar now (#243).
-export const FailureBesideBar: Story = {
+// Rows ticked, and the payment will fail: Approve and pay keeps the
+// selection, and the failure Toast enters on its own.
+export const ReadyToFail: Story = {
   args: Failure.args,
-  parameters: startIn("rows-selected", "invoice-queue/payment-failed"),
-  render: () => <PayConfirmation />,
-  play: async ({ canvasElement, globals }) => {
-    await holdsShapeAndName(canvasElement, globals.density);
-    await endsWithTheTable(canvasElement);
-  },
+  render: ticked("invoice-queue/payment-failed"),
 };
 
-// Where FailureBesideBar lands: the rows still selected, the bar still there
-// for a retry, and the failure Toast inside it, above its Button, under a
-// name of its own, so each name is unique in the snapshot (#243).
+// Where ReadyToFail lands: the rows still ticked for a retry, Approve and
+// pay still enabled, and the failure Toast after the table.
 export const Failed: Story = {
   args: Failure.args,
   parameters: startIn("payment-failed", "invoice-queue/payment-failed"),
@@ -255,25 +228,13 @@ export const Failed: Story = {
   play: async ({ canvasElement, globals }) => {
     await holdsShapeAndName(canvasElement, globals.density);
     await endsWithTheTable(canvasElement);
-    const bar = find(canvasElement, "ActionBar")!;
-    const toast = find(canvasElement, "Toast")!;
-    await expect(getComputedStyle(bar).viewTransitionName).toBe(
-      "action-result"
-    );
-    await expect(getComputedStyle(toast).viewTransitionName).toBe(
-      "action-failure"
-    );
-    await expect(bar.contains(toast)).toBe(true);
-    const button = find(bar, "Button")!.getBoundingClientRect();
-    await expect(toast.getBoundingClientRect().bottom).toBeLessThanOrEqual(
-      button.top
-    );
+    const pay = find(find(canvasElement, "DataTable")!, "Button")!;
+    await expect((pay as HTMLButtonElement).disabled).toBe(false);
   },
 };
 
-// Where Confirmed lands for a keyboard user who paid from the bar: focus on
-// the success Toast the bar became, so their next Tab moves on from there.
-// The toast is no control, so it shows no focus ring.
+// A Toast that focus lands on from script: it is no control, so it shows
+// no focus ring.
 export const ConfirmedWithFocus: Story = {
   args: Success.args,
   parameters: startIn("payment-scheduled", "invoice-queue/payment-scheduled"),

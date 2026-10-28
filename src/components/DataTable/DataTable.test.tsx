@@ -28,7 +28,11 @@ import { Sheet } from "../Sheet/Sheet.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import preview from "../../../.storybook/preview.tsx";
-import { DataTable, openDetailAttribute } from "./DataTable.tsx";
+import {
+  DataTable,
+  openDetailAttribute,
+  tickRowsAttribute,
+} from "./DataTable.tsx";
 import * as stories from "./DataTable.stories.tsx";
 
 // The selected count's three forms, as a UI spec writes them (ADR 0013).
@@ -131,16 +135,19 @@ afterEach(() => {
   delete (document as Partial<Document>).startViewTransition;
 });
 
-it("reads a ticked row's id through useSelectedRows, and none once it's unticked", () => {
+// The selection is the table's own, not a screen state (ADR 0013): ticking
+// enters no state and runs no View Transition.
+it("reads a ticked row's id through useSelectedRows, and none once it's unticked, entering no screen state", () => {
   host();
 
   tick("INV-0147");
   expect(selectedRows()).toBe("INV-0147");
-  expect(screenState()).toBe("rows-selected");
+  expect(screenState()).toBe("default");
 
   tick("INV-0147");
   expect(selectedRows()).toBe("");
   expect(screenState()).toBe("default");
+  expect(transitions).toEqual([]);
 });
 
 // The actions footer (ADR 0013): the selected count at its start, in the UI
@@ -172,7 +179,7 @@ it("disables the footer's Buttons while nothing is ticked, and enables them once
 });
 
 it("enables the footer's Buttons in a state that starts with rows ticked", () => {
-  host("rows-selected", "invoice-queue/rows-selected");
+  host("payment-failed", "invoice-queue/payment-failed");
 
   expect(screen.getByText("3 invoices selected")).toBeTruthy();
   expect(payButton().disabled).toBe(false);
@@ -182,10 +189,7 @@ it("enables the footer's Buttons in a state that starts with rows ticked", () =>
 // rows the operation acts on are the rows shown ticked.
 describe("while a footer action is pending", () => {
   const locked = () =>
-    boxes().map((box) => [
-      box.getAttribute("aria-disabled"),
-      box.disabled,
-    ]);
+    boxes().map((box) => [box.getAttribute("aria-disabled"), box.disabled]);
 
   it("locks every Checkbox, still focusable, and ticking does nothing", async () => {
     host();
@@ -216,7 +220,7 @@ describe("while a footer action is pending", () => {
   });
 
   it("unlocks the selection once the action fails", async () => {
-    host("rows-selected", "invoice-queue/payment-failed");
+    host("default", "invoice-queue/payment-failed");
     approveAndPay();
     expect(locked()).toEqual(boxes().map(() => ["true", false]));
     await act(() => vi.advanceTimersByTimeAsync(1800));
@@ -256,7 +260,7 @@ it("leaves focus be when the footer's Buttons are disabled while focus is elsewh
 });
 
 it("keeps focus on the footer Button, back at rest, when the action fails", async () => {
-  host("rows-selected", "invoice-queue/payment-failed");
+  host("default", "invoice-queue/payment-failed");
   payButton().focus();
   approveAndPay();
   await act(() => vi.advanceTimersByTimeAsync(1800));
@@ -283,7 +287,7 @@ it("clears the selection inside the confirm View Transition when the action succ
 });
 
 it("keeps the selection when the action fails", async () => {
-  host("rows-selected", "invoice-queue/payment-failed");
+  host("default", "invoice-queue/payment-failed");
 
   approveAndPay();
   await act(() => vi.advanceTimersByTimeAsync(1800));
@@ -298,19 +302,19 @@ it("keeps the selection when the action fails", async () => {
   ]);
 });
 
-it("returns to rows-selected when a row is ticked after a failure", async () => {
-  host("rows-selected", "invoice-queue/payment-failed");
+it("stays in the failure state when a row is ticked after a failure", async () => {
+  host("default", "invoice-queue/payment-failed");
   approveAndPay();
   await act(() => vi.advanceTimersByTimeAsync(1800));
 
   tick("INV-0142");
 
-  expect(screenState()).toBe("rows-selected");
+  expect(screenState()).toBe("payment-failed");
   expect(selectedRows()).toBe("INV-0147 INV-0148 INV-0149 INV-0142");
 });
 
-it("starts with the awaiting invoices selected in invoice-queue/rows-selected", () => {
-  host("rows-selected", "invoice-queue/rows-selected");
+it("starts with the awaiting invoices selected in invoice-queue/payment-failed, for a retry", () => {
+  host("payment-failed", "invoice-queue/payment-failed");
 
   expect(selectedRows()).toBe("INV-0147 INV-0148 INV-0149");
   expect(ticked()).toEqual([
@@ -322,7 +326,7 @@ it("starts with the awaiting invoices selected in invoice-queue/rows-selected", 
 
 // Selection is off unless an action acts on the Selection (#203): a table is
 // selectable exactly when it has actions (ADR 0013).
-it("renders no checkboxes and no footer, and never enters rows-selected, without actions", () => {
+it("renders no checkboxes and no footer, and selects nothing, without actions", () => {
   host("default", "default", false);
 
   expect(screen.queryAllByRole("checkbox")).toEqual([]);
@@ -452,7 +456,7 @@ it("in a table with actions, ticking a row selects it without opening it, and cl
   tick("INV-0147");
   expect(openSheet()).toBeNull();
   expect(selectedRows()).toBe("INV-0147");
-  expect(screenState()).toBe("rows-selected");
+  expect(screenState()).toBe("default");
 
   fireEvent.keyDown(screen.getByRole("checkbox", { name: "Select INV-0148" }), {
     key: "Enter",
@@ -462,7 +466,7 @@ it("in a table with actions, ticking a row selects it without opening it, and cl
   fireEvent.click(row("INV-0148"));
   expect(openSheet()).toBe(screen.getByRole("dialog", { name: "INV-0148" }));
   expect(selectedRows()).toBe("INV-0147");
-  expect(screenState()).toBe("rows-selected");
+  expect(screenState()).toBe("default");
 });
 
 it("renders the Sheet after the table's surface, not inside it", () => {
@@ -500,6 +504,47 @@ it("starts with the first row's Sheet open in the table the test attribute names
   const tables = document.querySelectorAll('[data-component="DataTable"]');
   expect(tables[2]!.nextElementSibling).toBe(sheets[0]);
   expect(types()).toEqual([]);
+});
+
+// The rows-ticked render (ADR 0013): the same kind of attribute names one of
+// the tables with actions, counted from 0 in document order, and that table
+// starts with every row ticked, in the default state, with no View
+// Transition. A table without actions doesn't count.
+it("starts with every row ticked in the table with actions the test attribute names, with no View Transition", () => {
+  render(
+    <ScreenHost>
+      <div {...{ [tickRowsAttribute]: "1" }}>
+        <DataTable
+          rows={[{ id: "PLAIN" }]}
+          columns={["Plain"]}
+          cell={(row) => <Text text={row.id} />}
+        />
+        <DataTable
+          rows={[{ id: "PAY-0138" }]}
+          columns={["Payment"]}
+          cell={(row) => <Text text={row.id} />}
+          selectionText={selectionText}
+          actions={<Button text="Retry payments" intent="primary" />}
+        />
+        <InvoiceQueue />
+      </div>
+    </ScreenHost>
+  );
+
+  expect(screenState()).toBe("default");
+  expect(selectedRows()).toBe(
+    "INV-0142 INV-0144 INV-0145 INV-0146 INV-0147 INV-0148 INV-0149 INV-0151"
+  );
+  expect(ticked()).not.toContain("Select PAY-0138");
+  expect(screen.getByText("8 invoices selected")).toBeTruthy();
+  expect(payButton().disabled).toBe(false);
+  expect(transitions).toEqual([]);
+});
+
+it("ticks no row from the start without the test attribute", () => {
+  host();
+
+  expect(selectedRows()).toBe("");
 });
 
 it("opens no Sheet from the start without the test attribute", () => {

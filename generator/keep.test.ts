@@ -200,7 +200,7 @@ export function ${rep.name}() {
   it("gives every story the declared states, each with its fixture variant", async () => {
     const rep = repDir({
       states: [
-        { name: "rows-selected", fixture: "bulk-pay/rows-selected" },
+        { name: "empty", fixture: "bulk-pay/empty" },
         { name: "payment-scheduled", fixture: "bulk-pay/payment-scheduled" },
       ],
     });
@@ -212,7 +212,7 @@ export function ${rep.name}() {
       "utf8"
     );
     expect(stories).toMatch(
-      /const meta = \{[^;]*parameters: \{\s*screenStates: \[\s*\{ name: "rows-selected", fixture: "bulk-pay\/rows-selected" \},\s*\{\s*name: "payment-scheduled",\s*fixture: "bulk-pay\/payment-scheduled",?\s*\},?\s*\],?\s*\},?\s*\} satisfies Meta/
+      /const meta = \{[^;]*parameters: \{\s*screenStates: \[\s*\{ name: "empty", fixture: "bulk-pay\/empty" \},\s*\{\s*name: "payment-scheduled",\s*fixture: "bulk-pay\/payment-scheduled",?\s*\},?\s*\],?\s*\},?\s*\} satisfies Meta/
     );
   });
 
@@ -266,6 +266,46 @@ export function ${rep.name}() {
     expect(
       Object.keys(stories).filter((name) => name.startsWith("DefaultSheet"))
     ).toHaveLength(2);
+  });
+
+  // ADR 0013: the rows-ticked render, the default state with every row of a
+  // table with actions ticked, one per such table the default state shows,
+  // counted in document order.
+  it("writes a rows-ticked story for each DataTable with actions the default state shows", async () => {
+    const node = (
+      id: string,
+      component: string,
+      parent: string | null,
+      slot: string | null,
+      when: string[] = []
+    ): UiSpec["nodes"][number] => ({
+      id,
+      component,
+      parent,
+      slot,
+      props: [],
+      when,
+      action: null,
+    });
+    const rep = repDir({
+      nodes: [
+        node("screen", "Screen", null, null),
+        node("plain", "DataTable", "screen", "body"),
+        node("hidden", "DataTable", "screen", "body", ["paid"]),
+        node("hidden-pay", "Button", "hidden", "actions"),
+        node("invoices", "DataTable", "screen", "body"),
+        node("invoice-pay", "Button", "invoices", "actions"),
+      ],
+      states: [{ name: "paid", fixture: "payment-status/reminder-sent" }],
+    });
+
+    await keep(rep.dir);
+
+    const stories = await import(join(rep.kept, `${rep.name}.stories.tsx`));
+    expect(stories.DefaultRowsTicked.parameters).toEqual({ tickRows: 0 });
+    expect(
+      Object.keys(stories).filter((name) => name.startsWith("DefaultRows"))
+    ).toEqual(["DefaultRowsTicked"]);
   });
 
   it("writes no open-sheet story when no DataTable has a detail slot", async () => {

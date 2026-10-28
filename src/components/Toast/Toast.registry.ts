@@ -4,7 +4,7 @@ import { toast } from "./toast.ts";
 
 export const toastEntry = defineEntry({
   name: "Toast",
-  use: "The live result of an action; only in a state an action enters. Tone success in the action's to.success state, placed where its ActionBar was (right after the DataTable) and with that bar left out, so the bar becomes the toast; tone failure in to.failure, inside the ActionBar when that state shows one (in its body, above the Button, as the bar stays for a retry), and on its own when it shows none. One per state; it announces itself, so the state needs no live Text. For copy that shows whatever happened use Text.",
+  use: "The live result of an action; only in a state an action enters. Put it last in the Screen, in the state its action enters: tone success in the action's to.success state, tone failure in to.failure. One per state; it announces itself, so the state needs no live Text. For copy that shows whatever happened use Text.",
   surface: "raised",
   props: z.object({
     text: z

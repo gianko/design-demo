@@ -30,7 +30,6 @@ export function BulkPay() {
       <Stack direction="column" gap="lg">
         <PageHeader title={<Heading text="Pay invoices" level={1} />} />
         {(state === "default" ||
-          state === "rows-selected" ||
           state === "payment-scheduled" ||
           state === "payment-failed") && (
           <DataTable

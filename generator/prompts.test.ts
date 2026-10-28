@@ -190,7 +190,6 @@ describe("specPrompt", () => {
     expect(listedVariants(turn)).toEqual([
       "default",
       "bulk-pay/empty",
-      "bulk-pay/rows-selected",
       "bulk-pay/payment-scheduled",
       "bulk-pay/payment-failed",
     ]);

@@ -326,10 +326,10 @@ requires:
 # The \`${transition}\` transition
 `;
 
-    // An admin queue whose pay action hands its ActionBar off to a Toast,
-    // and whose rows open a Sheet, or one without either pattern: the Button
-    // sits in a Card, the success state shows no Toast, and the DataTable
-    // has no detail slot.
+    // An admin queue whose pay action sits in the table's actions footer and
+    // ends in a Toast either way, and whose rows open a Sheet, or one without
+    // either pattern: the Button sits in a Card, no state shows a Toast, and
+    // the DataTable has no detail slot.
     function queueSpec({ patterns }: { patterns: boolean }): UiSpec {
       const node = (
         id: string,
@@ -348,20 +348,26 @@ requires:
           ...(patterns
             ? [
                 node("sheet", "Sheet", "table", "detail"),
-                node("bar", "ActionBar", "screen", "body", [
-                  "rows-selected",
-                  "payment-failed",
-                ]),
-                node("pay", "Button", "bar", "body", [], "pay"),
-                node("toast", "Toast", "screen", "body", ["payment-scheduled"]),
+                node("pay", "Button", "table", "actions", [], "pay"),
+                {
+                  ...node("done", "Toast", "screen", "body", [
+                    "payment-scheduled",
+                  ]),
+                  props: [{ name: "tone", value: '"success"' }],
+                },
+                {
+                  ...node("failed", "Toast", "screen", "body", [
+                    "payment-failed",
+                  ]),
+                  props: [{ name: "tone", value: '"failure"' }],
+                },
               ]
             : [
-                node("card", "Card", "screen", "body", ["rows-selected"]),
+                node("card", "Card", "screen", "body"),
                 node("pay", "Button", "card", "footer", [], "pay"),
               ]),
         ],
         states: [
-          { name: "rows-selected", fixture: "invoice-queue/rows-selected" },
           {
             name: "payment-scheduled",
             fixture: "invoice-queue/payment-scheduled",
@@ -384,7 +390,7 @@ requires:
       uiSpec,
     });
 
-    it.each(["bar-to-toast", "row-to-sheet"])(
+    it.each(["table-action-to-toast", "row-to-sheet"])(
       "fails a rep whose final UI spec lacks %s, and passes one that has it",
       async (transition) => {
         const at = setup();

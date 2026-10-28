@@ -424,22 +424,22 @@ describe("pnpm eval:report", () => {
         { src: shot(1, "light", "default"), caption: "light · default" },
         { src: shot(1, "dark", "default"), caption: "dark · default" },
         {
-          src: shot(1, "light", "rows-selected"),
-          caption: "light · rows-selected",
+          src: shot(1, "light", "payment-scheduled"),
+          caption: "light · payment-scheduled",
         },
         {
-          src: shot(1, "dark", "rows-selected"),
-          caption: "dark · rows-selected",
+          src: shot(1, "dark", "payment-scheduled"),
+          caption: "dark · payment-scheduled",
         },
         { src: shot(2, "light", "default"), caption: "light · default" },
         { src: shot(2, "dark", "default"), caption: "dark · default" },
         {
-          src: shot(2, "light", "rows-selected"),
-          caption: "light · rows-selected",
+          src: shot(2, "light", "payment-scheduled"),
+          caption: "light · payment-scheduled",
         },
         {
-          src: shot(2, "dark", "rows-selected"),
-          caption: "dark · rows-selected",
+          src: shot(2, "dark", "payment-scheduled"),
+          caption: "dark · payment-scheduled",
         },
       ]);
     });
