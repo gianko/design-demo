@@ -4,13 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import {
-  build,
-  paintedFile,
-  readSources,
-  type Check,
-  type Sources,
-} from "./build.ts";
+import { build, readSources, type Check, type Sources } from "./build.ts";
 
 const run = promisify(execFile);
 const tokensDir = import.meta.dirname;
@@ -43,7 +37,6 @@ async function tokens(edit: (files: Files, sources: Sources) => void) {
       writeFile(join(dir, `${file}.json`), JSON.stringify(json))
     ),
     writeFile(join(dir, "keyframes.css"), copy.keyframes),
-    writeFile(join(dir, paintedFile), JSON.stringify(copy.painted)),
   ]);
   try {
     const { stdout } = await run("node", [
@@ -155,6 +148,19 @@ const fixtures: [
       files["color.dark"].color.bg["surface-pressed"].$value = darkInkAt(0.35);
     },
     "on color.bg.surface-pressed over color.bg.surface-raised,",
+  ],
+  // 4.50:1 on surface-raised as authored, but 4.49:1 as the 8-bit rgb() that
+  // ships, which is what contrast is judged on (#285).
+  [
+    "contrast",
+    "color.text.ink-muted",
+    (files) => {
+      files["color.light"].color.text["ink-muted"].$value = {
+        colorSpace: "oklch",
+        components: [0.546, 0.02, 250],
+      };
+    },
+    "is 4.49:1 on color.bg.surface-raised,",
   ],
   // Dark's hover as it was: opaque, and the same colour as surface-raised,
   // so it only vanishes on that one surface.
@@ -278,28 +284,6 @@ const fixtures: [
     (files) => {
       files["color.dark"].shadow.overlay.$value[1].inset = true;
     },
-  ],
-  // A colour changed without a re-paint has no painted value for Figma (#273).
-  [
-    "painted",
-    "primitive.neutral.970",
-    (files) => {
-      files.primitives.primitive.neutral["970"].$value.components = [
-        0.971, 0.006, 330,
-      ];
-    },
-    "oklch(0.971 0.006 330), which tokens/painted.json has no painted colour for; run `pnpm tokens:paint`",
-  ],
-  // A literal in a role file's shadow layer reaches Figma too.
-  [
-    "painted",
-    "shadow.overlay",
-    (files) => {
-      files["color.dark"].shadow.overlay.$value[1].color.components = [
-        0.09, 0.02, 330,
-      ];
-    },
-    "oklch(0.09 0.02 330)",
   ],
 ];
 

@@ -1,13 +1,11 @@
 // The hand-written token build of ADR 0005. It reads the DTCG sources in this
 // folder, validates them, and writes tokens.css, tokens.ts and figma.json. Run it with
-// `pnpm tokens`; `--source <dir>` and `--out <dir>` point it elsewhere. Figma's
-// colours come from the painted-colour snapshot beside them, painted.json,
-// which `pnpm tokens:paint` writes (tokens/paint.ts).
+// `pnpm tokens`; `--source <dir>` and `--out <dir>` point it elsewhere.
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { converter, inGamut, wcagContrast, type Oklch } from "culori";
+import { converter, inGamut, wcagContrast, type Oklch, type Rgb } from "culori";
 import { z } from "zod";
 import { minLightnessStep } from "./lightness-step.ts";
 import { tokenNames } from "./naming.ts";
@@ -55,8 +53,7 @@ export type Check =
   | "neutral-elevation"
   | "banned-font"
   | "keyframes"
-  | "figma"
-  | "painted";
+  | "figma";
 
 export type Failure = {
   check: Check;
@@ -65,17 +62,7 @@ export type Failure = {
   message: string;
 };
 
-/**
- * The painted-colour snapshot: each colour value the build gives Figma, keyed
- * by its opaque oklch() (see paintedKey), and the 8-bit sRGB Chrome paints it
- * as in the pinned image. `pnpm tokens:paint` writes it (#273).
- */
-export type Painted = Record<string, [r: number, g: number, b: number]>;
-export type Sources = {
-  files: Record<string, unknown>;
-  keyframes: string;
-  painted: Painted;
-};
+export type Sources = { files: Record<string, unknown>; keyframes: string };
 export type Built = { ok: true; css: string; ts: string; figma: string };
 export type BuildResult = Built | { ok: false; failures: Failure[] };
 
@@ -341,41 +328,7 @@ type Resolved = Token & { resolved: unknown };
 
 // ── Build ─────────────────────────────────────────────────────────────────
 
-export function build(sources: Sources): BuildResult {
-  return buildWith(sources, (color) => sources.painted[color]);
-}
-
-/**
- * The colour values the build gives Figma, as the painted-colour snapshot
- * keys them: what `pnpm tokens:paint` paints. Throws if the sources don't
- * build for any other reason.
- */
-export function figmaColors(
-  sources: Pick<Sources, "files" | "keyframes">
-): string[] {
-  const colors = new Set<string>();
-  const result = buildWith(sources, (color) => {
-    colors.add(color);
-    return [0, 0, 0];
-  });
-  if (!result.ok) {
-    throw new Error(
-      result.failures
-        .map(({ path, file, message }) => `${path} in ${file} ${message}`)
-        .join("\n")
-    );
-  }
-  return [...colors].sort();
-}
-
-/** The 8-bit colour Chrome paints a painted-colour key as, if known. */
-type PaintedLookup = (color: string) => Painted[string] | undefined;
-
-/** The build, with Figma's colours taken from `paintedRgb`. */
-function buildWith(
-  { files, keyframes }: Pick<Sources, "files" | "keyframes">,
-  paintedRgb: PaintedLookup
-): BuildResult {
+export function build({ files, keyframes }: Sources): BuildResult {
   const failures = new Failures();
 
   for (const file of sourceFiles) {
@@ -465,7 +418,7 @@ function buildWith(
   if (failures.list.length) return { ok: false, failures: failures.list };
 
   // Payload checks assume valid, matching modes.
-  const figma = emitFigma(resolvedFiles, failures, paintedRgb);
+  const figma = emitFigma(resolvedFiles, failures);
   if (failures.list.length) return { ok: false, failures: failures.list };
 
   return {
@@ -581,7 +534,7 @@ function checkGamut(tokens: Resolved[], failures: Failures) {
           "gamut",
           token.path,
           token.file,
-          `${cssColor(value)} is outside sRGB, so Figma would show a different colour`
+          `${authoredColor(value)} is outside sRGB, so Figma would show a different colour`
         );
       }
     }
@@ -606,11 +559,30 @@ function surfacesOf(byPath: Map<string, Resolved>): Resolved[] {
 }
 
 const toOklch = converter("oklch");
+const toRgb = converter("rgb");
+
+/**
+ * A colour as tokens.css and Figma both carry it: culori's sRGB, each channel
+ * at the nearest 8-bit step. Figma's capture converts a captured oklch() with
+ * its own converter, which can round a channel near .5 the other way from
+ * Chrome's, so no consumer gets oklch() to convert (#285).
+ */
+function rgb8({ components: [l, c, h] }: ColorValue): [number, number, number] {
+  const { r, g, b } = toRgb({ mode: "oklch", l, c, h });
+  const step = (x: number) => Math.min(255, Math.max(0, Math.round(x * 255)));
+  return [step(r), step(g), step(b)];
+}
+
+/** The colour that ships, which contrast and lightness steps are judged on. */
+function shipped(value: ColorValue): Rgb {
+  const [r, g, b] = rgb8(value);
+  return { mode: "rgb", r: r / 255, g: g / 255, b: b / 255 };
+}
 
 /** `fill` painted over an opaque colour, composited in sRGB as browsers do. */
 function over(fill: ColorValue, under: ColorValue): Oklch {
-  const top = toRgb(oklch(fill));
-  const bottom = toRgb(oklch(under));
+  const top = shipped(fill);
+  const bottom = shipped(under);
   const alpha = fill.alpha ?? 1;
   const mix = (a: number, b: number) => a * alpha + b * (1 - alpha);
   return toOklch({
@@ -632,13 +604,16 @@ function checkContrast(tokens: Resolved[], failures: Failures) {
       const fill = background.resolved as ColorValue;
       // A translucent background is measured over each surface under it.
       const composites: [colour: Oklch, where: string][] = opaque(fill)
-        ? [[oklch(fill), ""]]
+        ? [[toOklch(shipped(fill)), ""]]
         : surfaces.map((surface) => [
             over(fill, surface.resolved as ColorValue),
             ` over ${surface.path}`,
           ]);
       for (const [colour, where] of composites) {
-        const ratio = wcagContrast(oklch(token.resolved as ColorValue), colour);
+        const ratio = wcagContrast(
+          shipped(token.resolved as ColorValue),
+          colour
+        );
         if (ratio < contrast.min) {
           failures.add(
             "contrast",
@@ -674,7 +649,7 @@ function checkLightnessSteps(tokens: Resolved[], failures: Failures) {
   }
   for (const surface of surfaces) {
     const base = surface.resolved as ColorValue;
-    let under = { path: surface.path, lightness: oklch(base).l };
+    let under = { path: surface.path, lightness: toOklch(shipped(base)).l };
     for (const state of states) {
       const { l } = over(state.resolved as ColorValue, base);
       // Rounded, so a step authored as 0.02 isn't failed by float error.
@@ -768,7 +743,7 @@ function checkElevation(tokens: Resolved[], failures: Failures) {
           "neutral-elevation",
           token.path,
           token.file,
-          `casts ${cssColor(color)}; a shadow is neutral, never a glow`
+          `casts ${authoredColor(color)}; a shadow is neutral, never a glow`
         );
       }
     }
@@ -837,11 +812,20 @@ const number = (value: number) => String(Number(value.toFixed(4)));
 const px = ({ value }: Dimension) => `${number(value)}px`;
 const ms = ({ value }: Duration) => `${number(value)}ms`;
 
-function cssColor(value: ColorValue): string {
+/** A colour as its source writes it, which tokens.css keeps as a comment. */
+function authoredColor(value: ColorValue): string {
   const [l, c, h] = value.components.map(number);
   return value.alpha === undefined
     ? `oklch(${l} ${c} ${h})`
     : `oklch(${l} ${c} ${h} / ${number(value.alpha)})`;
+}
+
+/** A colour as tokens.css declares it: the 8-bit rgb() Figma also gets. */
+function cssColor(value: ColorValue): string {
+  const channels = rgb8(value).join(" ");
+  return value.alpha === undefined
+    ? `rgb(${channels})`
+    : `rgb(${channels} / ${number(value.alpha)})`;
 }
 
 function cssFontFamily(value: string | string[]): string {
@@ -854,13 +838,24 @@ function cssFontFamily(value: string | string[]): string {
 const cssCubicBezier = (value: number[]) =>
   `cubic-bezier(${value.map(number).join(", ")})`;
 
-/** The --ds-* declarations one token contributes; typography gives one per sub-value. */
-function declarations(token: Resolved): [name: string, value: string][] {
+/**
+ * The --ds-* declarations one token contributes; typography gives one per
+ * sub-value. A colour's comment is the oklch() its rgb() was rounded from.
+ */
+function declarations(
+  token: Resolved
+): [name: string, value: string, comment?: string][] {
   const { cssVar } = tokenNames(token.path);
   const value = token.resolved;
   switch (token.type) {
     case "color":
-      return [[cssVar, cssColor(value as ColorValue)]];
+      return [
+        [
+          cssVar,
+          cssColor(value as ColorValue),
+          authoredColor(value as ColorValue),
+        ],
+      ];
     case "dimension":
       return [[cssVar, px(value as Dimension)]];
     case "duration":
@@ -881,6 +876,9 @@ function declarations(token: Resolved): [name: string, value: string][] {
               (layer) =>
                 `${layer.inset ? "inset " : ""}${px(layer.offsetX)} ${px(layer.offsetY)} ${px(layer.blur)} ${px(layer.spread)} ${cssColor(layer.color)}`
             )
+            .join(", "),
+          layers(token)
+            .map((layer) => authoredColor(layer.color))
             .join(", "),
         ],
       ];
@@ -987,7 +985,10 @@ function focusRingUtility(): string {
 function block(selector: string, tokens: Resolved[]): string {
   const lines = tokens
     .flatMap(declarations)
-    .map(([name, value]) => `  ${name}: ${value};`);
+    .map(
+      ([name, value, comment]) =>
+        `  ${name}: ${value};${comment ? ` /* ${comment} */` : ""}`
+    );
   return `${selector} {\n${lines.join("\n")}\n}`;
 }
 
@@ -1111,14 +1112,6 @@ export type FigmaPayload = {
 };
 
 const title = (name: string) => name[0]!.toUpperCase() + name.slice(1);
-const toRgb = converter("rgb");
-
-/**
- * A colour's key in the painted-colour snapshot: its oklch() as tokens.css
- * writes it, without alpha, which Chrome doesn't paint into the colour.
- */
-export const paintedKey = ({ components }: ColorValue) =>
-  cssColor({ colorSpace: "oklch", components });
 
 /** An 8-bit channel as Figma's 0–1. */
 const channel = (value: number) => Number((value / 255).toFixed(6));
@@ -1184,8 +1177,7 @@ const emptyLayer: ShadowLayer = {
 
 function emitFigma(
   files: Map<string, Resolved[]>,
-  failures: Failures,
-  paintedRgb: PaintedLookup
+  failures: Failures
 ): FigmaPayload {
   const payload: FigmaPayload = {
     collections: [],
@@ -1194,23 +1186,11 @@ function emitFigma(
   };
 
   /**
-   * A colour as the 8-bit sRGB Chrome paints it, from the painted-colour
-   * snapshot: a capture binds a fill only when the values match (#59), and
-   * rounding culori's conversion lands a step off Chrome's for some colours
-   * (#273).
+   * A colour as the same 8-bit sRGB tokens.css declares: a capture binds a
+   * fill only when the values match (#59).
    */
-  const rgba = (value: ColorValue, token: Resolved): Rgba => {
-    const key = paintedKey(value);
-    const rgb = paintedRgb(key);
-    if (!rgb) {
-      failures.add(
-        "painted",
-        token.path,
-        token.file,
-        `gives Figma ${key}, which tokens/painted.json has no painted colour for; run \`pnpm tokens:paint\` to paint it in the pinned image`
-      );
-    }
-    const [r, g, b] = rgb ?? [0, 0, 0];
+  const rgba = (value: ColorValue): Rgba => {
+    const [r, g, b] = rgb8(value);
     return {
       r: channel(r),
       g: channel(g),
@@ -1221,14 +1201,10 @@ function emitFigma(
   };
 
   /** A colour stays an alias where its source writes one, so roles alias Primitives. */
-  const figmaColor = (
-    written: unknown,
-    resolved: ColorValue,
-    token: Resolved
-  ): FigmaValue =>
+  const figmaColor = (written: unknown, resolved: ColorValue): FigmaValue =>
     typeof written === "string"
       ? { alias: tokenNames(written.slice(1, -1)).figma }
-      : rgba(resolved, token);
+      : rgba(resolved);
 
   for (const [name, scope] of Object.entries(collections)) {
     if (notInFigma.includes(name)) continue;
@@ -1281,7 +1257,7 @@ function emitFigma(
             "COLOR",
             scopes,
             cssVar,
-            (t) => figmaColor(t.value, t.resolved as ColorValue, t),
+            (t) => figmaColor(t.value, t.resolved as ColorValue),
             token.path
           );
           break;
@@ -1435,7 +1411,7 @@ function emitFigma(
                   undefined,
                   (t) => {
                     const { written, resolved } = at(t);
-                    return figmaColor(written?.color, resolved.color, t);
+                    return figmaColor(written?.color, resolved.color);
                   },
                   token.path
                 );
@@ -1479,17 +1455,11 @@ function emitFigma(
 
 /** The build's JSON output, which sits among the sources but isn't one. */
 export const figmaPayloadFile = "figma.json";
-/** The painted-colour snapshot, written by `pnpm tokens:paint`. */
-export const paintedFile = "painted.json";
 
 export async function readSources(dir: string): Promise<Sources> {
   const files: Record<string, unknown> = {};
   for (const entry of (await readdir(dir)).sort()) {
-    if (
-      !entry.endsWith(".json") ||
-      [figmaPayloadFile, paintedFile].includes(entry)
-    )
-      continue;
+    if (!entry.endsWith(".json") || entry === figmaPayloadFile) continue;
     files[entry.slice(0, -".json".length)] = JSON.parse(
       await readFile(join(dir, entry), "utf8")
     );
@@ -1497,19 +1467,7 @@ export async function readSources(dir: string): Promise<Sources> {
   return {
     files,
     keyframes: await readFile(join(dir, "keyframes.css"), "utf8"),
-    painted: await readPainted(join(dir, paintedFile)),
   };
-}
-
-// Without a snapshot, every colour is unpainted, and the build says how to
-// paint them.
-async function readPainted(file: string): Promise<Painted> {
-  try {
-    return JSON.parse(await readFile(file, "utf8"));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
-    throw error;
-  }
 }
 
 async function main(args: string[]): Promise<number> {
