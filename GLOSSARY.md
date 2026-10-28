@@ -68,6 +68,10 @@ _Avoid_: Hidden prop, internal prop, runtime prop
 The one fixed, typed set of sample contractors, invoices and payments that every generated screen renders, including the variants its screen states use.
 _Avoid_: Mock data, seed data, sample data
 
+**Fixture variant**:
+One named version of the fixtures that a screen state renders. `default` is shared by every screen; every other variant belongs to one screen and is named for it and its state, e.g. `bulk-pay/payment-failed`.
+_Avoid_: Fixture state, scenario
+
 **Screen state**:
 A named condition of one generated screen (empty, loading, error, rows selected) that the UI spec declares and each eval run renders; distinct from an invoice's status, which comes from the data.
 _Avoid_: View, mode, variant
