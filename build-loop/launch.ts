@@ -110,7 +110,7 @@ export function pruneMerged(main: string, log: Log) {
       continue;
     }
     run("git", ["worktree", "remove", path], main);
-    run("git", ["branch", "--delete", branch], main);
+    run("git", ["branch", "--delete", "--quiet", branch], main);
     log(`Removed ${path}: its branch is merged.`);
   }
 }
