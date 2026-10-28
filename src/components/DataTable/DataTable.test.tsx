@@ -182,10 +182,7 @@ it("enables the footer's Buttons in a state that starts with rows ticked", () =>
 // rows the operation acts on are the rows shown ticked.
 describe("while a footer action is pending", () => {
   const locked = () =>
-    boxes().map((box) => [
-      box.getAttribute("aria-disabled"),
-      box.disabled,
-    ]);
+    boxes().map((box) => [box.getAttribute("aria-disabled"), box.disabled]);
 
   it("locks every Checkbox, still focusable, and ticking does nothing", async () => {
     host();
