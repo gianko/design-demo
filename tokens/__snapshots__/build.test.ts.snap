@@ -638,7 +638,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
             "Value": {
               "r": 0.52549,
               "g": 0.490196,
-              "b": 0.517647,
+              "b": 0.521569,
               "a": 1
             }
           }
@@ -714,7 +714,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [],
           "valuesByMode": {
             "Value": {
-              "r": 0.972549,
+              "r": 0.968627,
               "g": 0.956863,
               "b": 0.968627,
               "a": 1
@@ -1078,7 +1078,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "scopes": [],
           "valuesByMode": {
             "Value": {
-              "r": 0.090196,
+              "r": 0.086275,
               "g": 0.364706,
               "b": 0.607843,
               "a": 1

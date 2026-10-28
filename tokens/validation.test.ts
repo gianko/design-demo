@@ -4,7 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { build, readSources, type Check, type Sources } from "./build.ts";
+import {
+  build,
+  paintedFile,
+  readSources,
+  type Check,
+  type Sources,
+} from "./build.ts";
 
 const run = promisify(execFile);
 const tokensDir = import.meta.dirname;
@@ -37,6 +43,7 @@ async function tokens(edit: (files: Files, sources: Sources) => void) {
       writeFile(join(dir, `${file}.json`), JSON.stringify(json))
     ),
     writeFile(join(dir, "keyframes.css"), copy.keyframes),
+    writeFile(join(dir, paintedFile), JSON.stringify(copy.painted)),
   ]);
   try {
     const { stdout } = await run("node", [
@@ -271,6 +278,28 @@ const fixtures: [
     (files) => {
       files["color.dark"].shadow.overlay.$value[1].inset = true;
     },
+  ],
+  // A colour changed without a re-paint has no painted value for Figma (#273).
+  [
+    "painted",
+    "primitive.neutral.970",
+    (files) => {
+      files.primitives.primitive.neutral["970"].$value.components = [
+        0.971, 0.006, 330,
+      ];
+    },
+    "oklch(0.971 0.006 330), which tokens/painted.json has no painted colour for; run `pnpm tokens:paint`",
+  ],
+  // A literal in a role file's shadow layer reaches Figma too.
+  [
+    "painted",
+    "shadow.overlay",
+    (files) => {
+      files["color.dark"].shadow.overlay.$value[1].color.components = [
+        0.09, 0.02, 330,
+      ];
+    },
+    "oklch(0.09 0.02 330)",
   ],
 ];
 
