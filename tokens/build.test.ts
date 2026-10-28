@@ -119,6 +119,7 @@ describe("the naming chain", () => {
     ["density.height.control", '[data-density="contractor"]'],
     ["density.min-height.target", '[data-density="contractor"]'],
     ["density.max-width.measure", '[data-density="contractor"]'],
+    ["density.max-height.table", '[data-density="contractor"]'],
     ["density.size.icon", '[data-density="contractor"]'],
     ["density.radius.surface", '[data-density="contractor"]'],
     ["density.text.body", '[data-density="contractor"]'],
@@ -306,7 +307,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(96);
+    expect(variables.filter((v) => v.css)).toHaveLength(97);
   });
 
   // ADR 0001 lists container padding among what density changes.
@@ -424,6 +425,17 @@ describe("the Figma payload", () => {
       scopes: ["WIDTH_HEIGHT"],
       css: true,
       valuesByMode: { Admin: 412, Contractor: 472 },
+    });
+  });
+
+  // A table's header row and 10 rows at the density's row height, 46px and
+  // 60px (#296): a longer table scrolls inside its frame.
+  it("caps a table's height by density: 506px admin, 660px contractor", () => {
+    expect(variable("Density", "density/max-height/table")).toMatchObject({
+      type: "FLOAT",
+      scopes: ["WIDTH_HEIGHT"],
+      css: true,
+      valuesByMode: { Admin: 506, Contractor: 660 },
     });
   });
 
