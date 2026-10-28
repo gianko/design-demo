@@ -52,9 +52,20 @@ import "./DataTable.css";
 // confirmed result, the rows whose status changed are marked `data-flip`
 // and flip in the stagger DataTable.css sets out (ADR 0011). A table
 // renders its first statuses still: nothing animates on page load.
+// A table of more than 10 rows scrolls inside its frame, under a header row
+// stuck to the top (#296); the frame has room below its body for a footer.
 export const dataTable = tv({
   slots: {
+    // The frame: the flat surface. It scrolls sideways if the columns outgrow
+    // a narrow screen, so it clips the table's corners too. Room below the
+    // body is left for a footer (#296).
     root: "overflow-x-auto rounded-surface border border-line bg-surface",
+    // The body: up to the header row and 10 rows at the density's row
+    // height, then it scrolls down (#296). As wide as the table, and at
+    // least the frame, so the frame, not the body, scrolls sideways and
+    // clips the corners as before. Focus scrolls a row clear of the header
+    // row (DataTable.css).
+    body: "max-h-table w-max min-w-full overflow-y-auto",
     table: "w-full border-collapse",
     headerRow: "h-row",
     header:
@@ -83,6 +94,14 @@ export const dataTable = tv({
     // surface clips anything outside it (DataTable.css).
     opens: { true: { row: "focus-visible:focus-ring" }, false: {} },
     money: { true: { header: "text-right" }, false: { header: "text-left" } },
+    // More rows than the body holds, so it scrolls down: the header row is
+    // stuck to the top of the body, opaque and drawn over the rows passing
+    // under it, Checkboxes included. Only then, so a table that fits paints
+    // as it did before the cap (#296).
+    scrolls: {
+      true: { headerRow: "sticky top-0 z-raised bg-surface" },
+      false: {},
+    },
   },
   compoundVariants: [
     // A selected row keeps its fill under the pointer: selection outranks
@@ -93,10 +112,20 @@ export const dataTable = tv({
       class: { row: "hover:bg-surface-hover active:bg-surface-pressed" },
     },
   ],
-  defaultVariants: { selected: false, opens: false, money: false },
+  defaultVariants: {
+    selected: false,
+    opens: false,
+    money: false,
+    scrolls: false,
+  },
 });
 
 type Row = { id: string };
+
+// The rows the body holds under its header row before it scrolls down: the
+// `max-h-table` token is the header row and this many rows at the density's
+// row height (#296).
+const rowsInView = 10;
 
 export type DataTableProps<R extends Row = Row> = Omit<
   PropsOf<typeof dataTableEntry>,
@@ -284,7 +313,7 @@ export function DataTable<R extends Row>({
   const all =
     chosen === 0 ? false : chosen === rows.length ? true : ("mixed" as const);
 
-  const slots = dataTable();
+  const slots = dataTable({ scrolls: rows.length > rowsInView });
   return (
     <>
       <div
@@ -293,88 +322,93 @@ export function DataTable<R extends Row>({
         {...(detail && { [detailAttribute]: "" })}
         className={slots.root()}
       >
-        <table className={slots.table()}>
-          <thead>
-            <tr className={slots.headerRow()}>
-              {selectable && (
-                <th scope="col" className={slots.select()}>
-                  <div className={slots.selector()}>
-                    <Checkbox
-                      label="Select all rows"
-                      checked={all}
-                      disabled={rows.length === 0}
-                      onCheckedChange={(on) =>
-                        select(new Set(on ? rows.map((row) => row.id) : []))
-                      }
-                    />
-                  </div>
-                </th>
-              )}
-              {columns.map((name, i) => (
-                <th
-                  key={i}
-                  scope="col"
-                  className={dataTable({ money: moneyColumns[i] }).header()}
-                >
-                  {name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, r) => {
-              const isSelected = selected.has(row.id);
-              const each = dataTable({ selected: isSelected, opens: !!detail });
-              const opens = detail && {
-                tabIndex: 0,
-                onClick: () => openDetail(row.id),
-                // Enter on the row itself, not on its checkbox.
-                onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
-                  if (
-                    event.key !== "Enter" ||
-                    event.target !== event.currentTarget
-                  )
-                    return;
-                  event.preventDefault();
-                  openDetail(row.id);
-                },
-              };
-              return (
-                <tr
-                  key={`${row.id} ${statuses.flips.get(row.id) ?? 0}`}
-                  className={each.row()}
-                  data-flip={statuses.flipped.has(row.id) || undefined}
-                  {...opens}
-                >
-                  {selectable && (
-                    // Ticking selects; a click on the box doesn't open the row.
-                    <td
-                      className={each.select()}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <div className={each.selector()}>
-                        <Checkbox
-                          label={`Select ${row.id}`}
-                          checked={isSelected}
-                          onCheckedChange={(on) => toggle(row.id, on)}
-                        />
-                      </div>
-                    </td>
-                  )}
-                  {cells[r]!.map((node, i) => (
-                    <td key={i} className={each.cell()}>
-                      {statusColumns[i] ? (
-                        <StatusRoom>{node}</StatusRoom>
-                      ) : (
-                        node
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className={slots.body()}>
+          <table className={slots.table()}>
+            <thead>
+              <tr className={slots.headerRow()}>
+                {selectable && (
+                  <th scope="col" className={slots.select()}>
+                    <div className={slots.selector()}>
+                      <Checkbox
+                        label="Select all rows"
+                        checked={all}
+                        disabled={rows.length === 0}
+                        onCheckedChange={(on) =>
+                          select(new Set(on ? rows.map((row) => row.id) : []))
+                        }
+                      />
+                    </div>
+                  </th>
+                )}
+                {columns.map((name, i) => (
+                  <th
+                    key={i}
+                    scope="col"
+                    className={dataTable({ money: moneyColumns[i] }).header()}
+                  >
+                    {name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, r) => {
+                const isSelected = selected.has(row.id);
+                const each = dataTable({
+                  selected: isSelected,
+                  opens: !!detail,
+                });
+                const opens = detail && {
+                  tabIndex: 0,
+                  onClick: () => openDetail(row.id),
+                  // Enter on the row itself, not on its checkbox.
+                  onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
+                    if (
+                      event.key !== "Enter" ||
+                      event.target !== event.currentTarget
+                    )
+                      return;
+                    event.preventDefault();
+                    openDetail(row.id);
+                  },
+                };
+                return (
+                  <tr
+                    key={`${row.id} ${statuses.flips.get(row.id) ?? 0}`}
+                    className={each.row()}
+                    data-flip={statuses.flipped.has(row.id) || undefined}
+                    {...opens}
+                  >
+                    {selectable && (
+                      // Ticking selects; a click on the box doesn't open the row.
+                      <td
+                        className={each.select()}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className={each.selector()}>
+                          <Checkbox
+                            label={`Select ${row.id}`}
+                            checked={isSelected}
+                            onCheckedChange={(on) => toggle(row.id, on)}
+                          />
+                        </div>
+                      </td>
+                    )}
+                    {cells[r]!.map((node, i) => (
+                      <td key={i} className={each.cell()}>
+                        {statusColumns[i] ? (
+                          <StatusRoom>{node}</StatusRoom>
+                        ) : (
+                          node
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
       {opened && <SheetHost onClose={closeDetail}>{detail(opened)}</SheetHost>}
     </>

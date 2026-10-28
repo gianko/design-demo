@@ -1,14 +1,35 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+// A label stuck to the top of a box a row high, over dates scrolled to the
+// end, so the second date lies under the label.
+function StuckDates({ fill }: { fill: boolean }) {
+  return (
+    <div
+      className="h-row w-4xl overflow-auto"
+      ref={(box) => {
+        if (box) box.scrollTop = box.scrollHeight;
+      }}
+    >
+      <p className={fill ? "sticky top-0 bg-surface" : "sticky top-0"}>Due</p>
+      <p>Oct 24</p>
+      <p>Nov 2</p>
+      <p>Dec 1</p>
+    </div>
+  );
+}
+
 // text-overflow (lint/taste/RULES.md), one failure per story. Spill: an IBAN
 // with no break opportunity runs out of a narrow column, and a long label
 // wraps out of the bottom of a fixed-height control. Clip: a long name cut
 // off by `overflow: hidden` with no ellipsis. Collide: two labels painted
-// over each other. Pass: the same content truncated with an ellipsis, broken
-// anywhere, or given room, a visually hidden status region, as Screen
-// renders one, whose copy runs past its 1px box because no one sees it, and a
-// modal dialog, as a Sheet opens, whose text covers the page's behind it
-// rather than colliding with it.
+// over each other. Stuck: a list scrolled to its end under a stuck label with
+// no fill, so the dates show through it. Pass: the same content truncated
+// with an ellipsis, broken anywhere, or given room, a visually hidden status
+// region, as Screen renders one, whose copy runs past its 1px box because no
+// one sees it, a modal dialog, as a Sheet opens, whose text covers the page's
+// behind it rather than colliding with it, and the stuck label with an
+// opaque fill, as a long DataTable's header row has, which covers the dates
+// scrolling under it.
 const meta = {
   title: "GateFixtures/TextOverflow",
   args: { variant: "pass" },
@@ -27,6 +48,7 @@ const meta = {
           Northwind Logistics GmbH
         </p>
       )}
+      {variant === "stuck" && <StuckDates fill={false} />}
       {variant === "collide" && (
         <div className="relative h-control w-4xl">
           <span className="absolute inset-0">Awaiting</span>
@@ -56,11 +78,12 @@ const meta = {
           >
             <p>Invoice INV-0142, due Oct 24</p>
           </dialog>
+          <StuckDates fill />
         </>
       )}
     </div>
   ),
-} satisfies Meta<{ variant: "pass" | "spill" | "clip" | "collide" }>;
+} satisfies Meta<{ variant: "pass" | "spill" | "clip" | "collide" | "stuck" }>;
 
 export default meta;
 
@@ -71,3 +94,5 @@ export const Spill: StoryObj<typeof meta> = { args: { variant: "spill" } };
 export const Clip: StoryObj<typeof meta> = { args: { variant: "clip" } };
 
 export const Collide: StoryObj<typeof meta> = { args: { variant: "collide" } };
+
+export const Stuck: StoryObj<typeof meta> = { args: { variant: "stuck" } };

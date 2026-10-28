@@ -91,13 +91,26 @@ function overflowing(root: Element): RenderFinding[] {
   // Collisions: two texts whose line boxes overlap by more than the slack.
   // A modal dialog (a Sheet) draws in the top layer, over the inert page
   // behind its scrim, so its text covers the page's rather than colliding
-  // with it: only texts in the same layer can collide.
+  // with it: only texts in the same layer can collide. So does a stuck box
+  // (`position: sticky`) with an opaque fill, such as a long DataTable's
+  // header row, over the content scrolling under it (#296).
   const layer = (element: Element) => element.closest(":modal");
+  const stuck = (element: Element) => {
+    for (let box: Element | null = element; box; box = box.parentElement) {
+      const style = getComputedStyle(box);
+      if (style.position === "sticky") {
+        // Chrome writes an opaque colour as rgb(), one with alpha as rgba().
+        return style.backgroundColor.startsWith("rgb(") ? box : null;
+      }
+    }
+    return null;
+  };
   for (let i = 0; i < texts.length; i++) {
     for (let j = i + 1; j < texts.length; j++) {
       const a = texts[i]!;
       const b = texts[j]!;
       if (layer(a.element) !== layer(b.element)) continue;
+      if (stuck(a.element) !== stuck(b.element)) continue;
       const overlap = a.rects.some((r) =>
         b.rects.some(
           (s) =>

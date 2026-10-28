@@ -73,15 +73,23 @@ One named version of the fixtures that a screen state renders. `default` is shar
 _Avoid_: Fixture state, scenario
 
 **Screen state**:
-A named condition of one generated screen (empty, loading, error, rows selected) that the UI spec declares and each eval run renders; distinct from an invoice's status, which comes from the data.
+A named condition of one generated screen (empty, loading, error, payment scheduled) that the UI spec declares and each eval run renders; distinct from an invoice's status, which comes from the data, and from the selection, which is the table's own.
 _Avoid_: View, mode, variant
 
 **Selection**:
-The rows of a screen's table that the user has ticked, which an action such as approve and pay acts on. The ScreenHost holds it, beside the screen state; a confirmed action clears it, and a failed one keeps it.
-_Avoid_: Checked rows, picked items
+The rows of a screen's table that the user has ticked, which an action in the table's actions footer, such as approve and pay, acts on. It belongs to the table, not to a screen state; a confirmed action clears it, and a failed one keeps it.
+_Avoid_: Checked rows, picked items, rows selected (as a screen state)
+
+**Actions footer**:
+The strip along the bottom of a table's frame, below its rows, that holds the table's bulk actions and its selected count. It is always there on a table that has actions, its buttons unavailable until a row is ticked.
+_Avoid_: ActionBar, bulk-action bar, toolbar
+
+**Selected count**:
+The words at the start of the actions footer saying how many rows are ticked, written by the UI spec in three forms (none, one, more) with the number filled in by the library.
+_Avoid_: Selection label, counter
 
 **Signature transition**:
-One of the design brief's two named transitions, the pay confirmation (bar → stagger → toast) and row → sheet. A generated screen shows one by including the components and screen states that carry it, never by describing the motion.
+One of the design brief's two named transitions, the pay confirmation (pending → stagger → toast) and row → sheet. A generated screen shows one by including the components and screen states that carry it, never by describing the motion.
 _Avoid_: Animation, effect, hero motion
 
 **Generated screen**:
@@ -145,6 +153,10 @@ _Avoid_: Try, retry
 **Pass criteria**:
 A screen brief's own requirements (components, screen states, actions) that the final UI spec of a rep must meet, on top of the gates.
 _Avoid_: Acceptance criteria, assertions
+
+**`table-action-to-toast`**:
+The pass criterion for the pay confirmation: a table's actions footer holds a Button that runs an action, whose success state shows a success toast and whose failure state a failure toast.
+_Avoid_: bar-to-toast
 
 **Coverage rule**:
 What the set of screen briefs must meet as a whole: every library component appears in at least two briefs' pass criteria, each audience gets at least a third of the briefs, and every action has a failure state. Internal entries and layout primitives aren't counted.

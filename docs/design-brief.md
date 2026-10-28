@@ -19,10 +19,12 @@ Two people use the screens, and density follows who's looking.
 | Minimum target | 24px | 44px |
 | Control height | 32px | 44px |
 | Control side padding | 12px | 16px |
+| Table height cap | 506px | 660px |
 
 - **Admin screens are dense.** _Why: the admin is the primary user and clears dozens of invoices a day on a desktop._
 - **Contractor screens have room.** _Why: the contractor visits a few times a month, often on a phone, and wants reassurance more than throughput._
 - Buttons, icon buttons, inputs, selects and segmented filters share the control height, so controls in one row line up.
+- A table's height cap is its header row and 10 rows at the row height. A longer table scrolls inside its frame under a header row that stays put, rather than pushing the rest of the screen down.
 - 24px is a floor, not an exemption: targets still meet WCAG 2.2 target size, spacing rule included.
 - Warmth is the same at both densities; only size and spacing change. See [ADR 0001](adr/0001-density-by-audience.md).
 
@@ -79,11 +81,11 @@ Motion confirms what the user just did. It is the system's signature, so it is p
 
 - **Durations**: `fast` 120ms (press, hover colour), `base` 240ms (state change, selection), `slow` 320ms (sheet, modal, toast entering). Exits run at about 70% of the enter duration.
 - **Easings**: `standard` (ease-out) by default; `exit` (ease-in) for leaving; `settle`, a single overshoot of about 4% with no second swing, only for confirming something the user did (a status flipping after pay, a toast arriving). Never on exits, never on anything the system starts.
-- **Expected**: selection, the bulk-action bar entering and handing off to its toast, status changes staggered across rows, sheets sliding in from the edge, a pending action's progress edge.
+- **Expected**: selection, a toast sliding in with an action's result and out again, status changes staggered across rows, sheets sliding in from the edge, a pending action's progress edge.
 - **Banned**: bounce or elastic easing (more than one swing), entrance animations on page load, hover lift on cards or rows, anything that loops.
 - **The one loop**: a pending action shows a progress edge along its button's bottom that fills once over `slow`. If the operation is still running, the edge sweeps until the result arrives, then stops. The sweep wraps around: the full edge slides out to the right and back in from the left, one `loop` (1280ms) per pass, linear, so it never jumps. _Why: the wait has no known length, and a still button reads as frozen._ Reduced motion: a static edge.
 - **Pending and disabled**: a pending button keeps its label as written, is marked busy and unavailable to assistive tech, and stays focusable so focus doesn't drop mid-operation; whatever confirms the result (the toast) announces it. A disabled control is natively disabled and leaves the tab order.
-- **Signature transitions**: (1) pay → the bar shows pending → once the payment is confirmed, statuses flip in a stagger and the bar becomes the toast; (2) the invoice-detail sheet slides in from the edge.
+- **Signature transitions**: (1) pay → the Button shows pending → once confirmed, statuses flip in a stagger and the toast slides in; (2) the invoice-detail sheet slides in from the edge.
 - **Stagger**: only the rows whose status changed, in row order, 40ms apart; from the 8th row on they flip together. _Why: paying thirty invoices should still read as one confirmation._
 - **Never show success before it's confirmed.** The stagger is the confirmation, not a guess. _Why: assured means the screen never claims money moved when it hasn't._
 - **Reduced motion**: no movement, overshoot or stagger; changes become a `fast` crossfade. Everything works without animation.

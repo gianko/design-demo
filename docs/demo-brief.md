@@ -51,9 +51,9 @@ Domain for the generated screens: **contractor payroll / invoicing** (I live it 
 
 ## 4. Components (initial list — trim, don't grow)
 
-Button, IconButton, Checkbox, Badge/StatusTag, Card, DataTable (selectable rows), Modal/Sheet, Toast, ActionBar (the bulk-action bar, see [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)), EmptyState, PageHeader, Screen (the root of every generated screen), Stack (the layout primitive), Heading, Text, Amount (typography; generated screens use library components only, see [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
+Button, IconButton, Checkbox, Badge/StatusTag, Card, DataTable (selectable rows, with bulk actions in its footer, see [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md)), Modal/Sheet, Toast, EmptyState, PageHeader, Screen (the root of every generated screen), Stack (the layout primitive), Heading, Text, Amount (typography; generated screens use library components only, see [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
 
-Trimmed in P1: Input, Select, Pagination, Tabs, Grid and sortable DataTable. The reason for each is in [the spec's After P1](spec.md#after-p1).
+Trimmed in P1: Input, Select, Pagination, Tabs, Grid and sortable DataTable. The reason for each is in [the spec's After P1](spec.md#after-p1). ActionBar, the bulk-action bar, was retired in P1 when bulk actions moved into DataTable's footer ([ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md)).
 
 Tokens: colour (semantic, light + dark modes), spacing, radius, type scale + pairing, elevation, motion (durations, easings), z-index.
 

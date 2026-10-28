@@ -280,3 +280,24 @@ describe("Button's pending", () => {
     expect(button(system[2]!).codeOnly).toEqual(["pending"]);
   });
 });
+
+// #293: a row's Sheet repeats the row only in its amount and status, so the
+// spec step reads, in Sheet's use line, to show those first and then only
+// the facts the table's columns don't.
+describe("Sheet's use line", () => {
+  it("tells the spec step to show the amount and status, then only what the columns don't", async () => {
+    const { system } = specPrompt(
+      "# Design brief",
+      await loadRegistry(),
+      "{}",
+      fixtures
+    );
+    const json = system[2]!.text.replace(/^<registry>\n|\n<\/registry>$/g, "");
+    const sheet = (JSON.parse(json) as { name: string; use: string }[]).find(
+      ({ name }) => name === "Sheet"
+    )!;
+
+    expect(sheet.use).toMatch(/amount and status first/);
+    expect(sheet.use).toMatch(/only the facts the table's columns don't show/);
+  });
+});

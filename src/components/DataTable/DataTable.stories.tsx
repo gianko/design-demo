@@ -60,8 +60,8 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// The detail slot: the row's invoice, its amount and status first, then the
-// facts the row had no room for, every value read from the row.
+// The detail slot: the row's invoice, its amount and status first, then only
+// the facts no column shows (#293), every value read from the row.
 function invoiceSheet(row: Invoice) {
   return (
     <Sheet
@@ -72,15 +72,16 @@ function invoiceSheet(row: Invoice) {
         <Amount value={row.amount} currency={row.currency} display="card" />
         <StatusTag status={row.status} />
       </Stack>
+      <Text text={row.description} />
       <Stack gap="2xs">
-        <Fact label="Contractor">
-          <Text text={row.contractor} />
+        <Fact label="Issued">
+          <Text text={row.issuedLabel} />
         </Fact>
         <Fact label="Client">
           <Text text={row.client} />
         </Fact>
-        <Fact label="Due">
-          <Text text={row.dueLabel} />
+        <Fact label="Lines">
+          <Text text={row.lineCountLabel} />
         </Fact>
       </Stack>
     </Sheet>
@@ -319,6 +320,124 @@ const longRun: Invoice[] = [...run, ...run].map((each, i) => {
   return { ...each, id: number, number, status: "awaiting" };
 });
 
+// More rows than the frame holds (#296): the default queue twice over,
+// renumbered, sixteen invoices.
+const queue = fixtureVariant("default").data.invoices;
+const manyRows: Invoice[] = [...queue, ...queue].map((each, i) => {
+  const number = `INV-${String(301 + i).padStart(4, "0")}`;
+  return { ...each, id: number, number };
+});
+
+// The frame's scrolling body: the element around the table.
+const bodyOf = (root: Element) => root.querySelector("table")!.parentElement!;
+
+// A row's tab stop: the row itself in a table whose rows open, or its
+// Checkbox.
+type Stop = "row" | "checkbox";
+
+const stopOf = (row: Element, stop: Stop) =>
+  (stop === "row" ? row : row.querySelector("input")!) as HTMLElement;
+
+// The table as a person leaves it (#296): if `rows` is given, its body
+// scrolled that many rows and a half down, so the header row sits over a
+// part-hidden row; then, if `focus` names a stop, focus moved to the `at`th
+// row's (counted from 0), as Tab or Shift+Tab moves it, scrolling the body
+// if focus asks. Focus then passes to the wrapper, which Tab skips, and is
+// blurred there, so the gate's own Tab starts before the table, as it does
+// elsewhere, rather than after the blurred stop.
+function Scrolled({
+  rows,
+  focus,
+  at = 0,
+  children,
+}: {
+  rows?: number;
+  focus?: Stop;
+  at?: number;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const body = bodyOf(
+      ref.current!.querySelector('[data-component="DataTable"]')!
+    );
+    const tr = [...body.querySelectorAll("tbody tr")];
+    if (rows !== undefined) {
+      body.scrollTop = tr[0]!.getBoundingClientRect().height * (rows + 0.5);
+    }
+    if (!focus) return;
+    stopOf(tr[at]!, focus).focus();
+    ref.current!.focus({ preventScroll: true });
+    ref.current!.blur();
+  }, [rows, focus, at]);
+  return (
+    <div ref={ref} tabIndex={-1}>
+      {children}
+    </div>
+  );
+}
+
+// Style expectations (ADR 0012) of a table with more rows than its frame
+// holds (#296): the body is capped at the header row and 10 rows of the
+// density's row height and scrolls; the header row is stuck to the top of
+// the body, with an opaque fill, and drawn over the rows passing under it.
+async function scrollsUnderTheCap(canvas: HTMLElement, density: string) {
+  await holdsRowsAndHeaders(canvas, density);
+  const cap = density === "contractor" ? 660 : 506;
+  const root = canvas.querySelector('[data-component="DataTable"]')!;
+  const body = bodyOf(root);
+  const style = getComputedStyle(body);
+  await expect(style.maxHeight).toBe(`${cap}px`);
+  await expect(style.overflowY).toBe("auto");
+  await expect(body.getBoundingClientRect().height).toBe(cap);
+  await expect(body.scrollHeight).toBeGreaterThan(body.clientHeight);
+  await expect(body.scrollTop).toBeGreaterThan(0);
+
+  const headerRow = root.querySelector("thead tr")!;
+  const header = getComputedStyle(headerRow);
+  await expect(header.position).toBe("sticky");
+  await expect(header.top).toBe("0px");
+  await expect(header.backgroundColor).toBe(
+    getComputedStyle(root).backgroundColor
+  );
+  await expect(headerRow.getBoundingClientRect().top).toBe(
+    body.getBoundingClientRect().top
+  );
+  // Each header cell in view is what's drawn down its middle, not a row, or
+  // a row's Checkbox, passing under it.
+  const view = root.getBoundingClientRect();
+  for (const cell of headerRow.querySelectorAll("th")) {
+    const { left, top, width, height } = cell.getBoundingClientRect();
+    const x = left + width / 2;
+    if (x < view.left || x > view.right) continue;
+    for (const y of [1, 2, 3].map((quarter) => top + (height * quarter) / 4)) {
+      await expect(cell.contains(document.elementFromPoint(x, y))).toBe(true);
+    }
+  }
+}
+
+// Style expectations (ADR 0012) of a body that focus scrolled (#296): the
+// stop focus moved to, the `at`th row's, is in view below the header row,
+// not under it.
+async function focusClearsHeader(
+  canvas: HTMLElement,
+  density: string,
+  stop: Stop,
+  at: number
+) {
+  await holdsRowsAndHeaders(canvas, density);
+  const root = canvas.querySelector('[data-component="DataTable"]')!;
+  const body = bodyOf(root).getBoundingClientRect();
+  const header = root.querySelector("thead tr")!.getBoundingClientRect();
+  const focused = stopOf(
+    root.querySelectorAll("tbody tr")[at]!,
+    stop
+  ).getBoundingClientRect();
+  await expect(header.top).toBe(body.top);
+  await expect(focused.top).toBeGreaterThanOrEqual(header.bottom);
+  await expect(focused.bottom).toBeLessThanOrEqual(body.bottom);
+}
+
 const rowsSelected = {
   screenState: {
     name: "rows-selected",
@@ -467,9 +586,87 @@ export const NotSelectable: Story = {
   },
 };
 
+// Style expectations (ADR 0012) of a table on a phone: its columns outgrow
+// the screen, so the frame scrolls sideways, the body and its header row
+// with it.
+async function scrollsSideways(canvas: HTMLElement) {
+  const root = canvas.querySelector('[data-component="DataTable"]')!;
+  await expect(getComputedStyle(root).overflowX).toBe("auto");
+  await expect(root.scrollWidth).toBeGreaterThan(root.clientWidth);
+  await expect(bodyOf(root).scrollWidth).toBe(bodyOf(root).clientWidth);
+}
+
 // On a phone the columns keep their width and the table scrolls sideways
 // inside its surface, rather than squeezing amounts onto two lines.
-export const Phone: Story = { render: () => <InvoiceQueue />, tags: ["phone"] };
+export const Phone: Story = {
+  render: () => <InvoiceQueue />,
+  tags: ["phone"],
+  play: async ({ canvasElement, globals }) => {
+    await holdsRowsAndHeaders(canvasElement, globals.density);
+    await scrollsSideways(canvasElement);
+  },
+};
+
+// Sixteen invoices, more than the frame's 10 rows (#296): the body scrolls
+// inside the frame, here three and a half rows down, and the header row
+// stays stuck to its top, the rows passing under it.
+export const ManyRows: Story = {
+  render: () => (
+    <Scrolled rows={3}>
+      <InvoiceQueue rows={manyRows} />
+    </Scrolled>
+  ),
+  play: ({ canvasElement, globals }) =>
+    scrollsUnderTheCap(canvasElement, globals.density),
+};
+
+// The same cap on a phone, where the frame scrolls sideways too and the
+// header row moves sideways with its columns.
+export const ManyRowsOnPhone: Story = {
+  ...ManyRows,
+  tags: ["phone"],
+  play: async ({ canvasElement, globals }) => {
+    await scrollsUnderTheCap(canvasElement, globals.density);
+    await scrollsSideways(canvasElement);
+  },
+};
+
+// Tabbing down a table whose rows open, to its last row: below the fold, it
+// scrolls into view.
+export const FocusScrollsDownToRow: Story = {
+  render: () => (
+    <Scrolled focus="row" at={15}>
+      <InvoiceQueue rows={manyRows} selectable={false} detail />
+    </Scrolled>
+  ),
+  play: ({ canvasElement, globals }) =>
+    focusClearsHeader(canvasElement, globals.density, "row", 15),
+};
+
+// The same table scrolled three and a half rows down, and Shift+Tab back
+// from the 5th row to the 4th, half under the header row: the 4th scrolls
+// into view below the header row rather than staying under it.
+export const FocusScrollsUpToRow: Story = {
+  render: () => (
+    <Scrolled rows={3} focus="row" at={3}>
+      <InvoiceQueue rows={manyRows} selectable={false} detail />
+    </Scrolled>
+  ),
+  play: ({ canvasElement, globals }) =>
+    focusClearsHeader(canvasElement, globals.density, "row", 3),
+};
+
+// The same with a selectable table's checkboxes: the 4th row's, half under
+// the header row, scrolls into view below it.
+export const FocusScrollsUpToCheckbox: Story = {
+  render: () => (
+    <Scrolled rows={3} focus="checkbox" at={3}>
+      <InvoiceQueue rows={manyRows} />
+    </Scrolled>
+  ),
+  play: ({ canvasElement, globals }) =>
+    focusClearsHeader(canvasElement, globals.density, "checkbox", 3),
+};
 
 // A table whose rows open their invoice's Sheet, none open yet: each row
 // takes focus, and answers hover and press.

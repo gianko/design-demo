@@ -5,6 +5,7 @@
 // is stubbed as the browser's boundary: it records each transition's types
 // and the selection either side of its update.
 
+import { composeStory } from "@storybook/react-vite";
 import {
   act,
   cleanup,
@@ -26,7 +27,9 @@ import { Heading } from "../Heading/Heading.tsx";
 import { Sheet } from "../Sheet/Sheet.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
+import preview from "../../../.storybook/preview.tsx";
 import { DataTable, openDetailAttribute } from "./DataTable.tsx";
+import * as stories from "./DataTable.stories.tsx";
 
 // invoice-queue as its generated screen wires it: its table is selectable,
 // since Approve and pay acts on the Selection.
@@ -360,6 +363,46 @@ it("opens no Sheet from the start without the test attribute", () => {
   hostWithDetail();
 
   expect(openSheet()).toBeNull();
+});
+
+// The invoice Sheet in DataTable's own stories shows the row's amount and
+// status, then only facts no column shows (#293). The story's open-sheet
+// render opens the first row's Sheet, as the gate shoots it.
+it("shows no column's fact in its invoice Sheet story but the amount and status", () => {
+  const OpenSheet = composeStory(
+    { ...stories.WithDetail, parameters: { openSheet: 0 } },
+    stories.default,
+    preview
+  );
+  render(<OpenSheet />);
+
+  const table = document.querySelector('[data-component="DataTable"]')!;
+  const sheet = screen.getByRole("dialog", { name: "INV-0142" });
+  const columns = [...table.querySelectorAll("thead th")].map(
+    (header) => header.textContent
+  );
+  const [cells] = [...table.querySelectorAll("tbody tr")].map((each) =>
+    [...each.querySelectorAll("td")].map((cell) => cell.textContent)
+  );
+  // The body's facts: each element holding only text, the title left out.
+  const facts = [...sheet.lastElementChild!.querySelectorAll("*")]
+    .filter((each) => each.children.length === 0)
+    .map((each) => each.textContent);
+
+  const repeated = columns.filter(
+    (column, at) =>
+      column !== "Amount" && column !== "Status" && facts.includes(cells![at]!)
+  );
+
+  expect(repeated).toEqual([]);
+  expect(facts).toEqual(
+    expect.arrayContaining([
+      "September design retainer",
+      "Sep 8",
+      "Northwind Logistics & Freight Holdings Ltd.",
+      "2 lines",
+    ])
+  );
 });
 
 it("leaves rows out of the tab order, and opens nothing, with no detail slot", () => {

@@ -39,7 +39,7 @@ The domain is contractor payroll and invoicing: an admin who clears dozens of in
 | Comparison across prompt versions | 🚧 | The report compares runs; the second run comes with the first prompt fix |
 | Figma: variables with modes, screen captures | ✅ | |
 | Motion: screen-state View Transitions | ✅ | |
-| Motion: Toast, Sheet, bar-to-toast, row-to-sheet | ○ | [ADR 0011](docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) |
+| Motion: Toast, Sheet, table-action-to-toast, row-to-sheet | ○ | [ADR 0011](docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md), [ADR 0013](docs/adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) |
 | Brief conformance (gate 5) | ○ | |
 | An agent-run screen brief: the repair loop as UI | ○ | [#198](https://github.com/gianko/design-demo/issues/198) |
 | Figma: component frames | ○ | |

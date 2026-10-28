@@ -4,7 +4,12 @@
 // way every time under a given variant.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fixtureVariant, type Operations, variantNames } from "./fixtures.ts";
+import {
+  fixtureVariant,
+  type Invoice,
+  type Operations,
+  variantNames,
+} from "./fixtures.ts";
 
 describe("fixtures", () => {
   // Each P0 brief's `requires.states`, as spec § The P0 five lists them.
@@ -146,6 +151,33 @@ describe("fixtures", () => {
     for (const [iso, label] of dates) {
       expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(label).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
+    }
+  });
+
+  // #293: an invoice's Sheet shows what its row doesn't, so every invoice
+  // says what it's for and when it was issued, before it fell due.
+  it("describes every invoice, and issues it before its due date", () => {
+    const seen = new Map<string, Invoice>();
+    for (const name of variantNames) {
+      const { data } = fixtureVariant(name);
+      for (const invoice of [
+        ...data.invoices,
+        ...data.yourInvoices,
+        ...data.payQueue,
+        ...data.overdueInvoices,
+        data.overdueInvoice,
+        data.reviewInvoice,
+        data.awaitingInvoice,
+      ]) {
+        if (invoice) seen.set(invoice.id, invoice);
+      }
+    }
+
+    expect(seen.size).toBe(9);
+    for (const invoice of seen.values()) {
+      expect(invoice.description, invoice.id).toMatch(/\S/);
+      expect(invoice.issuedDate, invoice.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(invoice.issuedDate < invoice.dueDate, invoice.id).toBe(true);
     }
   });
 
@@ -614,9 +646,12 @@ describe("fixtures", () => {
       contractorId: "ines-duarte",
       contractor: "Ines Duarte",
       client: "Northwind Logistics & Freight Holdings Ltd.",
+      description: "October design retainer",
       amount: 2950,
       currency: "USD",
       status: "awaiting",
+      issuedDate: "2026-10-20",
+      issuedLabel: "Oct 20",
       dueDate: "2026-11-19",
       dueLabel: "Nov 19",
       lineCount: 3,

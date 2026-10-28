@@ -51,9 +51,10 @@ export function MyInvoices() {
                       />
                       <StatusTag status={row.status} />
                     </Stack>
+                    <Text text={row.description} />
                     <Stack direction="row" gap="3xs" align="baseline">
-                      <Text text="Due" />
-                      <Text text={row.dueLabel} />
+                      <Text text="Issued" />
+                      <Text text={row.issuedLabel} />
                     </Stack>
                     <Stack direction="row" gap="3xs" align="baseline">
                       <Text text="Billed to" />

@@ -10,9 +10,9 @@ requires:
 
 # My invoices
 
-A contractor checks on the invoices they've sent. Title the `Screen` with a Heading, "My invoices", then show them in a DataTable, one row per invoice: its number, the amount as an `Amount`, the due date and its status as a `StatusTag`. Nothing acts on the rows, so the table isn't selectable. Clicking a row, or pressing Enter on it, opens that invoice's details in a `Sheet` in the DataTable's `detail` slot (`row-to-sheet`): a Heading with its number as the Sheet's title, the amount as an `Amount`, its status as a `StatusTag`, and a Text each for the due date, the client and the line count. The screen is read-only, with no actions.
+A contractor checks on the invoices they've sent. Title the `Screen` with a Heading, "My invoices", then show them in a DataTable, one row per invoice: its number, the amount as an `Amount`, the due date and its status as a `StatusTag`. Nothing acts on the rows, so the table isn't selectable. Clicking a row, or pressing Enter on it, opens that invoice's details in a `Sheet` in the DataTable's `detail` slot (`row-to-sheet`): a Heading with its number as the Sheet's title, the amount as an `Amount` and its status as a `StatusTag`, then only what the row doesn't show: a Text each for the description, the issued date, the client and the line count. The screen is read-only, with no actions.
 
-The rows are the fixtures' `yourInvoices`: bind the DataTable's rows to it, its cells to each row's `number`, `amount` and `currency`, `dueLabel` and `status`, and the Sheet's nodes to the same row's `number`, `amount`, `currency`, `status`, `dueLabel`, `client` and `lineCountLabel`. Keep "Due " before the due date and "Billed to " before the client as literal copy. In the `empty` state an `EmptyState` takes the DataTable's place.
+The rows are the fixtures' `yourInvoices`: bind the DataTable's rows to it, its cells to each row's `number`, `amount` and `currency`, `dueLabel` and `status`, and the Sheet's nodes to the same row's `number`, `amount`, `currency`, `status`, `description`, `issuedLabel`, `client` and `lineCountLabel`. Keep "Issued " before the issued date and "Billed to " before the client as literal copy. In the `empty` state an `EmptyState` takes the DataTable's place.
 
 | Screen state | Fixture | What shows |
 |---|---|---|

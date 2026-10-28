@@ -473,6 +473,53 @@ describe("the my-invoices screen brief", () => {
   });
 });
 
+// #293: an invoice's Sheet shows its number as the title, its amount and
+// status, then only what its row doesn't: the description, issued date,
+// client and line count. The binding sentence names the cells' fields and
+// the Sheet's apart: "bind … its cells to each row's `a`, `b` …, and the
+// Sheet's nodes to the same row's `c`, `d` …".
+describe.each([
+  ["my-invoices", "yourInvoices"],
+  ["overdue-invoices", "overdueInvoices"],
+] as const)("the %s screen brief's Sheet", (slug, rows) => {
+  const fields = (clause: RegExp) => {
+    const found = clause.exec(brief(`${slug}.md`).text)?.[1] ?? "";
+    return [...found.matchAll(/`([^`]+)`/g)].map(([, field]) => field!);
+  };
+  const cells = fields(/its cells to each row's ([^.]*?), and the Sheet/);
+  const sheet = fields(/the Sheet's nodes to the same row's ([^.]*)\./);
+
+  it("binds the number, amount and status, the description, issued date, client and line count", () => {
+    expect(sheet).toEqual([
+      "number",
+      "amount",
+      "currency",
+      "status",
+      "description",
+      "issuedLabel",
+      "client",
+      "lineCountLabel",
+    ]);
+  });
+
+  it("repeats no cell but the number, amount and status", () => {
+    expect(cells.length).toBeGreaterThan(0);
+    expect(sheet.filter((field) => cells.includes(field))).toEqual([
+      "number",
+      "amount",
+      "currency",
+      "status",
+    ]);
+  });
+
+  it("binds only fields its rows have", () => {
+    const [row] = fixtureVariant("default").data[rows];
+    for (const field of [...cells, ...sheet]) {
+      expect(row, field).toHaveProperty(field);
+    }
+  });
+});
+
 // Each action's outcomes, as its brief's sentence names them: "The `a`
 // action runs the `op` operation …; it enters `s` when … and `f` when it
 // doesn't".

@@ -145,6 +145,7 @@
   --ds-density-height-control: 32px;
   --ds-density-min-height-target: 24px;
   --ds-density-max-width-measure: 412px;
+  --ds-density-max-height-table: 506px;
   --ds-density-size-icon: 16px;
   --ds-density-radius-surface: 8px;
   --ds-density-text-body-font-size: 14px;
@@ -169,6 +170,7 @@
   --ds-density-height-control: 44px;
   --ds-density-min-height-target: 44px;
   --ds-density-max-width-measure: 472px;
+  --ds-density-max-height-table: 660px;
   --ds-density-size-icon: 20px;
   --ds-density-radius-surface: 12px;
   --ds-density-text-body-font-size: 16px;
@@ -232,6 +234,7 @@
   --height-control: var(--ds-density-height-control);
   --min-height-target: var(--ds-density-min-height-target);
   --max-width-measure: var(--ds-density-max-width-measure);
+  --max-height-table: var(--ds-density-max-height-table);
   --size-icon: var(--ds-density-size-icon);
   --radius-surface: var(--ds-density-radius-surface);
   --spacing-0: var(--ds-space-0);
