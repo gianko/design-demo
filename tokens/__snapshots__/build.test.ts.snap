@@ -408,6 +408,28 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
     opacity: 1;
   }
 }
+
+/* The row's Sheet slides in from the end edge and back out past it (ADR 0011),
+   its own width, so it starts and ends just out of the window. \`--end-edge\`
+   is 1 where the end edge is the right and -1 where it is the left
+   (src/styles.css). */
+@keyframes sheet-in {
+  from {
+    translate: calc(var(--end-edge) * 100%);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+@keyframes sheet-out {
+  from {
+    translate: 0;
+  }
+  to {
+    translate: calc(var(--end-edge) * 100%);
+  }
+}
 "
 `;
 

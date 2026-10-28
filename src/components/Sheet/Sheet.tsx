@@ -19,8 +19,8 @@ import { useSheetClose } from "./sheet-host.tsx";
 // border; its corners facing the page take the surface radius, and the edge
 // against the window stays square. Its title box names the dialog and is at
 // least one control tall, so a one-line title centres on the close button.
-// `vt-row-detail` is the view transition name it shares with the row it
-// opened from.
+// `vt-row-detail` is its view transition name, its alone: it slides in from
+// the end edge and back out past it.
 export const sheet = tv({
   slots: {
     root: "ms-auto flex h-full max-h-none w-sheet max-w-full flex-col gap-lg rounded-s-surface bg-surface-overlay p-surface text-ink shadow-overlay outline-hidden backdrop:bg-scrim vt-row-detail",

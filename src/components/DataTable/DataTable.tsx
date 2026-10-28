@@ -37,8 +37,8 @@ import "./DataTable.css";
 // the state never rests on colour alone.
 // A table with a detail slot opens a row's Sheet when the row is clicked or
 // Enter is pressed on it (ADR 0011), through transitionSheet's View
-// Transition, so the row expands into the sheet and the sheet shrinks back
-// into it on close. The open sheet is DataTable's own state, not a screen
+// Transition, so the sheet slides in from the end edge and back out past it
+// on close. The open sheet is DataTable's own state, not a screen
 // state. Such a row takes focus and answers hover and press; in a selectable
 // table, ticking its box selects and doesn't open it. The Sheet renders after
 // the table's surface; it draws in the top layer, so nested-cards reads it as
@@ -214,10 +214,8 @@ export function DataTable<R extends Row>({
     const target = next.size > 0 ? rowsSelected : defaultState;
     selection.select([...next], state === target ? undefined : target);
   };
-  // The open row's id, and each row's element, which its sheet opens from
-  // and closes back into.
+  // The open row's id.
   const [open, setOpen] = useState<string | null>(null);
-  const rowElements = useRef(new Map<string, HTMLTableRowElement>());
   const opened = detail && rows.find((row) => row.id === open);
   // The open-sheet render (ADR 0011): the table the test attribute names
   // opens its first row before the first paint, as a state it starts in,
@@ -228,14 +226,8 @@ export function DataTable<R extends Row>({
     if (detail && first && namedToOpen(root.current!)) setOpen(first.id);
     // Only as the table first renders: once open, the sheet is the person's.
   }, []);
-  const openDetail = (id: string, from: HTMLTableRowElement) =>
-    transitionSheet("open", from, () => setOpen(id));
-  const closeDetail = () =>
-    transitionSheet(
-      "close",
-      (open !== null && rowElements.current.get(open)) || null,
-      () => setOpen(null)
-    );
+  const openDetail = (id: string) => transitionSheet("open", () => setOpen(id));
+  const closeDetail = () => transitionSheet("close", () => setOpen(null));
 
   const toggle = (id: string, on: boolean) => {
     const next = new Set(selected);
@@ -335,12 +327,7 @@ export function DataTable<R extends Row>({
               const each = dataTable({ selected: isSelected, opens: !!detail });
               const opens = detail && {
                 tabIndex: 0,
-                ref: (element: HTMLTableRowElement | null) => {
-                  if (element) rowElements.current.set(row.id, element);
-                  else rowElements.current.delete(row.id);
-                },
-                onClick: (event: { currentTarget: HTMLTableRowElement }) =>
-                  openDetail(row.id, event.currentTarget),
+                onClick: () => openDetail(row.id),
                 // Enter on the row itself, not on its checkbox.
                 onKeyDown: (event: KeyboardEvent<HTMLTableRowElement>) => {
                   if (
@@ -349,7 +336,7 @@ export function DataTable<R extends Row>({
                   )
                     return;
                   event.preventDefault();
-                  openDetail(row.id, event.currentTarget);
+                  openDetail(row.id);
                 },
               };
               return (

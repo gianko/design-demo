@@ -69,10 +69,9 @@
      bar into the toast.
    - `vt-action-failure`: a failure Toast. The bar stays beside it, keeping
      its own name, so the toast enters on its own.
-   - `vt-row-detail`: a Sheet, and the row it opened from, which
-     transitionSheet marks in whichever view shows the row and not the
-     sheet. So opening morphs the row into the sheet, and closing morphs it
-     back. */
+   - `vt-row-detail`: a Sheet, and nothing else: the row it opened from
+     has no name, so the sheet slides in from the end edge and back out past
+     it on its own. */
 @utility vt-action-result {
   view-transition-name: action-result;
 }
@@ -111,33 +110,37 @@
     animation-duration: var(--ds-motion-duration-slow-exit);
   }
 
-  /* A sheet opens at `slow`, the brief's duration for a sheet, with
-     `standard` easing (opening confirms nothing, so it never settles), and
-     the row's image fades out at its exit duration. It closes at
-     `slow-exit` with `exit`. */
-  :root:active-view-transition-type(sheet-open)::view-transition-group(
-      row-detail
-    ),
+  /* A sheet slides in from the end edge at `slow`, the brief's duration
+     for a sheet, with `standard` easing (opening confirms nothing, so it
+     never settles), and slides back out past it at `slow-exit` with `exit`.
+     Its image is the new view's on open and the old view's on close, so its
+     group has nothing to morph; the scrim fades in and out with the page. */
   :root:active-view-transition-type(sheet-open)::view-transition-new(
       row-detail
     ) {
+    animation-name: sheet-in;
     animation-duration: var(--ds-motion-duration-slow);
     animation-timing-function: var(--ds-motion-ease-standard);
   }
 
-  :root:active-view-transition-type(sheet-open)::view-transition-old(
-      row-detail
-    ),
-  :root:active-view-transition-type(sheet-close)::view-transition-group(
-      row-detail
-    ),
   :root:active-view-transition-type(sheet-close)::view-transition-old(
       row-detail
-    ),
-  :root:active-view-transition-type(sheet-close)::view-transition-new(
-      row-detail
     ) {
+    animation-name: sheet-out;
     animation-duration: var(--ds-motion-duration-slow-exit);
     animation-timing-function: var(--ds-motion-ease-exit);
   }
+}
+
+/* Which way the end edge lies along the x axis, for the sheet's slide
+   (tokens/keyframes.css): the right in a left-to-right document, the left in
+   a right-to-left one. The view transition's pseudo-elements hang off the
+   root, so the root's `dir` decides. Not `:dir(rtl)`: the build lowers it to
+   a list of right-to-left languages, which a `dir` attribute doesn't match. */
+:root {
+  --end-edge: 1;
+}
+
+:root[dir="rtl"] {
+  --end-edge: -1;
 }

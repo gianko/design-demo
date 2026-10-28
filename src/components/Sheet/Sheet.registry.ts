@@ -7,7 +7,7 @@ import { defineEntry } from "../../registry/entry.ts";
 // Card (a painted surface inside a painted surface) and no Button.
 export const sheetEntry = defineEntry({
   name: "Sheet",
-  use: "Row detail; only in a DataTable's `detail` slot. Clicking a row or pressing Enter on it opens that row's Sheet: put a level 2 Heading bound to the row in title (such as row.number), and the row's facts in body as Text, Amount, StatusTag and Stack, with props bound to row.*. It is read-only, so it holds no Button and no Card; it renders its own close button and closes on Escape. For the facts of one thing shown on the screen itself use a Card.",
+  use: "Row detail; only in a DataTable's `detail` slot. Clicking a row or pressing Enter on it opens that row's Sheet: put a level 2 Heading bound to the row in title (such as row.number), and the row's facts in body as Text, Amount, StatusTag and Stack, with props bound to row.*. It is read-only, so it holds no Button and no Card; it renders its own close button and closes on Escape or a click on the scrim. For the facts of one thing shown on the screen itself use a Card.",
   surface: "overlay",
   props: z.object({
     closeLabel: z
