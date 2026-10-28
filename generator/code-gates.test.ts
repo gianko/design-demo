@@ -197,6 +197,7 @@ describe("a generated screen that wires an action", () => {
       gate1(JSON.stringify(uiSpec), {
         entries,
         audience: "contractor",
+        slug: "payment-status",
         fixtures: {
           variants: Object.fromEntries(
             variantNames.map((name) => [name, fixtureVariant(name).data])

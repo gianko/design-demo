@@ -1,0 +1,197 @@
+{
+  "audience": "admin",
+  "nodes": [
+    {
+      "id": "screen",
+      "component": "Screen",
+      "parent": null,
+      "slot": null,
+      "props": [{ "name": "audience", "value": "\"admin\"" }],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "page-stack",
+      "component": "Stack",
+      "parent": "screen",
+      "slot": "body",
+      "props": [
+        { "name": "direction", "value": "\"column\"" },
+        { "name": "gap", "value": "\"lg\"" }
+      ],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "page-header",
+      "component": "PageHeader",
+      "parent": "page-stack",
+      "slot": "body",
+      "props": [],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "page-title",
+      "component": "Heading",
+      "parent": "page-header",
+      "slot": "title",
+      "props": [
+        { "name": "text", "value": "\"Pay invoices\"" },
+        { "name": "level", "value": "1" }
+      ],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "invoice-table",
+      "component": "DataTable",
+      "parent": "page-stack",
+      "slot": "body",
+      "props": [
+        { "name": "rows", "value": "{\"bind\":\"payQueue\"}" },
+        {
+          "name": "columns",
+          "value": "[\"Invoice\",\"Contractor\",\"Amount\",\"Due\",\"Status\"]"
+        },
+        { "name": "selectable", "value": "true" }
+      ],
+      "when": [
+        "default",
+        "rows-selected",
+        "payment-scheduled",
+        "payment-failed"
+      ],
+      "action": null
+    },
+    {
+      "id": "cell-number",
+      "component": "Text",
+      "parent": "invoice-table",
+      "slot": "cell",
+      "props": [{ "name": "text", "value": "{\"bind\":\"row.number\"}" }],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "cell-contractor",
+      "component": "Text",
+      "parent": "invoice-table",
+      "slot": "cell",
+      "props": [{ "name": "text", "value": "{\"bind\":\"row.contractor\"}" }],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "cell-amount",
+      "component": "Amount",
+      "parent": "invoice-table",
+      "slot": "cell",
+      "props": [
+        { "name": "value", "value": "{\"bind\":\"row.amount\"}" },
+        { "name": "currency", "value": "{\"bind\":\"row.currency\"}" },
+        { "name": "display", "value": "\"table\"" }
+      ],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "cell-due",
+      "component": "Text",
+      "parent": "invoice-table",
+      "slot": "cell",
+      "props": [{ "name": "text", "value": "{\"bind\":\"row.dueLabel\"}" }],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "cell-status",
+      "component": "StatusTag",
+      "parent": "invoice-table",
+      "slot": "cell",
+      "props": [{ "name": "status", "value": "{\"bind\":\"row.status\"}" }],
+      "when": [],
+      "action": null
+    },
+    {
+      "id": "empty-queue",
+      "component": "EmptyState",
+      "parent": "page-stack",
+      "slot": "body",
+      "props": [
+        { "name": "title", "value": "\"No invoices to pay\"" },
+        {
+          "name": "text",
+          "value": "\"New invoices show up here when contractors send them.\""
+        }
+      ],
+      "when": ["empty"],
+      "action": null
+    },
+    {
+      "id": "pay-bar",
+      "component": "ActionBar",
+      "parent": "page-stack",
+      "slot": "body",
+      "props": [],
+      "when": ["rows-selected", "payment-failed"],
+      "action": null
+    },
+    {
+      "id": "failure-toast",
+      "component": "Toast",
+      "parent": "pay-bar",
+      "slot": "body",
+      "props": [
+        {
+          "name": "text",
+          "value": "\"The payment didn't go through, so nothing was scheduled. Check your funding account, then try again.\""
+        },
+        { "name": "tone", "value": "\"failure\"" }
+      ],
+      "when": ["payment-failed"],
+      "action": null
+    },
+    {
+      "id": "pay-button",
+      "component": "Button",
+      "parent": "pay-bar",
+      "slot": "body",
+      "props": [
+        { "name": "text", "value": "\"Pay selected\"" },
+        { "name": "intent", "value": "\"primary\"" }
+      ],
+      "when": [],
+      "action": "pay-selected"
+    },
+    {
+      "id": "success-toast",
+      "component": "Toast",
+      "parent": "page-stack",
+      "slot": "body",
+      "props": [
+        {
+          "name": "text",
+          "value": "\"3 invoices scheduled for the Oct 24 run.\""
+        },
+        { "name": "tone", "value": "\"success\"" }
+      ],
+      "when": ["payment-scheduled"],
+      "action": null
+    }
+  ],
+  "states": [
+    { "name": "empty", "fixture": "bulk-pay/empty" },
+    { "name": "rows-selected", "fixture": "bulk-pay/rows-selected" },
+    { "name": "payment-scheduled", "fixture": "bulk-pay/payment-scheduled" },
+    { "name": "payment-failed", "fixture": "bulk-pay/payment-failed" }
+  ],
+  "actions": [
+    {
+      "name": "pay-selected",
+      "operation": "payInvoices",
+      "pending": "pay-button",
+      "to": { "success": "payment-scheduled", "failure": "payment-failed" }
+    }
+  ]
+}

@@ -1,15 +1,16 @@
 // The two steps' prompts (ADR 0003). Each step's system prompt is a cached
 // prefix shared by every rep; the screen brief, and for the code step the UI
-// spec, ride in the user turn after it. A prompt's hash covers its own words,
-// its repair turn's (repair.ts), the design brief and, for the spec step, the
-// fixture paths, or for the code step, the fixture types: the registry has its
-// own hash (ADR 0004), and both sit in the version tuple (ADR 0008). There are
-// no example UI specs.
+// spec, ride in the user turn after it, which carries a breakpoint of its own
+// (generate.ts). A prompt's hash covers its own words, its repair turn's
+// (repair.ts), the design brief and, for the spec step, the fixture paths, or
+// for the code step, the fixture types: the registry has its own hash (ADR
+// 0004), and both sit in the version tuple (ADR 0008). There are no example
+// UI specs.
 
 import { createHash } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Step } from "./config.ts";
-import { rowSlots } from "./gate1.ts";
+import { rowSlots, screenVariants } from "./gate1.ts";
 import type { LibraryRegistry } from "./registry.ts";
 import { repairWording } from "./repair.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
@@ -59,21 +60,25 @@ export type StepPrompt<A extends unknown[]> = {
   hash: string;
 };
 
-// `fixtures` is each fixture variant's data by name. Its paths ride in the
-// user turn, so the cached prefix stays the design brief, the registry and
-// the wire schema (spec § Gate 1 and the spec step), and the hash covers
-// them, since they steer the model as the words do.
+// `fixtures` is each fixture variant's data by name. The paths of the
+// variants a screen brief may use, `default` and its own, ride in its user
+// turn, so the cached prefix stays the design brief, the registry and the
+// wire schema (spec § Gate 1 and the spec step); listing every variant's
+// sent bulk-pay's turn to 297k tokens (#275). The hash covers every
+// variant's paths, since they steer the model as the words do, and stays one
+// version per run whichever briefs it runs.
 export function specPrompt(
   designBrief: string,
   registry: LibraryRegistry,
   wireSchemaJson: string,
   fixtures: Readonly<Record<string, unknown>>
 ): StepPrompt<[ScreenBrief]> {
-  const paths = Object.entries(fixtures)
-    .map(([variant, data]) =>
-      [`Fixture variant "${variant}":`, ...bindable(data)].join("\n")
-    )
-    .join("\n\n");
+  const listing = (variants: Readonly<Record<string, unknown>>) =>
+    Object.entries(variants)
+      .map(([variant, data]) =>
+        [`Fixture variant "${variant}":`, ...bindable(data)].join("\n")
+      )
+      .join("\n\n");
   return {
     system: cached([
       specInstructions,
@@ -81,12 +86,16 @@ export function specPrompt(
       `<registry>\n${registry.serialized.spec}\n</registry>`,
       `<wire_schema>\n${wireSchemaJson}\n</wire_schema>`,
     ]),
-    user: (brief) => fill(specUser, { brief: brief.text, fixtures: paths }),
+    user: (brief) =>
+      fill(specUser, {
+        brief: brief.text,
+        fixtures: listing(screenVariants(fixtures, brief.slug)),
+      }),
     hash: hash(
       specInstructions,
       designBrief,
       specUser,
-      paths,
+      listing(fixtures),
       repairWords("spec")
     ),
   };

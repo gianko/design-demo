@@ -3,6 +3,7 @@
 // fixtures: each planted UI spec breaks one rule, and the failure names that
 // rule and the node it found it on.
 
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -220,7 +221,7 @@ function runs(n: Node, action: string) {
   return n;
 }
 
-const context = { entries, audience: "contractor", fixtures };
+const context = { entries, audience: "contractor", slug: "brief", fixtures };
 
 function check(spec: unknown) {
   return gate1(spec, context).map(({ rule, location }) => [rule, location]);
@@ -561,6 +562,31 @@ describe("gate 1", () => {
       expect(check(spec)).toEqual([["state-fixture", "states.sent"]]);
     });
 
+    // #275: the spec step lists only `default` and the screen's own
+    // variants, so a UI spec may name no other (glossary: Fixture variant).
+    it("fails a state whose fixture variant belongs to another screen, listing the screen's own", () => {
+      const spec = clean();
+      spec.states[1]!.fixture = "other/sent";
+
+      expect(
+        gate1(spec, {
+          ...context,
+          fixtures: {
+            ...fixtures,
+            variants: { ...fixtures.variants, "other/sent": {} },
+          },
+        })
+      ).toEqual([
+        {
+          gate: "gate 1",
+          rule: "state-fixture",
+          location: "states.sent",
+          message:
+            'Its fixture variant "other/sent" is another screen\'s; the variants are default, brief/empty, brief/sent.',
+        },
+      ]);
+    });
+
     it("fails a when naming a state that isn't declared, naming the node", () => {
       const spec = clean();
       // Deep in a row slot, below a node shown in every state.
@@ -837,6 +863,7 @@ describe("gate 1", () => {
 describe("gate 1 against the library's registry", () => {
   const library = {
     audience: "admin",
+    slug: "brief",
     fixtures: { variants: { default: {} }, operations: [] },
   };
 
@@ -984,7 +1011,14 @@ describe("gate 1 against the library's registry", () => {
       join(import.meta.dirname, "../evals/briefs/invoice-queue.md")
     );
 
-    expect(gate1(spec, { audience: "admin", entries, fixtures })).toEqual([]);
+    expect(
+      gate1(spec, {
+        audience: "admin",
+        slug: "invoice-queue",
+        entries,
+        fixtures,
+      })
+    ).toEqual([]);
     expect(checkPassCriteria(requires, wireSchema().parse(spec))).toEqual({
       met: true,
       missing: [],
@@ -1068,9 +1102,12 @@ describe("gate 1 against the library's registry", () => {
         ),
         operations: operationNames,
       };
-      return gate1(spec, { audience: "admin", entries, fixtures }).map(
-        ({ rule, location }) => [rule, location]
-      );
+      return gate1(spec, {
+        audience: "admin",
+        slug: "invoice-queue",
+        entries,
+        fixtures,
+      }).map(({ rule, location }) => [rule, location]);
     }
 
     it("passes, and has the bar-to-toast transition", async () => {
@@ -1161,9 +1198,12 @@ describe("gate 1 against the library's registry", () => {
         operations: operationNames,
       };
       const messages = [success, beside].flatMap((spec) =>
-        gate1(spec, { audience: "admin", entries, fixtures }).map(
-          ({ message }) => message
-        )
+        gate1(spec, {
+          audience: "admin",
+          slug: "invoice-queue",
+          entries,
+          fixtures,
+        }).map(({ message }) => message)
       );
 
       expect(messages).toEqual([
@@ -1343,6 +1383,7 @@ describe("gate 1 against the library's registry", () => {
       const ids = new Set(children.map((child) => child.id));
       return gate1(screenWith(...children), {
         audience: "admin",
+        slug: "brief",
         entries,
         fixtures,
       }).filter(({ location }) => ids.has(location));
@@ -1482,9 +1523,12 @@ describe("gate 1 against the library's registry", () => {
         variants: { default: fixtureVariant("default").data },
         operations: operationNames,
       };
-      return gate1(spec, { audience: "contractor", entries, fixtures }).map(
-        ({ rule, location }) => [rule, location]
-      );
+      return gate1(spec, {
+        audience: "contractor",
+        slug: "my-invoices",
+        entries,
+        fixtures,
+      }).map(({ rule, location }) => [rule, location]);
     }
 
     it("passes a Sheet in a DataTable's detail slot, its children bound to the row", async () => {
@@ -1559,7 +1603,12 @@ describe("gate 1 against the library's registry", () => {
         variants: { default: fixtureVariant("default").data },
         operations: operationNames,
       };
-      return gate1(spec, { audience: "contractor", entries, fixtures });
+      return gate1(spec, {
+        audience: "contractor",
+        slug: "my-invoices",
+        entries,
+        fixtures,
+      });
     }
 
     const table = (id: string, parent: string, slot: string) => [
@@ -1704,5 +1753,46 @@ describe("gate 1 against the library's registry", () => {
         message: '"IconButton" isn\'t a registered component.',
       },
     ]);
+  });
+});
+
+// #275: the UI spec bulk-pay was kept from (#211), against the real registry
+// and fixtures. Every fixture variant it names is its own.
+describe("the committed bulk-pay UI spec", () => {
+  const brief = readScreenBrief(
+    join(import.meta.dirname, "../evals/briefs/bulk-pay.md")
+  );
+  const committed = () =>
+    JSON.parse(
+      readFileSync(
+        join(import.meta.dirname, "fixtures/bulk-pay.ui-spec.json"),
+        "utf8"
+      )
+    ) as { states: { name: string; fixture: string }[] };
+  const check = async (spec: unknown) =>
+    gate1(spec, {
+      entries: (await loadRegistry()).entries,
+      audience: brief.audience,
+      slug: brief.slug,
+      fixtures: {
+        variants: Object.fromEntries(
+          variantNames.map((name) => [name, fixtureVariant(name).data])
+        ),
+        operations: operationNames,
+      },
+    });
+
+  it("passes gate 1", async () => {
+    expect(await check(committed())).toEqual([]);
+  });
+
+  it("fails a state that names invoice-queue's empty variant, a real one", async () => {
+    const spec = committed();
+    spec.states.find(({ name }) => name === "empty")!.fixture =
+      "invoice-queue/empty";
+
+    expect(
+      (await check(spec)).map(({ rule, location }) => [rule, location])
+    ).toEqual([["state-fixture", "states.empty"]]);
   });
 });
