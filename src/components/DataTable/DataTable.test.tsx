@@ -227,8 +227,8 @@ describe("while a footer action is pending", () => {
 
 // ADR 0013, Consequences: a confirmed result clears the selection, so the
 // footer Button that had focus is disabled and can't hold it; focus moves to
-// the table, next to what was acted on.
-it("moves focus to the table when a confirmed result disables the footer Button that had focus", async () => {
+// the table, next to what was acted on, which shows the focus ring there.
+it("moves focus to the table, with its focus ring, when a confirmed result disables the footer Button that had focus", async () => {
   host();
   tick("INV-0147");
   payButton().focus();
@@ -238,6 +238,9 @@ it("moves focus to the table when a confirmed result disables the footer Button 
   expect(screenState()).toBe("payment-scheduled");
   expect(payButton().disabled).toBe(true);
   expect(document.activeElement).toBe(screen.getByRole("table"));
+  expect(screen.getByRole("table").className).toContain(
+    "focus-visible:focus-ring"
+  );
 });
 
 it("leaves focus be when the footer's Buttons are disabled while focus is elsewhere", () => {
@@ -581,9 +584,10 @@ it("reads only a status cell's own word, not the words its column keeps room for
 
 // A list with no rows: a screen shows an EmptyState in the DataTable's place
 // (#290), but the table itself still renders its header row, and a
-// table with actions stops offering a selection it can't make, and shows no
-// footer: the footer shows while the table has rows (ADR 0013).
-it("renders the header row alone, with Select all rows disabled and no footer, when a table with actions has no rows", () => {
+// table with actions stops offering a selection it can't make: Select all
+// rows and the footer's Buttons are disabled, and the footer says nothing is
+// selected. The footer shows whenever the table does (ADR 0013).
+it("renders the header row alone, with Select all rows and the footer's Buttons disabled, when a table with actions has no rows", () => {
   render(
     <ScreenHost>
       <DataTable
@@ -603,6 +607,9 @@ it("renders the header row alone, with Select all rows disabled and no footer, w
     screen.getByRole<HTMLInputElement>("checkbox", { name: "Select all rows" })
       .disabled
   ).toBe(true);
-  expect(screen.queryByRole("button")).toBeNull();
-  expect(screen.queryByText("No invoices selected")).toBeNull();
+  expect(
+    screen.getByRole<HTMLButtonElement>("button", { name: "Approve and pay" })
+      .disabled
+  ).toBe(true);
+  expect(screen.getByText("No invoices selected")).toBeTruthy();
 });
