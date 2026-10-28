@@ -466,12 +466,12 @@ describe("the Figma payload", () => {
     }
   );
 
-  // A capture binds a fill only when Figma's value is the colour the browser
-  // painted, so every channel sits on the 8-bit step the browser rounds to.
-  it("gives each colour the 8-bit sRGB value the browser paints", () => {
+  // A capture binds a fill only when Figma's value is the colour it reads, so
+  // every channel sits on an 8-bit step, as rgb() in tokens.css does (#59).
+  it("gives each colour an 8-bit sRGB value", () => {
     const eightBit = ({ r, g, b }: { r: number; g: number; b: number }) =>
       [r, g, b].map((channel) => Math.round(channel * 255));
-    // Dark's page: oklch(0.19 0.018 330) paints 24,17,24; red is 24.496.
+    // Dark's page: oklch(0.19 0.018 330) is 24,17,24; red is 24.496.
     const page = variable("Primitives", "primitive/neutral/190").valuesByMode
       .Value as { r: number; g: number; b: number };
     expect(eightBit(page)).toEqual([24, 17, 24]);
