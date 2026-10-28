@@ -5,6 +5,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { repo } from "../repo.ts";
 
+// Chromium's flags in the image, for every pass that renders there. A tile
+// repainted after its first raster is otherwise rastered only where it
+// changed, and antialiased edges there (a Card's rounded corners) blend one
+// level off a full raster's. Which one a shot gets depends on timing, so
+// gate 6 flaked under load.
+export const chromiumArgs = ["--disable-partial-raster"];
+
 // The image is pinned to the installed @playwright/test, so bumping the
 // package bumps the renderer with it and the two can't drift.
 export function playwrightImage() {

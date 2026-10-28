@@ -5,6 +5,7 @@
 // array of CSS colours>'; it prints a JSON object of colour → [r, g, b].
 
 import { chromium } from "@playwright/test";
+import { chromiumArgs } from "../gates/image.ts";
 
 const colors: string[] = JSON.parse(process.argv[2] ?? "[]");
 // Each colour fills a tile this many px square, so its centre pixel is far
@@ -12,11 +13,9 @@ const colors: string[] = JSON.parse(process.argv[2] ?? "[]");
 const tile = 8;
 const perRow = 16;
 
-const browser = await chromium.launch({
-  // As gates/playwright.config.ts launches it, so a tile rasters as a gate
-  // shot's fill does.
-  args: ["--disable-partial-raster"],
-});
+// Launched as `pnpm gate` launches it, so a tile rasters as a gate shot's
+// fill does.
+const browser = await chromium.launch({ args: chromiumArgs });
 try {
   const page = await browser.newPage({
     viewport: { width: tile * perRow, height: 600 },

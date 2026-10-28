@@ -368,11 +368,13 @@ export function figmaColors(
   return [...colors].sort();
 }
 
+/** The 8-bit colour Chrome paints a painted-colour key as, if known. */
 type PaintedLookup = (color: string) => Painted[string] | undefined;
 
+/** The build, with Figma's colours taken from `paintedRgb`. */
 function buildWith(
   { files, keyframes }: Pick<Sources, "files" | "keyframes">,
-  painted: PaintedLookup
+  paintedRgb: PaintedLookup
 ): BuildResult {
   const failures = new Failures();
 
@@ -463,7 +465,7 @@ function buildWith(
   if (failures.list.length) return { ok: false, failures: failures.list };
 
   // Payload checks assume valid, matching modes.
-  const figma = emitFigma(resolvedFiles, failures, painted);
+  const figma = emitFigma(resolvedFiles, failures, paintedRgb);
   if (failures.list.length) return { ok: false, failures: failures.list };
 
   return {
@@ -1183,7 +1185,7 @@ const emptyLayer: ShadowLayer = {
 function emitFigma(
   files: Map<string, Resolved[]>,
   failures: Failures,
-  painted: PaintedLookup
+  paintedRgb: PaintedLookup
 ): FigmaPayload {
   const payload: FigmaPayload = {
     collections: [],
@@ -1199,7 +1201,7 @@ function emitFigma(
    */
   const rgba = (value: ColorValue, token: Resolved): Rgba => {
     const key = paintedKey(value);
-    const rgb = painted(key);
+    const rgb = paintedRgb(key);
     if (!rgb) {
       failures.add(
         "painted",
