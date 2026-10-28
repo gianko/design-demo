@@ -96,10 +96,11 @@ export const tokenLint: Linter.Config[] = [
   },
   {
     // Kept screens and generator output. A kept screen's stories are written
-    // by `pnpm keep`, not the generator, and import the screen beside them.
+    // by `pnpm keep`, not the generator, and import the screen beside them,
+    // as its tests import the stories.
     name: "token-lint/screens",
     files: ["src/screens/**/*.tsx", ...generated],
-    ignores: ["**/*.stories.tsx"],
+    ignores: ["**/*.stories.tsx", "**/*.test.tsx"],
     plugins: {
       screens: { rules: { "screen-state-via-library": screenStateViaLibrary } },
     },

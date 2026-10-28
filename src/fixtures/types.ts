@@ -16,12 +16,17 @@ export type Invoice = {
   contractor: string;
   // Who pays it: Northwind, for every invoice.
   client: string;
+  // What it's for, such as "October design retainer".
+  description: string;
   // In the currency's major unit: 4800 is 4,800.00.
   amount: number;
   currency: "USD";
   status: InvoiceStatus;
   // Every date carries its display label beside the ISO value, and every
-  // count its label beside the number; a UI spec binds the label.
+  // count its label beside the number; a UI spec binds the label. An
+  // invoice is issued before it falls due.
+  issuedDate: string;
+  issuedLabel: string;
   dueDate: string;
   dueLabel: string;
   lineCount: number;

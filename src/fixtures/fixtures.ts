@@ -52,8 +52,10 @@ const run = { date: "2026-10-24", dateLabel: "Oct 24" };
 function invoice(
   number: string,
   contractor: Contractor,
+  description: string,
   amount: number,
   status: InvoiceStatus,
+  [issuedDate, issuedLabel]: [string, string],
   [dueDate, dueLabel]: [string, string],
   lineCount: number
 ): Invoice {
@@ -63,9 +65,12 @@ function invoice(
     contractorId: contractor.id,
     contractor: contractor.name,
     client: northwind,
+    description,
     amount,
     currency: "USD",
     status,
+    issuedDate,
+    issuedLabel,
     dueDate,
     dueLabel,
     lineCount,
@@ -77,16 +82,89 @@ function counted(count: number, noun: string) {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
-// By number. INV-0142 is payment-status's invoice, as it was.
+// By number. INV-0142 is payment-status's invoice, as it was. Each falls due
+// 30 days after it's issued.
 const invoices: readonly Invoice[] = [
-  invoice("INV-0142", you, 4800, "overdue", ["2026-10-08", "Oct 8"], 2),
-  invoice("INV-0144", lea, 3100, "overdue", ["2026-10-12", "Oct 12"], 3),
-  invoice("INV-0145", tomas, 2750, "scheduled", ["2026-10-21", "Oct 21"], 1),
-  invoice("INV-0146", jonah, 1620, "failed", ["2026-10-15", "Oct 15"], 2),
-  invoice("INV-0147", tomas, 1250, "awaiting", ["2026-10-30", "Oct 30"], 1),
-  invoice("INV-0148", priya, 6375.5, "awaiting", ["2026-11-02", "Nov 2"], 4),
-  invoice("INV-0149", jonah, 980, "awaiting", ["2026-11-05", "Nov 5"], 2),
-  invoice("INV-0151", you, 2400, "scheduled", ["2026-10-22", "Oct 22"], 1),
+  invoice(
+    "INV-0142",
+    you,
+    "September design retainer",
+    4800,
+    "overdue",
+    ["2026-09-08", "Sep 8"],
+    ["2026-10-08", "Oct 8"],
+    2
+  ),
+  invoice(
+    "INV-0144",
+    lea,
+    "Driver app copy and translation review",
+    3100,
+    "overdue",
+    ["2026-09-12", "Sep 12"],
+    ["2026-10-12", "Oct 12"],
+    3
+  ),
+  invoice(
+    "INV-0145",
+    tomas,
+    "Carrier rate feed integration",
+    2750,
+    "scheduled",
+    ["2026-09-21", "Sep 21"],
+    ["2026-10-21", "Oct 21"],
+    1
+  ),
+  invoice(
+    "INV-0146",
+    jonah,
+    "Warehouse photography, two site shoots",
+    1620,
+    "failed",
+    ["2026-09-15", "Sep 15"],
+    ["2026-10-15", "Oct 15"],
+    2
+  ),
+  invoice(
+    "INV-0147",
+    tomas,
+    "Route planner bug fixes",
+    1250,
+    "awaiting",
+    ["2026-09-30", "Sep 30"],
+    ["2026-10-30", "Oct 30"],
+    1
+  ),
+  invoice(
+    "INV-0148",
+    priya,
+    "Shipment tracking dashboard, October sprints",
+    6375.5,
+    "awaiting",
+    ["2026-10-03", "Oct 3"],
+    ["2026-11-02", "Nov 2"],
+    4
+  ),
+  invoice(
+    "INV-0149",
+    jonah,
+    "Fleet livery illustrations",
+    980,
+    "awaiting",
+    ["2026-10-06", "Oct 6"],
+    ["2026-11-05", "Nov 5"],
+    2
+  ),
+  invoice(
+    "INV-0151",
+    you,
+    "Customer portal onboarding redesign",
+    2400,
+    "scheduled",
+    ["2026-09-22", "Sep 22"],
+    ["2026-10-22", "Oct 22"],
+    1
+  ),
 ];
 
 // The invoices awaiting approval before any is paid: bulk-pay's queue,
@@ -178,8 +256,10 @@ const history: History = {
   awaitingInvoice: invoice(
     "INV-0152",
     you,
+    "October design retainer",
     2950,
     "awaiting",
+    ["2026-10-20", "Oct 20"],
     ["2026-11-19", "Nov 19"],
     3
   ),

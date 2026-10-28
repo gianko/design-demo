@@ -60,8 +60,8 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// The detail slot: the row's invoice, its amount and status first, then the
-// facts the row had no room for, every value read from the row.
+// The detail slot: the row's invoice, its amount and status first, then only
+// the facts no column shows (#293), every value read from the row.
 function invoiceSheet(row: Invoice) {
   return (
     <Sheet
@@ -72,15 +72,16 @@ function invoiceSheet(row: Invoice) {
         <Amount value={row.amount} currency={row.currency} display="card" />
         <StatusTag status={row.status} />
       </Stack>
+      <Text text={row.description} />
       <Stack gap="2xs">
-        <Fact label="Contractor">
-          <Text text={row.contractor} />
+        <Fact label="Issued">
+          <Text text={row.issuedLabel} />
         </Fact>
         <Fact label="Client">
           <Text text={row.client} />
         </Fact>
-        <Fact label="Due">
-          <Text text={row.dueLabel} />
+        <Fact label="Lines">
+          <Text text={row.lineCountLabel} />
         </Fact>
       </Stack>
     </Sheet>
