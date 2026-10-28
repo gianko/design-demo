@@ -15,7 +15,7 @@ import {
 } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { repo } from "../../../repo.ts";
 import type { VariantName } from "../../fixtures/fixtures.ts";
 import { Button } from "../Button/Button.tsx";
@@ -29,7 +29,7 @@ import {
   useSelectedRows,
 } from "../Screen/screen-state.tsx";
 import { Text } from "../Text/Text.tsx";
-import { Toast } from "./Toast.tsx";
+import { holdToastAttribute, Toast } from "./Toast.tsx";
 
 const scheduled = "3 invoices scheduled for the Oct 24 run.";
 const failed =
@@ -37,10 +37,10 @@ const failed =
 const closeLabel = "Close payment result";
 
 // How long a success Toast stays, read from the motion tokens rather than
-// the component: the `toast` duration token, in ms.
+// the component: the `toast` timeout token, in ms.
 const toastMs: number = JSON.parse(
   readFileSync(join(repo, "tokens/motion.json"), "utf8")
-).motion.duration.toast.$value.value;
+).motion.timeout.toast.$value.value;
 
 // bulk-pay as its generated screen wires it: Approve and pay in the table's
 // footer, and the success or the failure Toast last in the Screen, in the
@@ -112,14 +112,6 @@ const pay = async () => {
 };
 
 let transitions: string[][];
-
-// The page's tokens, as the app loads them: the Toast reads its timer's
-// length from the `toast` duration token's custom property.
-beforeAll(() => {
-  const style = document.createElement("style");
-  style.textContent = readFileSync(join(repo, "tokens/tokens.css"), "utf8");
-  document.head.append(style);
-});
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -207,9 +199,9 @@ const screenState = () =>
     .screenState;
 const wait = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
 
-// ADR 0013: a success Toast leaves on its own after the `toast` duration,
+// ADR 0013: a success Toast leaves on its own after the `toast` timeout,
 // through a View Transition, and the screen stays in its state.
-it("dismisses a success Toast after the toast duration token, the screen staying in its state", async () => {
+it("dismisses a success Toast after the toast timeout token, the screen staying in its state", async () => {
   host("default");
   await pay();
   const entered = transitions.length;
@@ -387,10 +379,9 @@ it("replaces the failure Toast with the success one when a retry is confirmed", 
   expect([...toasts].map((each) => each.dataset.tone)).toEqual(["success"]);
 });
 
-// Gate renders and Figma captures start a story in its state and must be
-// the same each run (ADR 0013): a Toast in the state its host starts in is
-// a still render of that state, its timer held.
-it("holds the timer of a success Toast in the state its host starts in", async () => {
+// An app can start in a success state, as a page loaded after a payment
+// does; its Toast times out as any other.
+it("dismisses a success Toast in the state its host starts in, after the toast timeout", async () => {
   render(
     <ScreenHost
       screenState={{
@@ -400,6 +391,29 @@ it("holds the timer of a success Toast in the state its host starts in", async (
     >
       <BulkPay />
     </ScreenHost>
+  );
+
+  await wait(toastMs - 1);
+  expect(toast()!.dataset.tone).toBe("success");
+  await wait(1);
+  expect(toast()).toBeNull();
+});
+
+// Gate renders and Figma captures must be the same each run (ADR 0013):
+// Storybook's decorator sets the hold attribute around every story, and a
+// Toast inside it holds its timer.
+it("holds the timer of a success Toast inside the hold attribute", async () => {
+  render(
+    <div {...{ [holdToastAttribute]: "" }}>
+      <ScreenHost
+        screenState={{
+          name: "payment-scheduled",
+          fixture: "invoice-queue/payment-scheduled",
+        }}
+      >
+        <BulkPay />
+      </ScreenHost>
+    </div>
   );
 
   await wait(toastMs * 10);

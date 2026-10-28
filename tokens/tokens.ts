@@ -49,7 +49,7 @@ export type Width = (typeof width)[number];
 export const font = ["sans"] as const;
 export type Font = (typeof font)[number];
 
-export const duration = ["fast", "base", "slow", "fast-exit", "base-exit", "slow-exit", "loop", "toast"] as const;
+export const duration = ["fast", "base", "slow", "fast-exit", "base-exit", "slow-exit", "loop"] as const;
 export type Duration = (typeof duration)[number];
 
 export const delay = ["stagger"] as const;
@@ -63,3 +63,6 @@ export type Animate = (typeof animate)[number];
 
 export const zIndex = ["raised", "overlay", "toast"] as const;
 export type ZIndex = (typeof zIndex)[number];
+
+// Timers' lengths in ms, the one kind of token value code reads (ADR 0005).
+export const timeout = { toast: 5000 } as const;

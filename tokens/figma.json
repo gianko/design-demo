@@ -2168,7 +2168,7 @@
           }
         },
         {
-          "name": "motion/duration/toast",
+          "name": "motion/timeout/toast",
           "type": "TIMING",
           "css": true,
           "valuesByMode": {

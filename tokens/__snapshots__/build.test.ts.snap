@@ -48,7 +48,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-motion-duration-base-exit: 168ms;
   --ds-motion-duration-slow-exit: 224ms;
   --ds-motion-duration-loop: 1280ms;
-  --ds-motion-duration-toast: 5000ms;
+  --ds-motion-timeout-toast: 5000ms;
   --ds-motion-delay-stagger: 40ms;
   --ds-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ds-motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -342,10 +342,6 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   transition-duration: var(--ds-motion-duration-loop);
   animation-duration: var(--ds-motion-duration-loop);
 }
-@utility duration-toast {
-  transition-duration: var(--ds-motion-duration-toast);
-  animation-duration: var(--ds-motion-duration-toast);
-}
 @utility delay-stagger {
   transition-delay: var(--ds-motion-delay-stagger);
   animation-delay: var(--ds-motion-delay-stagger);
@@ -495,7 +491,7 @@ export type Width = (typeof width)[number];
 export const font = ["sans"] as const;
 export type Font = (typeof font)[number];
 
-export const duration = ["fast", "base", "slow", "fast-exit", "base-exit", "slow-exit", "loop", "toast"] as const;
+export const duration = ["fast", "base", "slow", "fast-exit", "base-exit", "slow-exit", "loop"] as const;
 export type Duration = (typeof duration)[number];
 
 export const delay = ["stagger"] as const;
@@ -509,6 +505,9 @@ export type Animate = (typeof animate)[number];
 
 export const zIndex = ["raised", "overlay", "toast"] as const;
 export type ZIndex = (typeof zIndex)[number];
+
+// Timers' lengths in ms, the one kind of token value code reads (ADR 0005).
+export const timeout = { toast: 5000 } as const;
 "
 `;
 
@@ -2683,7 +2682,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           }
         },
         {
-          "name": "motion/duration/toast",
+          "name": "motion/timeout/toast",
           "type": "TIMING",
           "css": true,
           "valuesByMode": {

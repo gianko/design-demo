@@ -3,6 +3,7 @@ import {
   openDetailAttribute,
   tickRowsAttribute,
 } from "../src/components/DataTable/DataTable.tsx";
+import { holdToastAttribute } from "../src/components/Toast/Toast.tsx";
 import { ScreenHost, type ScreenStateParameters } from "../src/index.ts";
 import "../src/styles.css";
 import { densities, themes, type Density, type Theme } from "./globals";
@@ -74,12 +75,14 @@ const preview: Preview = {
     // Theme and density are CSS scopes, so this sets the two attributes. It
     // also paints the page, as whatever hosts a screen does, so a component
     // with no surface of its own sits on the page role, not on the browser's
-    // white.
+    // white. A story is a still render, the same each run for the gate and
+    // a Figma capture, so a success Toast in it holds its timer (ADR 0013).
     (Story, { globals }) => (
       <div
         className="bg-page"
         data-theme={globals.theme}
         data-density={globals.density}
+        {...{ [holdToastAttribute]: "" }}
       >
         <Story />
       </div>

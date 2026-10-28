@@ -12,7 +12,7 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Toast 
 
 ## A toast stays for as long as its screen state
 
-**Retired (ADR 0013, #299):** a success Toast dismisses itself after the `toast` duration token, both tones have a close button, and whether a Toast shows is the library's own state, not a screen state.
+**Retired (ADR 0013, #299):** a success Toast dismisses itself after the `toast` timeout token, both tones have a close button, and whether a Toast shows is the library's own state, not a screen state.
 
 **Undecided:** the brief and ADR 0011 say when a toast enters, not when it leaves. Default toasts dismiss themselves after a few seconds or with a close button. A timer would be a state change the system starts, and generated screens hold no state of their own (ADR 0011), so neither fits the library as it stands.
 
@@ -50,13 +50,13 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Toast 
 
 **Alternative:** #236's named utilities (`vt-action-result`, `vt-action-failure`) as classes in the `tv()` config, and the toast's timing beside the others in `src/styles.css`, so no component carries a stylesheet.
 
-## A toast in its host's starting state holds its timer
+## Every story holds the toast's timer
 
 **Undecided:** ADR 0013 says gate renders and Figma captures show the Toast "with its timer paused, so they are deterministic", but not how a render pauses it. The open-sheet and ticked-rows renders set their state through library test attributes the Storybook preview writes.
 
-**Call:** no attribute. A Toast in the state its host starts in, the screen-state entry 0, is a still render of that state, and its timer holds until the state is next entered. Every state story, gate render and capture starts its host in the state it shows, so each is the same every run, and a toast that enters through an action, in a story or an app, times out as it should.
+**Call:** a `data-test-hold-toast` attribute (`holdToastAttribute`), like `data-test-open-detail`, which the Storybook preview sets on every story's page box, so the gate and the capture walk render the same each run. A Toast inside it holds its timer; everywhere else, an app that starts in a success state included, a success Toast times out. In Storybook a toast that enters through an action stays too.
 
-**Alternative:** a `data-test-hold-toast` attribute, like `data-test-open-detail`, that the preview sets on every story and the gate and the capture walk rely on, so a starting-state toast would time out in an app that deep-links into a result state.
+**Alternative:** no attribute: a Toast in the state its host starts in (entry 0) holds its timer. It kept test markup out of the library, but an app that starts in a success state, such as a page loaded after a payment, never timed its toast out.
 
 ## The slide clears the widest page padding, not the toast's own
 
@@ -70,14 +70,6 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Toast 
 
 **Undecided:** ADR 0013 gives the toast a slide in and a slide out, no fade and no scale, and one toast at a time, but not what a result that replaces a showing toast looks like: a confirmed retry after a failure, or a retry that fails again.
 
-**Call:** the toast has one view transition name for both tones, so a toast in both views is one group: it morphs in place from the old one to the new, with the group's own crossfade, and slides nowhere. The slides apply only to an image alone in its pair (`:only-child`). A retry that fails again is the same toast in both views, so nothing visibly changes; it is announced again.
+**Call:** the toast has one view transition name for both tones, so a toast in both views is one group, and it swaps at once: the old image is hidden, the new one shows without a fade, and the group neither moves nor resizes, so there is no fade and no scale (#299). The slides apply only to an image alone in its pair (`:only-child`). A retry that fails again is the same toast in both views, so nothing visibly changes; it is announced again.
 
 **Alternative:** the old toast slides out while the new one slides in, both at the corner, or the new one slides in only once the old has left.
-
-## The timer reads its token from CSS
-
-**Undecided:** ADR 0005 says `tokens.ts` holds names only and no code reads a token value, but the timer needs the `toast` duration as a number.
-
-**Call:** the Toast reads `--ds-motion-duration-toast` off its own element's computed style when its timer first runs, so the value still comes from the token build through `tokens.css`, as CSS reads the others. Where no stylesheet sets it, nothing times out. The unit tests load `tokens.css` and hold the timer to the value in `tokens/motion.json`.
-
-**Alternative:** the token build emits duration values in `tokens.ts` beside the names, an ADR 0005 amendment.

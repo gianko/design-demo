@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
+import { timeout } from "../../../tokens/tokens.ts";
 import type { PropsOf } from "../../registry/entry.ts";
 import { IconButton } from "../IconButton/IconButton.tsx";
 import { useAnnounce } from "../Screen/announce.ts";
@@ -21,13 +22,13 @@ import { toast } from "./toast.ts";
 // Whether it shows is the library's own state, not a screen state: the
 // screen stays in its state after the Toast leaves. Its close button
 // dismisses it, and a success Toast dismisses itself after the `toast`
-// duration token, its timer paused while the Toast is hovered, while focus
+// timeout token, its timer paused while the Toast is hovered, while focus
 // is within it or while the tab is hidden. A failure Toast stays until it
 // is closed or the next result replaces it. Each time its state is entered
 // it shows again, even after it was closed or timed out, and its timer
-// starts over. A Toast in the state its host starts in is a still render of
-// that state, as a gate render or a Figma capture shows it, so its timer
-// holds until the state is next entered.
+// starts over. Inside `holdToastAttribute`, which Storybook sets around
+// every story, its timer holds, so a gate render or a Figma capture is the
+// same each run.
 //
 // It is no live region itself: each time its state is entered it hands its
 // copy to Screen's status region, as a live Text does.
@@ -35,16 +36,7 @@ import { toast } from "./toast.ts";
 
 export type ToastProps = PropsOf<typeof toastEntry>;
 
-// The `toast` duration token, in ms, as the page's CSS gives it on
-// `element`; null where no stylesheet sets it, and then nothing times out.
-function toastDuration(element: Element) {
-  const value = getComputedStyle(element)
-    .getPropertyValue("--ds-motion-duration-toast")
-    .trim();
-  const match = /^([\d.]+)(ms|s)$/.exec(value);
-  if (!match) return null;
-  return Number(match[1]) * (match[2] === "s" ? 1000 : 1);
-}
+export const holdToastAttribute = "data-test-hold-toast";
 
 // Whether the tab is hidden, as it changes.
 function subscribeVisibility(changed: () => void) {
@@ -71,18 +63,15 @@ export function Toast(props: ToastProps) {
     );
   // Keyed by the entry, so each entry shows a fresh Toast: its timer from
   // the start, and no hover or focus left over from the last.
-  return (
-    <ShownToast key={entry} {...props} timed={entry > 0} onClose={close} />
-  );
+  return <ShownToast key={entry} {...props} onClose={close} />;
 }
 
 function ShownToast({
   text: copy,
   tone,
   closeLabel,
-  timed,
   onClose,
-}: ToastProps & { timed: boolean; onClose: () => void }) {
+}: ToastProps & { onClose: () => void }) {
   const slots = toast({ tone });
   const ref = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
@@ -95,15 +84,12 @@ function ShownToast({
   const close = useRef(onClose);
   close.current = onClose;
 
-  // What is left of a success Toast's timer, read from the token once.
-  const left = useRef<number | null | undefined>(undefined);
-  const running =
-    tone === "success" && timed && !hovered && !focused && !hidden;
+  // What is left of a success Toast's timer.
+  const left = useRef<number>(timeout.toast);
+  const running = tone === "success" && !hovered && !focused && !hidden;
   useEffect(() => {
-    if (!running) return;
-    left.current ??= toastDuration(ref.current!);
+    if (!running || ref.current!.closest(`[${holdToastAttribute}]`)) return;
     const ms = left.current;
-    if (ms === null) return;
     const started = Date.now();
     const timer = setTimeout(() => close.current(), ms);
     return () => {

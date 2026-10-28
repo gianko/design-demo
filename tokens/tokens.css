@@ -45,7 +45,7 @@
   --ds-motion-duration-base-exit: 168ms;
   --ds-motion-duration-slow-exit: 224ms;
   --ds-motion-duration-loop: 1280ms;
-  --ds-motion-duration-toast: 5000ms;
+  --ds-motion-timeout-toast: 5000ms;
   --ds-motion-delay-stagger: 40ms;
   --ds-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ds-motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -338,10 +338,6 @@
 @utility duration-loop {
   transition-duration: var(--ds-motion-duration-loop);
   animation-duration: var(--ds-motion-duration-loop);
-}
-@utility duration-toast {
-  transition-duration: var(--ds-motion-duration-toast);
-  animation-duration: var(--ds-motion-duration-toast);
 }
 @utility delay-stagger {
   transition-delay: var(--ds-motion-delay-stagger);

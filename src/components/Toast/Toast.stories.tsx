@@ -167,7 +167,8 @@ export const LongCopy: Story = {
 // the success or the failure Toast after the table, in the state the
 // payment enters. In Storybook, Approve and pay settles after 1.8s under the
 // story's fixture variant, so the success toast slides in, or the failure
-// one; the success toast leaves again after the `toast` duration.
+// one. Every story holds a success toast's timer (`holdToastAttribute`),
+// so it stays.
 function PayConfirmation() {
   const data = useFixtureData();
   const { state } = useScreenState();

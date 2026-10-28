@@ -7,7 +7,8 @@
 // it names if any, and in the media it sits in; a typed selector outranks an
 // untyped one, a named one an unnamed one, and a later rule an earlier one.
 // A rule on `:only-child` applies to an image that is alone in its pair: an
-// element in the new view only (entering) or the old view only (leaving).
+// element in the new view only (entering) or the old view only (leaving);
+// one on `:not(:only-child)` to an image with a partner.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -18,7 +19,7 @@ type Type = "confirm" | "fail" | "sheet-open" | "sheet-close" | undefined;
 type Media = { reducedMotion: boolean };
 
 const selector =
-  /^(?::root:active-view-transition-type\(([\w-]+)\))?::view-transition-(group|new|old)\((\*|[\w-]+)\)(:only-child)?$/;
+  /^(?::root:active-view-transition-type\(([\w-]+)\))?::view-transition-(group|new|old)\((\*|[\w-]+)\)(:only-child|:not\(:only-child\))?$/;
 
 function sheet() {
   const style = document.createElement("style");
@@ -57,7 +58,7 @@ function computed(
       const [, typed, target, group, onlyChild] = match;
       if (target !== pseudo || (typed && typed !== type)) continue;
       if (group !== "*" && group !== name) continue;
-      if (onlyChild && !alone) continue;
+      if (onlyChild && (onlyChild === ":only-child") !== alone) continue;
       // Specificity, then order: the type and `:only-child` each a
       // pseudo-class, a name a type selector, `*` nothing.
       const rank =
@@ -94,6 +95,7 @@ function computed(
     duration: value("animation-duration"),
     easing: value("animation-timing-function"),
     slidePast: value("--slide-past")?.trim(),
+    opacity: value("opacity"),
   };
 }
 
@@ -178,14 +180,24 @@ describe("toast transitions", () => {
     }
   );
 
+  // No fade and no scale (#299): the old toast's image is hidden, the new
+  // one shows at once, and the group neither moves nor resizes.
   it.each(types)(
-    "slide nothing when a toast replaces another, under %s",
+    "swap at once, with no fade or scale, when a toast replaces another, under %s",
     (type) => {
-      for (const pseudo of ["new", "old"] as const) {
-        expect(computed(pseudo, type, motion, "toast").name).toBeUndefined();
+      for (const pseudo of ["group", "new", "old"] as const) {
+        expect(computed(pseudo, type, motion, "toast").name).toBe("none");
       }
+      expect(computed("old", type, motion, "toast").opacity).toBe("0");
+      expect(computed("new", type, motion, "toast").opacity).toBeUndefined();
     }
   );
+
+  it.each(types)("show a leaving toast as it slides out, under %s", (type) => {
+    expect(
+      computed("old", type, motion, "toast", true).opacity
+    ).toBeUndefined();
+  });
 
   // The toast sits the page padding in from the window's edge, so its own
   // width doesn't take it out of the window: it slides a step further, one

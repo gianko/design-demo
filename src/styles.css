@@ -87,10 +87,22 @@
      a success enters in, and keeps `standard` under `fail`. It slides back
      out past the end edge at `slow-exit` with `exit` when its image is the
      old view's alone: closed, timed out, or gone with its state. A toast
-     that replaces another, or shows again where it was, slides nowhere. It
-     sits the page padding in from the window's edge, so it slides a step
-     further than its own width: `2xl`, wider than either density's page
-     padding, which the root these pseudo-elements hang off doesn't know. */
+     that replaces another, or shows again where it was, swaps at once: no
+     fade, no scale (#299), so the old image is hidden and the group neither
+     moves nor resizes. It sits the page padding in from the window's edge,
+     so it slides a step further than its own width: `2xl`, wider than
+     either density's page padding, which the root these pseudo-elements
+     hang off doesn't know. */
+  ::view-transition-group(toast),
+  ::view-transition-new(toast),
+  ::view-transition-old(toast) {
+    animation-name: none;
+  }
+
+  ::view-transition-old(toast):not(:only-child) {
+    opacity: 0;
+  }
+
   ::view-transition-new(toast):only-child {
     --slide-past: var(--ds-space-2xl);
     animation-name: slide-in;

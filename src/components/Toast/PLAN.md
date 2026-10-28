@@ -22,10 +22,10 @@ No Radix Toast: it brings its own live region, a viewport, a stack and swipe-to-
 The library's own state, like the open Sheet (ADR 0013), not a screen state: the screen stays in its state (such as `payment-scheduled`) after the toast leaves, and the UI spec names none of this.
 
 - Toast keeps the screen-state entry it was dismissed in (`useStateEntry`). It shows unless that is the current entry, so each time its state is entered, a retry that fails again included, it shows again, even after it was closed or timed out.
-- The close button dismisses either tone. A success toast also dismisses itself after the `toast` duration token (5s), which the Toast reads from its custom property, `--ds-motion-duration-toast`. Its timer pauses while the pointer is over the toast, while focus is within it and while the tab is hidden, and resumes where it left off. A failure toast has no timer.
+- The close button dismisses either tone. A success toast also dismisses itself after the `toast` timeout token (5s), which the Toast reads as `timeout.toast` from `tokens.ts` (ADR 0005). Its timer pauses while the pointer is over the toast, while focus is within it and while the tab is hidden, and resumes where it left off. A failure toast has no timer.
 - Each entry renders a fresh toast (keyed by the entry), so its timer starts from the full duration and no hover or focus carries over from the last one.
 - One at a time: a state shows at most one Toast (gate 1), so a new result, a state entered, replaces the current one.
-- A Toast in the state its host starts in (entry 0) is a still render of that state, as a state story, a gate render and a Figma capture show it: its timer holds until the state is next entered. So captures are deterministic without a test attribute (a gap).
+- Inside `holdToastAttribute` (`data-test-hold-toast`), which the Storybook preview sets around every story, its timer holds, so a gate render and a Figma capture are the same each run (a gap). Everywhere else it times out, in the state an app starts in too.
 - Dismissing runs through a View Transition, so the toast slides out. If focus was on its close button, it lands on the Screen, by the same rule as a state change that removes the focused element (`keepingFocus`, ADR 0011).
 
 ## Variants, sizes, states
@@ -68,7 +68,7 @@ The library owns it (ADR 0011, ADR 0013). src/styles.css, inside `prefers-reduce
 | Pays, and it fails | `to.failure`, `fail` | It slides in at `slow` with `standard`: `fail` never settles. |
 | Closes it, or a success times out | an untyped View Transition | Its image is the old view's alone: it slides back out past the end edge (`slide-out`) at `slow-exit` with `exit`. |
 | Leaves its state for one without a toast | that state's transition | It slides out the same way. |
-| A retry is confirmed after a failure, or fails again | `confirm` or `fail` | A toast in both views: it changes in place (the group's own morph and crossfade), sliding nowhere. |
+| A retry is confirmed after a failure, or fails again | `confirm` or `fail` | A toast in both views: it swaps at once, the old image hidden and the group still, with no fade and no scale. |
 
 No fade and no scale. `slide-in` and `slide-out` are the Sheet's keyframes (#292), shared: they translate along `--end-edge` by the image's own width plus `--slide-past`, which is nothing for a sheet flush with the window's edge and `2xl` (40px) for a toast, a step wider than either density's page padding (28px, 36px). The pseudo-elements hang off the root, outside the Screen's density scope, so they can't read the toast's own inset (a gap). Under reduced motion none of this applies: a toast entering or leaving is the `fast` crossfade every change is, with no movement.
 
