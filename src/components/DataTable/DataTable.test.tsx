@@ -374,3 +374,27 @@ it("reads only a status cell's own word, not the words its column keeps room for
   expect(screen.getByRole("row", { name: "INV-0147 Awaiting" })).toBeTruthy();
   expect(screen.getByRole("row", { name: "INV-0145 Scheduled" })).toBeTruthy();
 });
+
+// A list with no rows: a screen shows an EmptyState in the DataTable's place
+// (#290), but the table itself still renders its header row, and a
+// selectable one stops offering a selection it can't make.
+it("renders the header row alone, with Select all rows disabled, when a selectable table has no rows", () => {
+  render(
+    <ScreenHost>
+      <DataTable
+        rows={[] as { id: string }[]}
+        columns={["Invoice", "Status"]}
+        selectable
+        cell={(row) => <Text text={row.id} />}
+      />
+    </ScreenHost>
+  );
+
+  expect(screen.getAllByRole("row")).toEqual([
+    screen.getByRole("row", { name: "Select all rows Invoice Status" }),
+  ]);
+  expect(
+    screen.getByRole<HTMLInputElement>("checkbox", { name: "Select all rows" })
+      .disabled
+  ).toBe(true);
+});
