@@ -48,6 +48,8 @@ Anything else, show it to the human and stop. A `literal` paint usually means th
 
 These misses are known and expected ([issue #15](https://github.com/gianko/design-demo/issues/15)): alpha colours (the scrim, transparent borders), `min-height`, text and effect styles, and motion. They are no reason to recapture.
 
+An SVG's stroke never binds: the capture leaves a `Vector strokes` entry in `literal` even when the colour is a token's, as with Checkbox's tick in `color/text/on-accent`. Check that its colour matches the role the component paints it with, then count it as known.
+
 ## Recapturing
 
 A capture adds frames beside the earlier ones, so earlier captures of the same story stay on the Screens page. Give the human their node IDs; deleting them is the human's call.
