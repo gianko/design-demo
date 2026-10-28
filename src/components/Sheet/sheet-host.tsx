@@ -4,9 +4,9 @@ import { inViewTransition } from "../Screen/view-transition.ts";
 
 // The seam DataTable opens and closes a Sheet through (ADR 0011: DataTable
 // owns the open sheet). Sheet holds no open state: DataTable renders the
-// opened row's detail node inside a SheetHost, and the Sheet's close button
-// and Escape ask the host to close it. With no host, as in Sheet's own
-// stories, closing does nothing.
+// opened row's detail node inside a SheetHost, and the Sheet's close button,
+// Escape and a click on the scrim ask the host to close it. With no host, as
+// in Sheet's own stories, closing does nothing.
 
 const noHost = () => {};
 
@@ -22,7 +22,7 @@ export function SheetHost({ onClose, children }: SheetHostProps) {
   return <SheetHostContext value={onClose}>{children}</SheetHostContext>;
 }
 
-// What the Sheet's close button and Escape call.
+// What the Sheet's close button, Escape and a scrim click call.
 export function useSheetClose() {
   return useContext(SheetHostContext);
 }

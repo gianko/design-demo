@@ -23,7 +23,7 @@ Props:
 
 DataTable owns the open sheet (ADR 0011), so Sheet holds no open state. `sheet-host.tsx` exports:
 
-- `SheetHost`: a context provider DataTable wraps around the opened row's `detail` node, carrying `onClose`. The close button and Escape both call it. With no host (Sheet's own stories), they do nothing.
+- `SheetHost`: a context provider DataTable wraps around the opened row's `detail` node, carrying `onClose`. The close button, Escape and a click on the scrim all call it. With no host (Sheet's own stories), they do nothing.
 - `transitionSheet(direction, origin, update)`: runs DataTable's open or close update inside a View Transition typed `sheet-open` or `sheet-close`, with the row's element as `origin`, so the row expands into the sheet and the sheet shrinks back into the row. It marks `origin` with `data-sheet-origin` for whichever snapshot shows the row, never both, so the shared name stays unique. Without View Transitions (jsdom) it runs the update directly.
 
 Sheet returns focus itself: it remembers what had focus when it opened (the row, which a keyboard user opened with Enter) and focuses it again when it unmounts. That is what ADR 0006 asked of Radix's `onCloseAutoFocus`.
@@ -61,6 +61,7 @@ The sheet itself isn't a control, so it has no hover, pressed or disabled. Its o
 - **Role**: `dialog`, native, modal (`showModal()`), so the page behind is inert and focus stays in the sheet.
 - **Accessible name**: the title, through `aria-labelledby` on the title box's id.
 - **Keyboard**: Escape closes (the dialog's `cancel`, which Sheet takes over so DataTable closes it through its View Transition); Tab reaches the close button, Enter or Space presses it. Opening it is DataTable's (Enter on a row).
+- **Pointer**: a click on the scrim closes it, through the host as Escape does. The scrim is the dialog's `::backdrop`, so the browser dispatches a press on it to the dialog itself: Sheet counts a press as on the scrim when the dialog is its target and the point lies outside the panel's box, and closes only when the press both starts and ends there. One that drags out of a text selection in the panel, or from the scrim into the panel, leaves it open.
 - **Focus**: on open the dialog takes focus; on close focus returns to whatever had it when the sheet opened (the row). The focus ring shows on the close button on `:focus-visible` only.
 - **Disabled, busy**: none; the sheet starts no operation and is read-only.
 - **Target size**: the close button is a square of `h-control`, 32px admin and 44px contractor ("every target on my screens, the sheet's close button included, to be at least 44px").
@@ -70,7 +71,7 @@ The sheet itself isn't a control, so it has no hover, pressed or disabled. Its o
 | User action | Transition | Motion |
 |---|---|---|
 | Clicks a row, or presses Enter on it | `sheet-open`, run by `transitionSheet` | The `row-detail` group morphs from the row's box to the sheet's at `slow`, `standard`; the row's image fades out at `slow-exit`, `exit`, and the sheet's fades in at `slow`. The scrim fades in with the page's crossfade. |
-| Presses Escape or the close button | `sheet-close` | The group morphs back from the sheet to the row at `slow-exit`, `exit`. |
+| Presses Escape or the close button, or clicks the scrim | `sheet-close` | The group morphs back from the sheet to the row at `slow-exit`, `exit`. |
 
 No `settle`: opening a sheet confirms nothing ("settle … only for confirming something the user did"). No keyframes of its own, so nothing animates on page load: a story renders the sheet already open, still. Reduced motion: src/styles.css already turns every View Transition into a `fast` crossfade with no movement; Sheet.css's timings apply only under `prefers-reduced-motion: no-preference`.
 

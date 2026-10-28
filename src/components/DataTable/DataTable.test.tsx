@@ -279,6 +279,27 @@ it("closes the Sheet on Escape or its close button, through a sheet-close View T
   ]);
 });
 
+it("closes the Sheet on a click on the scrim, through a sheet-close View Transition, and focus goes back to the row", () => {
+  hostWithDetail();
+  const invoice = row("INV-0145");
+  invoice.focus();
+  fireEvent.keyDown(invoice, { key: "Enter" });
+  // The scrim is the dialog's ::backdrop: a browser dispatches a press on it
+  // to the dialog, outside the panel's box, which jsdom doesn't lay out.
+  const dialog = screen.getByRole("dialog");
+  vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(
+    new DOMRect(860, 0, 420, 800)
+  );
+
+  fireEvent.pointerDown(dialog, { clientX: 200, clientY: 400 });
+  fireEvent.pointerUp(dialog, { clientX: 200, clientY: 400 });
+  fireEvent.click(dialog, { clientX: 200, clientY: 400 });
+
+  expect(openSheet()).toBeNull();
+  expect(types()).toEqual([["sheet-open"], ["sheet-close"]]);
+  expect(document.activeElement).toBe(invoice);
+});
+
 it("in a selectable table, ticking a row selects it without opening it, and clicking the row opens it without selecting it", () => {
   hostWithDetail(true);
 

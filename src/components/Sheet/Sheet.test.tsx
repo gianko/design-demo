@@ -56,6 +56,84 @@ it("asks its host to close it from its close button and on Escape", () => {
   expect(onClose).toHaveBeenCalledTimes(2);
 });
 
+// The scrim is the modal dialog's ::backdrop, so a browser dispatches a press
+// on it to the dialog itself, at a point outside the panel's box. jsdom lays
+// nothing out, so the panel's box is stubbed: 420px wide at the end edge of a
+// 1280 × 800 window.
+type Point = { clientX: number; clientY: number };
+const onScrim: Point = { clientX: 200, clientY: 400 };
+const inPanel: Point = { clientX: 1000, clientY: 400 };
+
+function laidOut(dialog: HTMLElement) {
+  vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(
+    new DOMRect(860, 0, 420, 800)
+  );
+  return dialog;
+}
+
+// A primary-button press as a browser dispatches it: pointerdown where it
+// starts, pointerup where it ends, then a click on the nearest element that
+// holds both, at the point it ends.
+function press(from: [Element, Point], to: [Element, Point]) {
+  fireEvent.pointerDown(from[0], { button: 0, ...from[1] });
+  fireEvent.pointerUp(to[0], { button: 0, ...to[1] });
+  let both: Element = from[0];
+  while (!both.contains(to[0])) both = both.parentElement!;
+  fireEvent.click(both, { button: 0, ...to[1] });
+}
+
+it("asks its host to close it when the scrim is clicked", () => {
+  const onClose = vi.fn();
+  render(
+    <SheetHost onClose={onClose}>
+      <InvoiceSheet />
+    </SheetHost>
+  );
+  const dialog = laidOut(screen.getByRole("dialog"));
+
+  press([dialog, onScrim], [dialog, onScrim]);
+
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+it("stays open after a press that starts in the panel and ends on the scrim, or the other way", () => {
+  const onClose = vi.fn();
+  render(
+    <SheetHost onClose={onClose}>
+      <InvoiceSheet />
+    </SheetHost>
+  );
+  const dialog = laidOut(screen.getByRole("dialog"));
+  const body = screen.getByText("Due Oct 24");
+
+  // Dragging out of a text selection in the body.
+  press([body, inPanel], [dialog, onScrim]);
+  press([dialog, onScrim], [body, inPanel]);
+
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+it("stays open after a click inside the panel", () => {
+  const onClose = vi.fn();
+  render(
+    <SheetHost onClose={onClose}>
+      <InvoiceSheet />
+    </SheetHost>
+  );
+  const dialog = laidOut(screen.getByRole("dialog"));
+  const title = screen.getByRole("heading", { name: "INV-0142" });
+  const body = screen.getByText("Due Oct 24");
+
+  press([title, inPanel], [title, inPanel]);
+  press([body, inPanel], [body, inPanel]);
+  // The panel's own padding, where the dialog itself is the target.
+  press([dialog, inPanel], [dialog, inPanel]);
+  // Text that overflows the panel's box is still the panel's.
+  press([body, onScrim], [body, onScrim]);
+
+  expect(onClose).not.toHaveBeenCalled();
+});
+
 // A stand-in for DataTable's side of the seam: a row that opens its Sheet,
 // and the host that closes it, both through transitionSheet.
 function OneRow() {
@@ -149,11 +227,13 @@ it("opens and closes in View Transitions, the row carrying the shared name only 
 
 it("does nothing on close with no host, as in its own stories", () => {
   render(<InvoiceSheet />);
+  const dialog = laidOut(screen.getByRole("dialog"));
 
   fireEvent.click(
     screen.getByRole("button", { name: "Close invoice details" })
   );
-  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  press([dialog, onScrim], [dialog, onScrim]);
 
   expect(screen.getByRole("dialog", { name: "INV-0142" })).toBeTruthy();
 });
