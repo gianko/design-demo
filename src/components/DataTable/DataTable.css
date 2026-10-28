@@ -5,6 +5,13 @@
   outline-offset: calc(var(--ds-size-height-edge) * -2);
 }
 
+/* The scrolling body (#296): focus scrolls a row, or its Checkbox, into view
+   below the sticky header row, a row's height, rather than under it. No token
+   class sets a scroll padding from a height. */
+[data-component="DataTable"] > :has(> table) {
+  scroll-padding-top: var(--ds-density-height-row);
+}
+
 /* The stagger (ADR 0011). When bound statuses change, DataTable marks each
    row whose status changed with `data-flip`, and only those rows flip, in row
    order, one `delay-stagger` apart; from the 8th on they flip together, so a

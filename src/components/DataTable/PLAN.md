@@ -8,9 +8,10 @@ The screen's list of invoices or payments, one row per item: bind `rows` to a fi
 
 No Radix primitive: Radix isn't installed, and a native `<table>` already has the roles a screen reader navigates by (table, row, column header, cell). Selection is Checkbox, which DataTable renders; the UI spec never names it (spec § Eval screen briefs).
 
-- `root`: a `<div>`, carrying `data-component="DataTable"`. The flat surface: `line` hairline, the density's surface radius. It scrolls sideways if the columns outgrow a narrow screen, so it clips the table's corners too.
+- `root`: a `<div>`, carrying `data-component="DataTable"`. The frame, a flat surface: `line` hairline, the density's surface radius. It scrolls sideways if the columns outgrow a narrow screen, so it clips the table's corners too. It holds the `body`, and has room below it for a footer that sits inside the frame but outside the body's scroll, such as the actions footer (#297); on a narrow screen such a footer scrolls sideways with the table unless it pins itself.
+- `body`: a `<div>` around the table (#296). It grows with the rows up to the header row and 10 rows at the density's row height (`max-h-table`: 506px admin, 660px contractor), and scrolls down past that. It is as wide as the table, and at least the frame, so it never scrolls sideways itself: the frame does, as before the cap.
 - `table`: the `<table>`, full width.
-- `headerRow`: the `<tr>` in `<thead>`.
+- `headerRow`: the `<tr>` in `<thead>`. In a table of more than 10 rows it is stuck to the top of the body as it scrolls down, and moves sideways with its columns.
 - `header`: each `<th scope="col">`, the column's name.
 - `row`: each `<tr>` in `<tbody>`, one per item in `rows`.
 - `cell`: each `<td>`, holding one node of the `cell` slot for that row.
@@ -32,6 +33,7 @@ No look variant and no size: one table, density sets its size (ADR 0002). Select
 | State | How it shows | Brief line |
 |---|---|---|
 | rest | `surface` table on a `line` hairline, `line` rules between rows, 12px `ink-muted` headers, rows at the density's row height | "Row height 46px / 60px"; "headers are 12px, 600, `ink-muted`"; "flat (page and cards, separated by a `line` hairline)" |
+| more than 10 rows | the body stops at the header row and 10 rows and scrolls; the header row stays at its top, its `surface` fill opaque and drawn over the rows passing under it (`z-raised`, above a row's positioned Checkbox) | the density table's row height; the brief is silent on long lists (#296) |
 | row selected | the row fills with `selected`; its box is ticked | "One accent … for … selection"; `selected` is a colour role; "Colour alone never communicates state": the tick says it too |
 | some selected | the header box shows a dash | as above; Checkbox's `mixed` |
 | all selected | the header box is ticked | as above |
@@ -52,8 +54,10 @@ Status columns hold still (#276): a column whose cell node is a StatusTag keeps 
 | Slot | When | Classes |
 |---|---|---|
 | `root` | always | `overflow-x-auto rounded-surface border border-line bg-surface` |
+| `body` | always | `max-h-table w-max min-w-full overflow-y-auto`, plus a scroll padding of the row height in `DataTable.css` |
 | `table` | always | `w-full border-collapse` |
 | `headerRow` | always | `h-row` |
+| | more than 10 rows (the body scrolls down) | `sticky top-0 z-raised bg-surface` |
 | `header` | always | `px-xs align-middle text-caption whitespace-nowrap text-ink-muted` |
 | | other columns | `text-left` |
 | | money column | `text-right` |
@@ -69,6 +73,8 @@ Status columns hold still (#276): a column whose cell node is a StatusTag keeps 
 
 Cells don't wrap, so every row keeps the density's height: a long contractor name widens its column, and on a narrow screen the table scrolls sideways inside its surface rather than breaking an amount or a name over two lines.
 
+The height cap (#296): `max-h-table` is a density token, the header row and 10 rows at the row height, so a table of 10 rows or fewer looks as it did before the cap and a longer one scrolls inside its frame, on a phone too. A table that fits keeps its old pixels: the frame, not the body, still scrolls sideways, since a body that scrolled sideways inside a clipping frame shifted the antialiasing of the frame's corners and inner edge by a level on a phone; and the header row is stuck, filled and raised only in a table of more than 10 rows, the ones whose body scrolls down, since a stuck box with a fill paints on a layer of its own, which shifted the corners and the header text the same way. DataTable counts the rows (`rowsInView`) rather than measuring, since every row is a row high. The body's top scroll padding is the row height, the header row's own, so focus scrolls a row or Checkbox it moves to into view below the header row, not under it; no token class sets a scroll padding from a height, so `DataTable.css` sets it. The stories ManyRows and ManyRowsOnPhone hold the cap and the sticky header, and FocusScrollsDownToRow, FocusScrollsUpToRow and FocusScrollsUpToCheckbox hold focus clear of the header, as style expectations. No pagination or virtualisation: the cap only bounds the frame.
+
 Header weight: there is no 12px, 600 role; `text-caption` is 12px at 400 (see GAPS.md). Side padding is the 12px spacing step at both densities: spacing between nodes doesn't follow density (`.out-of-scope/density-aware-gaps.md`), and the row height gives the contractor room.
 
 ## A11y contract
@@ -77,7 +83,7 @@ Header weight: there is no 12px, 600 role; `text-caption` is 12px at 400 (see GA
 - **Accessible name**: none of its own; the screen's level 1 Heading names what it lists (see GAPS.md).
 - **Selection**: each row's Checkbox is named "Select `<row id>`", such as "Select INV-0142"; the header's is "Select all rows", `mixed` when some are. Selected rows carry no `aria-selected`, which a plain table doesn't support; the checkbox's checked state is what is read.
 - **Keyboard**: in a selectable table, Tab moves through the checkboxes in row order, header first; Space toggles. With a `detail` slot each row is a tab stop too, just before its own checkbox; Enter on the row opens its Sheet, and Enter on its checkbox doesn't. Escape, the Sheet's close button or a click on the scrim closes it, and focus goes back to the row (Sheet returns it to its opener). A table with neither has no tab stop.
-- **Focus**: Checkbox's ring, on `:focus-visible` only.
+- **Focus**: Checkbox's ring, on `:focus-visible` only. In a table taller than its frame, a row or Checkbox that focus moves to scrolls into view below the sticky header row (#296).
 - **Disabled**: the header box, natively, when there are no rows.
 - **Busy**: none.
 - **Target size**: Checkbox's, 24×24px admin and 44×44px contractor; rows of 46px and 60px space them apart.
