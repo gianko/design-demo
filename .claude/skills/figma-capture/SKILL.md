@@ -50,6 +50,8 @@ These misses are known and expected ([issue #15](https://github.com/gianko/desig
 
 An SVG's stroke never binds: the capture leaves a `Vector strokes` entry in `literal` even when the colour is a token's, as with Checkbox's tick in `color/text/on-accent`. Check that its colour matches the role the component paints it with, then count it as known.
 
+The capture binds by value, so a fixed spacing step can bind to a density token that has the same value at the other density, with that density pinned on the node. That's why a contractor frame's `modes` can hold `Admin` too: DataTable's body cells pad with `space/xs`, 12px at both densities, and bind `density/padding/control`, which is 12px only at Admin. Check that the component's source pads with the fixed step and that the pinned mode resolves to the value it paints, then count it as known.
+
 ## Recapturing
 
 A capture adds frames beside the earlier ones, so earlier captures of the same story stay on the Screens page. Give the human their node IDs; deleting them is the human's call.
