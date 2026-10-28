@@ -1,4 +1,10 @@
-import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { tv } from "tailwind-variants/lite";
 import type { PropsOf } from "../../registry/entry.ts";
 import { IconButton } from "../IconButton/IconButton.tsx";
@@ -24,6 +30,21 @@ export const sheet = tv({
   },
 });
 
+// Whether a pointer event on the sheet lies on the scrim. The scrim is the
+// modal dialog's ::backdrop, whose events the browser dispatches to the dialog
+// itself, so it is a point outside the panel's box on the dialog, not on
+// anything inside it.
+function onScrim(event: MouseEvent<HTMLDialogElement>) {
+  if (event.target !== event.currentTarget) return false;
+  const box = event.currentTarget.getBoundingClientRect();
+  return (
+    event.clientX < box.left ||
+    event.clientX > box.right ||
+    event.clientY < box.top ||
+    event.clientY > box.bottom
+  );
+}
+
 export type SheetProps = PropsOf<typeof sheetEntry> & {
   title?: ReactNode;
   children?: ReactNode;
@@ -34,6 +55,8 @@ export function Sheet({ closeLabel, title, children }: SheetProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const close = useSheetClose();
+  // Whether the press a click ends started on the scrim.
+  const pressOnScrim = useRef(false);
 
   // In the commit, not after it, so the sheet is open by the time anything
   // reads the page: a View Transition's new view, a story's play function.
@@ -77,6 +100,16 @@ export function Sheet({ closeLabel, title, children }: SheetProps) {
       onCancel={(event) => {
         event.preventDefault();
         close();
+      }}
+      // So does a click on the scrim, if the press started there too: one
+      // that drags out of a text selection in the panel, or into the panel,
+      // leaves it open.
+      onPointerDown={(event) => {
+        pressOnScrim.current = onScrim(event);
+      }}
+      onClick={(event) => {
+        if (pressOnScrim.current && onScrim(event)) close();
+        pressOnScrim.current = false;
       }}
     >
       <div className={slots.header()}>

@@ -96,6 +96,44 @@ it("asks its host to close it when the scrim is clicked", () => {
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 
+it("stays open after a press that starts in the panel and ends on the scrim, or the other way", () => {
+  const onClose = vi.fn();
+  render(
+    <SheetHost onClose={onClose}>
+      <InvoiceSheet />
+    </SheetHost>
+  );
+  const dialog = laidOut(screen.getByRole("dialog"));
+  const body = screen.getByText("Due Oct 24");
+
+  // Dragging out of a text selection in the body.
+  press([body, inPanel], [dialog, onScrim]);
+  press([dialog, onScrim], [body, inPanel]);
+
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+it("stays open after a click inside the panel", () => {
+  const onClose = vi.fn();
+  render(
+    <SheetHost onClose={onClose}>
+      <InvoiceSheet />
+    </SheetHost>
+  );
+  const dialog = laidOut(screen.getByRole("dialog"));
+  const title = screen.getByRole("heading", { name: "INV-0142" });
+  const body = screen.getByText("Due Oct 24");
+
+  press([title, inPanel], [title, inPanel]);
+  press([body, inPanel], [body, inPanel]);
+  // The panel's own padding, where the dialog itself is the target.
+  press([dialog, inPanel], [dialog, inPanel]);
+  // Text that overflows the panel's box is still the panel's.
+  press([body, onScrim], [body, onScrim]);
+
+  expect(onClose).not.toHaveBeenCalled();
+});
+
 // A stand-in for DataTable's side of the seam: a row that opens its Sheet,
 // and the host that closes it, both through transitionSheet.
 function OneRow() {
@@ -189,11 +227,13 @@ it("opens and closes in View Transitions, the row carrying the shared name only 
 
 it("does nothing on close with no host, as in its own stories", () => {
   render(<InvoiceSheet />);
+  const dialog = laidOut(screen.getByRole("dialog"));
 
   fireEvent.click(
     screen.getByRole("button", { name: "Close invoice details" })
   );
-  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  press([dialog, onScrim], [dialog, onScrim]);
 
   expect(screen.getByRole("dialog", { name: "INV-0142" })).toBeTruthy();
 });
