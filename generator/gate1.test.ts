@@ -1516,6 +1516,13 @@ describe("gate 1 against the library's registry", () => {
             currency: bind("row.currency"),
             display: "card",
           }),
+          // What the row doesn't show (#293).
+          node("sheet-description", "Text", "sheet", "body", {
+            text: bind("row.description"),
+          }),
+          node("sheet-issued", "Text", "sheet", "body", {
+            text: bind("row.issuedLabel"),
+          }),
         ],
         states: [],
         actions: [],

@@ -2,7 +2,7 @@
 
 ## Use
 
-ADR 0011's line first, as written: "row detail; only in a DataTable's `detail` slot". The registry `use` adds what goes in it and when to reach for a sibling: a level 2 Heading bound to the row in `title`, the row's facts in `body` as Text, Amount, StatusTag and Stack; read-only, so no Button and no Card. It renders its own close button and closes on Escape or a click on the scrim. The facts of one thing on the screen itself, not behind a row, are a Card.
+ADR 0011's line first, as written: "row detail; only in a DataTable's `detail` slot". The registry `use` adds what goes in it and when to reach for a sibling: a level 2 Heading bound to the row in `title`, and in `body` the row's amount and status first, then only the facts the table's columns don't show ([#293](https://github.com/gianko/design-demo/issues/293)), as Text, Amount, StatusTag and Stack; read-only, so no Button and no Card. It renders its own close button and closes on Escape or a click on the scrim. The facts of one thing on the screen itself, not behind a row, are a Card.
 
 ## Anatomy
 
