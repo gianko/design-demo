@@ -240,6 +240,61 @@ async function flipsInStagger(
   );
 }
 
+// bulk-pay's queue either side of Pay selected (#276): every invoice
+// awaiting approval in rows-selected, every one scheduled once the payment
+// is confirmed. The two states sit one above the other, each as its own
+// table at the same width, so a play function, which only reads, can hold
+// one against the other.
+function PayQueueStates() {
+  return (
+    <Stack gap="sm">
+      <InvoiceQueue
+        rows={fixtureVariant("bulk-pay/rows-selected").data.payQueue}
+      />
+      <InvoiceQueue
+        rows={fixtureVariant("bulk-pay/payment-scheduled").data.payQueue}
+      />
+    </Stack>
+  );
+}
+
+// Style expectations (ADR 0012) of a table whose statuses change between
+// screen states (#276): every column header sits at the same x in each
+// state, so nothing shifts sideways as the changed rows flip, and the Status
+// column has room for the widest tag on the canvas whichever words it shows.
+async function columnsHoldStill(canvas: HTMLElement, density: string) {
+  await holdsRowsAndHeaders(canvas, density);
+  const tables = [
+    ...canvas.querySelectorAll<HTMLElement>('[data-component="DataTable"]'),
+  ];
+  const headersOf = (root: HTMLElement) => [
+    ...root.querySelectorAll<HTMLElement>("th"),
+  ];
+  const xs = tables.map((root) =>
+    headersOf(root).map(
+      (header) =>
+        header.getBoundingClientRect().left - root.getBoundingClientRect().left
+    )
+  );
+  for (const each of xs.slice(1)) await expect(each).toEqual(xs[0]);
+  const widest = Math.max(
+    ...[
+      ...canvas.querySelectorAll<HTMLElement>('[data-component="StatusTag"]'),
+    ].map((tag) => tag.getBoundingClientRect().width)
+  );
+  for (const root of tables) {
+    const status = headersOf(root).find(
+      (header) => header.textContent === "Status"
+    )!;
+    const style = getComputedStyle(status);
+    const room =
+      status.getBoundingClientRect().width -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight);
+    await expect(room).toBeGreaterThanOrEqual(widest);
+  }
+}
+
 // A longer run, for the stagger's cap: twelve invoices awaiting approval.
 const run = fixtureVariant("default").data.invoices.slice(0, 6);
 const longRun: Invoice[] = [...run, ...run].map((each, i) => {
@@ -358,6 +413,22 @@ export const ManyStatusesFlip: Story = {
       "0.28s",
       "0.28s",
     ]),
+};
+
+// bulk-pay's queue in rows-selected, all awaiting, above the same queue in
+// payment-scheduled, all scheduled: the columns hold still between the two
+// (#276), since the Status column keeps room for the widest status word.
+export const ColumnsHoldWhenStatusesChange: Story = {
+  render: () => <PayQueueStates />,
+  play: ({ canvasElement, globals }) =>
+    columnsHoldStill(canvasElement, globals.density),
+};
+
+// The same on a phone, where every column is as narrow as its content: the
+// Status column of awaiting tags still has room for a scheduled one.
+export const ColumnsHoldWhenStatusesChangeOnPhone: Story = {
+  ...ColumnsHoldWhenStatusesChange,
+  tags: ["phone"],
 };
 
 // No contractor has an invoice in: the header alone, with nothing to select.
