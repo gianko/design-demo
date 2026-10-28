@@ -16,7 +16,7 @@ import type { buttonEntry } from "./Button.registry.ts";
 // border.
 export const button = tv({
   slots: {
-    root: "inline-flex h-control items-center justify-center rounded-control px-control text-label whitespace-nowrap transition-colors duration-fast ease-standard focus-visible:focus-ring",
+    root: "inline-flex h-control items-center justify-center rounded-control px-control text-label whitespace-nowrap transition-colors ease-standard focus-visible:focus-ring",
     edge: "absolute inset-x-0 bottom-0 h-edge origin-left animate-progress-fill motion-reduce:animate-none",
     sweep:
       "block h-full w-0 animate-progress-sweep motion-reduce:w-1/3 motion-reduce:translate-x-full motion-reduce:animate-none",
@@ -31,6 +31,13 @@ export const button = tv({
     },
     disabled: { true: { root: "text-disabled" }, false: {} },
     pending: { true: { root: "relative overflow-hidden" }, false: {} },
+    // A DataTable footer's Button is enabled and disabled as rows are
+    // ticked, so it changes with the rows' `selected` fill, at `base`, not
+    // at Button's own `fast` (ADR 0013); reduced motion makes both `fast`.
+    followsSelection: {
+      true: { root: "duration-base motion-reduce:duration-fast" },
+      false: { root: "duration-fast" },
+    },
   },
   compoundVariants: [
     {
@@ -76,10 +83,12 @@ export const button = tv({
       },
     },
   ],
-  defaultVariants: { disabled: false, pending: false },
+  defaultVariants: { disabled: false, pending: false, followsSelection: false },
 });
 
 export type ButtonProps = PropsOf<typeof buttonEntry> & {
+  /** Set by DataTable on its footer's Buttons; not a UI spec prop. */
+  followsSelection?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   ref?: Ref<HTMLButtonElement>;
 };
@@ -89,12 +98,18 @@ export function Button({
   intent,
   disabled = false,
   pending: running = false,
+  followsSelection = false,
   onClick,
   ref,
 }: ButtonProps) {
   // A disabled button can't be running anything it shows.
   const pending = running && !disabled;
-  const { root, edge, sweep } = button({ intent, disabled, pending });
+  const { root, edge, sweep } = button({
+    intent,
+    disabled,
+    pending,
+    followsSelection,
+  });
   return (
     <button
       ref={ref}

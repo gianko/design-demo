@@ -60,7 +60,7 @@ These rules join the set only when an eval run shows the failure they catch. Eve
 
 | Rule | What it would catch |
 |---|---|
-| `text-occlusion` | Text painted under sticky table headers or columns. |
+| `text-occlusion` | Text painted under another element, such as a sticky column. A long DataTable's sticky header row is settled: it covers the rows scrolling under it by design, and `text-overflow` lets it. |
 | `repeated-container-text` | A generated card saying "Overdue" in its title, tag and tooltip. |
 | `marketing-buzzword` | Empty-state copy like "Streamline your payroll". |
 | `heading-rhythm` | Space above a heading ≤ space below. This overlaps the brief-conformance gate. |
@@ -104,7 +104,7 @@ Source: [`crates/foundation/src/registry.rs`](https://github.com/pbakaus/impecca
 | 31 | [`script-error`](https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L334) | Uncaught JS error on load | Keep → harness | Every Playwright run asserts no `pageerror` or console error. Not counted as a taste rule. |
 | 32 | [`content-hidden-at-rest`](https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L344) | Text stuck at opacity 0 or hidden after a reveal | **Keep** → `content-hidden-at-rest` | Motion is the signature; an animation that leaves content hidden is the motion failure that matters most. |
 | 33 | [`edge-flush-cards`](https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L354) | Cards flush to a horizontal scroller edge | Skip | No card carousels. |
-| 34 | [`text-occlusion`](https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L364) | Text painted under another element | Later | Real risk with sticky headers and columns, but expensive; joins on evidence from an eval run. |
+| 34 | [`text-occlusion`](https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L364) | Text painted under another element | Later | Real risk with sticky columns, but expensive; joins on evidence from an eval run. DataTable's sticky header row covers rows by design, and `text-overflow` allows it. |
 | 35 | [`first-viewport-column-overflow`](https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L374) | One column runs far past the fold | Skip | Landing-page "fold" concept. |
 | 36 | [`gray-on-color`](https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L384) | Gray text on a coloured background | **Keep** → `gray-on-color` | Muted text inside status-tinted tags and banners is likely. |
 | 37 | [`low-contrast`](https://github.com/pbakaus/impeccable/blob/dad8dbb3aac21ad1fa236c110315ef4abece23e8/crates/foundation/src/registry.rs#L394) | Below WCAG AA contrast | Skip → gate 4 | axe `color-contrast` is Serious, so gate 4 already fails it. |

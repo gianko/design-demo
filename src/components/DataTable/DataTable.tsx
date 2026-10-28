@@ -75,8 +75,9 @@ export const dataTable = tv({
     // row (DataTable.css).
     body: "max-h-table w-max min-w-full overflow-y-auto",
     // Focus can land on the table from script (a footer Button disabled
-    // under it), but it is no control, so it shows no ring.
-    table: "w-full border-collapse outline-hidden",
+    // under it), and a keyboard user sees where it went: the focus ring,
+    // inside the table's edge, since the frame clips (DataTable.css).
+    table: "w-full border-collapse focus-visible:focus-ring",
     headerRow: "h-row",
     header:
       "px-xs align-middle text-column-header whitespace-nowrap text-ink-muted",
@@ -498,7 +499,7 @@ export function DataTable<R extends Row>({
             </tbody>
           </table>
         </div>
-        {selectable && rows.length > 0 && (
+        {selectable && (
           <div
             ref={footer}
             className={slots.footer()}
@@ -516,6 +517,7 @@ export function DataTable<R extends Row>({
                 isValidElement<ButtonProps>(node) && node.type === Button
                   ? cloneElement(node, {
                       disabled: node.props.disabled === true || disabled,
+                      followsSelection: true,
                     })
                   : node
               )}
