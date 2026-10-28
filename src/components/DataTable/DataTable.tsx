@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ComponentType,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
@@ -15,7 +16,12 @@ import { Checkbox } from "../Checkbox/Checkbox.tsx";
 import { defaultState } from "../Screen/default-state.ts";
 import { useScreenState, useSelection } from "../Screen/screen-state.tsx";
 import { SheetHost, transitionSheet } from "../Sheet/sheet-host.tsx";
-import { StatusTag, type StatusTagProps } from "../StatusTag/StatusTag.tsx";
+import {
+  StatusTag,
+  statusTag,
+  statusWords,
+  type StatusTagProps,
+} from "../StatusTag/StatusTag.tsx";
 import type { dataTableEntry } from "./DataTable.registry.ts";
 import "./DataTable.css";
 
@@ -39,7 +45,9 @@ import "./DataTable.css";
 // a surface of its own wherever it sits in the DOM (#254). A table with no
 // detail slot has rows that don't answer hover, since nothing in them opens.
 // A column whose cell is an Amount puts its header at the end edge, above
-// the cents.
+// the cents. A column whose cell is a StatusTag keeps room for the widest
+// status word whichever words it shows, so the columns hold still when a
+// screen state changes its statuses (#276); each tag keeps its own width.
 // When the statuses its StatusTags are bound to change, such as an action's
 // confirmed result, the rows whose status changed are marked `data-flip`
 // and flip in the stagger DataTable.css sets out (ADR 0011). A table
@@ -56,6 +64,14 @@ export const dataTable = tv({
     // widens its column, and a narrow screen scrolls the table sideways. The
     // cell's node is held to it too: a Text's paragraph sets its own wrap.
     cell: "px-xs align-middle text-body text-nowrap text-ink *:text-nowrap",
+    // A StatusTag cell's room: every status word, invisible and hidden from
+    // assistive technology, in the one grid area behind the cell's own tag,
+    // which stays its own width at the start edge. Inline, so the tag sits on
+    // the cell's line as it does on its own.
+    room: "inline-grid justify-items-start *:col-start-1 *:row-start-1",
+    // A flex box, so the word's tag inside takes its own width and height,
+    // off any line of text.
+    word: "invisible flex",
     select: "w-0 pl-xs align-middle",
     // A flex box, so the Checkbox sits centred in the row rather than on the
     // cell's text baseline.
@@ -161,6 +177,24 @@ function sameStatuses(
   return a.size === b.size && [...a].every(([id, s]) => b.get(id) === s);
 }
 
+// A StatusTag cell's node in its room: the tag first, so the room's baseline
+// is the tag's, then every word StatusTag can show, each in StatusTag's own
+// box with no status colour, so it's as wide as the tag showing it (#276).
+function StatusRoom({ children }: { children: ReactNode }) {
+  const slots = dataTable();
+  const { root } = statusTag();
+  return (
+    <span className={slots.room()}>
+      {children}
+      {Object.values(statusWords).map((word) => (
+        <span key={word} aria-hidden className={slots.word()}>
+          <span className={root()}>{word}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function DataTable<R extends Row>({
   rows,
   columns,
@@ -246,10 +280,14 @@ export function DataTable<R extends Row>({
     });
   }
 
-  const money = columns.map((_, i) => {
-    const node = cells[0]?.[i];
-    return isValidElement(node) && node.type === Amount;
-  });
+  // The columns whose cells are of one component, read from the first row's.
+  const columnsOf = (component: ComponentType<never>) =>
+    columns.map((_, i) => {
+      const node = cells[0]?.[i];
+      return isValidElement(node) && node.type === component;
+    });
+  const moneyColumns = columnsOf(Amount);
+  const statusColumns = columnsOf(StatusTag);
   const chosen = rows.filter((row) => selected.has(row.id)).length;
   const all =
     chosen === 0 ? false : chosen === rows.length ? true : ("mixed" as const);
@@ -284,7 +322,7 @@ export function DataTable<R extends Row>({
                 <th
                   key={i}
                   scope="col"
-                  className={dataTable({ money: money[i] }).header()}
+                  className={dataTable({ money: moneyColumns[i] }).header()}
                 >
                   {name}
                 </th>
@@ -338,7 +376,11 @@ export function DataTable<R extends Row>({
                   )}
                   {cells[r]!.map((node, i) => (
                     <td key={i} className={each.cell()}>
-                      {node}
+                      {statusColumns[i] ? (
+                        <StatusRoom>{node}</StatusRoom>
+                      ) : (
+                        node
+                      )}
                     </td>
                   ))}
                 </tr>

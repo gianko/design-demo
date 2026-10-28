@@ -21,8 +21,10 @@ export const statusTag = tv({
 
 export type StatusTagProps = PropsOf<typeof statusTagEntry>;
 
-// The brief's own words, from its table of status colours.
-const words = {
+// The brief's own words, from its table of status colours: the one list the
+// tag writes from, which a DataTable's Status column also reserves room for
+// (#276).
+export const statusWords = {
   awaiting: "Awaiting",
   overdue: "Overdue",
   paid: "Paid",
@@ -34,7 +36,7 @@ export function StatusTag({ status }: StatusTagProps) {
   const { root } = statusTag({ status });
   return (
     <span data-component="StatusTag" className={root()}>
-      {words[status]}
+      {statusWords[status]}
     </span>
   );
 }

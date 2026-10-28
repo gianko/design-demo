@@ -45,6 +45,8 @@ No disabled table and no pending: the table starts no operation; the Button that
 
 Money columns end-align, header included: a column whose cell node is an Amount puts its header at the end edge, above the cents. "Amounts … right-align in tables"; `tabular-numerals`.
 
+Status columns hold still (#276): a column whose cell node is a StatusTag keeps room for the widest word StatusTag can show (`statusWords`, which StatusTag exports), whichever words its rows show. Each cell stacks every word, invisible and `aria-hidden`, in one grid area behind its own tag, which keeps its own width at the start edge. So a screen state that only changes statuses, such as bulk-pay's Pay selected, moves no column sideways while the changed rows flip. Every other cell still sizes to its content. The stories ColumnsHoldWhenStatusesChange and ColumnsHoldWhenStatusesChangeOnPhone hold the header positions and the room as style expectations.
+
 ## Token map
 
 | Slot | When | Classes |
@@ -60,6 +62,8 @@ Money columns end-align, header included: a column whose cell node is an Amount 
 | | opens (a `detail` slot) | `focus-visible:focus-ring`, its offset inset in `DataTable.css` |
 | | opens, not selected | `hover:bg-surface-hover active:bg-surface-pressed` |
 | `cell` | always | `px-xs align-middle text-body text-nowrap text-ink *:text-nowrap` (a Text's paragraph sets its own wrap, so the cell holds its node to one line too) |
+| `room` | a StatusTag cell | `inline-grid justify-items-start *:col-start-1 *:row-start-1`, around the cell's tag and every status word |
+| `word` | a StatusTag cell | `invisible flex`, on each `aria-hidden` word, around a box with StatusTag's own `root` classes and no status colour |
 | `select` | always | `w-0 pl-xs align-middle` |
 | `selector` | always | `flex`, a box in the select cell so the Checkbox centres in the row instead of sitting on the text baseline |
 
