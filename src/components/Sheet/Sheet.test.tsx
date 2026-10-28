@@ -56,6 +56,46 @@ it("asks its host to close it from its close button and on Escape", () => {
   expect(onClose).toHaveBeenCalledTimes(2);
 });
 
+// The scrim is the modal dialog's ::backdrop, so a browser dispatches a press
+// on it to the dialog itself, at a point outside the panel's box. jsdom lays
+// nothing out, so the panel's box is stubbed: 420px wide at the end edge of a
+// 1280 × 800 window.
+type Point = { clientX: number; clientY: number };
+const onScrim: Point = { clientX: 200, clientY: 400 };
+const inPanel: Point = { clientX: 1000, clientY: 400 };
+
+function laidOut(dialog: HTMLElement) {
+  vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(
+    new DOMRect(860, 0, 420, 800)
+  );
+  return dialog;
+}
+
+// A primary-button press as a browser dispatches it: pointerdown where it
+// starts, pointerup where it ends, then a click on the nearest element that
+// holds both, at the point it ends.
+function press(from: [Element, Point], to: [Element, Point]) {
+  fireEvent.pointerDown(from[0], { button: 0, ...from[1] });
+  fireEvent.pointerUp(to[0], { button: 0, ...to[1] });
+  let both: Element = from[0];
+  while (!both.contains(to[0])) both = both.parentElement!;
+  fireEvent.click(both, { button: 0, ...to[1] });
+}
+
+it("asks its host to close it when the scrim is clicked", () => {
+  const onClose = vi.fn();
+  render(
+    <SheetHost onClose={onClose}>
+      <InvoiceSheet />
+    </SheetHost>
+  );
+  const dialog = laidOut(screen.getByRole("dialog"));
+
+  press([dialog, onScrim], [dialog, onScrim]);
+
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
 // A stand-in for DataTable's side of the seam: a row that opens its Sheet,
 // and the host that closes it, both through transitionSheet.
 function OneRow() {
