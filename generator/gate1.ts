@@ -8,6 +8,7 @@ import { z } from "zod";
 // The screen state every screen has besides the declared ones; a node's
 // `when` and an action's `to` may name it.
 import { defaultState } from "../src/components/Screen/default-state.ts";
+import { screenVariants } from "../src/fixtures/fixtures.ts";
 import { type RegistryEntry, specProps } from "../src/registry/entry.ts";
 import type { Failure } from "./failure.ts";
 import { type UiNode, type UiSpec, wireSchema } from "./ui-spec.ts";
@@ -36,20 +37,6 @@ const whole = "(ui spec)";
 // same list, as the slots it passes as a function of the row.
 export const rowSlots: readonly string[] = ["cell", "detail"];
 
-// The fixture variants a screen may use: `default`, which every screen
-// shares, and its own, named `<slug>/<state>` (glossary: Fixture variant).
-// The spec step lists only these, and gate 1 holds a UI spec to them.
-export function screenVariants<T>(
-  variants: Readonly<Record<string, T>>,
-  slug: string
-): Record<string, T> {
-  return Object.fromEntries(
-    Object.entries(variants).filter(
-      ([name]) => name === "default" || name.startsWith(`${slug}/`)
-    )
-  );
-}
-
 export function gate1(raw: unknown, context: Gate1Context): Failure[] {
   let input = raw;
   if (typeof raw === "string") {
@@ -74,12 +61,15 @@ export function gate1(raw: unknown, context: Gate1Context): Failure[] {
 
 function checks(
   spec: UiSpec,
-  { entries, audience, slug, fixtures: every }: Gate1Context
+  { entries, audience, slug, fixtures: allFixtures }: Gate1Context
 ) {
   const failures: Failure[] = [];
   // Bindings resolve only in the screen's own variants; a state that names
   // any other fails state-fixture.
-  const fixtures = { ...every, variants: screenVariants(every.variants, slug) };
+  const fixtures = {
+    ...allFixtures,
+    variants: screenVariants(allFixtures.variants, slug),
+  };
   // An internal entry is one a UI spec never names, so it reads as
   // unregistered here, even on a spec that didn't come through the wire
   // schema.
@@ -191,7 +181,7 @@ function checks(
     }
     failures.push(...propChecks(node, entry, screen));
   }
-  failures.push(...stateChecks(spec, byId, fixtures, every.variants));
+  failures.push(...stateChecks(spec, byId, fixtures, allFixtures.variants));
   failures.push(...headingChecks(screen));
   failures.push(...motionChecks(spec, byId, screen));
   failures.push(...nestingChecks(spec, byId, entryOf));
@@ -228,12 +218,13 @@ function checks(
 // States and actions are consistent: each is declared once, each state
 // renders one of the screen's own fixture variants, and every state or
 // action a node or an action names is declared. `fixtures` holds only the
-// screen's own variants; `every` tells another screen's from none at all.
+// screen's own variants; `allVariants` tells another screen's from none at
+// all.
 function stateChecks(
   spec: UiSpec,
   byId: Map<string, UiNode>,
   fixtures: Gate1Fixtures,
-  every: Gate1Fixtures["variants"]
+  allVariants: Gate1Fixtures["variants"]
 ): Failure[] {
   const variantList = Object.keys(fixtures.variants).join(", ");
   const failures: Failure[] = [];
@@ -254,7 +245,7 @@ function stateChecks(
     }
     states.add(name);
     if (!Object.hasOwn(fixtures.variants, fixture)) {
-      const whose = Object.hasOwn(every, fixture)
+      const whose = Object.hasOwn(allVariants, fixture)
         ? "is another screen's"
         : "doesn't exist";
       failures.push(

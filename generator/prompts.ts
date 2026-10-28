@@ -10,7 +10,8 @@
 import { createHash } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Step } from "./config.ts";
-import { rowSlots, screenVariants } from "./gate1.ts";
+import { screenVariants } from "../src/fixtures/fixtures.ts";
+import { rowSlots } from "./gate1.ts";
 import type { LibraryRegistry } from "./registry.ts";
 import { repairWording } from "./repair.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
@@ -73,7 +74,7 @@ export function specPrompt(
   wireSchemaJson: string,
   fixtures: Readonly<Record<string, unknown>>
 ): StepPrompt<[ScreenBrief]> {
-  const listing = (variants: Readonly<Record<string, unknown>>) =>
+  const pathListing = (variants: Readonly<Record<string, unknown>>) =>
     Object.entries(variants)
       .map(([variant, data]) =>
         [`Fixture variant "${variant}":`, ...bindable(data)].join("\n")
@@ -89,13 +90,13 @@ export function specPrompt(
     user: (brief) =>
       fill(specUser, {
         brief: brief.text,
-        fixtures: listing(screenVariants(fixtures, brief.slug)),
+        fixtures: pathListing(screenVariants(fixtures, brief.slug)),
       }),
     hash: hash(
       specInstructions,
       designBrief,
       specUser,
-      listing(fixtures),
+      pathListing(fixtures),
       repairWords("spec")
     ),
   };

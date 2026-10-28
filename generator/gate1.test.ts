@@ -564,16 +564,21 @@ describe("gate 1", () => {
 
     // #275: the spec step lists only `default` and the screen's own
     // variants, so a UI spec may name no other (glossary: Fixture variant).
+    // Planted on a screen whose slug only starts with this one's, with the
+    // data every binding needs.
     it("fails a state whose fixture variant belongs to another screen, listing the screen's own", () => {
       const spec = clean();
-      spec.states[1]!.fixture = "other/sent";
+      spec.states[1]!.fixture = "brief-extra/sent";
 
       expect(
         gate1(spec, {
           ...context,
           fixtures: {
             ...fixtures,
-            variants: { ...fixtures.variants, "other/sent": {} },
+            variants: {
+              ...fixtures.variants,
+              "brief-extra/sent": fixtures.variants["brief/sent"],
+            },
           },
         })
       ).toEqual([
@@ -582,7 +587,7 @@ describe("gate 1", () => {
           rule: "state-fixture",
           location: "states.sent",
           message:
-            'Its fixture variant "other/sent" is another screen\'s; the variants are default, brief/empty, brief/sent.',
+            'Its fixture variant "brief-extra/sent" is another screen\'s; the variants are default, brief/empty, brief/sent.',
         },
       ]);
     });

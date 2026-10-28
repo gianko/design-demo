@@ -1,7 +1,7 @@
 // The steps' prompts (ADR 0004). The spec step's teaches bindings, and its
-// user turn lists the paths the brief's fixture variants can bind, after a cached
-// prefix that holds only the design brief, the registry and the wire schema
-// (spec § Gate 1 and the spec step). The code step's wires that data.
+// user turn lists the paths the brief's fixture variants can bind, after a
+// cached prefix that holds only the design brief, the registry and the wire
+// schema (spec § Gate 1 and the spec step). The code step's wires that data.
 
 import { readdirSync } from "node:fs";
 import { basename, join } from "node:path";
