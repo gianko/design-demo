@@ -68,6 +68,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 **Call:** cells don't wrap, so every row keeps the density's height and amounts never break; a long contractor name widens its column, and when the columns outgrow the screen the table scrolls sideways inside its surface (the Phone story). Nothing is truncated, so nothing is hidden behind an ellipsis.
 
+**Since #296:** the surface still scrolls sideways, and the body inside it scrolls down past the header row and 10 rows (`max-h-table`), its header row stuck to the top. The Phone story's style expectation holds the sideways scroll.
+
 **Alternative:** columns with a maximum width that truncate with an ellipsis and a tooltip, or on a phone each row stacked as a small label–value list. Both need decisions (a column width token, a breakpoint) the brief doesn't make yet.
 
 ## A row that opens its Sheet doesn't say so to a screen reader
@@ -80,7 +82,7 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 ## The row's focus ring is inset by a raw multiple in CSS
 
-**Undecided:** the table's surface scrolls sideways (`overflow-x-auto`), so it clips a ring drawn outside a row: `focus-ring`'s outward offset would show only the ring's top and bottom. No token class sets an inward offset.
+**Undecided:** the table's surface scrolls sideways (`overflow-x-auto`) and its body scrolls down (`overflow-y-auto`), so each clips a ring drawn outside a row: `focus-ring`'s outward offset would show only the ring's top and bottom. No token class sets an inward offset.
 
 **Call:** `DataTable.css` sets `outline-offset: calc(var(--ds-size-height-edge) * -2)` on a focused DataTable row, so `focus-ring` sits just inside the row.
 

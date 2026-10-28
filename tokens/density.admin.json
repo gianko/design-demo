@@ -35,6 +35,13 @@
         "$value": { "value": 412, "unit": "px" }
       }
     },
+    "max-height": {
+      "$type": "dimension",
+      "table": {
+        "$description": "A DataTable's frame: its header row and 10 rows at the row height. A longer table scrolls inside it, its header row stuck to the top.",
+        "$value": { "value": 506, "unit": "px" }
+      }
+    },
     "size": {
       "$type": "dimension",
       "icon": { "$value": { "value": 16, "unit": "px" } }

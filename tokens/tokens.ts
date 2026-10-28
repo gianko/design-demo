@@ -28,6 +28,9 @@ export type MinHeight = (typeof minHeight)[number];
 export const maxWidth = ["measure", "card"] as const;
 export type MaxWidth = (typeof maxWidth)[number];
 
+export const maxHeight = ["table"] as const;
+export type MaxHeight = (typeof maxHeight)[number];
+
 export const size = ["icon"] as const;
 export type Size = (typeof size)[number];
 

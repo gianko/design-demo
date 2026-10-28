@@ -31,6 +31,7 @@ const roleNamespaces: Record<string, string> = {
   height: "h",
   width: "w",
   "max-width": "max-w",
+  "max-height": "max-h",
   "min-height": "min-h",
   size: "size",
   radius: "rounded",

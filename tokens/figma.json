@@ -1571,6 +1571,18 @@
           }
         },
         {
+          "name": "density/max-height/table",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 506,
+            "Contractor": 660
+          }
+        },
+        {
           "name": "density/size/icon",
           "type": "FLOAT",
           "scopes": [

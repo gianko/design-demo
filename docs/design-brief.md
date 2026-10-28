@@ -19,10 +19,12 @@ Two people use the screens, and density follows who's looking.
 | Minimum target | 24px | 44px |
 | Control height | 32px | 44px |
 | Control side padding | 12px | 16px |
+| Table height cap | 506px | 660px |
 
 - **Admin screens are dense.** _Why: the admin is the primary user and clears dozens of invoices a day on a desktop._
 - **Contractor screens have room.** _Why: the contractor visits a few times a month, often on a phone, and wants reassurance more than throughput._
 - Buttons, icon buttons, inputs, selects and segmented filters share the control height, so controls in one row line up.
+- A table's height cap is its header row and 10 rows at the row height. A longer table scrolls inside its frame under a header row that stays put, rather than pushing the rest of the screen down.
 - 24px is a floor, not an exemption: targets still meet WCAG 2.2 target size, spacing rule included.
 - Warmth is the same at both densities; only size and spacing change. See [ADR 0001](adr/0001-density-by-audience.md).
 

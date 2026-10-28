@@ -148,6 +148,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-density-height-control: 32px;
   --ds-density-min-height-target: 24px;
   --ds-density-max-width-measure: 412px;
+  --ds-density-max-height-table: 506px;
   --ds-density-size-icon: 16px;
   --ds-density-radius-surface: 8px;
   --ds-density-text-body-font-size: 14px;
@@ -172,6 +173,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --ds-density-height-control: 44px;
   --ds-density-min-height-target: 44px;
   --ds-density-max-width-measure: 472px;
+  --ds-density-max-height-table: 660px;
   --ds-density-size-icon: 20px;
   --ds-density-radius-surface: 12px;
   --ds-density-text-body-font-size: 16px;
@@ -235,6 +237,7 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
   --height-control: var(--ds-density-height-control);
   --min-height-target: var(--ds-density-min-height-target);
   --max-width-measure: var(--ds-density-max-width-measure);
+  --max-height-table: var(--ds-density-max-height-table);
   --size-icon: var(--ds-density-size-icon);
   --radius-surface: var(--ds-density-radius-surface);
   --spacing-0: var(--ds-space-0);
@@ -463,6 +466,9 @@ export type MinHeight = (typeof minHeight)[number];
 
 export const maxWidth = ["measure", "card"] as const;
 export type MaxWidth = (typeof maxWidth)[number];
+
+export const maxHeight = ["table"] as const;
+export type MaxHeight = (typeof maxHeight)[number];
 
 export const size = ["icon"] as const;
 export type Size = (typeof size)[number];
@@ -2070,6 +2076,18 @@ exports[`builds tokens.css, tokens.ts and the Figma payload from the committed s
           "valuesByMode": {
             "Admin": 412,
             "Contractor": 472
+          }
+        },
+        {
+          "name": "density/max-height/table",
+          "type": "FLOAT",
+          "scopes": [
+            "WIDTH_HEIGHT"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Admin": 506,
+            "Contractor": 660
           }
         },
         {
