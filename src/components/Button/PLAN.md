@@ -17,6 +17,7 @@ Props:
 - `text`: the label, a string, as Text and Heading take their copy (`.out-of-scope/copy-as-children.md`). Button has no `body` slot and no other registry slot.
 - `intent`: `primary`, `secondary` or `quiet`, required.
 - `disabled`, `pending`: booleans. `pending` is the code step's: it passes `<action>.pending` from `useAction` (ADR 0011, "Button owns pending").
+- `followsSelection`: code-only, not in the registry. DataTable sets it on its footer's Buttons, which are enabled and disabled as rows are ticked, so their colours change at `base` with the rows' `selected` fill rather than at `fast` (ADR 0013); `fast` under reduced motion.
 - React's own: `onClick`, `ref`.
 
 No icon slot: the Phosphor icon map arrives with the first component that needs an icon, probably IconButton (spec § After the slice), and no P0 brief puts an icon on a Button.
