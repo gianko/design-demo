@@ -147,9 +147,15 @@ export function screenStories(input: ScreenStoriesInput) {
     declaredStates.length > 0
       ? `\n  parameters: { ${declaredParameter}: ${JSON.stringify(declaredStates)} },`
       : "";
-  return `// Written by \`pnpm keep\`: the default and one story per declared screen
+  // The header names the open-sheet render only for a screen that has one.
+  const header =
+    sheets.size > 0
+      ? `// Written by \`pnpm keep\`: the default and one story per declared screen
 // state, each with its fixture variant, then the default with each detail
-// table's first row's Sheet open.
+// table's first row's Sheet open.`
+      : `// Written by \`pnpm keep\`: the default and one story per declared screen
+// state, each with its fixture variant.`;
+  return `${header}
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ${name} } from "./${name}.tsx";
 

@@ -1,6 +1,5 @@
 // Written by `pnpm keep`: the default and one story per declared screen
-// state, each with its fixture variant, then the default with each detail
-// table's first row's Sheet open.
+// state, each with its fixture variant.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { BulkPay } from "./BulkPay.tsx";
 
