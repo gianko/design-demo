@@ -46,6 +46,8 @@ The capture is done when, for every frame:
 
 Anything else, show it to the human and stop. A `literal` paint usually means the variable's Figma value differs from the `rgb()` that `tokens/tokens.css` declares for it, most often because the tokens weren't synced after a colour changed, so the capture couldn't match it. Compare the two before anything else ([#59](https://github.com/gianko/design-demo/issues/59), [#285](https://github.com/gianko/design-demo/issues/285)).
 
+What a capture reads is decided by Figma's `capture.js`, which `.storybook/preview-head.html` loads: it sends each element's computed-style strings, and Figma converts them itself ([ADR 0005](../../../docs/adr/0005-dtcg-tokens-hand-built-into-css-ts-and-figma.md)). When a binding or a literal doesn't fit that, fetch the script and read what it does with that property before proposing a cause. [#273](https://github.com/gianko/design-demo/issues/273) skipped this read and built a fix that [#285](https://github.com/gianko/design-demo/issues/285) removed.
+
 These misses are known and expected ([issue #15](https://github.com/gianko/design-demo/issues/15)): alpha colours (the scrim, transparent borders), `min-height`, text and effect styles, and motion. They are no reason to recapture.
 
 An SVG's stroke never binds: the capture leaves a `Vector strokes` entry in `literal` even when the colour is a token's, as with Checkbox's tick in `color/text/on-accent`. Check that its colour matches the role the component paints it with, then count it as known.
