@@ -49,7 +49,7 @@ export type Width = (typeof width)[number];
 export const font = ["sans"] as const;
 export type Font = (typeof font)[number];
 
-export const duration = ["fast", "base", "slow", "fast-exit", "base-exit", "slow-exit", "loop"] as const;
+export const duration = ["fast", "base", "slow", "fast-exit", "base-exit", "slow-exit", "loop", "toast"] as const;
 export type Duration = (typeof duration)[number];
 
 export const delay = ["stagger"] as const;

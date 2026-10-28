@@ -21,6 +21,10 @@
       "loop": {
         "$description": "One pass of the progress sweep, the one loop.",
         "$value": { "value": 1280, "unit": "ms" }
+      },
+      "toast": {
+        "$description": "How long a success toast stays before it leaves on its own; its timer pauses while hovered, focused within or the tab is hidden.",
+        "$value": { "value": 5000, "unit": "ms" }
       }
     },
     "delay": {

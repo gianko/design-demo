@@ -307,7 +307,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(97);
+    expect(variables.filter((v) => v.css)).toHaveLength(98);
   });
 
   // ADR 0001 lists container padding among what density changes.

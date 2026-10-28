@@ -58,24 +58,26 @@
   }
 }
 
-/* The row's Sheet slides in from the end edge and back out past it (ADR 0011),
-   its own width, so it starts and ends just out of the window. `--end-edge`
-   is 1 where the end edge is the right and -1 where it is the left
-   (src/styles.css). */
-@keyframes sheet-in {
+/* A row's Sheet (ADR 0011) and an action's Toast (ADR 0013) slide in from the
+   end edge and back out past it: their own width and `--slide-past` beyond
+   it, so each starts and ends just out of the window. A sheet is flush with
+   the window's edge, so it slides no further; a toast sits the page padding
+   in from it. `--end-edge` is 1 where the end edge is the right and -1 where
+   it is the left (src/styles.css). */
+@keyframes slide-in {
   from {
-    translate: calc(var(--end-edge) * 100%);
+    translate: calc(var(--end-edge) * (100% + var(--slide-past)));
   }
   to {
     translate: 0;
   }
 }
 
-@keyframes sheet-out {
+@keyframes slide-out {
   from {
     translate: 0;
   }
   to {
-    translate: calc(var(--end-edge) * 100%);
+    translate: calc(var(--end-edge) * (100% + var(--slide-past)));
   }
 }

@@ -59,24 +59,18 @@
 }
 
 /* The library's view transition names, each set by a class (ADR 0006), so
-   a name is spelled once, here, and the components that share it agree by
-   using the same class. Gate 1 keeps one Toast per screen state, and
-   DataTable opens one Sheet at a time, so each name is unique in every
-   snapshot.
+   a name is spelled once, here, and a component carries it by using the
+   class. Gate 1 keeps one Toast per screen state, and DataTable opens one
+   Sheet at a time, so each name is unique in every snapshot.
 
-   - `vt-action-result`: a success Toast (ADR 0011), entering with an
-     action's success state.
-   - `vt-action-failure`: a failure Toast, entering with an action's
-     failure state.
+   - `vt-toast`: a Toast, either tone, and nothing else (ADR 0013): it
+     slides in from the end edge when it enters and back out past it when it
+     leaves.
    - `vt-row-detail`: a Sheet, and nothing else: the row it opened from
      has no name, so the sheet slides in from the end edge and back out past
      it on its own. */
-@utility vt-action-result {
-  view-transition-name: action-result;
-}
-
-@utility vt-action-failure {
-  view-transition-name: action-failure;
+@utility vt-toast {
+  view-transition-name: toast;
 }
 
 @utility vt-row-detail {
@@ -87,24 +81,25 @@
    `settle` still runs only under `confirm`. Under reduced motion none of
    this applies, and every change stays a `fast` crossfade. */
 @media (prefers-reduced-motion: no-preference) {
-  /* A toast enters at `slow`, the brief's duration for a toast entering,
-     and leaves at `slow-exit`. A success toast's group is timed this way
-     only under `confirm`, the transition it enters in. */
-  :root:active-view-transition-type(confirm)::view-transition-group(
-      action-result
-    ),
-  :root:active-view-transition-type(confirm)::view-transition-new(
-      action-result
-    ),
-  ::view-transition-group(action-failure),
-  ::view-transition-new(action-failure) {
+  /* A toast slides in from the end edge at `slow`, the brief's duration for
+     a toast entering, when its image is the new view's alone: with the
+     state its action enters, so it settles under `confirm`, the transition
+     a success enters in, and keeps `standard` under `fail`. It slides back
+     out past the end edge at `slow-exit` with `exit` when its image is the
+     old view's alone: closed, timed out, or gone with its state. A toast
+     that replaces another, or shows again where it was, slides nowhere. It
+     sits the page padding in from the window's edge, so it slides a step
+     further than its own width: `2xl`, wider than either density's page
+     padding, which the root these pseudo-elements hang off doesn't know. */
+  ::view-transition-new(toast):only-child {
+    --slide-past: var(--ds-space-2xl);
+    animation-name: slide-in;
     animation-duration: var(--ds-motion-duration-slow);
   }
 
-  :root:active-view-transition-type(confirm)::view-transition-old(
-      action-result
-    ),
-  ::view-transition-old(action-failure) {
+  ::view-transition-old(toast):only-child {
+    --slide-past: var(--ds-space-2xl);
+    animation-name: slide-out;
     animation-duration: var(--ds-motion-duration-slow-exit);
   }
 
@@ -116,7 +111,7 @@
   :root:active-view-transition-type(sheet-open)::view-transition-new(
       row-detail
     ) {
-    animation-name: sheet-in;
+    animation-name: slide-in;
     animation-duration: var(--ds-motion-duration-slow);
     animation-timing-function: var(--ds-motion-ease-standard);
   }
@@ -124,19 +119,22 @@
   :root:active-view-transition-type(sheet-close)::view-transition-old(
       row-detail
     ) {
-    animation-name: sheet-out;
+    animation-name: slide-out;
     animation-duration: var(--ds-motion-duration-slow-exit);
     animation-timing-function: var(--ds-motion-ease-exit);
   }
 }
 
-/* Which way the end edge lies along the x axis, for the sheet's slide
+/* Which way the end edge lies along the x axis, for the slides
    (tokens/keyframes.css): the right in a left-to-right document, the left in
    a right-to-left one. The view transition's pseudo-elements hang off the
    root, so the root's `dir` decides. Not `:dir(rtl)`: the build lowers it to
-   a list of right-to-left languages, which a `dir` attribute doesn't match. */
+   a list of right-to-left languages, which a `dir` attribute doesn't match.
+   `--slide-past` is how far beyond its own width a slide goes: nothing, for
+   a sheet flush with the window's edge. */
 :root {
   --end-edge: 1;
+  --slide-past: var(--ds-space-0);
 }
 
 :root[dir="rtl"] {
