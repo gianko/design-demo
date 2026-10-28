@@ -13,7 +13,10 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
+import { repo } from "../../../repo.ts";
 import type { VariantName } from "../../fixtures/fixtures.ts";
 import { Button } from "../Button/Button.tsx";
 import { DataTable } from "../DataTable/DataTable.tsx";
@@ -31,6 +34,13 @@ import { Toast } from "./Toast.tsx";
 const scheduled = "3 invoices scheduled for the Oct 24 run.";
 const failed =
   "Payment not scheduled: the funding account is too low. Add funds, then approve and pay again.";
+const closeLabel = "Close payment result";
+
+// How long a success Toast stays, read from the motion tokens rather than
+// the component: the `toast` duration token, in ms.
+const toastMs: number = JSON.parse(
+  readFileSync(join(repo, "tokens/motion.json"), "utf8")
+).motion.duration.toast.$value.value;
 
 // bulk-pay as its generated screen wires it: Approve and pay in the table's
 // footer, and the success or the failure Toast last in the Screen, in the
@@ -64,9 +74,11 @@ function BulkPay() {
         }
       />
       {state === "payment-scheduled" && (
-        <Toast tone="success" text={scheduled} />
+        <Toast tone="success" text={scheduled} closeLabel={closeLabel} />
       )}
-      {state === "payment-failed" && <Toast tone="failure" text={failed} />}
+      {state === "payment-failed" && (
+        <Toast tone="failure" text={failed} closeLabel={closeLabel} />
+      )}
     </Screen>
   );
 }
@@ -95,6 +107,14 @@ const pay = async () => {
 };
 
 let transitions: string[][];
+
+// The page's tokens, as the app loads them: the Toast reads its timer's
+// length from the `toast` duration token's custom property.
+beforeAll(() => {
+  const style = document.createElement("style");
+  style.textContent = readFileSync(join(repo, "tokens/tokens.css"), "utf8");
+  document.head.append(style);
+});
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -173,6 +193,27 @@ it("leaves focus on the table, not the Toast, once a payment from the footer is 
   await pay();
 
   expect(document.activeElement).toBe(screen.getByRole("table"));
-  // Focusable from script only, so it never joins the tab order.
-  expect(toast()!.tabIndex).toBe(-1);
+  // The Toast itself takes no focus; only its close button does.
+  expect(toast()!.hasAttribute("tabindex")).toBe(false);
+});
+
+const screenState = () =>
+  document.querySelector<HTMLElement>('[data-component="Screen"]')!.dataset
+    .screenState;
+const wait = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));
+
+// ADR 0013: a success Toast leaves on its own after the `toast` duration,
+// through a View Transition, and the screen stays in its state.
+it("dismisses a success Toast after the toast duration token, the screen staying in its state", async () => {
+  host("default");
+  await pay();
+  const entered = transitions.length;
+
+  await wait(toastMs - 1);
+  expect(toast()).not.toBeNull();
+
+  await wait(1);
+  expect(toast()).toBeNull();
+  expect(transitions.length).toBe(entered + 1);
+  expect(screenState()).toBe("payment-scheduled");
 });
