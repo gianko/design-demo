@@ -50,7 +50,7 @@ None.
 
 ## Motion
 
-None. An action that appears with a screen state (invoice-queue's Approve and pay, `when: [rows-selected]`) enters through the screen-state View Transition (ADR 0011), not through the PageHeader. "Banned: entrance animations on page load". Reduced motion: nothing to reduce.
+None. An action that appears with a screen state (a `when` naming it) enters through the screen-state View Transition (ADR 0011), not through the PageHeader. An action on the Selection sits in DataTable's footer, not here (ADR 0013). "Banned: entrance animations on page load". Reduced motion: nothing to reduce.
 
 ## Against defaults
 

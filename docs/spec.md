@@ -244,7 +244,7 @@ Each is done as a [component piece](#component-pieces) is. What P0 needs from ea
 
 - **PageHeader**'s `actions` slot allow-list is Button alone, until a public IconButton exists ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
 - **DataTable** takes its rows through a bound prop, and each column's `cell` slot holds one template node whose `row.*` bindings render once per row ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
-- **DataTable** owns ticking rows, and the `ScreenHost` holds the selection. Ticking rows enters `rows-selected` through the host, an action's success clears the selection and its failure keeps it, and a generated screen reads the ticked ids with `useSelectedRows()` ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)).
+- **DataTable** owns ticking rows, and the `ScreenHost` holds the selection. An action's success clears the selection and its failure keeps it, and a generated screen reads the ticked ids with `useSelectedRows()` ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)). Since [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) the selection is no screen state: ticking enters none, and the action on it sits in the table's `actions` footer.
 - **DataTable**'s money cells end-align (`tabular-numerals`). Its `detail` slot and the Sheet wait for P1.
 
 ### The first full eval run
@@ -264,7 +264,7 @@ payment-status stays the only kept screen. The new briefs are judged by evals al
 
 ## After P1
 
-[P1](https://github.com/gianko/design-demo/issues/201) takes what P0 deferred: the signature transitions with ActionBar, Toast and Sheet ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md)), the shared Phosphor icon map with an internal IconButton, the remaining eleven taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)) and the full brief set. What P1 defers in turn, each with its reason:
+[P1](https://github.com/gianko/design-demo/issues/201) takes what P0 deferred: the signature transitions with DataTable's actions footer, Toast and Sheet ([ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md), [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md)), the shared Phosphor icon map with an internal IconButton, the remaining eleven taste rules ([`lint/taste/RULES.md`](../lint/taste/RULES.md)) and the full brief set. What P1 defers in turn, each with its reason:
 
 - **Forms (Input, Select):** the UI spec has no field values, validation or submission. Adding them needs a new concept and an ADR.
 - **Row-scoped actions,** such as a Button inside a Sheet acting on that row: a new kind of action, and another ADR.
@@ -284,7 +284,7 @@ Three admin, two contractor. Each is `evals/briefs/<slug>.md`.
 |---|---|---|
 | `payment-status` | contractor | As [above](#the-screen-brief), unchanged. |
 | `payment-overview` | contractor | Three Cards, each bound to a named fixture path: **next payment** (scheduled, amount, "Arrives Oct 24"), **last payment** (paid), **paid this year** (a total). Read-only. |
-| `invoice-queue` | admin | About 8 invoices across 5 contractors in a selectable DataTable. An **Approve and pay** Button sits in the PageHeader's `actions` slot, shown only `when: [rows-selected]`. Success moves the selected rows to scheduled, with a live Text: "3 invoices scheduled for the Oct 24 run." Failure leaves them as they were, with a live Text saying what happened and what to do next. The stretch brief: a first-attempt failure is likely, and its pass bar is the same as the others'. |
+| `invoice-queue` | admin | About 8 invoices across 5 contractors in a DataTable. An **Approve and pay** Button sits in the DataTable's `actions` footer, disabled until a row is ticked (moved there from the PageHeader by [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md)). Success moves the selected rows to scheduled, with a live Text: "3 invoices scheduled for the Oct 24 run." Failure leaves them as they were, with a live Text saying what happened and what to do next. The stretch brief: a first-attempt failure is likely, and its pass bar is the same as the others'. |
 | `invoice-review` | admin | One awaiting invoice in a Card under a PageHeader: amount, contractor, invoice number, due date, line count. **Approve and pay** is the only action, with the same action id and states as `invoice-queue`. The same shape as payment-status at admin density. |
 | `payment-run` | admin | The next payment run: the run date in the PageHeader, then Cards with `display: card` Amounts, a StatusTag and a count each for **due in this run** (scheduled), **overdue** and **awaiting approval**. Read-only. |
 
@@ -294,7 +294,7 @@ Pass criteria:
 |---|---|---|---|
 | `payment-status` | Screen, Card, StatusTag, Amount, Button | empty, reminder-sent, reminder-failed | send-reminder |
 | `payment-overview` | Screen, Heading, Card, Amount, StatusTag | empty | — |
-| `invoice-queue` | Screen, PageHeader, DataTable, StatusTag, Amount, Button | empty, rows-selected, payment-scheduled, payment-failed | approve-and-pay |
+| `invoice-queue` | Screen, PageHeader, DataTable, StatusTag, Amount, Button | empty, payment-scheduled, payment-failed | approve-and-pay |
 | `invoice-review` | Screen, PageHeader, Card, Amount, StatusTag, Button | payment-scheduled, payment-failed | approve-and-pay |
 | `payment-run` | Screen, PageHeader, Card, Amount, StatusTag | empty | — |
 
@@ -325,13 +325,13 @@ Toast, EmptyState, IconButton and the rest of demo brief §4 wait for P1. Empty 
 
 15–20 briefs, written as build work after the P0 widening, under one coverage rule: every library component appears in at least 2 briefs, each audience gets at least a third of them, and every action has a failure state.
 
-The ten new briefs and what each asks for are in [P1](https://github.com/gianko/design-demo/issues/201). Pass criteria, with `requires.transitions` from [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md):
+The ten new briefs and what each asks for are in [P1](https://github.com/gianko/design-demo/issues/201). Pass criteria, with `requires.transitions` from [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) as [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) amends them:
 
 | Slug | `requires.components` | `requires.states` | `requires.actions` | `requires.transitions` |
 |---|---|---|---|---|
-| `bulk-pay` | Screen, PageHeader, DataTable, StatusTag, Amount, ActionBar, Button, Toast, EmptyState | empty, rows-selected, payment-scheduled, payment-failed | pay-selected | bar-to-toast |
-| `overdue-invoices` | Screen, PageHeader, DataTable, StatusTag, Amount, Sheet, Heading, ActionBar, Button, Toast, EmptyState | empty, rows-selected, reminders-sent, reminders-failed | send-reminders | bar-to-toast, row-to-sheet |
-| `failed-payments` | Screen, PageHeader, DataTable, StatusTag, Amount, ActionBar, Button, Toast, EmptyState | empty, rows-selected, payments-retried, retry-failed | retry-payments | bar-to-toast |
+| `bulk-pay` | Screen, PageHeader, DataTable, StatusTag, Amount, Button, Toast, EmptyState | empty, payment-scheduled, payment-failed | pay-selected | table-action-to-toast |
+| `overdue-invoices` | Screen, PageHeader, DataTable, StatusTag, Amount, Sheet, Heading, Button, Toast, EmptyState | empty, reminders-sent, reminders-failed | send-reminders | table-action-to-toast, row-to-sheet |
+| `failed-payments` | Screen, PageHeader, DataTable, StatusTag, Amount, Button, Toast, EmptyState | empty, payments-retried, retry-failed | retry-payments | table-action-to-toast |
 | `contractors` | Screen, PageHeader, DataTable, Amount, Sheet, EmptyState | empty | — | row-to-sheet |
 | `run-history` | Screen, PageHeader, DataTable, StatusTag, Amount, Sheet, EmptyState | empty | — | row-to-sheet |
 | `my-invoices` | Screen, Heading, DataTable, Sheet, Amount, StatusTag, Text, EmptyState | empty | — | row-to-sheet |

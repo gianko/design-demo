@@ -40,7 +40,7 @@ No look variant: one row selector, one look. No size: density sets it (ADR 0002)
 | disabled | unchecked: `surface` square, `disabled` edge; checked or mixed: `disabled` fill, no edge, `disabled` mark; no hover or pressed | "`disabled` and its text are a flat, quiet neutral"; "A disabled control keeps its intent's shape"; "natively disabled and leaves the tab order" |
 | locked | its rest look, ticked or not, with no hover or pressed; still focusable | ADR 0013: while a footer action runs, the rows it acts on are the rows shown ticked, so the boxes keep showing them, as a pending Button keeps its rest colours; ticking does nothing, so nothing answers the pointer |
 
-No pending: a checkbox starts no operation; selecting rows enters `rows-selected` through DataTable (ADR 0011). Locked is the pending of the action in DataTable's footer, seen from the boxes; DataTable's Pending story holds it as a style expectation.
+No pending: a checkbox starts no operation; selecting rows changes DataTable's selection, which is no screen state (ADR 0013). Locked is the pending of the action in DataTable's footer, seen from the boxes; DataTable's Pending story holds it as a style expectation.
 
 ## Token map
 
@@ -77,7 +77,7 @@ A checked box's edge is transparent, so the fill runs to the corner and the box 
 | User action | Motion |
 |---|---|
 | hover, press | box fill colour, `transition-colors duration-fast ease-standard` ("`fast` 120ms (press, hover colour)") |
-| toggles | fill and edge colour cross over at the same `fast` transition; the mark appears with the new state. Selection's `base` motion belongs to the row and to `rows-selected`, which DataTable owns (ADR 0011). |
+| toggles | fill and edge colour cross over at the same `fast` transition; the mark appears with the new state. Selection's `base` motion belongs to the row and to the footer's Buttons, which DataTable owns (ADR 0013). |
 
 No `settle`: selecting isn't a confirmed result. Reduced motion: the colour transition is already a `fast` crossfade and nothing moves, so it stays.
 

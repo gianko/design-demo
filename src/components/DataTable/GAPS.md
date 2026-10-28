@@ -24,15 +24,15 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 **Decided (#186):** the prompt line. The code step's instructions pass a node in a DataTable's row slot as a function of the row and read its `row.*` paths from that function's argument, naming the slots from gate 1's exported `rowSlots`, so the two can't drift. The registry `use` line no longer tells the code step how to pass `cell`.
 
-## Leaving rows-selected clears the selection, after a failure too
+## Leaving the selection's screen state clears the selection, after a failure too
 
 **Undecided:** the spec says an action's success clears the selection, and ADR 0011 says that on failure "the rows stay selected". DataTable sees only the screen state's name through `useScreenState`; the host doesn't expose whether the transition into the new state was `confirm` or `fail`, so DataTable can't tell success from failure.
 
-**Call:** the selection clears whenever the screen leaves `rows-selected`, in the same render, so the state's View Transition carries it. In invoice-queue the Approve and pay Button shows only in `rows-selected`, so after a failure the admin re-ticks the rows to try again.
+**Call:** the selection clears whenever the screen leaves the screen state that ticking enters, in the same render, so the state's View Transition carries it. In invoice-queue the Approve and pay Button shows only in that state, so after a failure the admin re-ticks the rows to try again.
 
 **Alternative:** ScreenHost exposes the type of the last transition (or `useAction` clears a library-held selection on success only), so DataTable keeps the rows after `fail` and the Button can stay for a retry.
 
-**Decided (#188, for #187):** the `ScreenHost` holds the selection and clears it inside a `confirm` transition's update; a `fail` keeps it. After a failure, ticking or unticking a row brings the screen back to `rows-selected`.
+**Decided (#188, for #187):** the `ScreenHost` holds the selection and clears it inside a `confirm` transition's update; a `fail` keeps it. Since ADR 0013 the selection is no screen state at all: ticking enters none, and the footer's Button stays for a retry.
 
 ## A generated screen can't read the selected rows' ids
 
@@ -44,15 +44,15 @@ Each entry is one place the brief, ADRs or tokens didn't decide something DataTa
 
 **Decided (#188):** the alternative. DataTable reads and writes the selection through the `ScreenHost`, a generated screen reads it with `useSelectedRows()`, and the code step's instructions pass that to `payInvoices`.
 
-## The rows-selected fixture variant doesn't say which rows are selected
+## A fixture variant doesn't say which rows are selected
 
-**Undecided:** a story or kept screen rendered straight into `rows-selected` (fixture `invoice-queue/rows-selected`) should show rows ticked, but the variant's data has nothing naming them; only a comment says the awaiting ones are meant.
+**Undecided:** a story or kept screen rendered straight into a state with rows ticked (P1's selection state, which ADR 0013 retired) should show them ticked, but the variant's data has nothing naming them; only a comment says the awaiting ones are meant.
 
-**Call:** a `selected` prop, the ids selected when the table first renders. DataTable's own stories set it by hand to the three awaiting invoices. A UI spec has nothing to bind it to, and writing the ids as a literal would copy fixture data, so a generated rows-selected render will show the Button with no row ticked.
+**Call:** a `selected` prop, the ids selected when the table first renders. DataTable's own stories set it by hand to the three awaiting invoices. A UI spec has nothing to bind it to, and writing the ids as a literal would copy fixture data, so a generated render of that state will show the Button with no row ticked.
 
-**Alternative:** a `selectedInvoiceIds` list in every fixture variant (empty except in `invoice-queue/rows-selected`), which the UI spec binds `selected` to.
+**Alternative:** a `selectedInvoiceIds` list in every fixture variant (empty except in the selection state's), which the UI spec binds `selected` to.
 
-**Decided (#188, for #189):** a fixture variant names its starting selection beside its `fails`, outside its `data`, so no UI spec binds it, and the host starts with it. `invoice-queue/rows-selected` and `invoice-queue/payment-failed` name the three awaiting invoices. The `selected` prop is gone.
+**Decided (#188, for #189):** a fixture variant names its starting selection beside its `fails`, outside its `data`, so no UI spec binds it, and the host starts with it. `invoice-queue/payment-failed` names the three awaiting invoices, kept ticked for a retry. The `selected` prop is gone. Since ADR 0013 the rows-ticked render ticks every row of a table with actions from the start instead, through a library test attribute, and a story with a selection of its own gives its `ScreenHost` one.
 
 ## Row checkboxes are named from the row's id
 

@@ -2,13 +2,15 @@
 
 ## Use
 
-ADR 0011's line, as written: "the live result of an action; only in a state an action enters". The registry `use` adds where it goes and when to reach for a sibling: tone `success` in the action's `to.success` state, placed where that action's ActionBar was (right after the DataTable), so the bar becomes the toast; tone `failure` in `to.failure`, placed right before the ActionBar, which stays. One per state. Copy that stays on the screen whatever happened is a Text.
+ADR 0011's line, as written: "the live result of an action; only in a state an action enters". The registry `use` adds where it goes and when to reach for a sibling: last in the Screen, in the state its action enters, tone `success` in the action's `to.success` state and tone `failure` in `to.failure` (ADR 0013). One per state. Copy that stays on the screen whatever happened is a Text.
+
+ADR 0013 retired the bulk-action bar this plan was first written against, and moved the action's Button into DataTable's footer. Until the Toast's placement, motion and lifetime are redone to that ADR, the Toast keeps its look, and the sections below still describe the bar it used to share a place and a view transition name with.
 
 ## Anatomy
 
 Two `tv()` slots on plain elements, no Radix primitive.
 
-- `root`: a `<div data-component="Toast" data-tone="…">`, the raised surface. Sticky in the flow at the end edge, as ActionBar is, so it lands where the bar was.
+- `root`: a `<div data-component="Toast" data-tone="…">`, the raised surface. Sticky in the flow at the end edge, as the bar is, so it lands where the bar was.
 - `text`: a `<p>` holding the copy, at least one control tall, so a one-line toast is exactly the bar's height and the morph changes only width and content.
 
 Props: `text` (the result copy, a literal from the UI spec, ADR 0004) and `tone` (`success` | `failure`, required: a failure toast that defaulted to success would settle and morph like a confirmed payment). No slots: a toast holds one sentence or two, never a Button (a toast that asks for an action is a dialog, and a retry is the bar's Button, which stays).
@@ -27,14 +29,14 @@ No Radix Toast: it brings its own live region, a viewport, timers and swipe-to-d
 
 | Slot | Variant | Classes | Brief line behind it |
 |---|---|---|---|
-| `root` | all | `sticky bottom-sm z-toast ms-auto flex w-fit max-w-measure items-center rounded-surface px-surface py-2xs shadow-raised` | Elevation: "raised (sticky and floating bars, toasts: one soft plum-tinted shadow)" sets `shadow-raised`; `z-toast` is the toast layer. `sticky bottom-sm ms-auto w-fit` are ActionBar's placement, so the toast lands where the bar was and floats above the window's edge just as the bar did (signature transition: "the bar becomes the toast"). Radius table: surfaces 8px admin, 12px contractor. `px-surface` (20/24px), a surface's padding, puts the copy where the bar's Button label sat (8px + the control's 12/16px). `py-2xs` with `text`'s `min-h-control` makes a one-line toast 48px admin and 60px contractor, the bar's height. `max-w-measure` keeps a long failure to about 65 characters a line. No border: `edge-treatment`, and dark's `shadow-raised` is itself a hairline ring. |
+| `root` | all | `sticky bottom-sm z-toast ms-auto flex w-fit max-w-measure items-center rounded-surface px-surface py-2xs shadow-raised` | Elevation: "raised (sticky and floating bars, toasts: one soft plum-tinted shadow)" sets `shadow-raised`; `z-toast` is the toast layer. `sticky bottom-sm ms-auto w-fit` are the bar's placement, so the toast lands where the bar was and floats above the window's edge just as the bar did (signature transition: "the bar becomes the toast"). Radius table: surfaces 8px admin, 12px contractor. `px-surface` (20/24px), a surface's padding, puts the copy where the bar's Button label sat (8px + the control's 12/16px). `py-2xs` with `text`'s `min-h-control` makes a one-line toast 48px admin and 60px contractor, the bar's height. `max-w-measure` keeps a long failure to about 65 characters a line. No border: `edge-treatment`, and dark's `shadow-raised` is itself a hairline ring. |
 | `root` | `success` | `bg-surface-raised text-ink` | "Surfaces get lighter as they rise"; the bar's surface, so the hand-off is seamless. |
 | `root` | `failure` | `bg-overdue text-overdue` | Status colours: Overdue is red, Failed is solid red; the tint keeps it assured rather than alarmed. The pair is AA by construction. A gap. |
 | `text` | all | `flex min-h-control items-center text-body` | Body text 14px admin, 16px contractor. `p` already wraps `pretty` (src/styles.css), so a two-line failure doesn't strand a word. |
 
-`Toast.css`, beside the component, sets what no token class can: the view transition names, and the toast's entering duration. `Toast.tsx` imports it, as ActionBar and Sheet import theirs. The `tv()` config lives in `toast.ts`, which the registry entry reads, so the generator loads the entry under tsx on node without touching the stylesheet.
+`Toast.css`, beside the component, sets what no token class can: the view transition names, and the toast's entering duration. `Toast.tsx` imports it, as the bar and Sheet import theirs. The `tv()` config lives in `toast.ts`, which the registry entry reads, so the generator loads the entry under tsx on node without touching the stylesheet.
 
-- `view-transition-name: action-result` on a success Toast: ActionBar's name (ActionBar.css), so entering the success state morphs the bar into the toast. Repeated here, not imported, so each component's folder owns its rule; a style expectation in the pairing stories asserts the two computed names match. A gap, as for ActionBar (#236).
+- `view-transition-name: action-result` on a success Toast: the bar's name (the bar's stylesheet), so entering the success state morphs the bar into the toast. Repeated here, not imported, so each component's folder owns its rule; a style expectation in the pairing stories asserts the two computed names match. A gap, as for the bar (#236).
 - `view-transition-name: action-failure` on a failure Toast: a name of its own, since the bar it sits beside keeps `action-result` and a name must be unique in a snapshot. Its own group enters on its own.
 - Entering at `slow` (below).
 
@@ -57,7 +59,7 @@ The library owns it (ADR 0011). src/styles.css times every group at `base`; Toas
 | Retries, and it fails again | `to.failure` re-entered, `fail` | The toast is in both views, so nothing moves; it announces again. |
 | Retries, and it's confirmed | `to.success`, `confirm` | The bar morphs into the success toast as above; the failure toast leaves at `slow-exit`, `exit`. |
 
-No entrance movement of its own: the toast doesn't rise or scale in when no bar precedes it. Keyframes live in `tokens/keyframes.css`, which a build session doesn't edit; ActionBar's gap #237 asks the same question, so it isn't filed again.
+No entrance movement of its own: the toast doesn't rise or scale in when no bar precedes it. Keyframes live in `tokens/keyframes.css`, which a build session doesn't edit; the bar's gap #237 asks the same question, so it isn't filed again.
 
 ## Against defaults
 

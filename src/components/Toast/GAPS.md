@@ -20,13 +20,17 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Toast 
 
 ## A failure Toast and its bar stick at the same place on a long table
 
+**Retired (ADR 0013):** the bar is gone; a failure Toast sits on its own, last in the Screen.
+
 **Undecided:** ADR 0011 puts a failure Toast beside the bar, which stays. Both are sticky at `bottom-sm`, so the toast lands where the bar was and floats with it. On a short table they sit one above the other in the flow. Once the table runs past the window's edge, both stick 16px above it and the bar covers the toast. No token gives the bar's height as an offset, and a Toast can't hold the bar.
 
-**Call:** the registry `use` line places a failure Toast right before the ActionBar, and both stay sticky. The stories' tables are short enough that nothing sticks, and `Failed` asserts the toast ends above the bar.
+**Call:** the registry `use` line places a failure Toast right before the bar, and both stay sticky. The stories' tables are short enough that nothing sticks, and `Failed` asserts the toast ends above the bar.
 
-**Alternative:** a failure Toast that isn't sticky, or a sticky offset that clears the bar (a token for the bar's height plus a gap), or an ActionBar slot that holds the failure Toast so the two float as one.
+**Alternative:** a failure Toast that isn't sticky, or a sticky offset that clears the bar (a token for the bar's height plus a gap), or a slot in the bar that holds the failure Toast so the two float as one.
 
 ## Focus drops when a confirmed bar leaves
+
+**Retired (ADR 0013):** the bar is gone; when a confirmed result disables the footer Button that had focus, focus moves to the table.
 
 **Undecided:** the brief keeps a pending Button focusable "so focus doesn't drop mid-operation". When the payment is confirmed, the success state leaves the bar out, so the focused Button is removed with it and focus falls to the document. The Toast isn't focusable, and nothing says where focus goes.
 
@@ -36,8 +40,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Toast 
 
 ## Toast's view transition rules live in a stylesheet of its own
 
-**Undecided:** no token class sets a view transition name (ActionBar gap #236), so Toast needs its own CSS file, as ActionBar has. But Toast's registry entry imports `Toast.tsx` for `variantEnum`, and the generator loads entries under tsx on node, which can't import a `.css` file. ActionBar's entry reads no `tv()` config, so its `.tsx` can import its stylesheet. Toast's entering duration (`slow`, the brief's "toast entering") also has no class, while every other View Transition timing lives in `src/styles.css`.
+**Undecided:** no token class sets a view transition name (the bar's gap #236), so Toast needs its own CSS file, as the bar has. But Toast's registry entry imports `Toast.tsx` for `variantEnum`, and the generator loads entries under tsx on node, which can't import a `.css` file. The bar's entry reads no `tv()` config, so its `.tsx` can import its stylesheet. Toast's entering duration (`slow`, the brief's "toast entering") also has no class, while every other View Transition timing lives in `src/styles.css`.
 
-**Call:** `Toast.css` sets the success Toast's name to ActionBar's `action-result`, a failure Toast's to `action-failure`, and `slow` / `slow-exit` for those groups when motion is allowed (under `confirm` only, for `action-result`). `Toast.tsx` imports it, as ActionBar's does, and the `tv()` config moved to `toast.ts`, which the registry entry imports instead of `Toast.tsx`, so the registry still loads under node (#245). Style expectations in the stories assert both names.
+**Call:** `Toast.css` sets the success Toast's name to the bar's `action-result`, a failure Toast's to `action-failure`, and `slow` / `slow-exit` for those groups when motion is allowed (under `confirm` only, for `action-result`). `Toast.tsx` imports it, as the bar's does, and the `tv()` config moved to `toast.ts`, which the registry entry imports instead of `Toast.tsx`, so the registry still loads under node (#245). Style expectations in the stories assert both names.
 
 **Alternative:** #236's named utilities (`vt-action-result`, `vt-action-failure`) as classes in the `tv()` config, and the toast's timing beside the others in `src/styles.css`, so no component carries a stylesheet.
