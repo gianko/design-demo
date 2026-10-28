@@ -448,14 +448,6 @@ export const ColumnsHoldWhenStatusesChangeOnPhone: Story = {
   tags: ["phone"],
 };
 
-// No contractor has an invoice in: the header alone, with nothing to select.
-export const Empty: Story = {
-  render: () => <InvoiceQueue />,
-  parameters: {
-    screenState: { name: "empty", fixture: "invoice-queue/empty" },
-  } satisfies ScreenStateParameters,
-};
-
 // A table nothing acts on: no checkboxes in the header or the rows, so the
 // first column starts at the table's edge. Even in a fixture variant that
 // starts with rows selected, no row fills: the table shows no Selection.
