@@ -236,10 +236,10 @@ export const WithSelectedRows: Story = {
 };
 
 // invoice-queue's failure state under its table three times over, in a
-// scroller the window's height, so the table runs past the bottom edge and
-// the bar sticks there, as on a long queue. The failure Toast rides in the
-// bar, so the two stick as one and the Toast never covers the Buttons
-// (#243).
+// scroller no taller than the table's capped frame (#296), so the table runs
+// past the bottom edge and the bar sticks there, as on a long queue. The
+// failure Toast rides in the bar, so the two stick as one and the Toast never
+// covers the Buttons (#243).
 function FailedOnALongTable() {
   const data = useFixtureData();
   const rows = [0, 1, 2].flatMap((copy) =>
@@ -248,7 +248,7 @@ function FailedOnALongTable() {
     )
   );
   return (
-    <div data-scroller className="h-dvh overflow-y-auto">
+    <div data-scroller className="max-h-table overflow-y-auto">
       <Stack gap="xs">
         <DataTable
           selectable
