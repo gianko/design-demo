@@ -145,7 +145,7 @@ describe("in CI", () => {
   const [missing] = rendersOf("gatefixtures-onepixel--before");
   // Only the stories this suite checks, so it doesn't grow with the library.
   const targets = [
-    "Placeholder",
+    "Heading",
     ...readdirSync(join(repo, "gates/fixtures")).map((file) =>
       file
         .replace(/\.stories\.tsx$/, "")
@@ -161,9 +161,12 @@ describe("in CI", () => {
     run = gate(targets, { ci: true });
   }, 900_000);
 
-  it("passes the placeholder story against its committed baselines", () => {
-    for (const render of rendersOf("placeholder--placeholder")) {
-      expect(run.outcome(render)?.status).toBe("passed");
+  // A small, stable library component: the known-good check.
+  it("passes the Heading stories against their committed baselines", () => {
+    for (const level of [1, 2, 3]) {
+      for (const render of rendersOf(`components-heading--level-${level}`)) {
+        expect(run.outcome(render)?.status).toBe("passed");
+      }
     }
   });
 
