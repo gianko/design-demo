@@ -161,8 +161,8 @@ describe("the one-variant sets", () => {
     ["Card", ["header slot", "body slot", "footer slot"]],
     ["EmptyState", []],
     ["PageHeader", ["title slot", "description slot", "actions slot"]],
-    ["Sheet", ["title slot", "close button", "body slot"]],
-    ["DataTable", ["Checkbox", "cell slot", "actions slot", "detail slot"]],
+    ["Sheet", ["title slot", "body slot"]],
+    ["DataTable", ["cell slot", "actions slot", "detail slot"]],
   ])(
     "draws %s's slots as named auto-layout placeholders: %j",
     (name, placeholders) => {
@@ -171,11 +171,7 @@ describe("the one-variant sets", () => {
         (n): n is FramePlan => n.type === "FRAME"
       );
       const named = new Set(
-        frames
-          .filter(
-            (f) => f.name.endsWith(" slot") || placeholders.includes(f.name)
-          )
-          .map((f) => f.name)
+        frames.filter((f) => f.name.endsWith(" slot")).map((f) => f.name)
       );
       expect([...named]).toEqual(placeholders);
       for (const frame of frames.filter((f) => named.has(f.name))) {
@@ -185,10 +181,10 @@ describe("the one-variant sets", () => {
     }
   );
 
-  it("holds no instance of another component, only frames and text", () => {
+  it("holds no instance of another component, only frames, text and vectors", () => {
     for (const set of payload.sets) {
       for (const node of set.variants.flatMap(walkPlan)) {
-        expect(["FRAME", "TEXT"]).toContain(node.type);
+        expect(["FRAME", "TEXT", "VECTOR"]).toContain(node.type);
       }
     }
   });
@@ -217,6 +213,9 @@ function probe(root: string, box: string, part: string | null = "") {
       ],
     }),
     copy: { "part slot": "Part slot" },
+    ...(part === null && {
+      notDrawn: { part: "a placeholder stands where it would be" },
+    }),
   };
 }
 
@@ -265,20 +264,31 @@ describe("generating a one-variant set", () => {
     });
   });
 
-  it("drops a full share or a grow in a parent that hugs, and fails in one that's fixed", async () => {
-    await expect(
-      probeRoot("flex", "flex", "flex w-full grow")
-    ).resolves.toBeDefined();
+  it("drops a full share, a grow or a push in a parent that hugs", async () => {
+    const root = await probeRoot("flex", "flex", "flex w-full grow ms-auto");
 
+    const part = (root.children![0] as FramePlan).children![0] as FramePlan;
+    expect(part.layoutGrow).toBeUndefined();
+    expect(part.primaryAxisSizingMode).toBeUndefined();
+  });
+
+  it("grows into a fixed parent's spare room, and fails on a full share or a push there", async () => {
+    const root = await probeRoot("flex", "flex w-sheet", "flex grow");
+
+    const part = (root.children![0] as FramePlan).children![0] as FramePlan;
+    expect(part).toMatchObject({
+      layoutGrow: 1,
+      primaryAxisSizingMode: "FIXED",
+    });
     await expect(
       probeRoot("flex", "flex w-sheet", "flex w-full")
     ).rejects.toThrow(
       "Probe (variant=default): the part slot is in auto layout, where figma:sync-components can't place it by x.fraction yet"
     );
     await expect(
-      probeRoot("flex", "flex w-sheet", "flex grow")
+      probeRoot("flex", "flex w-sheet", "flex ms-auto")
     ).rejects.toThrow(
-      "Probe (variant=default): the part slot takes its parent's spare room"
+      "Probe (variant=default): the part slot is pushed through its parent's spare room"
     );
   });
 
@@ -358,8 +368,15 @@ describe("a first apply of the one-variant sets", () => {
     expect(effectStyle(sheet.effectStyleId)).toBe("shadow/overlay");
     expect(at(sheet, "header").children!.map((c) => c.name)).toEqual([
       "title",
-      "close button",
+      "close",
     ]);
+    // Its close button is IconButton's box, empty, as in Toast.
+    const close = at(sheet, "header", "close");
+    expect(close.children).toEqual([]);
+    expect(bound(close)).toMatchObject({
+      width: "density/height/control",
+      height: "density/height/control",
+    });
     expect(bound(at(sheet, "header", "title"))).toEqual({
       minHeight: "density/height/control",
     });
@@ -384,9 +401,13 @@ describe("a first apply of the one-variant sets", () => {
       "cell",
       "cell",
     ]);
-    expect(at(row!, "select", "selector", "Checkbox", "label").characters).toBe(
-      "Checkbox"
-    );
+    // The Checkbox is its own unticked box, empty: a target-size square.
+    const checkbox = at(row!, "select", "selector", "Checkbox");
+    expect(checkbox.children).toEqual([]);
+    expect(bound(checkbox)).toEqual({
+      minWidth: "density/min-height/target",
+      minHeight: "density/min-height/target",
+    });
     const column = at(table, "headerRow", "header", "column 1");
     expect(column.characters).toBe("Invoice");
     expect(textStyle(column.textStyleId)).toBe("column-header");

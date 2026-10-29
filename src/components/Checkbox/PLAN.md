@@ -52,7 +52,8 @@ No pending: a checkbox starts no operation; selecting rows changes DataTable's s
 | | unchecked | `border-control bg-surface` |
 | | unchecked, enabled | `pointer-events-none relative before:absolute before:inset-0 before:rounded-tag before:transition-colors before:duration-fast before:ease-standard` |
 | | unchecked, enabled, not locked | `peer-hover:before:bg-surface-hover peer-active:before:bg-surface-pressed`: the translucent hover lies over the `surface` fill (#250) |
-| | checked or mixed | `border-transparent bg-accent` |
+| | checked or mixed | `border-transparent` |
+| | checked or mixed, enabled | `bg-accent`, so it never sits beside `bg-disabled`: which of two fills wins would rest on the stylesheet's order, which the class string doesn't show (#321) |
 | | checked or mixed, enabled, not locked | `peer-hover:bg-accent-hover peer-active:bg-accent-pressed` |
 | | unchecked, disabled | `border-disabled bg-surface` |
 | | checked or mixed, disabled | `border-transparent bg-disabled` |

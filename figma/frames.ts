@@ -34,6 +34,7 @@ export type Props = Record<string, Value>;
 /** A component's `tv()` result, as the generator calls it. */
 export type Styles = {
   variants: Record<string, Record<string, unknown>>;
+  slots?: Record<string, unknown>;
   (props: Props): Record<string, (props?: Props) => string> | string;
 };
 
@@ -46,37 +47,65 @@ export type Anatomy = {
    * cells sit in a line. They're mapped with the slot's classes.
    */
   display?: string;
-  children?: (Anatomy | { text: string } | Placeholder | false | undefined)[];
+  children?: (
+    Anatomy | { text: string } | VectorElement | Placeholder | false | undefined
+  )[];
 };
 
 /**
- * What stands where a UI spec puts components, in one of the component's
- * slots, or where it renders another library component: an auto-layout
- * frame of that name, styled by class-map.ts's placeholder classes, holding
- * its sample copy. A set holds no instance of another component (ADR 0015).
+ * The SVG a slot's element is, as the component renders it, drawn into the
+ * slot's frame. Its `currentColor` is the colour the slots above it set.
  */
-export type Placeholder = { placeholder: string };
+export type VectorElement = { vector: string; svg: string };
+
+/**
+ * What stands where something other than the component's own markup goes. A
+ * set holds no instance of another component (ADR 0015), so it's a frame of
+ * that name, in one of two boxes:
+ *
+ * - With `styles`, the component renders another library component there
+ *   (Toast's and Sheet's close button, DataTable's Checkbox): that
+ *   component's root box, from its own tv() called with `props`, and empty.
+ * - Without, a UI spec puts components in that slot: a chip in class-map.ts's
+ *   placeholder classes, holding its sample copy.
+ */
+export type Placeholder = {
+  placeholder: string;
+  styles?: Styles;
+  props?: Props;
+};
 
 export type FrameSource = {
   entry: RegistryEntry;
   styles: Styles;
   /** The registry props the variants run over; by default, those tv() styles. */
   axes?: string[];
+  /** An axis's values when tv() doesn't spell them, such as an icon map's names. */
+  options?: Record<string, Value[]>;
+  /** The tv() slots no frame draws, each with the reason. */
+  notDrawn?: Record<string, string>;
   /** The props the component hands its tv() for one variant, when it changes any. */
   render?: (variant: Props) => Props;
   /** The element tree for one variant's rendered props. */
   anatomy: (props: Props) => Anatomy;
-  /** Each text element's and placeholder's sample copy, by name. */
-  copy?: Record<string, string>;
+  /**
+   * Each text element's and slot placeholder's sample copy, by name, or for
+   * one variant's rendered props.
+   */
+  copy?: Copy;
   /** A paragraph for the set's description, after the registry's `use`. */
   note?: string;
 };
+
+export type Copy =
+  Record<string, string> | ((props: Props) => Record<string, string>);
 
 // ── What the runtime gets ─────────────────────────────────────────────────
 
 /** Where a placed frame sits along one axis of its parent. */
 export type Edge = {
-  constraint: "MIN" | "MAX" | "STRETCH" | "SCALE";
+  /** CENTER: in the middle, where an absolute child of a centring flex box sits. */
+  constraint: "MIN" | "MAX" | "STRETCH" | "SCALE" | "CENTER";
   /** Its start, as a share of the parent's length. */
   start: number;
   /** Its length as a share of the parent's; its own (bound) length when null. */
@@ -94,6 +123,8 @@ export type FramePlan = {
   primaryAxisSizingMode?: "FIXED" | "AUTO";
   counterAxisSizingMode?: "FIXED" | "AUTO";
   layoutPositioning?: "AUTO" | "ABSOLUTE";
+  /** 1 when it fills what's left along its parent's auto layout. */
+  layoutGrow?: number;
   clipsContent?: boolean;
   strokeWeight?: number;
   /** Top, right, bottom and left, when the sides differ; then `strokeWeight` is unused. */
@@ -114,9 +145,25 @@ export type TextPlan = {
   textStyle: string;
   fills: string[];
   textAutoResize?: string;
+  textAlignHorizontal?: string;
+  /** FILL when its frame's width is set from outside, so its lines wrap. */
+  layoutSizingHorizontal?: "FILL";
 };
 
-export type NodePlan = FramePlan | TextPlan;
+/**
+ * An SVG drawn to its frame's size. Each paint that's `currentColor` in it
+ * binds to these variables; one that isn't stays the literal the SVG says,
+ * and the dry run lists it.
+ */
+export type VectorPlan = {
+  type: "VECTOR";
+  name: string;
+  svg: string;
+  fills?: string[];
+  strokes?: string[];
+};
+
+export type NodePlan = FramePlan | TextPlan | VectorPlan;
 
 export type SetPlan = {
   name: string;
@@ -134,7 +181,7 @@ export type ComponentsPayload = {
   /** The value a plan field takes when the plan leaves it out. */
   defaults: {
     frame: Required<Omit<FramePlan, "type" | "name">>;
-    text: { textAutoResize: string };
+    text: { textAutoResize: string; textAlignHorizontal: string };
   };
   sets: SetPlan[];
 };
@@ -149,6 +196,7 @@ const frameDefaults: ComponentsPayload["defaults"]["frame"] = {
   primaryAxisSizingMode: "AUTO",
   counterAxisSizingMode: "AUTO",
   layoutPositioning: "AUTO",
+  layoutGrow: 0,
   clipsContent: false,
   strokeWeight: 0,
   strokeWeights: null,
@@ -159,7 +207,10 @@ const frameDefaults: ComponentsPayload["defaults"]["frame"] = {
   place: null,
   children: [],
 };
-const textDefaults = { textAutoResize: "WIDTH_AND_HEIGHT" };
+const textDefaults = {
+  textAutoResize: "WIDTH_AND_HEIGHT",
+  textAlignHorizontal: "LEFT",
+};
 
 // ── Generating ────────────────────────────────────────────────────────────
 
@@ -188,6 +239,8 @@ function axesOf(source: FrameSource): Axis[] {
       Object.hasOwn(styles.variants, name)
     );
   return names.map((name) => {
+    const options = source.options?.[name];
+    if (options) return { name, values: options };
     const keys = Object.keys(styles.variants[name] ?? {});
     if (!keys.length) {
       throw new Error(`${entry.name}: axis ${name} has no tv() options`);
@@ -223,6 +276,7 @@ function combinations(axes: Axis[]): Props[] {
 function setPlan(source: FrameSource, map: (raw: string) => Mapping): SetPlan {
   const { entry, styles } = source;
   const axes = axesOf(source);
+  const drawn = new Set<string>();
   const variants = combinations(axes).map((variant) => {
     // Figma names every variant by its properties, so a set with no axes
     // still gives its one variant one.
@@ -235,6 +289,7 @@ function setPlan(source: FrameSource, map: (raw: string) => Mapping): SetPlan {
       typeof rendered === "string" ? { root: () => rendered } : rendered;
     const where = `${entry.name} (${name})`;
     const anatomy = source.anatomy(props);
+    slotsOf(anatomy).forEach((slot) => drawn.add(slot));
     if (anatomy.slot !== "root") {
       throw new Error(
         `${where}: the anatomy's top element must be the root slot`
@@ -244,12 +299,25 @@ function setPlan(source: FrameSource, map: (raw: string) => Mapping): SetPlan {
       where,
       slots,
       map,
-      copy: source.copy ?? {},
+      copy:
+        typeof source.copy === "function"
+          ? source.copy(props)
+          : (source.copy ?? {}),
       text: {},
       parent: null,
     });
     return { ...root, name };
   });
+  // Every slot is drawn or says why not, so none leaves the frames unseen.
+  const notDrawn = source.notDrawn ?? {};
+  for (const slot of Object.keys(styles.slots ?? { root: "" })) {
+    if (styles.slots?.[slot] === undefined && slot === "base") continue;
+    if (!drawn.has(slot) && !Object.hasOwn(notDrawn, slot)) {
+      throw new Error(
+        `${entry.name}: no variant draws the ${slot} slot; put it in the anatomy in figma/components.ts, or in notDrawn with the reason`
+      );
+    }
+  }
   return {
     name: entry.name,
     description: [
@@ -274,13 +342,30 @@ type Context = {
   copy: Record<string, string>;
   /** Text fields inherited from the slots above, as CSS inherits them. */
   text: Look;
-  /** The parent frame's layout, and the axes it hugs its children on; null for the root. */
-  parent: { layoutMode: string; hugs: { x: boolean; y: boolean } } | null;
+  /**
+   * The parent frame's layout, the axes it hugs its children on, and its
+   * auto-layout alignment across (x) and down (y); null for the root.
+   */
+  parent: {
+    layoutMode: string;
+    hugs: { x: boolean; y: boolean };
+    align: { x?: string; y?: string };
+  } | null;
 };
 
 /** An element the generator draws: a slot, or a placeholder, whose classes are its own. */
 type Element = Anatomy & { classes?: string };
 type TextChild = { text: string; layer?: string };
+
+/** The slots an anatomy draws. */
+function slotsOf(anatomy: Anatomy): string[] {
+  return [
+    anatomy.slot,
+    ...(anatomy.children ?? []).flatMap((child) =>
+      child && "slot" in child ? slotsOf(child) : []
+    ),
+  ];
+}
 
 /** An element's classes merged into one look: base first, then applied prefixes over it. */
 function slotLook(element: Element, context: Context): Look {
@@ -329,22 +414,78 @@ function framePlan(element: Element, context: Context): FramePlan {
   const fail = (message: string) => {
     throw new Error(`${context.where}: the ${element.slot} slot ${message}`);
   };
+  const { parent } = context;
+  // A square takes its one bound length, or its one limit, on both axes.
+  if (field("square")) {
+    for (const [a, b] of [
+      ["width", "height"],
+      ["minWidth", "minHeight"],
+    ] as const) {
+      if (bind[a] && !bind[b]) bind[b] = bind[a];
+      else if (bind[b] && !bind[a]) bind[a] = bind[b];
+    }
+  }
+  // The root fills whatever holds it; drawn alone, it's as long as its
+  // max-* class lets it be. With a max-*-none class saying nothing caps it
+  // (Sheet's window height), it hugs its content.
+  if (parent === null) {
+    for (const [axis, length, max] of [
+      ["x", "width", "maxWidth"],
+      ["y", "height", "maxHeight"],
+    ] as const) {
+      if (look[`${axis}.fraction`] !== 1) continue;
+      if (look[`uncapped.${axis}`]) {
+        delete look[`${axis}.fraction`];
+        continue;
+      }
+      if (!bind[max]) {
+        throw new Error(
+          `${context.where}: the root slot fills what holds it, and has no max-* class to draw it at`
+        );
+      }
+      bind[length] = bind[max];
+      delete bind[max];
+      delete look[`${axis}.fraction`];
+    }
+  }
 
+  // Without a flex class, a box that holds text is in block flow, which
+  // stacks its lines and hugs them: vertical auto layout.
+  const holdsText = (element.children ?? []).some(
+    (child) => child && "text" in child
+  );
   const layoutMode = field("flex")
     ? ((field("direction") as FramePlan["layoutMode"]) ?? "HORIZONTAL")
-    : "NONE";
+    : holdsText
+      ? "VERTICAL"
+      : "NONE";
   const plan: FramePlan = { type: "FRAME", name: element.slot, layoutMode };
   // An auto-layout frame hugs its children along an unbound length.
   const hugs = {
     x: layoutMode !== "NONE" && !bind.width,
     y: layoutMode !== "NONE" && !bind.height,
   };
+  // Growing takes the room its siblings leave along its parent's auto
+  // layout, which fixes that length; a parent that hugs leaves none.
+  const along = parent?.layoutMode === "HORIZONTAL" ? "x" : "y";
+  const grows =
+    Boolean(field("layoutGrow")) &&
+    parent !== null &&
+    parent.layoutMode !== "NONE" &&
+    !parent.hugs[along];
   if (layoutMode !== "NONE") {
     // A bound length is fixed; an unbound one hugs.
     const [primary, counter] =
       layoutMode === "HORIZONTAL" ? ["width", "height"] : ["height", "width"];
     plan.primaryAxisSizingMode = bind[primary!] ? "FIXED" : "AUTO";
     plan.counterAxisSizingMode = bind[counter!] ? "FIXED" : "AUTO";
+    if (grows) {
+      if (parent.layoutMode === layoutMode) {
+        plan.primaryAxisSizingMode = "FIXED";
+      } else {
+        plan.counterAxisSizingMode = "FIXED";
+      }
+    }
     plan.primaryAxisAlignItems = field("primaryAxisAlignItems") as string;
     plan.counterAxisAlignItems = field("counterAxisAlignItems") as string;
     // A row's gap is its column gap and a column's its row gap; the other
@@ -359,6 +500,7 @@ function framePlan(element: Element, context: Context): FramePlan {
     }
   }
   plan.layoutPositioning = field("layoutPositioning") as "ABSOLUTE";
+  plan.layoutGrow = grows ? 1 : 0;
   plan.clipsContent = field("clipsContent") as boolean;
   const sides = ["Top", "Right", "Bottom", "Left"].map(
     (side) =>
@@ -375,13 +517,15 @@ function framePlan(element: Element, context: Context): FramePlan {
   plan.effectStyle = field("effectStyle") as string;
 
   // A frame outside its parent's auto layout sits where its insets put it.
-  const { parent } = context;
   const placed =
     parent?.layoutMode === "NONE" || plan.layoutPositioning === "ABSOLUTE";
   if (placed) {
+    // Absolute without insets, it sits where its parent's alignment puts it.
+    const align =
+      plan.layoutPositioning === "ABSOLUTE" ? (parent?.align ?? {}) : {};
     plan.place = {
-      x: edge(look, "x", Boolean(bind.width)),
-      y: edge(look, "y", Boolean(bind.height)),
+      x: edge(look, "x", Boolean(bind.width), align.x),
+      y: edge(look, "y", Boolean(bind.height), align.y),
     };
   } else if (parent && !field("sticky")) {
     // In auto layout a frame is never smaller than its content, as a flex
@@ -400,12 +544,11 @@ function framePlan(element: Element, context: Context): FramePlan {
         `is in auto layout, where figma:sync-components can't place it by ${placing.join(", ")} yet`
       );
     }
-    // Growing into, or pushing through, the room its parent's line has left:
-    // a parent that hugs leaves none.
-    const along = parent.layoutMode === "HORIZONTAL" ? "x" : "y";
-    if (field("fill") && !parent.hugs[along]) {
+    // Pushed through the room its parent's line has left, as `ms-auto`
+    // pushes it: a parent that hugs leaves none.
+    if (field("pushed") && !parent.hugs[along]) {
       fail(
-        "takes its parent's spare room, which figma:sync-components can't give it yet"
+        "is pushed through its parent's spare room, which figma:sync-components can't draw yet"
       );
     }
   }
@@ -414,20 +557,34 @@ function framePlan(element: Element, context: Context): FramePlan {
   for (const [name, value] of Object.entries(look)) {
     if (name.startsWith("text.")) text[name.slice(5)] = value;
   }
-  const inside: Context = { ...context, text, parent: { layoutMode, hugs } };
+  // Its width set from outside, its text fills it and wraps.
+  const fixedWidth =
+    layoutMode !== "NONE" &&
+    (layoutMode === "HORIZONTAL"
+      ? plan.primaryAxisSizingMode
+      : plan.counterAxisSizingMode) === "FIXED";
+  const across =
+    layoutMode === "HORIZONTAL"
+      ? [plan.primaryAxisAlignItems, plan.counterAxisAlignItems]
+      : [plan.counterAxisAlignItems, plan.primaryAxisAlignItems];
+  const inside: Context = {
+    ...context,
+    text,
+    parent: {
+      layoutMode,
+      hugs,
+      align: layoutMode === "NONE" ? {} : { x: across[0], y: across[1] },
+    },
+  };
   const children: NodePlan[] = [];
   for (const child of element.children ?? []) {
     if (!child) continue;
-    if ("text" in child) {
-      children.push(textPlan(child, text, context));
+    if ("vector" in child) {
+      children.push(vectorPlan(child, text, context.where));
     } else if ("placeholder" in child) {
-      const name = child.placeholder;
-      const placeholder: Element = {
-        slot: name,
-        classes: placeholderClasses,
-        children: [{ text: name, layer: "label" } as TextChild],
-      };
-      children.push(framePlan(placeholder, inside));
+      children.push(placeholderPlan(child, inside));
+    } else if ("text" in child) {
+      children.push(textPlan(child, text, fixedWidth, context));
     } else {
       children.push(framePlan(child, inside));
     }
@@ -436,7 +593,38 @@ function framePlan(element: Element, context: Context): FramePlan {
   return compact(plan) as FramePlan;
 }
 
-function textPlan(child: TextChild, text: Look, context: Context): TextPlan {
+/**
+ * A placeholder's frame: another component's root box, empty, or a chip
+ * naming the slot a UI spec fills. Either way, its classes aren't the
+ * component's own, so it's drawn as an element with its own classes.
+ */
+function placeholderPlan(child: Placeholder, context: Context): FramePlan {
+  const { placeholder: name, styles } = child;
+  let element: Element;
+  if (styles) {
+    const rendered = styles(child.props ?? {});
+    const root = typeof rendered === "string" ? rendered : rendered.root?.();
+    element = { slot: "root", classes: root ?? "" };
+  } else {
+    element = {
+      slot: "root",
+      classes: placeholderClasses,
+      children: [{ text: name, layer: "label" } as TextChild],
+    };
+  }
+  const plan = framePlan(element, {
+    ...context,
+    where: `${context.where}: the ${name} placeholder`,
+  });
+  return { ...plan, name };
+}
+
+function textPlan(
+  child: TextChild,
+  text: Look,
+  fixedWidth: boolean,
+  context: Context
+): TextPlan {
   const characters = context.copy[child.text];
   if (characters === undefined) {
     throw new Error(
@@ -455,14 +643,48 @@ function textPlan(child: TextChild, text: Look, context: Context): TextPlan {
     textStyle: text.textStyle as string,
     fills: text.fills as string[],
   };
-  const resize = text.textAutoResize as string | undefined;
-  if (resize && resize !== textDefaults.textAutoResize) {
-    plan.textAutoResize = resize;
+  for (const field of ["textAutoResize", "textAlignHorizontal"] as const) {
+    const value = text[field] as string | undefined;
+    if (value && value !== textDefaults[field]) plan[field] = value;
+  }
+  if (fixedWidth && !text.textAutoResize) {
+    plan.textAutoResize = "HEIGHT";
+    plan.layoutSizingHorizontal = "FILL";
   }
   return plan;
 }
 
-function edge(look: Look, axis: "x" | "y", bound: boolean): Edge {
+function vectorPlan(
+  element: VectorElement,
+  text: Look,
+  where: string
+): VectorPlan {
+  const plan: VectorPlan = {
+    type: "VECTOR",
+    name: element.vector,
+    svg: element.svg,
+  };
+  for (const [attribute, paint] of [
+    ["fill", "fills"],
+    ["stroke", "strokes"],
+  ] as const) {
+    if (!element.svg.includes(`${attribute}="currentColor"`)) continue;
+    if (!text.fills) {
+      throw new Error(
+        `${where}: the ${element.vector} vector's ${attribute} is currentColor, with no colour class above it`
+      );
+    }
+    plan[paint] = text.fills as string[];
+  }
+  return plan;
+}
+
+function edge(
+  look: Look,
+  axis: "x" | "y",
+  bound: boolean,
+  align?: string
+): Edge {
   const start = look[`${axis}.start`] as number | undefined;
   const end = look[`${axis}.end`] as number | undefined;
   const fraction = look[`${axis}.fraction`] as number | undefined;
@@ -482,6 +704,9 @@ function edge(look: Look, axis: "x" | "y", bound: boolean): Edge {
   }
   if (end !== undefined)
     return { constraint: "MAX", start: 0, size: null, end };
+  if (start === undefined && align === "CENTER") {
+    return { constraint: "CENTER", start: 0, size: null, end: null };
+  }
   return { constraint: "MIN", start: 0, size: null, end: null };
 }
 

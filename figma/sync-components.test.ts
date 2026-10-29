@@ -11,7 +11,7 @@ import {
   type FakePluginApi,
 } from "./fake-plugin-api.ts";
 import { framesPayload, readTokens, type ComponentsPayload } from "./frames.ts";
-import { codeLimit } from "./scripts.ts";
+import { codeLimit, overLimit } from "./scripts.ts";
 import { syncComponentScripts, type SyncOptions } from "./sync-components.ts";
 import { syncScripts as tokenScripts } from "./sync-tokens.ts";
 
@@ -35,8 +35,29 @@ type Report = {
   updated: string[];
   orphans: { kind: string; name: string; id: string }[];
   pruned: { kind: string; name: string; id: string }[];
+  literals: string[];
   remaining?: Report["counts"];
 };
+
+// ADR 0015's sets, and how many variants they hold between them: Button's
+// 12, StatusTag's 5, Toast's 2, Text's 4, Heading's 3, Amount's 2,
+// Checkbox's 6 and IconButton's 2, then the five one-variant sets.
+const setNames = [
+  "Button",
+  "StatusTag",
+  "Toast",
+  "Text",
+  "Heading",
+  "Amount",
+  "Checkbox",
+  "IconButton",
+  "Card",
+  "EmptyState",
+  "PageHeader",
+  "Sheet",
+  "DataTable",
+];
+const variantCount = 41;
 
 const run = (code: string, file: FakePluginApi) =>
   runScript(code, file) as Promise<Report>;
@@ -75,6 +96,8 @@ type Layer = {
   generator: string;
   characters?: string;
   textStyleId?: string;
+  textAlignHorizontal?: string;
+  layoutSizingHorizontal?: string;
   layoutMode?: string;
   sizing?: string[];
   alignment?: string[];
@@ -84,6 +107,8 @@ type Layer = {
   fills?: { boundVariables?: { color?: { id: string } } }[];
   strokes?: { boundVariables?: { color?: { id: string } } }[];
   description?: string;
+  /** A vector's paths, as the fake draws them from its SVG. */
+  vectorPaths?: { windingRule: string; data: string }[];
   children?: Layer[];
 };
 
@@ -97,9 +122,9 @@ function components(file: FakePluginApi) {
   const textStyle = (id: string | undefined) =>
     state.textStyles.find((s) => s.id === id)?.name;
   const sets = (page?.children ?? []).filter((n) => n.type === "COMPONENT_SET");
-  const variant = (name: string) =>
+  const variant = (name: string, set = "Button") =>
     sets
-      .find((s) => s.generator === "figma:sync-components")!
+      .find((s) => s.name === set && s.generator === "figma:sync-components")!
       .children!.find((c) => c.name === name)!;
   const bound = (layer: Layer) =>
     Object.fromEntries(
@@ -117,15 +142,21 @@ const child = (layer: Layer, name: string) =>
   layer.children!.find((c) => c.name === name)!;
 
 describe("a first apply", () => {
+  it("creates a set for each library component that has one", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    expect(components(file).sets.map((s) => s.name)).toEqual(setNames);
+  });
+
   it("creates the Button set, one variant per intent × disabled × pending", async () => {
     const file = await tokenFile();
 
     const [report] = await sync(file);
 
-    const { sets } = components(file);
-    expect(sets.map((s) => s.name)).toEqual(payload.setNames);
-    expect(sets[0]!.name).toBe("Button");
-    expect(sets[0]!.children!.map((c) => c.name)).toEqual([
+    const button = components(file).sets.find((s) => s.name === "Button")!;
+    expect(button.children!.map((c) => c.name)).toEqual([
       "intent=primary, disabled=false, pending=false",
       "intent=secondary, disabled=false, pending=false",
       "intent=quiet, disabled=false, pending=false",
@@ -139,14 +170,10 @@ describe("a first apply", () => {
       "intent=secondary, disabled=true, pending=true",
       "intent=quiet, disabled=true, pending=true",
     ]);
-    expect(
-      report!.created.filter((name) =>
-        /^(Components \(page\)|Button[ /])/.test(name)
-      )
-    ).toEqual([
+    expect(report!.created.slice(0, 14)).toEqual([
       "Components (page)",
       "Button (component set)",
-      ...sets[0]!.children!.map((c) => `Button/${c.name}`),
+      ...button.children!.map((c) => `Button/${c.name}`),
     ]);
     expect(report!.remaining).toMatchObject({ changes: 0 });
   });
@@ -253,6 +280,272 @@ describe("a first apply", () => {
   });
 });
 
+describe("the rest of the library", () => {
+  it("draws StatusTag's statuses in the tag's own words, each on its tint", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints, textStyle } = components(file);
+    const tag = sets.find((s) => s.name === "StatusTag")!;
+    expect(tag.children!.map((c) => c.name)).toEqual([
+      "status=awaiting",
+      "status=overdue",
+      "status=paid",
+      "status=scheduled",
+      "status=failed",
+    ]);
+    const overdue = variant("status=overdue", "StatusTag");
+    expect(paints(overdue.fills)).toEqual(["color/bg/overdue"]);
+    expect(bound(overdue)).toMatchObject({
+      paddingLeft: "space/2xs",
+      paddingRight: "space/2xs",
+      topLeftRadius: "radius/tag",
+    });
+    // It hugs its word, as an inline-block does.
+    expect(overdue.layoutMode).not.toBe("NONE");
+    expect(overdue.sizing).toEqual(["AUTO", "AUTO"]);
+    const word = child(overdue, "word");
+    expect(word.characters).toBe("Overdue");
+    expect(textStyle(word.textStyleId)).toBe("label");
+    expect(paints(word.fills)).toEqual(["color/text/overdue"]);
+  });
+
+  it("writes Amount's figures as the component formats them, a table amount ending at its end edge", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { variant, textStyle } = components(file);
+    const card = child(variant("display=card", "Amount"), "figure");
+    expect(card.characters).toBe("$4,800.00");
+    expect(textStyle(card.textStyleId)).toBe("figure");
+    const table = child(variant("display=table", "Amount"), "figure");
+    expect(table.characters).toBe("4,800.00\u00a0USD");
+    expect(textStyle(table.textStyleId)).toBe("body");
+    expect(table.textAlignHorizontal).toBe("RIGHT");
+  });
+
+  it("gives Heading a level each and Text its size × tone, body copy capped at the measure", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints, textStyle } = components(file);
+    const names = (set: string) =>
+      sets.find((s) => s.name === set)!.children!.map((c) => c.name);
+    expect(names("Heading")).toEqual(["level=1", "level=2", "level=3"]);
+    expect(
+      textStyle(child(variant("level=2", "Heading"), "title").textStyleId)
+    ).toBe("heading");
+    expect(names("Text")).toEqual([
+      "size=body, tone=default",
+      "size=caption, tone=default",
+      "size=body, tone=muted",
+      "size=caption, tone=muted",
+    ]);
+    const body = variant("size=body, tone=muted", "Text");
+    expect(bound(body)).toEqual({ maxWidth: "density/max-width/measure" });
+    expect(paints(child(body, "copy").fills)).toEqual(["color/text/ink-muted"]);
+    expect(bound(variant("size=caption, tone=muted", "Text"))).toEqual({});
+  });
+
+  it("draws Checkbox, marked internal, as a box at the target size with its tick or dash drawn in", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints } = components(file);
+    const set = sets.find((s) => s.name === "Checkbox")!;
+    expect(set.description).toMatch(/^Internal: only another component/);
+    expect(set.children!.map((c) => c.name)).toEqual([
+      "checked=false, disabled=false",
+      "checked=true, disabled=false",
+      "checked=mixed, disabled=false",
+      "checked=false, disabled=true",
+      "checked=true, disabled=true",
+      "checked=mixed, disabled=true",
+    ]);
+
+    const empty = variant("checked=false, disabled=false", "Checkbox");
+    // A square at the density's minimum target.
+    expect(bound(empty)).toEqual({
+      minWidth: "density/min-height/target",
+      minHeight: "density/min-height/target",
+    });
+    expect(empty.width).toBe(empty.height);
+    // The input and the accessible name draw nothing, and an empty box has no mark.
+    expect(empty.children!.map((c) => c.name)).toEqual(["box"]);
+    const box = child(empty, "box");
+    expect(bound(box)).toMatchObject({
+      width: "density/size/icon",
+      height: "density/size/icon",
+      topLeftRadius: "radius/tag",
+    });
+    expect(paints(box.fills)).toEqual(["color/bg/surface"]);
+    expect(paints(box.strokes)).toEqual(["color/border/control"]);
+
+    const ticked = variant("checked=true, disabled=false", "Checkbox");
+    expect(paints(child(ticked, "box").fills)).toEqual(["color/bg/accent"]);
+    expect(paints(child(ticked, "box").strokes)).toEqual([]);
+    const mark = child(ticked, "mark");
+    // Absolute in a centring flex box, it sits in the middle, as CSS puts it.
+    expect(mark.constraints).toEqual({
+      horizontal: "CENTER",
+      vertical: "CENTER",
+    });
+    expect(mark.x).toBe((ticked.width - mark.width) / 2);
+    expect(mark.y).toBe((ticked.height - mark.height) / 2);
+    const glyph = child(mark, "glyph");
+    expect(glyph.type).toBe("VECTOR");
+    expect(glyph.vectorPaths).toEqual([
+      { windingRule: "NONZERO", data: "M4 8.25 6.75 11 12 5.5" },
+    ]);
+    expect(paints(glyph.strokes)).toEqual(["color/text/on-accent"]);
+    expect([glyph.width, glyph.height]).toEqual([mark.width, mark.height]);
+
+    const dash = child(
+      child(variant("checked=mixed, disabled=true", "Checkbox"), "mark"),
+      "glyph"
+    );
+    expect(dash.vectorPaths![0]!.data).toBe("M4.5 8h7");
+    expect(paints(dash.strokes)).toEqual(["color/text/disabled"]);
+  });
+
+  it("draws IconButton, marked internal, one variant per icon in the icon map × disabled, its glyph Phosphor's", async () => {
+    const file = await tokenFile();
+
+    const [report] = await sync(file);
+
+    const { sets, variant, bound, paints } = components(file);
+    const set = sets.find((s) => s.name === "IconButton")!;
+    expect(set.description).toMatch(/^Internal: only another component/);
+    expect(set.children!.map((c) => c.name)).toEqual([
+      "icon=close, disabled=false",
+      "icon=close, disabled=true",
+    ]);
+    const button = variant("icon=close, disabled=false", "IconButton");
+    // A square at the control height, bare at rest.
+    expect(bound(button)).toMatchObject({
+      width: "density/height/control",
+      height: "density/height/control",
+      topLeftRadius: "radius/control",
+    });
+    expect(paints(button.fills)).toEqual([]);
+    const icon = child(button, "icon");
+    expect(bound(icon)).toMatchObject({ width: "density/size/icon" });
+    const glyph = child(icon, "glyph");
+    // Phosphor's regular X, on its 256-unit grid.
+    expect(glyph.vectorPaths![0]!.data).toMatch(/^M205\.66,194\.34/);
+    expect(paints(glyph.fills)).toEqual(["color/text/ink"]);
+    // Drawn at the icon size, scaling with it when the density flips.
+    expect([glyph.width, glyph.height]).toEqual([icon.width, icon.height]);
+    expect(glyph.constraints).toEqual({
+      horizontal: "SCALE",
+      vertical: "SCALE",
+    });
+    expect(
+      paints(
+        child(
+          child(variant("icon=close, disabled=true", "IconButton"), "icon"),
+          "glyph"
+        ).fills
+      )
+    ).toEqual(["color/text/disabled"]);
+    // Every glyph's paint is currentColor, so none stays literal.
+    expect(report!.literals).toEqual([]);
+  });
+
+  it("says in the dry run which vectors keep a literal paint, and keeps it on apply", async () => {
+    const source = frameSources.find((s) => s.entry.name === "IconButton")!;
+    const literal = framesPayload(
+      [
+        {
+          ...source,
+          anatomy: () => ({
+            slot: "root",
+            children: [
+              {
+                slot: "icon",
+                children: [
+                  {
+                    vector: "glyph",
+                    svg: '<svg width="16" height="16" fill="#000"><path d="M0 0h16v16z"></path></svg>',
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      ],
+      await readTokens()
+    );
+    const file = await tokenFile();
+    const syncLiteral = async (dryRun: boolean) => {
+      const [script] = syncComponentScripts(literal, { dryRun });
+      return run(script!.code, file);
+    };
+
+    const dryRun = await syncLiteral(true);
+    const applied = await syncLiteral(false);
+
+    expect(dryRun.literals).toEqual([
+      "IconButton/icon=close, disabled=false (icon.glyph)",
+      "IconButton/icon=close, disabled=true (icon.glyph)",
+    ]);
+    expect(applied.remaining).toMatchObject({ changes: 0 });
+    const glyph = child(
+      child(
+        components(file).variant("icon=close, disabled=false", "IconButton"),
+        "icon"
+      ),
+      "glyph"
+    );
+    expect(glyph.fills).toEqual([
+      { type: "SOLID", color: { r: 0, g: 0, b: 0 } },
+    ]);
+  });
+
+  it("draws Toast as a measure-wide raised surface, its copy filling the room beside a placeholder for its close button", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints } = components(file);
+    expect(
+      sets.find((s) => s.name === "Toast")!.children!.map((c) => c.name)
+    ).toEqual(["tone=success", "tone=failure"]);
+    const failure = variant("tone=failure", "Toast");
+    expect(paints(failure.fills)).toEqual(["color/bg/error"]);
+    expect(bound(failure)).toMatchObject({
+      width: "density/max-width/measure",
+      paddingLeft: "density/padding/surface",
+      paddingRight: "space/2xs",
+      itemSpacing: "space/xs",
+    });
+    // The window strip it's fixed to isn't drawn: there's no window.
+    expect(failure.children!.map((c) => c.name)).toEqual(["text", "close"]);
+    const text = child(failure, "text");
+    const close = child(failure, "close");
+    expect(bound(text)).toMatchObject({ minHeight: "density/height/control" });
+    expect(text.width).toBe(
+      // Admin density: 20px start padding, 8px end, a 12px gap.
+      failure.width - 20 - 8 - 12 - close.width
+    );
+    const copy = child(text, "text");
+    expect(copy.characters).toMatch(/^Payment not scheduled/);
+    expect(copy.layoutSizingHorizontal).toBe("FILL");
+    expect(paints(copy.fills)).toEqual(["color/text/error"]);
+    // No IconButton instance (ADR 0015): an empty frame in its box.
+    expect(close.type).toBe("FRAME");
+    expect(close.children).toEqual([]);
+    expect(bound(close)).toMatchObject({
+      width: "density/height/control",
+      height: "density/height/control",
+    });
+  });
+});
+
 describe("a re-run", () => {
   it("changes nothing, in a dry run or an apply", async () => {
     const file = await tokenFile();
@@ -268,11 +561,8 @@ describe("a re-run", () => {
         updated: 0,
         changes: 0,
         orphans: 0,
-        // Every variant and every set.
-        unchanged: payload.sets.reduce(
-          (sum, set) => sum + set.variants.length + 1,
-          0
-        ),
+        // Each set and its variants.
+        unchanged: variantCount + setNames.length,
       });
     }
     expect(file.state()).toEqual(before);
@@ -339,7 +629,7 @@ describe("orphans", () => {
     expect(page!.children!.map((n) => n.id)).toEqual(
       expect.arrayContaining([spike.id, modes.id])
     );
-    expect(sets).toHaveLength(payload.sets.length + 1);
+    expect(sets.filter((s) => s.name === "Button")).toHaveLength(2);
     // A re-run finds its own set by its mark, not the hand-built one.
     expect((await sync(file, { dryRun: true }))[0]!.counts.changes).toBe(0);
   });
@@ -412,17 +702,50 @@ describe("--split", () => {
     await sync(split, { dryRun: false, split: true });
 
     expect(scripts.map((s) => s.name)).toEqual(
-      payload.setNames.map((name) => name.toLowerCase())
+      setNames.map((name) => name.toLowerCase())
     );
     expect(strip(split.state())).toEqual(strip(whole.state()));
   });
 });
 
 describe("the generated script", () => {
-  it("fits one use_figma call", () => {
-    const [script] = syncComponentScripts(payload, { dryRun: false });
+  // ADR 0015: the whole library may outgrow one call; then --split, one
+  // script per set, is how it reaches Figma.
+  it("fits one use_figma call, or --split gives scripts that each fit one", () => {
+    const [whole] = syncComponentScripts(payload, { dryRun: false });
+    if (whole!.code.length <= codeLimit) return;
 
-    expect(script!.code.length).toBeLessThanOrEqual(codeLimit);
+    const split = syncComponentScripts(payload, { dryRun: false, split: true });
+    for (const { name, code } of split) {
+      expect(code.length, name).toBeLessThanOrEqual(codeLimit);
+    }
+  });
+
+  it("is refused whole over the limit, with a pointer to --split", () => {
+    const whole = syncComponentScripts(payload, { dryRun: false });
+    const split = syncComponentScripts(payload, { dryRun: false, split: true });
+    const over = [{ name: "all", code: "x".repeat(codeLimit + 1) }];
+
+    expect(overLimit("figma:sync-components", over, false)).toBe(
+      `figma:sync-components: all is ${codeLimit + 1} chars, over use_figma's ${codeLimit}-char limit. Rerun with --split, which gives up the one-call rollback.`
+    );
+    expect(overLimit("figma:sync-components", split, true)).toBeNull();
+    if (whole[0]!.code.length > codeLimit) {
+      expect(overLimit("figma:sync-components", whole, false)).toMatch(
+        /Rerun with --split/
+      );
+    }
+  });
+
+  it("is plain ASCII, so re-typing it can't turn Amount's no-break space into a space", async () => {
+    const [script] = syncComponentScripts(payload, { dryRun: true });
+
+    expect(script!.code).toMatch(/^[\n\x20-\x7e]*$/);
+    expect(script!.code).toContain("4,800.00\\u00a0USD");
+    // The escape parses back to the same copy, so the checksum still holds.
+    await expect(run(script!.code, await tokenFile())).resolves.toMatchObject({
+      dryRun: true,
+    });
   });
 });
 

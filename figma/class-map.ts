@@ -33,6 +33,10 @@ export const prefixes: Record<string, "skip" | "apply"> = {
   backdrop: "skip",
   // DataTable's cell styles its children, which a frame holds as placeholders.
   "*": "skip",
+  // Checkbox: its box follows the input's states.
+  "peer-hover": "skip",
+  "peer-active": "skip",
+  "peer-focus-visible": "skip",
 };
 
 /** Motion classes: a frame is still, so they have no look. */
@@ -43,7 +47,7 @@ export const stillClasses: RegExp[] = [
   /^delay-/,
   /^animate-/,
   /^origin-/,
-  // Sheet's View Transition name.
+  // Sheet's and Toast's View Transition names.
   /^vt-/,
 ];
 
@@ -87,16 +91,18 @@ export const layoutClasses: Record<string, Look> = {
   "translate-y-full": { "y.shift": 1 },
 
   // PageHeader. A frame that hugs its content never runs out of room to
-  // wrap, and leaves no spare room to grow into; frames.ts throws where a
-  // fixed length would make either matter.
+  // wrap; frames.ts throws where a fixed length would make it matter.
   "flex-wrap": { wrap: true },
-  grow: { fill: true },
 
-  // Sheet. Pushed to the end of its line, through spare room as `grow`
-  // takes it; and limits relative to the page, the parent or the content,
-  // which a frame of sample copy never reaches.
-  "ms-auto": { fill: true },
-  "max-h-none": {},
+  // Sheet, Toast and DataTable. Pushed to the end of its line, through
+  // spare room: a parent that hugs, or the root, has none, and frames.ts
+  // throws where a fixed length would leave some.
+  "ms-auto": { pushed: true },
+  // Sheet. No ceiling: a root that fills the window's height, which a frame
+  // drawn alone hasn't got, hugs its content instead (frames.ts).
+  "max-h-none": { "uncapped.y": true },
+  // Limits relative to the page, the parent or the content, which a frame
+  // of sample copy never reaches.
   "max-w-full": {},
   "min-h-0": {},
   // A frame clips where the element scrolls; a frame doesn't scroll.
@@ -122,6 +128,35 @@ export const layoutClasses: Record<string, Look> = {
   // sticky frame in the flow.
   sticky: { sticky: true },
   "start-0": { "x.start": 0 },
+  // StatusTag: a box that hugs its line, as any block does.
+  "inline-block": {},
+  // Amount: a table amount ends at its end edge.
+  "text-right": { "text.textAlignHorizontal": "RIGHT" },
+  // Checkbox: frames.ts gives a square's one bound length to both axes.
+  "aspect-square": { square: true },
+  // An edge that keeps its width with no colour: in Figma, no stroke paint.
+  "border-transparent": { strokes: [] },
+  // IconButton: Figma's auto layout never shrinks a child.
+  "shrink-0": {},
+  // Toast, Sheet and PageHeader: it takes the room its siblings leave along a
+  // fixed length; frames.ts drops it in a parent that hugs, which leaves none.
+  grow: { layoutGrow: 1 },
+};
+
+/**
+ * Classes with no look a Figma frame can take, each with the reason. They
+ * are skipped, so a class leaves the frames only by being listed here.
+ */
+export const unseenClasses: Record<string, string> = {
+  // Amount
+  "tabular-nums":
+    "the Plugin API reads a text's OpenType features but can't set them",
+  // Checkbox
+  "pointer-events-none":
+    "it says where the pointer goes, which a frame has no say in",
+  // Toast
+  "pointer-events-auto":
+    "it says where the pointer goes, which a frame has no say in",
 };
 
 const corners = [
@@ -181,6 +216,10 @@ export const tokenFamilies: {
       ["pr-", ["Right"]],
       ["pb-", ["Bottom"]],
       ["pl-", ["Left"]],
+      // Toast: inline start and end, which are left and right in English,
+      // the product's one language.
+      ["ps-", ["Left"]],
+      ["pe-", ["Right"]],
     ] as const
   ).map(([prefix, sides]) => ({
     prefix,
@@ -193,8 +232,8 @@ export const tokenFamilies: {
     theme: ["spacing"],
     look: (v) => ({ "bind.itemSpacing": v }),
   },
-  // Card, EmptyState, Sheet and DataTable: a length's floor and ceiling,
-  // from Tailwind's own namespaces for them.
+  // Checkbox, Card, EmptyState, Sheet and DataTable: a length's floor and
+  // ceiling, from Tailwind's own namespaces for them.
   {
     prefix: "min-h-",
     theme: ["min-height", "height", "spacing"],
@@ -205,6 +244,12 @@ export const tokenFamilies: {
     theme: ["max-height", "height", "spacing"],
     look: (v) => ({ "bind.maxHeight": v }),
   },
+  {
+    prefix: "size-",
+    theme: ["size", "spacing"],
+    look: (v) => ({ "bind.width": v, "bind.height": v }),
+  },
+  // Text and Toast keep a measure, Card a card's width.
   {
     prefix: "max-w-",
     theme: ["max-width", "spacing"],
@@ -217,9 +262,10 @@ export const tokenFamilies: {
 ];
 
 /**
- * A placeholder's look (frames.ts), where a UI spec puts components in a
- * slot or a component renders another: a tinted chip naming what goes
- * there, in muted caption type, so it doesn't read as content.
+ * A slot placeholder's look (frames.ts), where a UI spec puts components: a
+ * tinted chip naming what goes there, in muted caption type, so it doesn't
+ * read as content. A placeholder for another library component takes that
+ * component's own root box instead.
  */
 export const placeholderClasses =
   "flex items-center rounded-control bg-surface-hover px-xs py-3xs text-caption text-ink-muted";
@@ -255,6 +301,7 @@ export function classMap(tokens: Tokens): (raw: string) => Mapping {
   const utility = (name: string): Look | "skip" | null => {
     if (Object.hasOwn(layoutClasses, name)) return layoutClasses[name]!;
     if (stillClasses.some((pattern) => pattern.test(name))) return "skip";
+    if (Object.hasOwn(unseenClasses, name)) return "skip";
     const fraction = /^([wh])-(\d+)\/(\d+)$/.exec(name);
     if (fraction) {
       const [, side, top, bottom] = fraction;

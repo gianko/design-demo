@@ -30,8 +30,8 @@ export const checkbox = tv({
   variants: {
     checked: {
       false: {},
-      true: { box: "border-transparent bg-accent" },
-      mixed: { box: "border-transparent bg-accent" },
+      true: { box: "border-transparent" },
+      mixed: { box: "border-transparent" },
     },
     disabled: {
       true: { mark: "text-disabled" },
@@ -59,6 +59,9 @@ export const checkbox = tv({
         box: "peer-hover:before:bg-surface-hover peer-active:before:bg-surface-pressed",
       },
     },
+    // Only while enabled, so a disabled box's fill is `disabled` alone, not
+    // whichever of two fills the stylesheet happens to put last.
+    { checked: [true, "mixed"], disabled: false, class: { box: "bg-accent" } },
     {
       checked: [true, "mixed"],
       disabled: false,
