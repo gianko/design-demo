@@ -4,7 +4,7 @@ An AI-built design system, and the guardrails that keep AI-generated screens on 
 
 I've spent 15 years making designers' work ship at award level. This repo encodes that craft as a system: a one-page design brief I wrote, a component library Claude Code builds against it, and the gates and evals that keep AI output production-ready.
 
-**[Storybook](https://gianko.github.io/design-demo/)** · **[Eval report](https://gianko.github.io/design-demo/evals/)** · **[Figma file](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo)** · **[Design brief](docs/design-brief.md)** · **[Where it stands](#where-it-stands)**
+**[Case study](docs/case-study.md)** · **[Storybook](https://gianko.github.io/design-demo/)** · **[Eval report](https://gianko.github.io/design-demo/evals/)** · **[Figma file](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo)** · **[Design brief](docs/design-brief.md)** · **[Where it stands](#where-it-stands)**
 
 | A generated screen, kept and gated | A library component at admin density |
 |---|---|
