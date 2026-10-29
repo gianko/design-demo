@@ -4,7 +4,9 @@
 // calls the live judge.
 
 import {
+  cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -201,8 +203,9 @@ describe("pnpm eval:calibrate", () => {
     );
     expect(estimate).toBeGreaterThanOrEqual(0);
     expect(estimate).toBeLessThan(first);
-    expect(run.calls[estimate]).toMatch(
-      /^log estimate: \$\d+\.\d\d \(8 screens, 33 screen states × 3 runs × \$\d+\.\d\d a judge call\), budget \$10\.00$/
+    // Eval runs' nominal judge call: 33 × 3 × $0.069 = $6.83.
+    expect(run.calls[estimate]).toBe(
+      "log estimate: $6.83 (8 screens, 33 screen states × 3 runs × $0.069 a nominal judge call), budget $10.00"
     );
   });
 
@@ -290,6 +293,30 @@ describe("calibrationSet", () => {
       expect(copy.brief).toEqual(original.brief);
       expect(copy.source).not.toBe(original.source);
     }
+  });
+
+  // `pnpm keep`'s tests write a screen folder, with no screen brief, for as
+  // long as they run; a half-written one can have no stories yet.
+  it("takes only kept screens with a committed screen brief", () => {
+    const screens = mkdtempSync(join(tmpdir(), "calibration-screens-"));
+    dirs.push(screens);
+    for (const slug of ["bulk-pay", "my-invoices", "payment-status"]) {
+      cpSync(join(repo, "src/screens", slug), join(screens, slug), {
+        recursive: true,
+      });
+    }
+    mkdirSync(join(screens, "keep-0a1b2c3d"));
+    cpSync(
+      join(repo, "src/screens/payment-status"),
+      join(screens, "keep-4e5f6a7b"),
+      { recursive: true }
+    );
+
+    const ids = calibrationSet(screens).map(({ id }) => id);
+
+    expect(ids).toEqual(calibrationSet().map(({ id }) => id));
+    expect(ids).not.toContain("keep-0a1b2c3d");
+    expect(ids).not.toContain("keep-4e5f6a7b");
   });
 
   // Nothing Storybook, the gate, a baseline or a capture reads reaches a

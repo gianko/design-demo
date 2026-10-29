@@ -14,19 +14,27 @@
 // were right and how many flipped between runs, overall and per criterion.
 // It prints a cost estimate before it spends anything. Run by hand only.
 
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import {
-  criteria,
   judgeConfig,
   judgeScreen,
+  nominalJudgeCall,
+  rubricCriteria,
+  screenPasses,
+  screenshotsOf,
   type Conformance,
   type Criterion,
   type Screenshot,
   type StateJudgement,
 } from "../generator/conformance.ts";
-import { cost } from "../generator/config.ts";
 import type { Model } from "../generator/model.ts";
 import { renderStories } from "../generator/render-gates.ts";
 import { keptStoryStates } from "../generator/screen-stories.ts";
@@ -87,12 +95,17 @@ export type SetScreen = {
 
 const screensDir = join(repo, "src/screens");
 const copiesDir = join(repo, "evals/calibration/screens");
+const briefPath = (slug: string) => join(repo, "evals/briefs", `${slug}.md`);
 
-export function calibrationSet(): SetScreen[] {
-  const kept = readdirSync(screensDir)
+// The kept screens are the folders in `screens` with a committed screen
+// brief: a folder without one, such as one `pnpm keep`'s tests write while
+// they run, isn't a kept screen.
+export function calibrationSet(screens = screensDir): SetScreen[] {
+  const kept = readdirSync(screens)
+    .filter((slug) => existsSync(briefPath(slug)))
     .sort()
     .map((slug): SetScreen => {
-      const dir = join(screensDir, slug);
+      const dir = join(screens, slug);
       const stories = readdirSync(dir).find((file) =>
         file.endsWith(".stories.tsx")
       );
@@ -104,7 +117,7 @@ export function calibrationSet(): SetScreen[] {
         kept: slug,
         breaks: null,
         how: null,
-        brief: readScreenBrief(join(repo, "evals/briefs", `${slug}.md`)),
+        brief: readScreenBrief(briefPath(slug)),
         name,
         source: readFileSync(join(dir, `${name}.tsx`), "utf8"),
         stories: storiesSource,
@@ -148,9 +161,7 @@ export async function renderSetScreen(
       `${screen.id} doesn't build: ${result.failures[0]?.message ?? "no output"}`
     );
   }
-  return (result.shots ?? [])
-    .filter(({ theme }) => theme === "light")
-    .map(({ state, file }) => ({ state, png: readFileSync(file) }));
+  return screenshotsOf({ shots: result.shots, workDir: dir });
 }
 
 // ── The command ───────────────────────────────────────────────────────────
@@ -158,16 +169,6 @@ export async function renderSetScreen(
 // Every screen is judged this many times, on the same screenshots, so a
 // verdict that changes between runs is the judge's.
 export const runs = 3;
-
-// A judge call's tokens for the estimate: a screenshot and the screen brief
-// in, the cached rubric and design brief read, and effort-high thinking
-// before six reasons out. The Console spend limit stays the backstop.
-const estimatedCall = cost(judgeConfig.model, {
-  input: 2_000,
-  output: 2_000,
-  cacheRead: 4_500,
-  cacheWrite: 0,
-});
 
 export type CalibrateDeps = {
   // One screen of the set rendered in `dir`: its light shot per state.
@@ -200,9 +201,11 @@ export async function main(
 
   const set = calibrationSet();
   const states = set.reduce((sum, screen) => sum + screen.states.length, 0);
-  const estimate = states * runs * estimatedCall;
+  // At eval runs' nominal judge call; the Console spend limit stays the
+  // backstop.
+  const estimate = states * runs * nominalJudgeCall;
   log(
-    `estimate: ${dollars(estimate)} (${set.length} screens, ${states} screen states × ${runs} runs × ${dollars(estimatedCall)} a judge call), budget ${args.budget === null ? "none" : dollars(args.budget)}`
+    `estimate: ${dollars(estimate)} (${set.length} screens, ${states} screen states × ${runs} runs × ${dollars(nominalJudgeCall, 3)} a nominal judge call), budget ${args.budget === null ? "none" : dollars(args.budget)}`
   );
   if (
     args.budget !== null &&
@@ -265,11 +268,11 @@ export async function main(
 
 type Judged = { screen: SetScreen; runs: Conformance[] };
 
-// A screen's verdict on one criterion in one run: fail when any state fails
-// it, pass when every state passes it, and not run when no state fails it
-// but some state went unjudged. Its reasons are those of each state that
-// failed it, or of the first state when it passed, or why each unjudged
-// state went unjudged.
+// A screen's verdict on one criterion in one run, as gate 5 gives it
+// (screenPasses): fail when any state fails it, pass when every state passes
+// it, and not run when no state fails it but some state went unjudged. Its
+// reasons are those of each state that failed it, or of the first state when
+// it passed, or why each unjudged state went unjudged.
 type ScreenVerdict = {
   pass: boolean | null;
   reasons: { state: string; reason: string }[];
@@ -281,37 +284,31 @@ function screenVerdict(
   conformance: Conformance,
   criterion: Criterion
 ): ScreenVerdict {
+  const pass = screenPasses(conformance.states, criterion);
   const judged = conformance.states.filter(
     (state): state is Judgement => state.judged
   );
   const verdictOf = (state: Judgement) =>
     state.verdicts.find((verdict) => verdict.criterion === criterion)!;
-  const failing = judged.filter((state) => !verdictOf(state).pass);
-  if (failing.length > 0) {
+  const reasonOf = (state: Judgement) => ({
+    state: state.state,
+    reason: verdictOf(state).reason,
+  });
+  if (pass === false) {
     return {
-      pass: false,
-      reasons: failing.map((state) => ({
-        state: state.state,
-        reason: verdictOf(state).reason,
-      })),
+      pass,
+      reasons: judged.filter((state) => !verdictOf(state).pass).map(reasonOf),
     };
   }
+  if (pass === true) return { pass, reasons: [reasonOf(judged[0]!)] };
   const unjudged = conformance.states.flatMap((state) =>
     state.judged ? [] : [{ state: state.state, reason: state.error }]
   );
-  if (unjudged.length > 0 || judged.length === 0) {
-    return {
-      pass: null,
-      reasons: unjudged.length
-        ? unjudged
-        : [{ state: "(screen)", reason: "no screenshots" }],
-    };
-  }
   return {
-    pass: true,
-    reasons: [
-      { state: judged[0]!.state, reason: verdictOf(judged[0]!).reason },
-    ],
+    pass,
+    reasons: unjudged.length
+      ? unjudged
+      : [{ state: "(screen)", reason: "no screenshots" }],
   };
 }
 
@@ -335,10 +332,10 @@ function tallyOf(judged: Judged[]): Tally {
   const zero = () => ({ right: { n: 0, of: 0 }, flipped: { n: 0, of: 0 } });
   const all = { ...zero(), notRun: 0 };
   const byCriterion = Object.fromEntries(
-    criteria.map((criterion) => [criterion, zero()])
+    rubricCriteria.map((criterion) => [criterion, zero()])
   ) as Tally["byCriterion"];
   for (const { screen, runs: conformances } of judged) {
-    for (const criterion of criteria) {
+    for (const criterion of rubricCriteria) {
       const verdicts = conformances
         .map((conformance) => screenVerdict(conformance, criterion).pass)
         .filter((pass): pass is boolean => pass !== null);
@@ -375,7 +372,7 @@ const verdictWord = (pass: boolean | null) =>
   pass === null ? "not run" : pass ? "pass" : "fail";
 
 function runLine(run: number, screen: SetScreen, conformance: Conformance) {
-  const verdicts = criteria
+  const verdicts = rubricCriteria
     .map(
       (criterion) =>
         `${criterion} ${verdictWord(screenVerdict(conformance, criterion).pass)}`
@@ -406,7 +403,7 @@ function report(
     "",
     "| Criterion | Right | Flipped |",
     "| --- | --- | --- |",
-    ...criteria.map(
+    ...rubricCriteria.map(
       (criterion) =>
         `| ${criterion} | ${share(tally.byCriterion[criterion].right)} | ${share(tally.byCriterion[criterion].flipped)} |`
     ),
@@ -431,7 +428,7 @@ function report(
       "",
       `| Criterion | Expected | ${conformances.map((_, i) => `Run ${i + 1}`).join(" | ")} |`,
       `| --- | --- | ${conformances.map(() => "---").join(" | ")} |`,
-      ...criteria.map(
+      ...rubricCriteria.map(
         (criterion) =>
           `| ${criterion} | ${verdictWord(expected(screen, criterion))} | ${conformances
             .map((conformance) =>
@@ -441,7 +438,7 @@ function report(
       ),
       ""
     );
-    for (const criterion of criteria) {
+    for (const criterion of rubricCriteria) {
       conformances.forEach((conformance, i) => {
         const { pass, reasons } = screenVerdict(conformance, criterion);
         for (const { state, reason } of reasons) {
