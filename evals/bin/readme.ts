@@ -1,4 +1,4 @@
-// `pnpm eval:readme`: see ../readme.ts.
+// `pnpm evals:readme`: see ../readme.ts.
 
 import { main } from "../readme.ts";
 

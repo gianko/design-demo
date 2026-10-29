@@ -13,7 +13,7 @@ Gate 6 compares screenshots against baselines, and screenshots only compare when
 - **Playwright is bumped by hand**, image tag and `@playwright/test` together, in its own PR that re-renders every baseline and changes nothing else. No dependency bot touches either.
 - **A generated screen enters CI only as a kept screen**: its TSX committed under `src/screens/`, with a story per screen state. `pnpm gate` then treats it like a library component. Gate 6 doesn't judge the generator (gates 1–4 and evals do); it protects kept screens from later library changes. Fresh generator output stays in eval scratch ([ADR 0008](0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)).
 - **CI holds no secrets.** It never calls the Claude API or Figma. Evals run by hand and their results files are committed by hand; CI only typechecks and unit-tests the eval code with a stubbed `generate()`.
-- **Storybook deploys to GitHub Pages** from a second job on push to main, after the gate job passes, using its built `storybook-static`. No PR previews; the artifacts cover review. The same job runs `pnpm eval:report` on the newest committed results file and publishes it at `/evals/`, without screenshots, which exist only in local scratch.
+- **Storybook deploys to GitHub Pages** from a second job on push to main, after the gate job passes, using its built `storybook-static`. No PR previews; the artifacts cover review. The same job runs `pnpm evals:report` on the newest committed results file and publishes it at `/evals/`, without screenshots, which exist only in local scratch.
 - **The repo goes public now**, not at launch: arm64 runners are free only on public repos, and Pages needs it public anyway.
 
 ## Considered options

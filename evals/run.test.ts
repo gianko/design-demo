@@ -1,5 +1,5 @@
 // @vitest-environment node
-// `pnpm eval` with a stubbed generate() (ADR 0009: CI never calls the API).
+// `pnpm evals` with a stubbed generate() (ADR 0009: CI never calls the API).
 // The stub's attempts are priced from their usage by the generator's own
 // pricing table, as a real rep's are. Each test runs the runner against its
 // own briefs, results folder and scratch folder.
@@ -342,7 +342,7 @@ function results(at: Run, name = "2026-10-26-eval.json"): ResultsFile {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-describe("pnpm eval", () => {
+describe("pnpm evals", () => {
   it("ends each rep as pass, fail or error, with the pass criteria checked on the final UI spec", async () => {
     const at = setup("alpha");
 

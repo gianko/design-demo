@@ -3,7 +3,7 @@
 // narrowed the run, its totals and, per rep, its outcome and every attempt's
 // gate results with failure messages, usage, cost and wall time, and its
 // final screen's gate 5 verdicts (ADR 0014). The eval
-// report (`pnpm eval:report`) reads these files, and the runner reads the
+// report (`pnpm evals:report`) reads these files, and the runner reads the
 // latest one for its estimate.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";

@@ -34,10 +34,10 @@ const { gate, pages } = workflow.jobs;
 const uses = (job: Job | undefined, action: string) =>
   job?.steps.filter((step) => step.uses?.startsWith(`${action}@`)) ?? [];
 
-// The report step's arguments to `pnpm eval:report`, as the workflow has them.
+// The report step's arguments to `pnpm evals:report`, as the workflow has them.
 function reportArgs() {
   const steps = pages?.steps.filter((step) =>
-    step.run?.trim().startsWith("pnpm eval:report")
+    step.run?.trim().startsWith("pnpm evals:report")
   );
   expect(steps).toHaveLength(1);
   const [, , ...args] = steps![0]!.run!.trim().split(/\s+/);
@@ -214,7 +214,7 @@ describe("the Pages deploy job", () => {
       // No later step waits on the report.
       const after = pages!.steps.slice(
         pages!.steps.findIndex((step) =>
-          step.run?.trim().startsWith("pnpm eval:report")
+          step.run?.trim().startsWith("pnpm evals:report")
         ) + 1
       );
       for (const step of after) expect(step.if).toBeUndefined();

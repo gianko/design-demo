@@ -1,4 +1,4 @@
-// `pnpm eval:readme`: rewrites the README's eval table, between its two
+// `pnpm evals:readme`: rewrites the README's eval table, between its two
 // markers, from the newest results file, the one the Pages deploy reports on.
 // Run it after committing an eval run; a test fails while the README's table
 // differs from what this writes, so the table can't drift from the evidence.
@@ -34,13 +34,13 @@ const defaults: ReadmePaths = {
 };
 
 const start =
-  "<!-- eval-table:start: written by `pnpm eval:readme` from the newest results file -->";
+  "<!-- eval-table:start: written by `pnpm evals:readme` from the newest results file -->";
 const end = "<!-- eval-table:end -->";
 
 // The deployed eval report, which reports on the newest run (ADR 0008).
 const reportUrl = "https://gianko.github.io/design-demo/evals/";
 
-const usage = "Usage: pnpm eval:readme";
+const usage = "Usage: pnpm evals:readme";
 
 export async function main(
   argv: string[],

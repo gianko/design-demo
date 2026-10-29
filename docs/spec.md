@@ -33,7 +33,7 @@ Pending is not a screen state: it is the Button's own state while `send-reminder
 
 ## The smoke brief
 
-A throwaway contractor brief that only Screen and Text can satisfy: literal copy, no bindings, states or actions. The thin path generates, keeps and captures it before the rest of the library exists. It lives with the test fixtures, not in `evals/briefs/`, so `pnpm eval` never runs it, and it stays afterwards as a manual smoke test of the generator. Its kept screen, baselines and Figma frames are removed once payment-status is kept.
+A throwaway contractor brief that only Screen and Text can satisfy: literal copy, no bindings, states or actions. The thin path generates, keeps and captures it before the rest of the library exists. It lives with the test fixtures, not in `evals/briefs/`, so `pnpm evals` never runs it, and it stays afterwards as a manual smoke test of the generator. Its kept screen, baselines and Figma frames are removed once payment-status is kept.
 
 ## Build order
 
@@ -221,7 +221,7 @@ The fixtures module widened to the one shared dataset that [Fixtures](#fixtures)
 
 ### Eval runner
 
-`pnpm eval`, exactly as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it, calling the slice's `generate()` in-process. CI only typechecks it and runs its unit tests against a stubbed `generate()` ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
+`pnpm evals`, exactly as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it, calling the slice's `generate()` in-process. CI only typechecks it and runs its unit tests against a stubbed `generate()` ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 
 After a rep's last attempt, gate 5 judges its final screen as `pnpm generate` does ([ADR 0014](adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)); a rep that ended in error or was skipped isn't judged. The results file keeps each rep's `gate5`: each state's verdicts and reasons, or why it wasn't judged, and the score. Its totals give a pass rate per criterion per screen brief, where a judged rep passes a criterion when every screen state does, and the judge's model, effort and prompt hash join the version tuple. The judge's calls count toward the rep's cost, the run's totals and the budget. The estimate takes them in through the latest results file's median rep cost, and adds a nominal judge call per screen state while that file is from before gate 5, counting the light renders each screen brief's final code attempt had there, open sheets and ticked rows included. Gate 5 is soft: a rep's outcome and the run's pass rates are computed without it.
 
@@ -236,13 +236,13 @@ After a rep's last attempt, gate 5 judges its final screen as `pnpm generate` do
 
 ### Eval report
 
-`pnpm eval:report <a.json> [b.json]`, as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it. Beside each summary table, a gate 5 table gives per screen brief and overall the reps judged, each criterion's pass rate, the score and the judge's cost, reading `2/3 → 3/3` in a comparison. A run without gate 5, such as every results file before it, reads not run, never zero. Each rep lists its failing verdicts with their reasons, or why gate 5 didn't run. The summary's cost takes in the judge's calls and says how much of it is gate 5's, so a run from before gate 5 compares fairly.
+`pnpm evals:report <a.json> [b.json]`, as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it. Beside each summary table, a gate 5 table gives per screen brief and overall the reps judged, each criterion's pass rate, the score and the judge's cost, reading `2/3 → 3/3` in a comparison. A run without gate 5, such as every results file before it, reads not run, never zero. Each rep lists its failing verdicts with their reasons, or why gate 5 didn't run. The summary's cost takes in the judge's calls and says how much of it is gate 5's, so a run from before gate 5 compares fairly.
 
 **Done when:** from hand-written results files, a Vitest test shows that one file gives a run report and two give a comparison, as a single HTML file styled by `tokens.css` that references nothing outside itself; that counts read `2/3 → 3/3` per screen brief and overall, beside mean attempts, cost, wall time and per-gate failure counts; that a comparison flags runs whose brief sets differ; and that screenshots are embedded when the run's scratch folder exists and left out when it doesn't.
 
 ### Pages deploy
 
-The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. A run given `pnpm eval --baseline <results file>` names that file in its own, and `/evals/` then serves the comparison against it: the screen briefs both runs cover side by side, the rest on their own. Turning Pages on, with GitHub Actions as its source, is the human's job.
+The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. A run given `pnpm evals --baseline <results file>` names that file in its own, and `/evals/` then serves the comparison against it: the screen briefs both runs cover side by side, the rest on their own. Turning Pages on, with GitHub Actions as its source, is the human's job.
 
 **Done when:** a push to main publishes Storybook at the Pages URL; `/evals/` serves the newest results file's report once one is committed, and Storybook still deploys while there isn't one; and a red gate job publishes nothing.
 
@@ -257,7 +257,7 @@ Each is done as a [component piece](#component-pieces) is. What P0 needs from ea
 
 ### The first full eval run
 
-The human runs `pnpm eval` with the API key: all five briefs, K = 3, on a clean tree, raising `--budget` if the estimate asks for it. They commit the results file. A brief that passes 0 of 3 points at a gap in the library or in gate 1; the gap gets an issue and a fix, then the run is repeated.
+The human runs `pnpm evals` with the API key: all five briefs, K = 3, on a clean tree, raising `--budget` if the estimate asks for it. They commit the results file. A brief that passes 0 of 3 points at a gap in the library or in gate 1; the gap gets an issue and a fix, then the run is repeated.
 
 ### P0 done
 

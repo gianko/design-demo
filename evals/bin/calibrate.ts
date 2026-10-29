@@ -1,4 +1,4 @@
-// `pnpm eval:calibrate`, against the real judge and render pass (ADR 0014).
+// `pnpm evals:calibrate`, against the real judge and render pass (ADR 0014).
 // The API key comes from the gitignored .env (ADR 0003). Run by hand only:
 // CI never calls the API (ADR 0009).
 

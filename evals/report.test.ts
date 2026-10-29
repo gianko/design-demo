@@ -1,4 +1,4 @@
-// `pnpm eval:report` from hand-written results files (ADR 0008). Each test
+// `pnpm evals:report` from hand-written results files (ADR 0008). Each test
 // writes its own results files, scratch folders and reports folder, and reads
 // the report back as a document.
 
@@ -111,7 +111,7 @@ function briefSets(doc: Document) {
   }));
 }
 
-describe("pnpm eval:report", () => {
+describe("pnpm evals:report", () => {
   it("turns one results file into a run report: one HTML file, styled by tokens.css, that references nothing outside itself", async () => {
     const at = setup();
     const a = write(at, "2026-10-26-before.json", runA(at));

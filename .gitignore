@@ -10,7 +10,7 @@ storybook-static/
 # Generator output (ADR 0010): stand-alone runs and eval-run scratch.
 .generated/
 evals/runs/
-# Written by `pnpm eval:report` (ADR 0008).
+# Written by `pnpm evals:report` (ADR 0008).
 evals/reports/
 # Written by the Playwright pass of `pnpm gate`.
 gates/out/

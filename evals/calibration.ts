@@ -1,4 +1,4 @@
-// The calibration set and `pnpm eval:calibrate` (ADR 0014, glossary:
+// The calibration set and `pnpm evals:calibrate` (ADR 0014, glossary:
 // Calibration set): the evidence that brief conformance can be trusted.
 //
 // The set is every kept screen as it is, and copies of kept screens, each
@@ -184,7 +184,7 @@ export type CalibrateDeps = {
 };
 
 const usage =
-  "Usage: pnpm eval:calibrate [--out <report.md>] [--budget <usd>|none]";
+  "Usage: pnpm evals:calibrate [--out <report.md>] [--budget <usd>|none]";
 
 export async function main(
   argv: string[],
@@ -395,7 +395,7 @@ function report(
   const lines = [
     "# Brief conformance calibration",
     "",
-    `Written by \`pnpm eval:calibrate\` (ADR 0014) on ${day(meta.started)}, at \`${meta.git.sha.slice(0, 7)}\`${meta.git.dirty ? " with uncommitted changes" : ""}. The judge is ${judgeConfig.model} at effort ${judgeConfig.effort}, prompt \`${promptHash.slice(0, 12)}\`. The calibration set's ${judged.length} screens, ${judged.length - copies} kept screens as they are and ${copies} broken copies, have ${states} screen states, and each was judged ${runs} times. It cost ${dollars(meta.cost)}.`,
+    `Written by \`pnpm evals:calibrate\` (ADR 0014) on ${day(meta.started)}, at \`${meta.git.sha.slice(0, 7)}\`${meta.git.dirty ? " with uncommitted changes" : ""}. The judge is ${judgeConfig.model} at effort ${judgeConfig.effort}, prompt \`${promptHash.slice(0, 12)}\`. The calibration set's ${judged.length} screens, ${judged.length - copies} kept screens as they are and ${copies} broken copies, have ${states} screen states, and each was judged ${runs} times. It cost ${dollars(meta.cost)}.`,
     "",
     "## Right verdicts and flips",
     "",

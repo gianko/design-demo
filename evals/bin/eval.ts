@@ -1,4 +1,4 @@
-// `pnpm eval`, against the real model and render pass. The API key comes
+// `pnpm evals`, against the real model and render pass. The API key comes
 // from the gitignored .env (ADR 0003). Run by hand only: CI never calls the
 // API (ADR 0009).
 

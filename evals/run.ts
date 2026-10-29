@@ -1,4 +1,4 @@
-// `pnpm eval` (ADR 0008): one eval run. Every screen brief `--briefs` matches
+// `pnpm evals` (ADR 0008): one eval run. Every screen brief `--briefs` matches
 // runs K times through generate(), in-process, three reps at a time, each in
 // its own scratch folder under `evals/runs/<run-id>/`. A rep ends as pass,
 // fail, error or skipped; the brief's pass criteria are checked once, on the
@@ -56,7 +56,7 @@ export type EvalDeps = {
 const concurrency = 3;
 
 const usage =
-  "Usage: pnpm eval [--briefs <glob>] [--k <n>] [--budget <usd>|none] [--label <label>] [--baseline <results file name>] [--allow-dirty]";
+  "Usage: pnpm evals [--briefs <glob>] [--k <n>] [--budget <usd>|none] [--label <label>] [--baseline <results file name>] [--allow-dirty]";
 
 export async function main(argv: string[], deps: EvalDeps): Promise<number> {
   const log = deps.log ?? console.log;
