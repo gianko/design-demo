@@ -1,62 +1,15 @@
-/* global figma */
-// The fixed body of every figma:sync-tokens script (ADR 0007). It upserts the
-// payload's variables, text styles and effect styles by stable name, reports
-// orphans without deleting them, and deletes only the orphan IDs RUN.prune
-// names. In a dry run it returns the diff and writes nothing. use_figma rolls
-// back everything a call wrote if it throws, so a sync is all or nothing.
-
-function fnv1a(text) {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) {
-    hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, "0");
-}
-
-// Figma stores floats as float32; 1e-4 is well clear of the round trip.
-function same(a, b) {
-  if (typeof a === "number" && typeof b === "number") {
-    return Math.abs(a - b) < 1e-4;
-  }
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((item, i) => same(item, b[i]));
-  }
-  if (a && b && typeof a === "object" && typeof b === "object") {
-    const keys = Object.keys(a).sort();
-    return (
-      keys.join("\n") === Object.keys(b).sort().join("\n") &&
-      keys.every((key) => same(a[key], b[key]))
-    );
-  }
-  return a === b;
-}
-
-const sameSet = (a, b) => same([...a].sort(), [...b].sort());
+/* global figma, same, sameSet, runSync */
+// The fixed body of every figma:sync-tokens script (ADR 0007), after
+// sync-core.js. It upserts the payload's variables, text styles and effect
+// styles by stable name, reports orphans without deleting them, and deletes
+// only the orphan IDs RUN.prune names. In a dry run it returns the diff and
+// writes nothing. use_figma rolls back everything a call wrote if it throws,
+// so a sync is all or nothing.
 
 // figma/sync-tokens.ts appends the call.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function syncTokens(RUN, PAYLOAD, CHECKSUM) {
-  // The agent re-types this script into use_figma, so it guards its own data.
-  const actual = fnv1a(JSON.stringify([RUN, PAYLOAD]));
-  if (actual !== CHECKSUM) {
-    throw new Error(
-      `figma:sync-tokens: checksum mismatch, the data hashes to ${actual}, not ${CHECKSUM}. The script changed on its way here, so nothing was written; pass the generated file verbatim.`
-    );
-  }
-  const report = await syncPass(RUN, PAYLOAD);
-  if (RUN.dryRun) return report;
-
-  // An apply diffs the file again, so its own report proves the sync landed
-  // and no confirming dry run is needed. A difference throws, and use_figma
-  // rolls the whole call back.
-  const check = await syncPass({ dryRun: true, prune: [] }, PAYLOAD);
-  if (check.counts.changes) {
-    throw new Error(
-      `figma:sync-tokens: after writing, ${[...check.created, ...check.updated].join(", ")} still differs, so nothing was kept.`
-    );
-  }
-  report.remaining = check.counts;
-  return report;
+  return runSync("figma:sync-tokens", RUN, PAYLOAD, CHECKSUM, syncPass);
 }
 
 // One diff of PAYLOAD against the file, writing what differs unless dry.

@@ -148,6 +148,12 @@ The generated one-call script and its thin driving skill, exactly as [ADR 0007](
 
 **Done when:** a sync reports created and updated counts and zero remaining changes; a tampered script throws on its checksum and writes nothing.
 
+### figma:sync-components
+
+`pnpm figma:sync-components` generates each component set's **component frames** from its component's own `tv()` config ([ADR 0015](adr/0015-component-frames-are-generated-from-each-components-tv-config.md)) and wraps them in `figma:sync-tokens`'s runtime, so it's one checksummed script in `figma/out/` that the agent passes to `use_figma` verbatim. It binds to the variables and styles `figma:sync-tokens` writes, so it runs after it. `--dry-run` returns the diff instead of writing. `--prune <id,…>` also deletes those orphans: frames and sets on the Components page that the script didn't make. `--split` writes one script per component set. `--prune` needs the whole payload in one script, so it can't be used with `--split`.
+
+**Done when:** against the fake Plugin API, a first apply creates every variant with its fills, padding, radius and type bound to variables and zero remaining changes; a re-run changes nothing; an orphan is reported and kept unless pruned; a tampered script throws on its checksum and writes nothing.
+
 ### Capture
 
 The capture script in `.storybook/preview-head.html` and the prompt that runs `generate_figma_design` against Storybook's standalone iframe ([ADR 0007](adr/0007-figma-sync-is-a-generated-one-call-script.md)), with Color and Density modes set explicitly.
