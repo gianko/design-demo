@@ -132,7 +132,7 @@ The library's `ScreenHost`, its hooks `useScreenState`, `useAction` and `useFixt
 
 ### Generate CLI
 
-`pnpm generate <screen brief>`: one `generate()` run that prints each attempt's gate results as they happen, writes the attempt folders to `.generated/<timestamp>-<slug>/` ([ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)), and checks the screen brief's `requires.*` against the final UI spec.
+`pnpm generate <screen brief>`: one `generate()` run that prints each attempt's gate results as they happen, writes the attempt folders to `.generated/<timestamp>-<slug>/` ([ADR 0010](adr/0010-each-generator-step-repairs-itself-from-normalised-gate-failures.md)), and checks the screen brief's `requires.*` against the final UI spec. After the final attempt, gate 5 judges the final screen's light shot of each screen state and prints each state's verdicts, each failing one as `gate 5 · <state> · <criterion> · <reason>`, and the score, keeping them in the rep dir's `conformance.json` ([ADR 0014](adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)). It's soft: it changes neither the outcome nor the exit code, and a judge that fails shows as gate 5 not run.
 
 **Done when:** run against the real library, it prints a per-attempt table and an outcome with its end reason, and exits 0 only on `passed` with pass criteria met.
 

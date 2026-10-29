@@ -77,7 +77,7 @@ Gates run on generated screens and on the design system itself, so the library i
 | 2 | ESLint: no raw colour, spacing, radius or font values; library imports only; screen state only through the library | ✅ |
 | 3 | TypeScript and build | ✅ |
 | 4 | Accessibility: axe-core, serious or critical fails | ✅ |
-| 5 | Brief conformance: a rendered screen judged against the brief | ○ |
+| 5 | Brief conformance: Opus 5.5 judges each screen state's screenshot against six criteria from the brief, soft until calibrated ([ADR 0014](docs/adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)) | 🚧 `pnpm generate` |
 | 6 | Visual regression: zero differing pixels against committed baselines | ✅ |
 | 7 | Taste lint: our own rules, static and rendered ([`RULES.md`](lint/taste/RULES.md)) | 🚧 5 of 16 |
 | 8 | Style expectations: a story's own assertions on computed style | ✅ |

@@ -1,22 +1,34 @@
 // `pnpm generate <screen brief>` (spec § Generate CLI): one generate() rep
 // that prints each attempt's gate results as they happen, writes the attempt
 // folders to `.generated/<timestamp>-<slug>/`, and checks the screen brief's
-// `requires.*` against the final UI spec. It ends with a table of every
-// attempt, the rep's cost and its outcome with the end reason, and exits 0
-// only on `passed` with the pass criteria met.
+// `requires.*` against the final UI spec. After the final attempt, gate 5
+// (brief conformance, ADR 0014) judges the final screen's shots and prints
+// its verdicts and score; it's soft, so nothing it says changes the outcome
+// or the exit code. It ends with a table of every attempt, the rep's cost and
+// its outcome with the end reason, and exits 0 only on `passed` with the
+// pass criteria met.
 
-import { relative, resolve } from "node:path";
+import { writeFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
+import {
+  type Conformance,
+  criteria as rubricOrder,
+  judgeScreen,
+  screenshotsOf,
+} from "./conformance.ts";
 import { checkPassCriteria } from "./pass-criteria.ts";
-import { type Attempt, generate } from "./generate.ts";
+import { type Attempt, generate, type RepTrace } from "./generate.ts";
 import type { GateName } from "./failure.ts";
 import type { Model } from "./model.ts";
 import type { RenderPass } from "./render-gates.ts";
-import { readScreenBrief } from "./screen-brief.ts";
+import { readScreenBrief, type ScreenBrief } from "./screen-brief.ts";
 import { dollars, stamp } from "../format.ts";
 import { repo } from "../repo.ts";
 
 export type CliDeps = {
   model: Model;
+  // Gate 5's judge; the generator's model unless a test stands in its own.
+  judge?: Model;
   // generate()'s render pass; the real one unless a test stands in its own.
   render?: RenderPass;
   log?: (line: string) => void;
@@ -46,6 +58,8 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
     render: deps.render,
     onAttempt: (attempt) => log(attemptLines(attempt)),
   });
+
+  log(await gate5(trace, brief, deps.judge ?? deps.model));
 
   const criteria = checkPassCriteria(brief.requires, trace.uiSpec);
   log(
@@ -118,6 +132,59 @@ function gateResults(gates: Attempt["gates"]) {
   return Object.entries(gates)
     .map(([gate, result]) => `${gate} ${result}`)
     .join(" · ");
+}
+
+// Gate 5 on the final screen, kept in the rep dir as conformance.json. A rep
+// that ended in error isn't judged, and anything that stops the judge leaves
+// gate 5 not run: it never ends the rep.
+async function gate5(trace: RepTrace, brief: ScreenBrief, judge: Model) {
+  if (trace.outcome === "error") {
+    return "gate 5 not run · the rep ended in error";
+  }
+  try {
+    const screenshots = screenshotsOf(trace);
+    if (screenshots.length === 0) return "gate 5 not run · no screenshots";
+    const conformance = await judgeScreen({ brief, screenshots }, judge);
+    writeFileSync(
+      join(trace.workDir, "conformance.json"),
+      JSON.stringify(conformance, null, 2) + "\n"
+    );
+    return conformanceLines(conformance);
+  } catch (error) {
+    console.error(error);
+    return `gate 5 not run · ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+// Each state's verdicts and score, then each failing verdict as a taste
+// rule's finding reads: gate, state, criterion, reason. Then the screen's
+// score, or why gate 5 didn't run.
+function conformanceLines({ ran, states, score, cost }: Conformance) {
+  const lines = states.flatMap((judgement) => {
+    if (!judgement.judged) {
+      return [`gate 5 · ${judgement.state} · not run · ${judgement.error}`];
+    }
+    const verdicts = judgement.verdicts
+      .map(({ criterion, pass }) => `${criterion} ${pass ? "pass" : "fail"}`)
+      .join(" · ");
+    return [
+      `gate 5 · ${judgement.state} · ${verdicts} · ${judgement.passed}/${rubricOrder.length}`,
+      ...judgement.verdicts
+        .filter(({ pass }) => !pass)
+        .map(
+          ({ criterion, reason }) =>
+            `  gate 5 · ${judgement.state} · ${criterion} · ${reason}`
+        ),
+    ];
+  });
+  const plural = (n: number) => `${n} state${n === 1 ? "" : "s"}`;
+  const unjudged = states.filter((judgement) => !judgement.judged).length;
+  lines.push(
+    ran && score
+      ? `gate 5 score: ${score.passed}/${score.of} over ${plural(states.length)} · soft · ${dollars(cost, 4)}`
+      : `gate 5 not run · ${unjudged} of ${plural(states.length)} unjudged`
+  );
+  return lines.join("\n");
 }
 
 function attemptLines(attempt: Attempt) {

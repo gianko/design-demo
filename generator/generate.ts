@@ -33,7 +33,12 @@ import { type Gate1Fixtures, gate1 } from "./gate1.ts";
 import type { Model } from "./model.ts";
 import { codePrompt, specPrompt } from "./prompts.ts";
 import { type LibraryRegistry, loadRegistry } from "./registry.ts";
-import { type Render, type RenderPass, renderGates } from "./render-gates.ts";
+import {
+  type Render,
+  type RenderPass,
+  type RenderShot,
+  renderGates,
+} from "./render-gates.ts";
 import { repairTurn } from "./repair.ts";
 import { pascalCase } from "./screen-stories.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
@@ -100,6 +105,9 @@ export type RepTrace = {
   uiSpec?: UiSpec;
   // The last code attempt's TSX, relative to workDir.
   screen?: string;
+  // The last code attempt's rest shots, each file relative to workDir:
+  // empty when it didn't render. Gate 5 judges the light ones.
+  shots?: RenderShot[];
 };
 
 export type GenerateOptions = {
@@ -222,6 +230,7 @@ export async function generate(
         `src/screens/${brief.slug}/${name}.tsx`
       );
       const files = { "gates.json": json(gated.raw) };
+      trace.shots = [];
       // Every gate that can run does (ADR 0010): the render pass runs
       // whatever gates 2 and 3 said, and only a failed build stops it.
       let rendered;
@@ -246,6 +255,10 @@ export async function generate(
           error: "render",
         };
       }
+      trace.shots = (rendered.shots ?? []).map((shot) => ({
+        ...shot,
+        file: relative(dir, shot.file),
+      }));
       return {
         gates: {
           ...gated.gates,
