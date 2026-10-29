@@ -38,6 +38,21 @@ type Report = {
   remaining?: Report["counts"];
 };
 
+// ADR 0015's sets, and how many variants they hold between them: Button's
+// 12, StatusTag's 5, Toast's 2, Text's 4, Heading's 3, Amount's 2,
+// Checkbox's 6 and IconButton's 2.
+const setNames = [
+  "Button",
+  "StatusTag",
+  "Toast",
+  "Text",
+  "Heading",
+  "Amount",
+  "Checkbox",
+  "IconButton",
+];
+const variantCount = 36;
+
 const run = (code: string, file: FakePluginApi) =>
   runScript(code, file) as Promise<Report>;
 
@@ -75,6 +90,7 @@ type Layer = {
   generator: string;
   characters?: string;
   textStyleId?: string;
+  textAlignHorizontal?: string;
   layoutMode?: string;
   sizing?: string[];
   alignment?: string[];
@@ -84,6 +100,8 @@ type Layer = {
   fills?: { boundVariables?: { color?: { id: string } } }[];
   strokes?: { boundVariables?: { color?: { id: string } } }[];
   description?: string;
+  /** A vector's paths, as the fake draws them from its SVG. */
+  vectorPaths?: { windingRule: string; data: string }[];
   children?: Layer[];
 };
 
@@ -117,14 +135,21 @@ const child = (layer: Layer, name: string) =>
   layer.children!.find((c) => c.name === name)!;
 
 describe("a first apply", () => {
+  it("creates a set for each library component that has one", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    expect(components(file).sets.map((s) => s.name)).toEqual(setNames);
+  });
+
   it("creates the Button set, one variant per intent × disabled × pending", async () => {
     const file = await tokenFile();
 
     const [report] = await sync(file);
 
-    const { sets } = components(file);
-    expect(sets.map((s) => s.name)).toEqual(["Button"]);
-    expect(sets[0]!.children!.map((c) => c.name)).toEqual([
+    const button = components(file).sets.find((s) => s.name === "Button")!;
+    expect(button.children!.map((c) => c.name)).toEqual([
       "intent=primary, disabled=false, pending=false",
       "intent=secondary, disabled=false, pending=false",
       "intent=quiet, disabled=false, pending=false",
@@ -138,10 +163,10 @@ describe("a first apply", () => {
       "intent=secondary, disabled=true, pending=true",
       "intent=quiet, disabled=true, pending=true",
     ]);
-    expect(report!.created).toEqual([
+    expect(report!.created.slice(0, 14)).toEqual([
       "Components (page)",
       "Button (component set)",
-      ...sets[0]!.children!.map((c) => `Button/${c.name}`),
+      ...button.children!.map((c) => `Button/${c.name}`),
     ]);
     expect(report!.remaining).toMatchObject({ changes: 0 });
   });
@@ -278,6 +303,107 @@ describe("the rest of the library", () => {
     expect(textStyle(word.textStyleId)).toBe("label");
     expect(paints(word.fills)).toEqual(["color/text/overdue"]);
   });
+
+  it("writes Amount's figures as the component formats them, a table amount ending at its end edge", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { variant, textStyle } = components(file);
+    const card = child(variant("display=card", "Amount"), "figure");
+    expect(card.characters).toBe("$4,800.00");
+    expect(textStyle(card.textStyleId)).toBe("figure");
+    const table = child(variant("display=table", "Amount"), "figure");
+    expect(table.characters).toBe("4,800.00\u00a0USD");
+    expect(textStyle(table.textStyleId)).toBe("body");
+    expect(table.textAlignHorizontal).toBe("RIGHT");
+  });
+
+  it("gives Heading a level each and Text its size × tone, body copy capped at the measure", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints, textStyle } = components(file);
+    const names = (set: string) =>
+      sets.find((s) => s.name === set)!.children!.map((c) => c.name);
+    expect(names("Heading")).toEqual(["level=1", "level=2", "level=3"]);
+    expect(
+      textStyle(child(variant("level=2", "Heading"), "title").textStyleId)
+    ).toBe("heading");
+    expect(names("Text")).toEqual([
+      "size=body, tone=default",
+      "size=caption, tone=default",
+      "size=body, tone=muted",
+      "size=caption, tone=muted",
+    ]);
+    const body = variant("size=body, tone=muted", "Text");
+    expect(bound(body)).toEqual({ maxWidth: "density/max-width/measure" });
+    expect(paints(child(body, "copy").fills)).toEqual(["color/text/ink-muted"]);
+    expect(bound(variant("size=caption, tone=muted", "Text"))).toEqual({});
+  });
+
+  it("draws Checkbox, marked internal, as a box at the target size with its tick or dash drawn in", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints } = components(file);
+    const set = sets.find((s) => s.name === "Checkbox")!;
+    expect(set.description).toMatch(/^Internal: only another component/);
+    expect(set.children!.map((c) => c.name)).toEqual([
+      "checked=false, disabled=false",
+      "checked=true, disabled=false",
+      "checked=mixed, disabled=false",
+      "checked=false, disabled=true",
+      "checked=true, disabled=true",
+      "checked=mixed, disabled=true",
+    ]);
+
+    const empty = variant("checked=false, disabled=false", "Checkbox");
+    // A square at the density's minimum target.
+    expect(bound(empty)).toEqual({
+      minWidth: "density/min-height/target",
+      minHeight: "density/min-height/target",
+    });
+    expect(empty.width).toBe(empty.height);
+    // The input and the accessible name draw nothing, and an empty box has no mark.
+    expect(empty.children!.map((c) => c.name)).toEqual(["box"]);
+    const box = child(empty, "box");
+    expect(bound(box)).toMatchObject({
+      width: "density/size/icon",
+      height: "density/size/icon",
+      topLeftRadius: "radius/tag",
+    });
+    expect(paints(box.fills)).toEqual(["color/bg/surface"]);
+    expect(paints(box.strokes)).toEqual(["color/border/control"]);
+
+    const ticked = variant("checked=true, disabled=false", "Checkbox");
+    expect(paints(child(ticked, "box").fills)).toEqual(["color/bg/accent"]);
+    expect(paints(child(ticked, "box").strokes)).toEqual([]);
+    const mark = child(ticked, "mark");
+    // Absolute in a centring flex box, it sits in the middle, as CSS puts it.
+    expect(mark.constraints).toEqual({
+      horizontal: "CENTER",
+      vertical: "CENTER",
+    });
+    expect(mark.x).toBe((ticked.width - mark.width) / 2);
+    expect(mark.y).toBe((ticked.height - mark.height) / 2);
+    const glyph = child(mark, "glyph");
+    expect(glyph.type).toBe("VECTOR");
+    expect(glyph.vectorPaths).toEqual([
+      { windingRule: "NONZERO", data: "M4 8.25 6.75 11 12 5.5" },
+    ]);
+    expect(paints(glyph.strokes)).toEqual(["color/text/on-accent"]);
+    expect([glyph.width, glyph.height]).toEqual([mark.width, mark.height]);
+
+    const dash = child(
+      child(variant("checked=mixed, disabled=true", "Checkbox"), "mark"),
+      "glyph"
+    );
+    expect(dash.vectorPaths![0]!.data).toBe("M4.5 8h7");
+    expect(paints(dash.strokes)).toEqual(["color/text/disabled"]);
+  });
 });
 
 describe("a re-run", () => {
@@ -295,8 +421,8 @@ describe("a re-run", () => {
         updated: 0,
         changes: 0,
         orphans: 0,
-        // Twelve variants and the set.
-        unchanged: 13,
+        // Each set and its variants.
+        unchanged: variantCount + setNames.length,
       });
     }
     expect(file.state()).toEqual(before);
@@ -363,7 +489,7 @@ describe("orphans", () => {
     expect(page!.children!.map((n) => n.id)).toEqual(
       expect.arrayContaining([spike.id, modes.id])
     );
-    expect(sets).toHaveLength(2);
+    expect(sets.filter((s) => s.name === "Button")).toHaveLength(2);
     // A re-run finds its own set by its mark, not the hand-built one.
     expect((await sync(file, { dryRun: true }))[0]!.counts.changes).toBe(0);
   });
@@ -435,7 +561,9 @@ describe("--split", () => {
     });
     await sync(split, { dryRun: false, split: true });
 
-    expect(scripts.map((s) => s.name)).toEqual(["button"]);
+    expect(scripts.map((s) => s.name)).toEqual(
+      setNames.map((name) => name.toLowerCase())
+    );
     expect(strip(split.state())).toEqual(strip(whole.state()));
   });
 });

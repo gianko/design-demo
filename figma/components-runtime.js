@@ -23,10 +23,16 @@ const BIND_FIELDS = [
   "topRightRadius",
   "bottomLeftRadius",
   "bottomRightRadius",
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
 ];
 // With no class binding them, these are 0: a frame without a padding class
 // has none. An unbound width or height is the layout's to decide.
-const ZERO_UNBOUND = BIND_FIELDS.slice(2);
+const ZERO_UNBOUND = BIND_FIELDS.slice(2, 11);
+// And these are null: a frame without a min-* or max-* class has no limit.
+const NULL_UNBOUND = BIND_FIELDS.slice(11);
 
 // Room around and between a set's variants on the canvas, in px. It isn't a
 // design token: nothing in the code spaces variants apart.
@@ -55,6 +61,7 @@ async function componentsPass(RUN, PAYLOAD) {
     updated: [],
     unchanged: 0,
     orphans: [],
+    literals: [],
     pruned: [],
   };
   const fail = (message) => {
@@ -93,16 +100,27 @@ async function componentsPass(RUN, PAYLOAD) {
 
   // Every name the payload binds, checked up front, so a dry run on a file
   // without the tokens fails too, not only an apply.
-  const check = (plan) => {
+  // A vector whose SVG paints aren't currentColor can't bind them, so they
+  // stay literal; the report lists it, in a dry run too.
+  const check = (plan, where, path) => {
     const { bind = {}, fills = [], strokes = [] } = plan;
     for (const name of [...Object.values(bind), ...fills, ...strokes]) {
       variable(name);
     }
     if (plan.textStyle) textStyle(plan.textStyle);
     if (plan.effectStyle) effectStyle(plan.effectStyle);
-    for (const child of plan.children ?? []) check(child);
+    if (plan.type === "VECTOR" && !plan.fills && !plan.strokes) {
+      report.literals.push(`${where} (${path}${plan.name})`);
+    }
+    for (const child of plan.children ?? []) {
+      check(child, where, path === null ? "" : `${path}${plan.name}.`);
+    }
   };
-  for (const set of PAYLOAD.sets) set.variants.forEach(check);
+  for (const set of PAYLOAD.sets) {
+    for (const variant of set.variants) {
+      check(variant, `${set.name}/${variant.name}`, null);
+    }
+  }
 
   // ── The page, and what on it this script made ──
   let page = figma.root.children.find((node) => node.name === PAYLOAD.page);
@@ -203,17 +221,75 @@ async function componentsPass(RUN, PAYLOAD) {
     const stale = [];
     if (node.textStyleId !== style.id) stale.push("textStyle");
     if (node.characters !== plan.characters) stale.push("characters");
-    if (node.textAutoResize !== plan.textAutoResize)
-      stale.push("textAutoResize");
+    for (const field of ["textAutoResize", "textAlignHorizontal"]) {
+      if (node[field] !== plan[field]) stale.push(field);
+    }
+    const fill = plan.layoutSizingHorizontal;
+    if (fill && node.layoutSizingHorizontal !== fill) {
+      stale.push("layoutSizingHorizontal");
+    }
     if (!paintsMatch(node.fills, fills)) stale.push("fills");
     if (write && stale.length) {
       await loadFonts(node, style);
       await node.setTextStyleIdAsync(style.id);
       node.characters = plan.characters;
       node.textAutoResize = plan.textAutoResize;
+      node.textAlignHorizontal = plan.textAlignHorizontal;
+      // After the resize mode, which FILL needs to be HEIGHT.
+      if (fill) node.layoutSizingHorizontal = fill;
       node.fills = paints(fills);
     }
     return stale.map((field) => path + field);
+  }
+
+  // A vector is its SVG drawn at its frame's size, so a changed SVG or size
+  // draws it again; its paints are diffed in place.
+  const drawnAs = (plan, frame) =>
+    `${plan.svg}@${Math.round(frame.width * 100) / 100}x${Math.round(frame.height * 100) / 100}`;
+
+  function draw(frame, plan) {
+    const drawn = figma.createNodeFromSvg(plan.svg);
+    const scale = Math.min(
+      frame.width / drawn.width,
+      frame.height / drawn.height
+    );
+    const parts = [...drawn.children];
+    const vector = parts.length === 1 ? parts[0] : figma.flatten(parts, drawn);
+    const [x, y] = [vector.x * scale, vector.y * scale];
+    frame.appendChild(vector);
+    drawn.remove();
+    vector.rescale(scale);
+    vector.x = x;
+    vector.y = y;
+    vector.name = plan.name;
+    vector.constraints = { horizontal: "SCALE", vertical: "SCALE" };
+    vector.setSharedPluginData(MARK[0], "svg", drawnAs(plan, frame));
+    return vector;
+  }
+
+  // The vector `plan` draws in `frame`, or null in a dry run that would draw it.
+  function syncVector(frame, plan, path, changes) {
+    let vector = frame.children.find(
+      (candidate) => candidate.name === plan.name && candidate.type === "VECTOR"
+    );
+    const stale =
+      vector &&
+      vector.getSharedPluginData(MARK[0], "svg") !== drawnAs(plan, frame);
+    const fresh = !vector || stale;
+    if (fresh) {
+      changes.push(`${path}${plan.name} (${vector ? "redrawn" : "new"})`);
+      if (!write) return vector ?? null;
+      vector?.remove();
+      vector = draw(frame, plan);
+    }
+    for (const field of ["fills", "strokes"]) {
+      if (!plan[field]) continue;
+      const wanted = plan[field].map(variable);
+      if (paintsMatch(vector[field], wanted)) continue;
+      if (!fresh) changes.push(`${path}${plan.name}.${field}`);
+      if (write) vector[field] = paints(wanted);
+    }
+    return vector;
   }
 
   // Diffs a layer against its plan, writing what differs unless dry, and
@@ -231,6 +307,7 @@ async function componentsPass(RUN, PAYLOAD) {
 
     set("layoutMode", plan.layoutMode);
     set("layoutPositioning", plan.layoutPositioning);
+    set("layoutGrow", plan.layoutGrow);
     set("clipsContent", plan.clipsContent);
     set("strokeWeight", plan.strokeWeight);
     for (const field of BIND_FIELDS) {
@@ -243,11 +320,15 @@ async function componentsPass(RUN, PAYLOAD) {
         continue;
       }
       const zero = ZERO_UNBOUND.includes(field);
-      if (!bound && (!zero || same(node[field], 0))) continue;
+      const unlimited = NULL_UNBOUND.includes(field);
+      if (!bound && (zero ? same(node[field], 0) : !unlimited || node[field] === null)) {
+        continue;
+      }
       changes.push(path + field);
       if (!write) continue;
       if (bound) node.setBoundVariable(field, null);
       if (zero) node[field] = 0;
+      if (unlimited) node[field] = null;
     }
     // After the bindings: binding a length can fix its axis.
     if (plan.layoutMode !== "NONE") {
@@ -276,6 +357,11 @@ async function componentsPass(RUN, PAYLOAD) {
     if (plan.place) places.push({ node, plan, path });
     const kept = [];
     for (const childPlan of plan.children) {
+      if (childPlan.type === "VECTOR") {
+        const vector = syncVector(node, childPlan, path, changes);
+        if (vector) kept.push(vector);
+        continue;
+      }
       const childPath = `${path}${childPlan.name}.`;
       let child = node.children.find(
         (candidate) =>
@@ -311,6 +397,7 @@ async function componentsPass(RUN, PAYLOAD) {
 
   const along = (edge, parentLength, ownLength) => {
     const length = edge.size === null ? ownLength : edge.size * parentLength;
+    if (edge.constraint === "CENTER") return [(parentLength - length) / 2, length];
     const start =
       edge.end === null
         ? edge.start * parentLength
@@ -464,6 +551,7 @@ async function componentsPass(RUN, PAYLOAD) {
     unchanged: report.unchanged,
     orphans: report.orphans.length,
     pruned: report.pruned.length,
+    literals: report.literals.length,
     changes:
       report.created.length + report.updated.length + report.pruned.length,
   };
