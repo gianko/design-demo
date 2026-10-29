@@ -2,7 +2,8 @@
 // `pnpm generate <screen brief>` with a stubbed model: it prints each step's
 // gate results and the pass criteria, and exits 0 only on `passed` with the
 // pass criteria met. The render pass is stubbed, since the real one needs
-// Docker (ADR 0009).
+// Docker (ADR 0009). Gate 5's judge answers with a recorded reply, never the
+// live model.
 
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -13,6 +14,12 @@ import { main } from "./cli.ts";
 import type { Model } from "./model.ts";
 import type { RenderPass } from "./render-gates.ts";
 import { repo } from "../repo.ts";
+
+// A judge reply as the Messages API returns one; its verdicts fail only
+// repetition.
+const recorded: Anthropic.Message = JSON.parse(
+  readFileSync(join(import.meta.dirname, "fixtures/judge-reply.json"), "utf8")
+);
 
 // Every render passes, in light and dark × the default state at the
 // audience's density.
@@ -30,6 +37,34 @@ const render: RenderPass = async ({ audience }) => {
     failures: [],
   };
 };
+
+// As `render`, with a rest shot per render written where the real pass
+// writes them, each PNG's bytes naming its theme × state.
+const shooting: RenderPass = async (input) => {
+  const rendered = await render(input);
+  const dir = join(input.dir, "render/shots");
+  mkdirSync(dir, { recursive: true });
+  return {
+    ...rendered,
+    shots: rendered.renders.map(({ theme, state }) => {
+      const file = join(dir, `${theme}--${state}.png`);
+      writeFileSync(file, `${theme} ${state} png`);
+      return { theme, state, file };
+    }),
+  };
+};
+
+// A judge that answers every request with `reply`, keeping the requests.
+function judging(
+  reply: () => Anthropic.Message | Promise<Anthropic.Message> = () => recorded
+) {
+  const requests: Anthropic.MessageCreateParamsNonStreaming[] = [];
+  const judge: Model = async (params) => {
+    requests.push(params);
+    return { message: await reply(), requestId: "req_recorded" };
+  };
+  return { judge, requests };
+}
 
 const smokeBrief = readFileSync(
   join(import.meta.dirname, "fixtures/smoke.md"),
@@ -113,15 +148,24 @@ function brief(text: string) {
   return { path };
 }
 
-async function run(briefPath: string, model: Model) {
+async function run(
+  briefPath: string,
+  model: Model,
+  stand: { render?: RenderPass; judge?: Model } = {}
+) {
   const lines: string[] = [];
+  let repDir = "";
   const code = await main([briefPath], {
     model,
-    render,
+    render: stand.render ?? render,
+    judge: stand.judge,
     log: (line) => lines.push(line),
-    onRepDir: (dir) => cleanup.push(dir),
+    onRepDir: (dir) => {
+      repDir = dir;
+      cleanup.push(dir);
+    },
   });
-  return { code, output: lines.join("\n") };
+  return { code, output: lines.join("\n"), repDir };
 }
 
 function tsxFor(path: string) {
@@ -228,5 +272,131 @@ describe("pnpm generate", () => {
     expect(output).toMatch(/^cost: \$0\.0690 over 3 attempts$/m);
     expect(output).toMatch(/^outcome: pass · end reason passed$/m);
     expect(code).toBe(0);
+  }, 120_000);
+
+  it("judges the final screen's light shot of each state as gate 5, printing each state's verdicts, each failing one and the score", async () => {
+    const { path } = brief(smokeBrief);
+    const { judge, requests } = judging();
+
+    const { code, output, repDir } = await run(
+      path,
+      stub(uiSpec, tsxFor(path)),
+      { render: shooting, judge }
+    );
+
+    // One request, for the one state's light shot.
+    expect(requests).toHaveLength(1);
+    const [image, text] = requests[0]!.messages[0]!
+      .content as Anthropic.ContentBlockParam[];
+    expect(image).toMatchObject({
+      type: "image",
+      source: { data: Buffer.from("light default png").toString("base64") },
+    });
+    expect((text as Anthropic.TextBlockParam).text).toContain(smokeBrief);
+    // The judge never sees the code or the UI spec.
+    const sent = JSON.stringify(requests);
+    expect(sent).not.toContain("../../index.ts");
+    expect(sent).not.toContain("<Screen");
+    expect(sent).not.toContain('\\"component\\"');
+
+    expect(output).toContain(
+      "gate 5 · default · hierarchy pass · density pass · accent pass · elevation pass · copy pass · repetition fail · 5/6"
+    );
+    expect(output).toContain(
+      '  gate 5 · default · repetition · The card says "Overdue" in its title, its status tag and its text, where the tag alone would do, since "Every status tag carries its word."'
+    );
+    expect(output).toMatch(
+      /^gate 5 score: 5\/6 over 1 state · soft · \$0\.0255$/m
+    );
+    // Its verdicts are kept beside the rep's attempts.
+    expect(
+      JSON.parse(readFileSync(join(repDir, "conformance.json"), "utf8"))
+    ).toMatchObject({ ran: true, score: { passed: 5, of: 6 } });
+    // Soft: a failing verdict sends no repair turn and leaves the outcome.
+    expect(output).not.toMatch(/code · attempt 2/);
+    expect(output).toMatch(/^outcome: pass · end reason passed$/m);
+    expect(code).toBe(0);
+  }, 120_000);
+
+  it("leaves the outcome and exit code as they'd be without gate 5, whatever the judge says", async () => {
+    const { path } = brief(smokeBrief);
+    const failing = tsxFor(path)
+      .replace("<Text", "<div><Text")
+      .replace("/>", "/></div>");
+    const allPass = {
+      ...recorded,
+      content: [
+        {
+          type: "text" as const,
+          citations: null,
+          text: (recorded.content[1] as Anthropic.TextBlock).text.replace(
+            '"pass":false',
+            '"pass":true'
+          ),
+        },
+      ],
+    };
+
+    const failed = await run(path, stub(uiSpec, failing, failing, failing), {
+      render: shooting,
+      judge: judging(() => allPass).judge,
+    });
+
+    expect(failed.output).toMatch(/^gate 5 score: 6\/6 over 1 state/m);
+    expect(failed.output).toMatch(
+      /^outcome: fail · end reason code-attempts-exhausted$/m
+    );
+    expect(failed.code).toBe(1);
+  }, 120_000);
+
+  it("shows gate 5 as not run when the judge's call fails or its reply is malformed, and exits as it would without it", async () => {
+    const { path } = brief(smokeBrief);
+    const malformed = {
+      ...recorded,
+      content: [
+        { type: "text" as const, citations: null, text: "Looks fine." },
+      ],
+    };
+
+    const errored = await run(path, stub(uiSpec, tsxFor(path)), {
+      render: shooting,
+      judge: judging(() => Promise.reject(new Error("overloaded"))).judge,
+    });
+    const garbled = await run(path, stub(uiSpec, tsxFor(path)), {
+      render: shooting,
+      judge: judging(() => malformed).judge,
+    });
+
+    expect(errored.output).toContain("gate 5 · default · not run · api");
+    expect(errored.output).toMatch(/^gate 5 not run · 1 of 1 state unjudged$/m);
+    expect(garbled.output).toContain(
+      "gate 5 · default · not run · malformed: not JSON"
+    );
+    for (const { output, code } of [errored, garbled]) {
+      expect(output).not.toMatch(/gate 5 score/);
+      expect(output).toMatch(/^outcome: pass · end reason passed$/m);
+      expect(code).toBe(0);
+    }
+  }, 120_000);
+
+  it("doesn't judge a screen that never rendered, or a rep that ended in error", async () => {
+    const { path } = brief(smokeBrief);
+    const { judge, requests } = judging();
+    const down: Model = async () => {
+      throw new Error("overloaded");
+    };
+
+    const unrendered = await run(path, stub("not a UI spec", "x", "y"), {
+      render: shooting,
+      judge,
+    });
+    const errored = await run(path, down, { render: shooting, judge });
+
+    expect(requests).toEqual([]);
+    expect(unrendered.output).toMatch(/^gate 5 not run · no screenshots$/m);
+    expect(errored.output).toMatch(
+      /^gate 5 not run · the rep ended in error$/m
+    );
+    expect(errored.output).toMatch(/^outcome: error · end reason error:api$/m);
   }, 120_000);
 });

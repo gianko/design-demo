@@ -29,12 +29,24 @@ export type Render = {
   gates: Record<RenderGateName, GateResult>;
 };
 
+// One render's rest shot, as the pass took it: the screenshot gate 5 judges
+// (generator/conformance.ts).
+export type RenderShot = {
+  theme: Theme;
+  state: string;
+  // The PNG, under the attempt's `render/shots/`.
+  file: string;
+};
+
 export type RenderGates = {
   // Did the screen build? A failed build is a gate 3 failure, `build`.
   built: boolean;
   gates: Record<RenderGateName, GateResult>;
   renders: Render[];
   failures: Failure[];
+  // Each render's rest shot that the pass attached; none when it didn't
+  // build.
+  shots?: RenderShot[];
 };
 
 export type RenderInput = {
@@ -165,6 +177,8 @@ function readResults(
   );
   const renders: Render[] = [];
   const failures: Failure[] = [];
+  const shots: RenderShot[] = [];
+  const shotsDir = join(input.dir, "render", "shots");
   for (const file of report.suites) {
     for (const story of file.suites ?? []) {
       const state = states.get(story.title) ?? story.title;
@@ -237,6 +251,19 @@ function readResults(
           );
         }
         renders.push({ theme, density, state, gates });
+        // The rest shot, written out under a name made from its render. The
+        // pass attaches its bytes, which the JSON report keeps as base64;
+        // a path would be the image's, not this machine's.
+        const rest = result.attachments.find(({ name }) => name === "rest");
+        if (rest?.body) {
+          mkdirSync(shotsDir, { recursive: true });
+          const shot = join(
+            shotsDir,
+            `${theme}--${state.replace(/[^a-z0-9]+/gi, "-")}.png`
+          );
+          writeFileSync(shot, Buffer.from(rest.body, "base64"));
+          shots.push({ theme, state, file: shot });
+        }
       }
     }
   }
@@ -254,6 +281,7 @@ function readResults(
     },
     renders,
     failures,
+    shots,
   };
 }
 

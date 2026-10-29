@@ -105,7 +105,8 @@ function stubModel(...replies: Anthropic.Message[]) {
 // every declared state at the audience's density, as the real one does. A
 // screen with an unnamed `<button>` fails axe's button-name in each render;
 // any other screen passes. A source that imports a module that doesn't exist
-// doesn't build. It keeps every input it got.
+// doesn't build. It keeps every input it got, and names a rest shot per
+// render, as the real one writes them.
 const renderInputs: RenderInput[] = [];
 const render: RenderPass = async (input) => {
   renderInputs.push(input);
@@ -140,6 +141,11 @@ const render: RenderPass = async (input) => {
     built: true,
     gates,
     renders,
+    shots: renders.map(({ theme, state }) => ({
+      theme,
+      state,
+      file: join(input.dir, "render/shots", `${theme}--${state}.png`),
+    })),
     failures: unnamed
       ? renders.map(({ theme, state }) => ({
           gate: "gate 4",
@@ -242,6 +248,19 @@ describe("generate", () => {
     expect(
       readJson(join(dir, "attempt-1-code/attempt.json")).renders
     ).toHaveLength(4);
+    // The final screen's rest shots, which gate 5 judges.
+    expect(trace.shots).toEqual(
+      [
+        ["light", "default"],
+        ["dark", "default"],
+        ["light", "empty"],
+        ["dark", "empty"],
+      ].map(([theme, state]) => ({
+        theme,
+        state,
+        file: `attempt-1-code/render/shots/${theme}--${state}.png`,
+      }))
+    );
   }, 120_000);
 
   it("ends the rep as error:render when the render pass can't run", async () => {
@@ -293,6 +312,7 @@ describe("generate", () => {
       "gate 7 render": "not-run",
     });
     expect(code.renders).toEqual([]);
+    expect(trace.shots).toEqual([]);
     expect(code.failures).toContainEqual(
       expect.stringMatching(/^gate 3 · build · \(build\) · /)
     );
@@ -582,6 +602,13 @@ ${Array.from({ length: 24 }, () => "      <span />").join("\n")}
       ["spec", 1, undefined, undefined],
       ["code", 1, "fail", "fail"],
       ["code", 2, "pass", "pass"],
+    ]);
+    // Only the final attempt's shots.
+    expect(trace.shots!.map(({ file }) => file)).toEqual([
+      "attempt-2-code/render/shots/light--default.png",
+      "attempt-2-code/render/shots/dark--default.png",
+      "attempt-2-code/render/shots/light--empty.png",
+      "attempt-2-code/render/shots/dark--empty.png",
     ]);
     const [, first, second] = requests;
     const turn = readFileSync(

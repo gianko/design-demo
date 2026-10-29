@@ -6,7 +6,7 @@
 // `pnpm test` (ADR 0009).
 
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { afterEach, describe, expect, it } from "vitest";
@@ -79,6 +79,18 @@ describe("renderGates", () => {
       )
     );
     expect(result.renders).toHaveLength(4);
+    // Each render's rest shot, a PNG on disk, which gate 5 judges.
+    expect(
+      result.shots!.map(({ theme, state }) => [theme, state]).sort()
+    ).toEqual([
+      ["dark", "default"],
+      ["dark", "reminder-sent"],
+      ["light", "default"],
+      ["light", "reminder-sent"],
+    ]);
+    for (const { file } of result.shots!) {
+      expect(readFileSync(file).subarray(1, 4).toString()).toBe("PNG");
+    }
   }, 120_000);
 
   // Planted with intrinsic elements, which gate 2 fails on its own, so
