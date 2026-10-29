@@ -787,7 +787,7 @@ requires:
 
       expect(code).toBe(0);
       expect(output).toMatch(
-        /^alpha · rep 1 · pass · passed · \$0\.12 · [\d.]+s · gate 5 10\/12$/m
+        /^alpha · rep 1 · pass · passed · \$0\.12 · [\d.]+s · gate 5 5\/6$/m
       );
       // The light shot of each state, never the dark one.
       expect(sentShots(requests)).toEqual([
@@ -798,7 +798,7 @@ requires:
       expect(rep!.gate5).toMatchObject({
         ran: true,
         notRun: null,
-        score: { passed: 10, of: 12 },
+        score: { passed: 5, of: 6 },
       });
       expect(rep!.gate5!.states.map(({ state }) => state)).toEqual([
         "default",
@@ -909,7 +909,7 @@ requires:
         judged: 2,
         notRun: 1,
         criteria: rates([1, 2], 2),
-        score: { passed: 17, of: 18 },
+        score: { passed: 11, of: 12 },
         cost: expect.closeTo(3 * 0.02546, 6),
       });
       // The rep in error is left out, as it is from the pass rates.
@@ -924,7 +924,7 @@ requires:
         judged: 4,
         notRun: 1,
         criteria: rates([1, 4], 4),
-        score: { passed: 27, of: 30 },
+        score: { passed: 21, of: 24 },
       });
     });
 

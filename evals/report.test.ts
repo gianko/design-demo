@@ -418,7 +418,7 @@ describe("pnpm eval:report", () => {
           elevation: "3/3",
           copy: "3/3",
           repetition: "2/3",
-          Score: "34/36",
+          Score: "16/18",
           Cost: "$0.30",
         },
       ]);
@@ -437,7 +437,7 @@ describe("pnpm eval:report", () => {
           hierarchy: "5/5",
           accent: "4/5",
           repetition: "4/5",
-          Score: "46/48",
+          Score: "28/30",
           Cost: "$0.40",
         }),
       ]);
@@ -487,7 +487,7 @@ describe("pnpm eval:report", () => {
           hierarchy: "3/3 → 3/3",
           accent: "2/3 → 3/3",
           repetition: "2/3 → 3/3",
-          Score: "34/36 → 36/36",
+          Score: "16/18 → 18/18",
         }),
       ]);
       expect(gate5Rows(both, "All screen briefs")).toEqual([
@@ -497,7 +497,7 @@ describe("pnpm eval:report", () => {
         expect.objectContaining({
           Judged: "not run → 3/3",
           accent: "not run → 3/3",
-          Score: "not run → 36/36",
+          Score: "not run → 18/18",
           Cost: "not run → $0.30",
         }),
       ]);
@@ -513,7 +513,7 @@ describe("pnpm eval:report", () => {
       expect(text).toContain(
         'gate 5 · payment-scheduled · repetition · The payment-scheduled state breaks repetition, as "Every status tag carries its word."'
       );
-      expect(text).toContain("gate 5 · 11/12 · soft");
+      expect(text).toContain("gate 5 · 5/6 · soft");
       expect(text).toContain("gate 5 not run · 1 of 1 state unjudged");
     });
 

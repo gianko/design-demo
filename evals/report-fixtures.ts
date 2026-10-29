@@ -7,7 +7,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { onTestFinished } from "vitest";
 import type { Step } from "../generator/config.ts";
-import { type Criterion, criteria } from "../generator/conformance.ts";
+import { type Criterion, rubricCriteria } from "../generator/conformance.ts";
 import type { Attempt } from "../generator/generate.ts";
 import type { GateName } from "../generator/failure.ts";
 import {
@@ -283,20 +283,24 @@ export function gate5(states: Record<string, Criterion[]>): RepGate5 {
       wallMs: 9000,
     },
     judged: true as const,
-    verdicts: criteria.map((criterion) => ({
+    verdicts: rubricCriteria.map((criterion) => ({
       criterion,
       pass: !failing.includes(criterion),
       reason: `The ${state} state ${failing.includes(criterion) ? "breaks" : "meets"} ${criterion}, as "Every status tag carries its word."`,
     })),
-    passed: criteria.length - failing.length,
+    passed: rubricCriteria.length - failing.length,
   }));
   return {
     ran: true,
     notRun: null,
     states: judgements,
+    // The criteria no state fails, out of six.
     score: {
-      passed: judgements.reduce((sum, each) => sum + each.passed, 0),
-      of: judgements.length * criteria.length,
+      passed: rubricCriteria.filter(
+        (criterion) =>
+          !Object.values(states).some((failing) => failing.includes(criterion))
+      ).length,
+      of: rubricCriteria.length,
     },
     cost: judgements.length * 0.05,
   };

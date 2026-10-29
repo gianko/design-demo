@@ -13,7 +13,7 @@ import {
   type Conformance,
   type Criterion,
   type JudgeVersions,
-  criteria,
+  rubricCriteria,
 } from "../generator/conformance.ts";
 import type { CriteriaResult } from "../generator/pass-criteria.ts";
 
@@ -194,7 +194,7 @@ function gate5Tally(reps: RepResult[]): Gate5Tally {
     judged: judged.length,
     notRun: ran.length - judged.length,
     criteria: Object.fromEntries(
-      criteria.map((criterion) => [
+      rubricCriteria.map((criterion) => [
         criterion,
         {
           passed: judged.filter((each) => passes(each, criterion)).length,

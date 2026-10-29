@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import type { StepConfig } from "../generator/config.ts";
-import { criteria } from "../generator/conformance.ts";
+import { rubricCriteria } from "../generator/conformance.ts";
 import type { GateName } from "../generator/failure.ts";
 import type { Attempt } from "../generator/generate.ts";
 import { pascalCase } from "../generator/screen-stories.ts";
@@ -504,7 +504,7 @@ function gate5Table(
   overallLabel: string,
   mode: Mode
 ) {
-  const head = ["Screen brief", "Judged", ...criteria, "Score", "Cost"];
+  const head = ["Screen brief", "Judged", ...rubricCriteria, "Score", "Cost"];
   const notRun = "not run";
   const cells = (run: ReportRun, slugs: string[]): string[] => {
     const counts = tally(
@@ -514,7 +514,7 @@ function gate5Table(
     const judged = counts.judged > 0;
     return [
       rate({ passed: counts.judged, of: counts.judged + counts.notRun }),
-      ...criteria.map((criterion) =>
+      ...rubricCriteria.map((criterion) =>
         judged ? rate(counts.criteria[criterion]) : notRun
       ),
       judged ? rate(counts.score) : notRun,
