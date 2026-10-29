@@ -2,12 +2,15 @@
 // writes its own results files, scratch folders and reports folder, and reads
 // the report back as a document.
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { main } from "./report.ts";
 import {
   type At,
+  gate5,
+  gate5NotRun,
+  judged,
   png,
   runA,
   runB,
@@ -15,6 +18,8 @@ import {
   setup,
   write,
 } from "./report-fixtures.ts";
+import type { Criterion } from "../generator/conformance.ts";
+import type { ResultsFile } from "./results.ts";
 import { repo } from "../repo.ts";
 
 function figures(doc: Document) {
@@ -67,6 +72,32 @@ function rows(doc: Document, brief: string) {
   return [...doc.querySelectorAll("table.summary")]
     .flatMap(tableRows)
     .filter((row) => row["Screen brief"] === brief);
+}
+
+// The gate 5 tables' rows for one screen brief, as rows() reads them.
+function gate5Rows(doc: Document, brief: string) {
+  return [...doc.querySelectorAll("table.gate5")]
+    .flatMap(tableRows)
+    .filter((row) => row["Screen brief"] === brief);
+}
+
+// One screen brief's gate 5 cells, less the screen brief's own.
+function gate5Cells(doc: Document, brief: string) {
+  const [row] = gate5Rows(doc, brief);
+  expect(row, brief).toBeDefined();
+  return Object.entries(row!)
+    .filter(([heading]) => heading !== "Screen brief")
+    .map(([, cell]) => cell);
+}
+
+// The run legend's cells for one row, one per run.
+function legendRow(doc: Document, label: string) {
+  const row = [...doc.querySelectorAll(".runs tbody tr")].find(
+    (tr) => tr.querySelector("th")?.textContent?.trim() === label
+  );
+  return [...(row?.querySelectorAll("td") ?? [])].map((td) =>
+    td.textContent?.trim()
+  );
 }
 
 // A comparison's summary tables when its runs' brief sets differ: each
@@ -346,6 +377,170 @@ describe("pnpm eval:report", () => {
     expect(doc.body.textContent).toContain(
       "Pass criteria missing: component Toast, state <scheduled>"
     );
+  });
+
+  describe("gate 5", () => {
+    // invoice-queue: all six pass on both states in rep 1; rep 2 repeats
+    // itself on payment-scheduled; rep 3, which failed, overuses the accent
+    // on default. payment-status: rep 2's judge call failed.
+    const judgedA = (at: At) =>
+      judged(runA(at), (rep) =>
+        rep.slug === "invoice-queue"
+          ? gate5(
+              (
+                [
+                  { default: [], "payment-scheduled": [] },
+                  { default: [], "payment-scheduled": ["repetition"] },
+                  { default: ["accent"], "payment-scheduled": [] },
+                ] satisfies Record<string, Criterion[]>[]
+              )[rep.rep - 1]!
+            )
+          : rep.rep === 2
+            ? gate5NotRun
+            : gate5({ default: [] })
+      );
+    const allPass = () => gate5({ default: [], "payment-scheduled": [] });
+
+    it("gives a pass rate per criterion per screen brief and overall, over the reps judged, beside the score and the judge's cost", async () => {
+      const at = setup();
+      const a = write(at, "2026-10-29-p2.json", judgedA(at));
+
+      await report(at, [a]);
+
+      const { doc } = written(at);
+      expect(gate5Rows(doc, "invoice-queue")).toEqual([
+        {
+          "Screen brief": "invoice-queue",
+          Judged: "3/3",
+          hierarchy: "3/3",
+          density: "3/3",
+          accent: "2/3",
+          elevation: "3/3",
+          copy: "3/3",
+          repetition: "2/3",
+          Score: "34/36",
+          Cost: "$0.30",
+        },
+      ]);
+      expect(gate5Rows(doc, "payment-status")).toEqual([
+        expect.objectContaining({
+          Judged: "2/3",
+          accent: "2/2",
+          repetition: "2/2",
+          Score: "12/12",
+          Cost: "$0.10",
+        }),
+      ]);
+      expect(gate5Rows(doc, "All screen briefs")).toEqual([
+        expect.objectContaining({
+          Judged: "5/6",
+          hierarchy: "5/5",
+          accent: "4/5",
+          repetition: "4/5",
+          Score: "46/48",
+          Cost: "$0.40",
+        }),
+      ]);
+      // Soft: the passes are the generator's alone.
+      expect(rows(doc, "invoice-queue")).toEqual([
+        expect.objectContaining({
+          "Passed (first attempt → final)": "1/3 → 2/3",
+        }),
+      ]);
+      expect(legendRow(doc, "Gate 5 judge")).toEqual([
+        "claude-opus-5-5, high effort",
+      ]);
+    });
+
+    it("shows a run without gate 5 as not run, never as zero", async () => {
+      const at = setup();
+      const a = write(at, "2026-10-26-before.json", runA(at));
+
+      await report(at, [a]);
+
+      const { doc } = written(at);
+      for (const brief of [
+        "invoice-queue",
+        "payment-status",
+        "All screen briefs",
+      ]) {
+        expect(gate5Cells(doc, brief), brief).toEqual(Array(9).fill("not run"));
+      }
+      expect(legendRow(doc, "Gate 5 judge")).toEqual(["not run"]);
+    });
+
+    it("compares gate 5 against a baseline that has it, run A → run B, and shows a baseline without it as not run", async () => {
+      const at = setup();
+      const plain = write(at, "2026-10-26-before.json", runA(at));
+      const withGate5 = write(at, "2026-10-28-before.json", judgedA(at));
+      const b = write(at, "2026-10-29-after.json", judged(runB(at), allPass));
+
+      await report(at, [withGate5, b]);
+      const both = written(at).doc;
+      rmSync(at.reportsDir, { recursive: true });
+      await report(at, [plain, b]);
+      const onlyB = written(at).doc;
+
+      expect(gate5Rows(both, "invoice-queue")).toEqual([
+        expect.objectContaining({
+          Judged: "3/3 → 3/3",
+          hierarchy: "3/3 → 3/3",
+          accent: "2/3 → 3/3",
+          repetition: "2/3 → 3/3",
+          Score: "34/36 → 36/36",
+        }),
+      ]);
+      expect(gate5Rows(both, "All screen briefs")).toEqual([
+        expect.objectContaining({ Judged: "5/6 → 6/6", accent: "4/5 → 6/6" }),
+      ]);
+      expect(gate5Rows(onlyB, "invoice-queue")).toEqual([
+        expect.objectContaining({
+          Judged: "not run → 3/3",
+          accent: "not run → 3/3",
+          Score: "not run → 36/36",
+          Cost: "not run → $0.30",
+        }),
+      ]);
+    });
+
+    it("lists each rep's failing verdicts with their reasons, or why gate 5 didn't run", async () => {
+      const at = setup();
+      const a = write(at, "2026-10-29-p2.json", judgedA(at));
+
+      await report(at, [a]);
+
+      const text = written(at).doc.body.textContent ?? "";
+      expect(text).toContain(
+        'gate 5 · payment-scheduled · repetition · The payment-scheduled state breaks repetition, as "Every status tag carries its word."'
+      );
+      expect(text).toContain("gate 5 · 11/12 · soft");
+      expect(text).toContain("gate 5 not run · 1 of 1 state unjudged");
+    });
+
+    it("still loads and renders every committed results file, with gate 5 not run in those from before it", async () => {
+      const dir = join(repo, "evals", "results");
+      const names = readdirSync(dir).filter((name) => name.endsWith(".json"));
+      expect(names.length).toBeGreaterThan(0);
+      for (const name of names) {
+        const at = setup();
+        const file = JSON.parse(
+          readFileSync(join(dir, name), "utf8")
+        ) as ResultsFile;
+
+        const { code } = await report(at, [
+          join(dir, name),
+          "--no-screenshots",
+        ]);
+
+        expect(code, name).toBe(0);
+        const { doc } = written(at);
+        const cells = gate5Cells(doc, "All screen briefs");
+        if (file.reps.every((rep) => rep.gate5 === undefined)) {
+          expect(new Set(cells), name).toEqual(new Set(["not run"]));
+          expect(legendRow(doc, "Gate 5 judge"), name).toEqual(["not run"]);
+        }
+      }
+    });
   });
 
   describe("--latest, as the Pages deploy calls it", () => {

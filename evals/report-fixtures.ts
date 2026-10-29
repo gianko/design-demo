@@ -7,9 +7,11 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { onTestFinished } from "vitest";
 import type { Step } from "../generator/config.ts";
+import { type Criterion, criteria } from "../generator/conformance.ts";
 import type { Attempt } from "../generator/generate.ts";
 import type { GateName } from "../generator/failure.ts";
 import {
+  type RepGate5,
   type RepOutcome,
   type RepResult,
   type ResultsFile,
@@ -260,6 +262,81 @@ function results(
     totals: tally(reps),
     perBrief: Object.fromEntries(
       briefSlugs.map((slug) => [
+        slug,
+        tally(reps.filter((each) => each.slug === slug)),
+      ])
+    ),
+    reps,
+  };
+}
+
+// Gate 5 on one rep, at $0.05 a state: per screen state, the criteria its
+// verdicts fail; every other verdict passes.
+export function gate5(states: Record<string, Criterion[]>): RepGate5 {
+  const judgements = Object.entries(states).map(([state, failing]) => ({
+    state,
+    call: {
+      usage: { input: 1650, output: 900, cacheRead: 4300, cacheWrite: 0 },
+      cost: 0.05,
+      stopReason: "end_turn" as const,
+      requestId: `req_judge_${state}`,
+      wallMs: 9000,
+    },
+    judged: true as const,
+    verdicts: criteria.map((criterion) => ({
+      criterion,
+      pass: !failing.includes(criterion),
+      reason: `The ${state} state ${failing.includes(criterion) ? "breaks" : "meets"} ${criterion}, as "Every status tag carries its word."`,
+    })),
+    passed: criteria.length - failing.length,
+  }));
+  return {
+    ran: true,
+    notRun: null,
+    states: judgements,
+    score: {
+      passed: judgements.reduce((sum, each) => sum + each.passed, 0),
+      of: judgements.length * criteria.length,
+    },
+    cost: judgements.length * 0.05,
+  };
+}
+
+// Gate 5 on a rep whose one judge call failed.
+export const gate5NotRun: RepGate5 = {
+  ran: false,
+  notRun: "1 of 1 state unjudged",
+  states: [{ state: "default", call: null, judged: false, error: "api" }],
+  score: null,
+  cost: 0,
+};
+
+// A results file as a run with gate 5 writes it: each rep that passed or
+// failed judged as `judge` says, the others null, its cost in the rep's, and
+// the judge in the version tuple.
+export function judged(
+  file: ResultsFile,
+  judge: (rep: RepResult) => RepGate5
+): ResultsFile {
+  const reps = file.reps.map((each) => {
+    const result =
+      each.outcome === "pass" || each.outcome === "fail" ? judge(each) : null;
+    return { ...each, gate5: result, cost: each.cost + (result?.cost ?? 0) };
+  });
+  return {
+    ...file,
+    versions: {
+      ...file.versions,
+      judge: {
+        model: "claude-opus-5-5",
+        effort: "high",
+        maxTokens: 16000,
+        promptHash: "j".repeat(64),
+      },
+    },
+    totals: tally(reps),
+    perBrief: Object.fromEntries(
+      file.briefSlugs.map((slug) => [
         slug,
         tally(reps.filter((each) => each.slug === slug)),
       ])
