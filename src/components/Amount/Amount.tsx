@@ -25,7 +25,8 @@ const locale = "en-US";
 // its own.
 const noBreakSpace = String.fromCharCode(0xa0);
 
-function formatAmount(
+// Exported for figma:sync-components, whose Amount frames show it.
+export function formatAmount(
   value: number,
   currency: string,
   display: AmountProps["display"]

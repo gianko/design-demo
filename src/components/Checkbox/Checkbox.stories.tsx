@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { colour } from "../../../.storybook/canvas-colour.ts";
 import { faintHovers } from "../../../.storybook/hover-step.ts";
 import { Checkbox } from "./Checkbox.tsx";
 
@@ -91,11 +92,30 @@ export const Disabled: Story = {
   args: { label: "Select INV-0139", disabled: true },
 };
 
+// A disabled box that's ticked or mixed fills with `disabled`, never the
+// accent: the accent is for what you can act on.
+async function fillsDisabled(canvas: HTMLElement, density: string) {
+  await holdsTargetAndBox(canvas, density);
+  const box = getComputedStyle(
+    root(canvas).querySelector("span[aria-hidden]")!
+  );
+  await expect(colour(box.backgroundColor)).toBe(
+    colour(box.getPropertyValue("--ds-color-bg-disabled"))
+  );
+  await expect(colour(box.backgroundColor)).not.toBe(
+    colour(box.getPropertyValue("--ds-color-bg-accent"))
+  );
+}
+
 // Already in a payment run that has started.
 export const DisabledChecked: Story = {
   args: { label: "Select INV-0137", checked: true, disabled: true },
+  play: ({ canvasElement, globals }) =>
+    fillsDisabled(canvasElement, globals.density),
 };
 
 export const DisabledMixed: Story = {
   args: { label: "Select all invoices", checked: "mixed", disabled: true },
+  play: ({ canvasElement, globals }) =>
+    fillsDisabled(canvasElement, globals.density),
 };

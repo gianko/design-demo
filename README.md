@@ -133,6 +133,8 @@ pnpm eval                              # the eval suite; reads ANTHROPIC_API_KEY
 pnpm eval:report --latest              # the HTML report for the newest run, against the baseline it names (pnpm eval --baseline)
 pnpm eval:readme                       # rewrite this README's eval table from the newest results file, after committing a run
 pnpm eval:calibrate                    # gate 5's calibration set, judged 3 times, into evals/calibration/report.md; prints a cost estimate first
+pnpm figma:sync-tokens                 # the Figma variables and styles, as a script for use_figma in figma/out/; --dry-run, --prune <id,…>, --split
+pnpm figma:sync-components             # the component frames, from each tv() config, run after sync-tokens; --dry-run, --prune <id,…>, --split
 ```
 
 [`docs/spec.md`](docs/spec.md) has the full build plan, and [`GLOSSARY.md`](GLOSSARY.md) has the vocabulary.
