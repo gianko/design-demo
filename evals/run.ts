@@ -2,7 +2,9 @@
 // runs K times through generate(), in-process, three reps at a time, each in
 // its own scratch folder under `evals/runs/<run-id>/`. A rep ends as pass,
 // fail, error or skipped; the brief's pass criteria are checked once, on the
-// final UI spec. The run writes one results file,
+// final UI spec. Gate 5 then judges the final screen (ADR 0014): soft, so its
+// calls count toward the budget but its verdicts never touch the rep's
+// outcome. The run writes one results file,
 // `evals/results/<YYYY-MM-DD>-<label>.json`, with the version tuple, totals
 // and every rep's attempts. A failing rep is data, so the run exits 0 once
 // that file is written.
@@ -10,13 +12,22 @@
 import { existsSync, globSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { cost } from "../generator/config.ts";
+import {
+  judgeConfig,
+  judgeScreen,
+  judgeVersions,
+  screenshotsOf,
+} from "../generator/conformance.ts";
 import type { Attempt, RepTrace, Versions } from "../generator/generate.ts";
+import type { Model } from "../generator/model.ts";
 import { checkPassCriteria } from "../generator/pass-criteria.ts";
 import {
   readScreenBrief,
   type ScreenBrief,
 } from "../generator/screen-brief.ts";
 import {
+  type RepGate5,
   type RepResult,
   type ResultsFile,
   latestResults,
@@ -31,6 +42,8 @@ export type EvalDeps = {
     brief: ScreenBrief,
     options: { workDir: string; onAttempt?: (attempt: Attempt) => void }
   ) => Promise<RepTrace>;
+  // Gate 5's judge (ADR 0014).
+  judge: Model;
   // The generator's half of the version tuple.
   versions: () => Promise<Versions>;
   git: () => Promise<{ sha: string; dirty: boolean }>;
@@ -100,14 +113,25 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
   if (git.dirty) log("dirty tree: allowed, and recorded");
   const versions = await deps.versions();
 
-  // Screen briefs × K × the latest results file's median rep cost. The
-  // Console spend limit stays the backstop.
-  const median = latestMedianRepCost(resultsDir);
-  if (median === null) {
+  // Screen briefs × K × the latest results file's median rep cost, which
+  // takes in gate 5's calls once that file has them. One from before gate 5
+  // adds a nominal judge call per screen state each rep judges. The Console
+  // spend limit stays the backstop.
+  const latest = latestRepCosts(resultsDir);
+  if (latest === null) {
     log("estimate: none, no earlier results file");
   } else {
-    const estimate = briefs.length * args.k * median;
-    const line = `estimate: ${dollars(estimate)} (${briefs.length} screen brief${briefs.length === 1 ? "" : "s"} × ${args.k} reps × ${dollars(median)} median rep cost), budget ${args.budget === null ? "none" : dollars(args.budget)}`;
+    const { median } = latest;
+    const states = latest.gate5
+      ? 0
+      : args.k *
+        briefs.reduce(
+          (sum, brief) => sum + 1 + brief.requires.states.length,
+          0
+        );
+    const judging = states * nominalJudgeCall;
+    const estimate = briefs.length * args.k * median + judging;
+    const line = `estimate: ${dollars(estimate)} (${briefs.length} screen brief${briefs.length === 1 ? "" : "s"} × ${args.k} reps × ${dollars(median)} median rep cost, ${latest.gate5 ? "gate 5 included" : `plus ${dollars(judging)} for gate 5: ${states} screen states × ${dollars(nominalJudgeCall, 3)} a nominal judge call`}), budget ${args.budget === null ? "none" : dollars(args.budget)}`;
     log(line);
     if (
       args.budget !== null &&
@@ -158,6 +182,7 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
     finishedAt: now().toISOString(),
     versions: {
       ...versions,
+      judge: judgeVersions(),
       gitSha: git.sha,
       dirty: git.dirty,
       label: args.label,
@@ -193,8 +218,9 @@ async function runRep(
   const attempts: Attempt[] = [];
   const started = performance.now();
   let ending: Ending;
+  let trace: RepTrace | null = null;
   try {
-    const trace = await deps.generate(brief, {
+    trace = await deps.generate(brief, {
       workDir,
       onAttempt: (attempt) => {
         attempts.push(attempt);
@@ -210,11 +236,59 @@ async function runRep(
     console.error(error);
     ending = { outcome: "error", endReason: "error:crash", criteria: null };
   }
+  const gate5 =
+    trace && ending.outcome !== "error"
+      ? await judge(deps.judge, brief, trace, spend)
+      : null;
   return repResult(brief, rep, ending, {
     wallMs: performance.now() - started,
     workDir: relative(repo, workDir),
     attempts,
+    gate5,
   });
+}
+
+// Gate 5 on the rep's final screen (ADR 0014). Anything that stops the judge
+// leaves it not run; it never ends the rep, and never changes how it ended.
+async function judge(
+  model: Model,
+  brief: ScreenBrief,
+  trace: RepTrace,
+  spend: (cost: number) => void
+): Promise<RepGate5> {
+  const notRun = (why: string): RepGate5 => ({
+    ran: false,
+    notRun: why,
+    states: [],
+    score: null,
+    cost: 0,
+  });
+  let screenshots;
+  try {
+    screenshots = screenshotsOf(trace);
+  } catch (error) {
+    console.error(error);
+    return notRun(`no screenshots: ${(error as Error).message}`);
+  }
+  if (screenshots.length === 0) return notRun("no screenshots");
+  // The prompt hash is the run's, in its version tuple.
+  const {
+    ran,
+    states,
+    score,
+    cost: calls,
+  } = await judgeScreen({ brief, screenshots }, model);
+  spend(calls);
+  const unjudged = states.filter((state) => !state.judged).length;
+  return {
+    ran,
+    notRun: ran
+      ? null
+      : `${unjudged} of ${states.length} state${states.length === 1 ? "" : "s"} unjudged`,
+    states,
+    score,
+    cost: calls,
+  };
 }
 
 function skipped(brief: ScreenBrief, rep: number): RepResult {
@@ -222,20 +296,22 @@ function skipped(brief: ScreenBrief, rep: number): RepResult {
     brief,
     rep,
     { outcome: "skipped", endReason: "skipped:budget", criteria: null },
-    { wallMs: 0, workDir: null, attempts: [] }
+    { wallMs: 0, workDir: null, attempts: [], gate5: null }
   );
 }
 
 // How a rep ended, and its pass criteria if it got as far as a UI spec.
 type Ending = Pick<RepResult, "outcome" | "endReason" | "criteria">;
 
-// A rep's result. Whether it passed first time and what it cost follow from
-// its ending and attempts.
+// A rep's result. Whether it passed first time follows from its ending and
+// attempts; what it cost, from its attempts and gate 5.
 function repResult(
   brief: ScreenBrief,
   rep: number,
   ending: Ending,
-  ran: Pick<RepResult, "wallMs" | "workDir" | "attempts">
+  ran: Pick<RepResult, "wallMs" | "workDir" | "attempts"> & {
+    gate5: RepGate5 | null;
+  }
 ): RepResult {
   return {
     slug: brief.slug,
@@ -244,25 +320,44 @@ function repResult(
     firstAttempt:
       ending.outcome === "pass" &&
       ran.attempts.every((attempt) => attempt.attempt === 1),
-    cost: ran.attempts.reduce((total, attempt) => total + attempt.cost, 0),
+    cost:
+      ran.attempts.reduce((total, attempt) => total + attempt.cost, 0) +
+      (ran.gate5?.cost ?? 0),
     ...ran,
   };
 }
 
 // The median cost of the reps that ran in the results file that started
-// last, or null if there's none. A skipped rep cost nothing and says nothing
-// about what a rep costs.
-function latestMedianRepCost(resultsDir: string): number | null {
-  const costs = (latestResults(resultsDir)?.file.reps ?? [])
+// last, and whether those costs take in gate 5's, or null if there's none. A
+// skipped rep cost nothing and says nothing about what a rep costs.
+function latestRepCosts(
+  resultsDir: string
+): { median: number; gate5: boolean } | null {
+  const reps = latestResults(resultsDir)?.file.reps ?? [];
+  const costs = reps
     .filter((rep) => rep.outcome !== "skipped")
     .map((rep) => rep.cost)
     .sort((a, b) => a - b);
   if (costs.length === 0) return null;
   const middle = Math.floor(costs.length / 2);
-  return costs.length % 2
-    ? costs[middle]!
-    : (costs[middle - 1]! + costs[middle]!) / 2;
+  return {
+    median:
+      costs.length % 2
+        ? costs[middle]!
+        : (costs[middle - 1]! + costs[middle]!) / 2,
+    gate5: reps.some((rep) => rep.gate5 !== undefined),
+  };
 }
+
+// A guess at one judge call, until a results file with gate 5 prices it: a
+// screenshot and a screen brief in, the rubric and the design brief read from
+// the cache, and high effort's thinking and six verdicts out. About $0.069.
+const nominalJudgeCall = cost(judgeConfig.model, {
+  input: 2_000,
+  output: 3_000,
+  cacheRead: 5_000,
+  cacheWrite: 0,
+});
 
 type Args = {
   briefs: string;
@@ -313,5 +408,8 @@ function parse(argv: string[]): Args | string {
 }
 
 function repLine(rep: RepResult) {
-  return `${rep.slug} · rep ${rep.rep} · ${rep.outcome} · ${rep.endReason} · ${dollars(rep.cost)} · ${(rep.wallMs / 1000).toFixed(1)}s`;
+  const line = `${rep.slug} · rep ${rep.rep} · ${rep.outcome} · ${rep.endReason} · ${dollars(rep.cost)} · ${(rep.wallMs / 1000).toFixed(1)}s`;
+  if (!rep.gate5) return line;
+  const { score, notRun } = rep.gate5;
+  return `${line} · ${score ? `gate 5 ${score.passed}/${score.of}` : `gate 5 not run: ${notRun}`}`;
 }

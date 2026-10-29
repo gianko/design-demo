@@ -1,13 +1,20 @@
 // The committed results file of one eval run (ADR 0008):
 // `evals/results/<YYYY-MM-DD>-<label>.json`. It holds the version tuple, what
 // narrowed the run, its totals and, per rep, its outcome and every attempt's
-// gate results with failure messages, usage, cost and wall time. The eval
+// gate results with failure messages, usage, cost and wall time, and its
+// final screen's gate 5 verdicts (ADR 0014). The eval
 // report (`pnpm eval:report`) reads these files, and the runner reads the
 // latest one for its estimate.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Attempt, EndReason, Versions } from "../generator/generate.ts";
+import {
+  type Conformance,
+  type Criterion,
+  type JudgeVersions,
+  criteria,
+} from "../generator/conformance.ts";
 import type { CriteriaResult } from "../generator/pass-criteria.ts";
 
 // How a rep ends (glossary: Rep). Errors and skips are counted but left out
@@ -32,7 +39,7 @@ export type RepResult = {
   firstAttempt: boolean;
   // Checked once, on the final UI spec; null for a skipped rep.
   criteria: CriteriaResult | null;
-  // USD, the sum of its attempts' costs.
+  // USD, its attempts' and its gate 5 calls'.
   cost: number;
   wallMs: number;
   // The rep's scratch folder, relative to the repo, or null if it never
@@ -40,6 +47,18 @@ export type RepResult = {
   workDir: string | null;
   // Each attempt as generate() logged it (ADR 0010).
   attempts: Attempt[];
+  // Gate 5 on the final screen, after the last attempt (ADR 0014). It's
+  // soft: it's beside the outcome, never in it. Null for a rep that ended in
+  // error or was skipped, which isn't judged; absent from results files from
+  // before gate 5.
+  gate5?: RepGate5 | null;
+};
+
+// One rep's brief conformance: each screen state's verdicts with their
+// reasons, or why it wasn't judged, and the score once every state was.
+export type RepGate5 = Omit<Conformance, "promptHash"> & {
+  // Why gate 5 didn't run, or null when it did.
+  notRun: string | null;
 };
 
 // A count out of the reps a pass rate counts.
@@ -60,6 +79,23 @@ export type Tally = {
   final: Rate;
   cost: number;
   wallMs: number;
+  // Gate 5 over the same reps, soft and apart from the pass rates. Null for
+  // a run without gate 5; absent from results files from before it.
+  gate5?: Gate5Tally | null;
+};
+
+// Brief conformance over some reps that passed or failed (ADR 0014).
+export type Gate5Tally = {
+  // Reps with every state judged.
+  judged: number;
+  // Reps that passed or failed whose gate 5 didn't run.
+  notRun: number;
+  // Per criterion, the judged reps whose every state passed it.
+  criteria: Record<Criterion, Rate>;
+  // Verdicts passed out of every judged rep's.
+  score: Rate;
+  // USD, every judge call's, judged or not.
+  cost: number;
 };
 
 export type ResultsFile = {
@@ -68,6 +104,8 @@ export type ResultsFile = {
   finishedAt: string;
   // The version tuple (ADR 0008): the generator's half, then the run's.
   versions: Versions & {
+    // Gate 5's judge (ADR 0014); absent from results files from before it.
+    judge?: JudgeVersions;
     gitSha: string;
     // The tree had uncommitted changes, allowed by `--allow-dirty`.
     dirty: boolean;
@@ -135,5 +173,39 @@ export function tally(reps: RepResult[]): Tally {
     final: { passed: pass, of },
     cost: reps.reduce((sum, rep) => sum + rep.cost, 0),
     wallMs: reps.reduce((sum, rep) => sum + rep.wallMs, 0),
+    gate5: reps.some((rep) => rep.gate5 !== undefined)
+      ? gate5Tally(reps)
+      : null,
+  };
+}
+
+function gate5Tally(reps: RepResult[]): Gate5Tally {
+  const ran = reps.filter(counted).map((rep) => rep.gate5);
+  const judged = ran.filter((each): each is RepGate5 => each?.ran === true);
+  const passes = (gate5: RepGate5, criterion: Criterion) =>
+    gate5.states.every(
+      (state) =>
+        state.judged &&
+        state.verdicts.some((v) => v.criterion === criterion && v.pass)
+    );
+  const sum = (count: (gate5: RepGate5) => number) =>
+    judged.reduce((total, each) => total + count(each), 0);
+  return {
+    judged: judged.length,
+    notRun: ran.length - judged.length,
+    criteria: Object.fromEntries(
+      criteria.map((criterion) => [
+        criterion,
+        {
+          passed: judged.filter((each) => passes(each, criterion)).length,
+          of: judged.length,
+        },
+      ])
+    ) as Record<Criterion, Rate>,
+    score: {
+      passed: sum((each) => each.score?.passed ?? 0),
+      of: sum((each) => each.score?.of ?? 0),
+    },
+    cost: reps.reduce((total, rep) => total + (rep.gate5?.cost ?? 0), 0),
   };
 }

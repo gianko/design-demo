@@ -26,6 +26,8 @@ const model = anthropicModel();
 process.exitCode = await main(process.argv.slice(2), {
   generate: (brief, { workDir, onAttempt }) =>
     generate(brief, { workDir, model, registry, onAttempt }),
+  // Gate 5 (ADR 0014): the same API key, its own model config.
+  judge: model,
   versions: () => generatorVersions(registry),
   git: async () => ({
     sha: git("rev-parse", "HEAD"),

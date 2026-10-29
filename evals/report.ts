@@ -9,12 +9,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import type { StepConfig } from "../generator/config.ts";
+import { criteria } from "../generator/conformance.ts";
 import type { GateName } from "../generator/failure.ts";
 import type { Attempt } from "../generator/generate.ts";
 import { pascalCase } from "../generator/screen-stories.ts";
 import { defaultState } from "../src/components/Screen/default-state.ts";
 import {
   type Rate,
+  type RepGate5,
   type RepResult,
   type ResultsFile,
   counted,
@@ -253,7 +255,7 @@ ${legend(runs)}
 ${briefSetsDiffer(runs)}
 <section>
 <h2>Screen briefs</h2>
-<p class="note">${runs.length > 1 ? "Side by side, each cell reads run A → run B." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate.</p>
+<p class="note">${runs.length > 1 ? "Side by side, each cell reads run A → run B." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate. Brief conformance (gate 5) is soft, so it sits beside the passes, never in them: a judged rep passes a criterion when every screen state passes it, and a run without gate 5 reads not run.</p>
 ${summaries(runs)}
 </section>
 ${runs.map((run, index) => repsSection(run, runs.length > 1 ? letter(index) : null)).join("\n")}
@@ -292,6 +294,16 @@ function legend(runs: ReportRun[]) {
     ["Code prompt", (file) => short(file.versions.codePromptHash)],
     ["Spec step", (file) => stepConfig(file.versions.spec)],
     ["Code step", (file) => stepConfig(file.versions.code)],
+    [
+      "Gate 5 judge",
+      ({ versions: { judge } }) =>
+        judge ? `${judge.model}, ${judge.effort} effort` : "not run",
+    ],
+    [
+      "Gate 5 prompt",
+      ({ versions: { judge } }) =>
+        judge ? short(judge.promptHash) : "not run",
+    ],
     ["Screen briefs", (file) => `${file.briefSlugs.length} (${file.briefs})`],
     ["K", (file) => String(file.k)],
     [
@@ -364,7 +376,7 @@ function briefSetsDiffer(runs: ReportRun[]) {
 // are shown alone, each set with an overall row over that set alone.
 function summaries(runs: ReportRun[]) {
   if (runs.length === 1)
-    return summary(runs, runs[0]!.file.briefSlugs, overall, "run");
+    return tables(runs, runs[0]!.file.briefSlugs, overall, "run");
   const [a, b] = runs as [ReportRun, ReportRun];
   const inB = new Set(b.file.briefSlugs);
   const shared = a.file.briefSlugs.filter((slug) => inB.has(slug));
@@ -374,7 +386,7 @@ function summaries(runs: ReportRun[]) {
     briefs: run.file.briefSlugs.filter((slug) => !shared.includes(slug)),
   }));
   if (only.every((each) => each.briefs.length === 0))
-    return summary(runs, shared, overall, "compare");
+    return tables(runs, shared, overall, "compare");
   const set = (heading: string, table: string) => `<section class="brief-set">
 <h3>${escapeHtml(heading)}</h3>
 ${table}
@@ -383,12 +395,7 @@ ${table}
     shared.length
       ? set(
           `In both runs (${shared.length}), side by side`,
-          summary(
-            runs,
-            shared,
-            `All in both runs (${shared.length})`,
-            "compare"
-          )
+          tables(runs, shared, `All in both runs (${shared.length})`, "compare")
         )
       : "",
     ...only
@@ -396,7 +403,7 @@ ${table}
       .map(({ run, name, briefs }) =>
         set(
           `Only in run ${name} (${briefs.length})`,
-          summary(
+          tables(
             [run],
             briefs,
             `All only in ${name} (${briefs.length})`,
@@ -404,6 +411,21 @@ ${table}
           )
         )
       ),
+  ].join("\n");
+}
+
+type Mode = "run" | "compare" | "alone";
+
+// A set of screen briefs' summary table, then its gate 5 table.
+function tables(
+  runs: ReportRun[],
+  briefs: string[],
+  overallLabel: string,
+  mode: Mode
+) {
+  return [
+    summary(runs, briefs, overallLabel, mode),
+    gate5Table(runs, briefs, overallLabel, mode),
   ].join("\n");
 }
 
@@ -416,7 +438,7 @@ function summary(
   runs: ReportRun[],
   briefs: string[],
   overallLabel: string,
-  mode: "run" | "compare" | "alone"
+  mode: Mode
 ) {
   const compare = mode === "compare";
   const head = [
@@ -470,6 +492,59 @@ ${body.join("\n")}
 </table></div>`;
 }
 
+// Gate 5 (ADR 0014) beside the summary, never in it: per screen brief and
+// overall, the reps judged out of those that passed or failed, then per
+// criterion the judged reps whose every state passed it, the verdicts passed
+// and the judge's cost. A run without gate 5, or that judged none of these
+// reps, reads not run, never zero. In a comparison every cell reads run A →
+// run B, as the summary's do.
+function gate5Table(
+  runs: ReportRun[],
+  briefs: string[],
+  overallLabel: string,
+  mode: Mode
+) {
+  const head = ["Screen brief", "Judged", ...criteria, "Score", "Cost"];
+  const notRun = "not run";
+  const cells = (run: ReportRun, slugs: string[]): string[] => {
+    const counts = tally(
+      run.file.reps.filter((rep) => slugs.includes(rep.slug))
+    ).gate5;
+    if (!counts) return head.slice(1).map(() => notRun);
+    const judged = counts.judged > 0;
+    return [
+      rate({ passed: counts.judged, of: counts.judged + counts.notRun }),
+      ...criteria.map((criterion) =>
+        judged ? rate(counts.criteria[criterion]) : notRun
+      ),
+      judged ? rate(counts.score) : notRun,
+      dollars(counts.cost),
+    ];
+  };
+  const row = (label: string, slugs: string[], isOverall: boolean) => {
+    const [a, b] = runs.map((run) => cells(run, slugs)) as [
+      string[],
+      string[]?,
+    ];
+    const values =
+      mode === "compare" ? a.map((each, i) => `${each} → ${b![i]}`) : a;
+    return `<tr${isOverall ? ' class="overall"' : ""}><th scope="row">${escapeHtml(label)}</th>${values
+      .map((value) => `<td>${escapeHtml(value)}</td>`)
+      .join("")}</tr>`;
+  };
+  const body = [
+    ...briefs.map((brief) => row(brief, [brief], false)),
+    row(overallLabel, briefs, true),
+  ];
+  return `<div class="table"><table class="gate5">
+<caption>Brief conformance (gate 5), soft</caption>
+<thead><tr>${head.map((cell) => `<th scope="col">${escapeHtml(cell)}</th>`).join("")}</tr></thead>
+<tbody>
+${body.join("\n")}
+</tbody>
+</table></div>`;
+}
+
 // Every rep of one run, brief by brief: its outcome, then each attempt's
 // gates and failure lines, and the screenshots of its final and failing
 // code attempts where they were found.
@@ -495,6 +570,7 @@ function repDetails(run: ReportRun, rep: RepResult) {
   const missing = rep.criteria?.missing.length
     ? `<p>Pass criteria missing: ${rep.criteria.missing.map((each) => escapeHtml(each)).join(", ")}</p>`
     : "";
+  const conformance = rep.gate5 ? gate5Details(rep.gate5) : "";
   const attempts = rep.attempts
     .map((attempt) => {
       const gateList = Object.entries(attempt.gates)
@@ -523,8 +599,36 @@ function repDetails(run: ReportRun, rep: RepResult) {
   return `<details class="rep ${escapeHtml(rep.outcome)}"${rep.outcome === "pass" ? "" : " open"}>
 <summary>rep ${rep.rep} · <strong>${escapeHtml(rep.outcome)}</strong> · ${escapeHtml(rep.endReason)} · ${dollars(rep.cost)} · ${duration(rep.wallMs)}</summary>
 ${missing}
+${conformance}
 <ol class="attempts">${attempts}</ol>
 </details>`;
+}
+
+// A rep's gate 5: its score and each failing verdict as a taste rule's
+// finding reads (gate, state, criterion, reason), or why it didn't run and
+// each state left unjudged.
+function gate5Details(gate5: RepGate5) {
+  const head =
+    gate5.ran && gate5.score
+      ? `gate 5 · ${gate5.score.passed}/${gate5.score.of} · soft · ${dollars(gate5.cost)}`
+      : `gate 5 not run · ${gate5.notRun ?? ""}`;
+  const lines = gate5.states.flatMap((state) =>
+    state.judged
+      ? state.verdicts
+          .filter(({ pass }) => !pass)
+          .map(
+            ({ criterion, reason }) =>
+              `gate 5 · ${state.state} · ${criterion} · ${reason}`
+          )
+      : [`gate 5 · ${state.state} · not run · ${state.error}`]
+  );
+  return `<p class="gate5">${escapeHtml(head)}</p>${
+    lines.length
+      ? `<ul class="failures">${lines
+          .map((line) => `<li><code>${escapeHtml(line)}</code></li>`)
+          .join("")}</ul>`
+      : ""
+  }`;
 }
 
 // Attempts per step, over the reps a pass rate counts that ran the step.
@@ -670,10 +774,17 @@ thead th {
   font-weight: var(--ds-density-text-label-font-weight);
 }
 tbody tr:last-child > * { border-bottom: 0; }
-.summary td {
+.summary td, .gate5 td {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+.table + .table { margin-top: var(--ds-space-xs); }
+caption {
+  padding: var(--ds-space-2xs) var(--ds-space-xs) 0;
+  text-align: left;
+  font-weight: var(--ds-density-text-label-font-weight);
+}
+p.gate5 { margin: var(--ds-space-3xs) 0 0; }
 .runs .differs > * {
   background: var(--ds-color-bg-awaiting);
   color: var(--ds-color-text-awaiting);

@@ -14,6 +14,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, relative } from "node:path";
+import type Anthropic from "@anthropic-ai/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   cost,
@@ -27,6 +28,7 @@ import type {
   RepTrace,
   Versions,
 } from "../generator/generate.ts";
+import type { Model } from "../generator/model.ts";
 import type { ScreenBrief } from "../generator/screen-brief.ts";
 import type { UiSpec } from "../generator/ui-spec.ts";
 import { type EvalDeps, main } from "./run.ts";
@@ -122,11 +124,58 @@ function attempt(
   };
 }
 
+// A judge reply as the Messages API returns one: its verdicts fail only
+// repetition, at $0.02546 a call.
+const recorded: Anthropic.Message = JSON.parse(
+  readFileSync(join(repo, "generator/fixtures/judge-reply.json"), "utf8")
+);
+
+// The recorded reply with every verdict passing.
+const allPass: Anthropic.Message = {
+  ...recorded,
+  content: [
+    recorded.content[0]!,
+    {
+      ...(recorded.content[1] as Anthropic.TextBlock),
+      text: (recorded.content[1] as Anthropic.TextBlock).text.replace(
+        '"pass":false',
+        '"pass":true'
+      ),
+    },
+  ],
+};
+
+// A judge that answers every request with `reply`, keeping the requests.
+function judging(
+  reply: () => Anthropic.Message | Promise<Anthropic.Message> = () => recorded
+) {
+  const requests: Anthropic.MessageCreateParamsNonStreaming[] = [];
+  const judge: Model = async (params) => {
+    requests.push(params);
+    return { message: await reply(), requestId: "req_judge" };
+  };
+  return { judge, requests };
+}
+
+// The bytes of the screenshot each request sent.
+function sentShots(requests: Anthropic.MessageCreateParamsNonStreaming[]) {
+  return requests.map((request) => {
+    const [image] = request.messages[0]!
+      .content as Anthropic.ContentBlockParam[];
+    const { source } = image as Anthropic.ImageBlockParam;
+    return source.type === "base64"
+      ? Buffer.from(source.data, "base64").toString()
+      : null;
+  });
+}
+
 // How one stubbed rep goes.
 type Plan = {
   attempts: Attempt[];
   endReason: EndReason;
   uiSpec?: UiSpec;
+  // The screen states its final code attempt shot, each light and dark.
+  shots?: string[];
   // generate() itself throws after its attempts: the harness crashed.
   crash?: boolean;
   // Settles only when this resolves, so a test can hold a rep in flight.
@@ -227,6 +276,8 @@ type Stub = {
   plans: Record<string, Plan[]>;
   dirty?: boolean;
   confirm?: boolean;
+  // Gate 5's judge; the recorded reply unless given.
+  judge?: Model;
 };
 
 async function run(at: Run, argv: string[], stub: Stub) {
@@ -239,6 +290,15 @@ async function run(at: Run, argv: string[], stub: Stub) {
       const plan = stub.plans[brief.slug]!.shift()!;
       await plan.hold;
       mkdirSync(workDir, { recursive: true });
+      const shotsDir = join("attempt-1-code", "render", "shots");
+      const shots = (plan.shots ?? []).flatMap((state) =>
+        (["light", "dark"] as const).map((theme) => {
+          const file = join(shotsDir, `${theme}-${state}.png`);
+          mkdirSync(join(workDir, shotsDir), { recursive: true });
+          writeFileSync(join(workDir, file), `png ${theme} ${state}`);
+          return { theme, state, file };
+        })
+      );
       for (const each of plan.attempts) onAttempt?.(each);
       plan.release?.();
       if (plan.crash) throw new Error("harness crashed");
@@ -255,9 +315,11 @@ async function run(at: Run, argv: string[], stub: Stub) {
               : "fail",
         endReason: plan.endReason,
         ...(plan.uiSpec ? { uiSpec: plan.uiSpec } : {}),
+        ...(plan.shots ? { shots } : {}),
       };
       return trace;
     },
+    judge: stub.judge ?? judging().judge,
     versions: async () => versions,
     git: async () => ({ sha: "a".repeat(40), dirty: stub.dirty ?? false }),
     confirm: async (question) => {
@@ -568,6 +630,13 @@ requires:
         maxTokens: 64_000,
         attempts: 3,
       },
+      // Gate 5's judge, and the rubric's and the design brief's hash.
+      judge: {
+        model: "claude-opus-5-5",
+        effort: "high",
+        maxTokens: 16_000,
+        promptHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+      },
       gitSha: "a".repeat(40),
       dirty: false,
       label: "first-run",
@@ -704,17 +773,271 @@ requires:
     expect(existsSync(at.resultsDir)).toBe(false);
   });
 
+  describe("gate 5", () => {
+    it("judges each rep's final screen after its last attempt, and records each state's verdicts, reasons and score", async () => {
+      const at = setup("alpha");
+      const { judge, requests } = judging();
+
+      const { code, output } = await run(at, ["--k", "1"], {
+        plans: {
+          alpha: [{ ...plans.repaired(), shots: ["default", "empty"] }],
+        },
+        judge,
+      });
+
+      expect(code).toBe(0);
+      expect(output).toMatch(
+        /^alpha · rep 1 · pass · passed · \$0\.12 · [\d.]+s · gate 5 10\/12$/m
+      );
+      // The light shot of each state, never the dark one.
+      expect(sentShots(requests)).toEqual([
+        "png light default",
+        "png light empty",
+      ]);
+      const [rep] = results(at).reps;
+      expect(rep!.gate5).toMatchObject({
+        ran: true,
+        notRun: null,
+        score: { passed: 10, of: 12 },
+      });
+      expect(rep!.gate5!.states.map(({ state }) => state)).toEqual([
+        "default",
+        "empty",
+      ]);
+      const [first] = rep!.gate5!.states;
+      if (!first!.judged) throw new Error("unjudged");
+      expect(first!.verdicts.at(-1)).toEqual({
+        criterion: "repetition",
+        pass: false,
+        reason:
+          'The card says "Overdue" in its title, its status tag and its text, where the tag alone would do, since "Every status tag carries its word."',
+      });
+    });
+
+    it("leaves each rep's outcome and the run's pass rates as they'd be without it, whatever the judge says", async () => {
+      const at = setup("alpha");
+      const failing = {
+        ...recorded,
+        content: [
+          recorded.content[0]!,
+          {
+            ...(recorded.content[1] as Anthropic.TextBlock),
+            text: (recorded.content[1] as Anthropic.TextBlock).text.replaceAll(
+              '"pass":true',
+              '"pass":false'
+            ),
+          },
+        ],
+      };
+
+      await run(at, ["--k", "3"], {
+        plans: {
+          alpha: [
+            { ...plans.firstTry(), shots: ["default"] },
+            { ...plans.repaired(), shots: ["default"] },
+            { ...plans.exhausted(), shots: ["default"] },
+          ],
+        },
+        judge: judging(() => failing).judge,
+      });
+
+      const { reps, totals } = results(at);
+      expect(reps.map((rep) => rep.gate5?.score)).toEqual([
+        { passed: 0, of: 6 },
+        { passed: 0, of: 6 },
+        { passed: 0, of: 6 },
+      ]);
+      expect(
+        reps.map(({ outcome, endReason, firstAttempt }) => ({
+          outcome,
+          endReason,
+          firstAttempt,
+        }))
+      ).toEqual([
+        { outcome: "pass", endReason: "passed", firstAttempt: true },
+        { outcome: "pass", endReason: "passed", firstAttempt: false },
+        {
+          outcome: "fail",
+          endReason: "code-attempts-exhausted",
+          firstAttempt: false,
+        },
+      ]);
+      expect(totals).toMatchObject({
+        pass: 2,
+        fail: 1,
+        firstAttempt: { passed: 1, of: 3 },
+        final: { passed: 2, of: 3 },
+      });
+    });
+
+    it("totals a pass rate per criterion per screen brief, over the reps it judged: a rep passes a criterion when every state does", async () => {
+      const at = setup("alpha", "beta");
+      // Every verdict passes on the empty state; on the others, repetition
+      // fails.
+      const { judge } = judging();
+      const byState: Model = async (params) =>
+        sentShots([params])[0]!.endsWith("empty")
+          ? { message: allPass, requestId: "req_judge" }
+          : judge(params);
+
+      await run(at, ["--k", "3"], {
+        plans: {
+          alpha: [
+            { ...plans.firstTry(), shots: ["default", "empty"] },
+            { ...plans.firstTry(), shots: ["empty"] },
+            plans.firstTry(),
+          ],
+          beta: [
+            { ...plans.firstTry(), shots: ["default"] },
+            { ...plans.apiError(), shots: ["default"] },
+            { ...plans.firstTry(), shots: ["default"] },
+          ],
+        },
+        judge: byState,
+      });
+
+      const { perBrief, totals } = results(at);
+      const rates = (repetition: [number, number], of: number) => ({
+        hierarchy: { passed: of, of },
+        density: { passed: of, of },
+        accent: { passed: of, of },
+        elevation: { passed: of, of },
+        copy: { passed: of, of },
+        repetition: { passed: repetition[0], of: repetition[1] },
+      });
+      expect(perBrief.alpha!.gate5).toEqual({
+        judged: 2,
+        notRun: 1,
+        criteria: rates([1, 2], 2),
+        score: { passed: 17, of: 18 },
+        cost: expect.closeTo(3 * 0.02546, 6),
+      });
+      // The rep in error is left out, as it is from the pass rates.
+      expect(perBrief.beta!.gate5).toEqual({
+        judged: 2,
+        notRun: 0,
+        criteria: rates([0, 2], 2),
+        score: { passed: 10, of: 12 },
+        cost: expect.closeTo(2 * 0.02546, 6),
+      });
+      expect(totals.gate5).toMatchObject({
+        judged: 4,
+        notRun: 1,
+        criteria: rates([1, 4], 4),
+        score: { passed: 27, of: 30 },
+      });
+    });
+
+    it("counts the judge's calls toward each rep's cost, the run's totals and the budget", async () => {
+      const at = setup("alpha");
+      const judged = () => ({
+        ...plans.firstTry(),
+        shots: ["default", "empty"],
+      });
+
+      // Three reps start at once and spend $0.138 on attempts, under the
+      // $0.17 budget; each one's two judge calls take it over.
+      await run(at, ["--k", "4", "--budget", "0.17"], {
+        plans: { alpha: [judged(), judged(), judged(), plans.firstTry()] },
+      });
+
+      const { reps, totals } = results(at);
+      expect(reps.map(({ outcome }) => outcome)).toEqual([
+        "pass",
+        "pass",
+        "pass",
+        "skipped",
+      ]);
+      // $0.046 of attempts and two calls at $0.02546.
+      expect(reps[0]!.gate5!.cost).toBeCloseTo(0.05092, 6);
+      expect(reps[0]!.cost).toBeCloseTo(0.09692, 6);
+      expect(totals.cost).toBeCloseTo(3 * 0.09692, 6);
+    });
+
+    it("doesn't judge a rep that ended in error or was skipped", async () => {
+      const at = setup("alpha");
+      const { judge, requests } = judging();
+      const { hold, release } = latch();
+
+      // The first rep spends past the budget while the other two are in
+      // flight, so the fourth is skipped.
+      await run(at, ["--k", "4", "--budget", "0.5"], {
+        plans: {
+          alpha: [
+            { ...plans.costly(release), shots: ["default"] },
+            { ...plans.apiError(), hold, shots: ["default"] },
+            { ...plans.crash(), hold, shots: ["default"] },
+            { ...plans.firstTry(), shots: ["default"] },
+          ],
+        },
+        judge,
+      });
+
+      const { reps } = results(at);
+      expect(reps.map(({ outcome, gate5 }) => [outcome, gate5])).toEqual([
+        ["pass", expect.objectContaining({ ran: true })],
+        ["error", null],
+        ["error", null],
+        ["skipped", null],
+      ]);
+      expect(requests).toHaveLength(1);
+    });
+
+    it("shows as not run when the judge's call fails or the screen never rendered, and the rep ends as it would without it", async () => {
+      const at = setup("alpha");
+
+      await run(at, ["--k", "2"], {
+        plans: {
+          alpha: [
+            { ...plans.firstTry(), shots: ["default"] },
+            plans.firstTry(),
+          ],
+        },
+        judge: judging(() => Promise.reject(new Error("overloaded"))).judge,
+      });
+
+      const { reps } = results(at);
+      expect(reps.map(({ outcome }) => outcome)).toEqual(["pass", "pass"]);
+      expect(reps[0]!.gate5).toMatchObject({
+        ran: false,
+        notRun: "1 of 1 state unjudged",
+        score: null,
+        states: [{ state: "default", judged: false, error: "api" }],
+      });
+      expect(reps[1]!.gate5).toEqual({
+        ran: false,
+        notRun: "no screenshots",
+        states: [],
+        score: null,
+        cost: 0,
+      });
+    });
+  });
+
   describe("the estimate", () => {
     // Two earlier runs on one day. The later one's reps that ran cost $0.1,
     // $0.5 and $0.9 (median $0.5); with its skipped rep counted the median
     // would be $0.3. The earlier one's cost $5 each. The later one sorts
     // first by name and is written first, so only its start time says it's
     // the latest: a runner that went by name or by write order would read $5.
-    function earlierRuns(at: Run) {
+    // Unless told otherwise, the later one judged its reps that passed or
+    // failed with gate 5, and their costs include the judge's.
+    function earlierRuns(at: Run, { gate5 = true } = {}) {
       const file = (startedAt: string, reps: [string, number][]) =>
         JSON.stringify({
           startedAt,
-          reps: reps.map(([outcome, cost]) => ({ outcome, cost })),
+          reps: reps.map(([outcome, cost]) => ({
+            outcome,
+            cost,
+            ...(gate5
+              ? {
+                  gate5:
+                    outcome === "pass" || outcome === "fail"
+                      ? { ran: true, cost: 0.05 }
+                      : null,
+                }
+              : {}),
+          })),
         });
       mkdirSync(at.resultsDir, { recursive: true });
       writeFileSync(
@@ -753,7 +1076,7 @@ requires:
       expect(questions).toHaveLength(1);
       expect(questions[0]).toContain("$3.00");
       expect(output).toContain(
-        "estimate: $3.00 (2 screen briefs × 3 reps × $0.50 median rep cost)"
+        "estimate: $3.00 (2 screen briefs × 3 reps × $0.50 median rep cost, gate 5 included)"
       );
       expect(code).toBe(1);
       expect(started).toEqual([]);
@@ -787,6 +1110,26 @@ requires:
       expect(output).toContain("$3.00");
       expect(questions).toEqual([]);
       expect(code).toBe(0);
+    });
+
+    // A results file from before gate 5 can't price the judge, so the
+    // estimate adds a nominal call per screen state each rep judges: the
+    // default and each state the screen brief requires.
+    it("adds a nominal judge call per screen state when the latest results file has no gate 5", async () => {
+      const at = setup("alpha", "beta");
+      earlierRuns(at, { gate5: false });
+
+      const { questions, output } = await run(at, ["--budget", "3.5"], {
+        plans: twoBriefs(),
+        confirm: false,
+      });
+
+      // 2 screen briefs × 3 reps × 2 states × $0.069 = $0.83.
+      expect(output).toContain(
+        "estimate: $3.83 (2 screen briefs × 3 reps × $0.50 median rep cost, plus $0.83 for gate 5: 12 screen states × $0.069 a nominal judge call)"
+      );
+      expect(questions).toHaveLength(1);
+      expect(questions[0]).toContain("$3.83");
     });
   });
 });

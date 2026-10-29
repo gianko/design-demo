@@ -217,6 +217,8 @@ The fixtures module widened to the one shared dataset that [Fixtures](#fixtures)
 
 `pnpm eval`, exactly as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it, calling the slice's `generate()` in-process. CI only typechecks it and runs its unit tests against a stubbed `generate()` ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 
+After a rep's last attempt, gate 5 judges its final screen as `pnpm generate` does ([ADR 0014](adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)); a rep that ended in error or was skipped isn't judged. The results file keeps each rep's `gate5`: each state's verdicts and reasons, or why it wasn't judged, and the score. Its totals give a pass rate per criterion per screen brief, where a judged rep passes a criterion when every screen state does, and the judge's model, effort and prompt hash join the version tuple. The judge's calls count toward the rep's cost, the run's totals and the budget. The estimate takes them in through the latest results file's median rep cost, and adds a nominal judge call per screen state while that file is from before gate 5. Gate 5 is soft: a rep's outcome and the run's pass rates are computed without it.
+
 **Done when:** Vitest, with a stubbed `generate()` whose usage is priced the way real usage is, shows:
 
 - each rep ends as pass, fail, error or skipped as ADR 0008 defines them, with the pass criteria checked once, on the final UI spec;
@@ -228,7 +230,7 @@ The fixtures module widened to the one shared dataset that [Fixtures](#fixtures)
 
 ### Eval report
 
-`pnpm eval:report <a.json> [b.json]`, as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it.
+`pnpm eval:report <a.json> [b.json]`, as [ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md) shapes it. Beside each summary table, a gate 5 table gives per screen brief and overall the reps judged, each criterion's pass rate, the score and the judge's cost, reading `2/3 → 3/3` in a comparison. A run without gate 5, such as every results file before it, reads not run, never zero. Each rep lists its failing verdicts with their reasons, or why gate 5 didn't run.
 
 **Done when:** from hand-written results files, a Vitest test shows that one file gives a run report and two give a comparison, as a single HTML file styled by `tokens.css` that references nothing outside itself; that counts read `2/3 → 3/3` per screen brief and overall, beside mean attempts, cost, wall time and per-gate failure counts; that a comparison flags runs whose brief sets differ; and that screenshots are embedded when the run's scratch folder exists and left out when it doesn't.
 

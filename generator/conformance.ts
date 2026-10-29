@@ -131,6 +131,15 @@ export function screenshotsOf(trace: RepTrace): Screenshot[] {
     }));
 }
 
+// The judge's half of a results file's version tuple (ADR 0008): its config
+// and the hash of the rubric's and the design brief's words, as every
+// Conformance it gives records it.
+export function judgeVersions(designBrief = readDesignBrief()) {
+  return { ...judgeConfig, promptHash: judgePrompt(designBrief).hash };
+}
+
+export type JudgeVersions = ReturnType<typeof judgeVersions>;
+
 export function readDesignBrief() {
   return readFileSync(resolve(repo, "docs/design-brief.md"), "utf8");
 }
