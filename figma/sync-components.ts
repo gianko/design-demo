@@ -5,7 +5,7 @@
 // figma:sync-tokens, whose variables and styles it binds to. Run it with
 // `pnpm figma:sync-components`; `--dry-run` returns the diff instead of
 // writing, `--prune <id,…>` also deletes those orphans, and `--split` writes
-// one script per component set.
+// one script per component set, the last of which carries the prune.
 
 import { fileURLToPath } from "node:url";
 import { frameSources } from "./components.ts";
@@ -38,20 +38,24 @@ function script(payload: ComponentsPayload, options: SyncOptions): string {
   });
 }
 
-/** The scripts to run in order: one, or with `split`, one per component set. */
+/**
+ * The scripts to run in order: one, or with `split`, one per component set.
+ * Every split script carries all of `setNames`, so each finds the same
+ * orphans; `--prune` rides in the last one only, so nothing is deleted until
+ * every set has synced.
+ */
 export function syncComponentScripts(
   payload: ComponentsPayload,
   options: SyncOptions
 ): Script[] {
   if (!options.split) return [{ name: "all", code: script(payload, options) }];
-  if (options.prune?.length) {
-    throw new Error(
-      "--prune needs the whole payload in one script; drop --split"
-    );
-  }
-  return payload.sets.map((set) => ({
+  const last = payload.sets.length - 1;
+  return payload.sets.map((set, index) => ({
     name: set.name.toLowerCase(),
-    code: script({ ...payload, sets: [set] }, options),
+    code: script(
+      { ...payload, sets: [set] },
+      index === last ? options : { ...options, prune: [] }
+    ),
   }));
 }
 

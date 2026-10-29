@@ -647,6 +647,31 @@ describe("orphans", () => {
     expect(ids).toContain(modes.id);
   });
 
+  // Every split script knows all of setNames, so each finds the same
+  // orphans; the last one prunes them, once every set has synced.
+  it("prunes with --split in the last script only, after every set is synced", async () => {
+    const { file, spike, modes } = await withSpikeSet();
+
+    const reports = await sync(file, {
+      dryRun: false,
+      prune: [spike.id],
+      split: true,
+    });
+
+    expect(reports).toHaveLength(setNames.length);
+    expect(reports.slice(0, -1).map((report) => report.pruned)).toEqual(
+      setNames.slice(0, -1).map(() => [])
+    );
+    expect(reports.at(-1)!.pruned).toEqual([
+      { kind: "COMPONENT_SET", name: "Button", id: spike.id },
+    ]);
+    const ids = components(file).page!.children!.map((n) => n.id);
+    expect(ids).not.toContain(spike.id);
+    expect(ids).toContain(modes.id);
+    expect(components(file).sets.map((set) => set.name)).toEqual(setNames);
+    expect((await sync(file, { dryRun: true }))[0]!.counts.changes).toBe(0);
+  });
+
   it("refuses to prune what it generated, and writes nothing", async () => {
     const file = await tokenFile();
     await sync(file);
