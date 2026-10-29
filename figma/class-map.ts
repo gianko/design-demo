@@ -43,6 +43,8 @@ export const stillClasses: RegExp[] = [
   /^delay-/,
   /^animate-/,
   /^origin-/,
+  // Toast: a view transition's name.
+  /^vt-/,
 ];
 
 /**
@@ -91,6 +93,10 @@ export const layoutClasses: Record<string, Look> = {
   "aspect-square": { square: true },
   // An edge that keeps its width with no colour: in Figma, no stroke paint.
   "border-transparent": { strokes: [] },
+  // IconButton: Figma's auto layout never shrinks a child.
+  "shrink-0": {},
+  // Toast: its copy takes the room its close button leaves.
+  grow: { layoutGrow: 1 },
 };
 
 /**
@@ -102,7 +108,13 @@ export const unseenClasses: Record<string, string> = {
   "tabular-nums":
     "the Plugin API reads a text's OpenType features but can't set them",
   // Checkbox
-  "pointer-events-none": "it says where the pointer goes, which a frame has no say in",
+  "pointer-events-none":
+    "it says where the pointer goes, which a frame has no say in",
+  // Toast
+  "pointer-events-auto":
+    "it says where the pointer goes, which a frame has no say in",
+  "ms-auto":
+    "it puts the toast at the end of the window strip, which a frame doesn't draw",
 };
 
 const corners = [
@@ -156,6 +168,10 @@ export const tokenFamilies: {
       ["pr-", ["Right"]],
       ["pb-", ["Bottom"]],
       ["pl-", ["Left"]],
+      // Toast: inline start and end, which are left and right in English,
+      // the product's one language.
+      ["ps-", ["Left"]],
+      ["pe-", ["Right"]],
     ] as const
   ).map(([prefix, sides]) => ({
     prefix,

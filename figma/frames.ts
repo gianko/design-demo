@@ -36,12 +36,7 @@ export type Styles = {
 export type Anatomy = {
   slot: string;
   children?: (
-    | Anatomy
-    | { text: string }
-    | VectorElement
-    | Placeholder
-    | false
-    | undefined
+    Anatomy | { text: string } | VectorElement | Placeholder | false | undefined
   )[];
 };
 
@@ -56,7 +51,11 @@ export type VectorElement = { vector: string; svg: string };
  * it's a named, empty frame with the other component's root box, from that
  * component's own tv().
  */
-export type Placeholder = { placeholder: string; styles: Styles; props?: Props };
+export type Placeholder = {
+  placeholder: string;
+  styles: Styles;
+  props?: Props;
+};
 
 export type FrameSource = {
   entry: RegistryEntry;
@@ -76,8 +75,7 @@ export type FrameSource = {
 };
 
 export type Copy =
-  | Record<string, string>
-  | ((props: Props) => Record<string, string>);
+  Record<string, string> | ((props: Props) => Record<string, string>);
 
 // ── What the runtime gets ─────────────────────────────────────────────────
 
@@ -417,10 +415,10 @@ function framePlan(anatomy: Anatomy, context: Context): FramePlan {
     plan.primaryAxisSizingMode = bind[primary!] ? "FIXED" : "AUTO";
     plan.counterAxisSizingMode = bind[counter!] ? "FIXED" : "AUTO";
     // Growing along its parent's auto layout fixes that length too.
-    if (field("layoutGrow") && context.parentLayout === layoutMode) {
-      plan.primaryAxisSizingMode = "FIXED";
-    } else if (field("layoutGrow") && context.parentLayout !== "NONE") {
-      plan.counterAxisSizingMode = "FIXED";
+    const parent = context.parentLayout;
+    if (field("layoutGrow") && parent && parent !== "NONE") {
+      if (parent === layoutMode) plan.primaryAxisSizingMode = "FIXED";
+      else plan.counterAxisSizingMode = "FIXED";
     }
     plan.primaryAxisAlignItems = field("primaryAxisAlignItems") as string;
     plan.counterAxisAlignItems = field("counterAxisAlignItems") as string;
@@ -440,7 +438,8 @@ function framePlan(anatomy: Anatomy, context: Context): FramePlan {
   const placing = Object.keys(look).filter((name) => /^[xy]\./.test(name));
   if (placed) {
     // Absolute without insets, it sits where its parent's alignment puts it.
-    const align = plan.layoutPositioning === "ABSOLUTE" ? context.parentAlign : {};
+    const align =
+      plan.layoutPositioning === "ABSOLUTE" ? context.parentAlign : {};
     plan.place = {
       x: edge(look, "x", Boolean(bind.width), align.x),
       y: edge(look, "y", Boolean(bind.height), align.y),
@@ -469,8 +468,7 @@ function framePlan(anatomy: Anatomy, context: Context): FramePlan {
     ...context,
     text,
     parentLayout: layoutMode,
-    parentAlign:
-      layoutMode === "NONE" ? {} : { x: across[0], y: across[1] },
+    parentAlign: layoutMode === "NONE" ? {} : { x: across[0], y: across[1] },
   };
   const children: NodePlan[] = [];
   for (const child of anatomy.children ?? []) {

@@ -99,9 +99,9 @@ async function componentsPass(RUN, PAYLOAD) {
   );
 
   // Every name the payload binds, checked up front, so a dry run on a file
-  // without the tokens fails too, not only an apply.
-  // A vector whose SVG paints aren't currentColor can't bind them, so they
-  // stay literal; the report lists it, in a dry run too.
+  // without the tokens fails too, not only an apply. A vector whose SVG
+  // paints aren't currentColor can't bind them, so they stay literal; the
+  // report lists it, in a dry run too.
   const check = (plan, where, path) => {
     const { bind = {}, fills = [], strokes = [] } = plan;
     for (const name of [...Object.values(bind), ...fills, ...strokes]) {
@@ -321,7 +321,10 @@ async function componentsPass(RUN, PAYLOAD) {
       }
       const zero = ZERO_UNBOUND.includes(field);
       const unlimited = NULL_UNBOUND.includes(field);
-      if (!bound && (zero ? same(node[field], 0) : !unlimited || node[field] === null)) {
+      if (
+        !bound &&
+        (zero ? same(node[field], 0) : !unlimited || node[field] === null)
+      ) {
         continue;
       }
       changes.push(path + field);
@@ -397,7 +400,8 @@ async function componentsPass(RUN, PAYLOAD) {
 
   const along = (edge, parentLength, ownLength) => {
     const length = edge.size === null ? ownLength : edge.size * parentLength;
-    if (edge.constraint === "CENTER") return [(parentLength - length) / 2, length];
+    if (edge.constraint === "CENTER")
+      return [(parentLength - length) / 2, length];
     const start =
       edge.end === null
         ? edge.start * parentLength

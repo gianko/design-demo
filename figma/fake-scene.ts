@@ -253,7 +253,9 @@ export function fakeScene(deps: SceneDeps) {
         .filter((node) => node !== child)
         .reduce((sum, node) => sum + node[field], 0);
       return (
-        inner - others - this.number("itemSpacing") * Math.max(0, flow.length - 1)
+        inner -
+        others -
+        this.number("itemSpacing") * Math.max(0, flow.length - 1)
       );
     }
     private hug(field: "width" | "height", primary: boolean) {
@@ -358,7 +360,7 @@ export function fakeScene(deps: SceneDeps) {
     set fills(paints: Paint[]) {
       this._fills = checkPaints(paints);
     }
-    get width() {
+    get width(): number {
       const parent = this.parent;
       if (this.sizing === "FILL" && parent instanceof Frame) {
         return parent.fillFor(this, "width") ?? this._characters.length * 8;

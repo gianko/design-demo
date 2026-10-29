@@ -35,6 +35,7 @@ type Report = {
   updated: string[];
   orphans: { kind: string; name: string; id: string }[];
   pruned: { kind: string; name: string; id: string }[];
+  literals: string[];
   remaining?: Report["counts"];
 };
 
@@ -91,6 +92,7 @@ type Layer = {
   characters?: string;
   textStyleId?: string;
   textAlignHorizontal?: string;
+  layoutSizingHorizontal?: string;
   layoutMode?: string;
   sizing?: string[];
   alignment?: string[];
@@ -403,6 +405,139 @@ describe("the rest of the library", () => {
     );
     expect(dash.vectorPaths![0]!.data).toBe("M4.5 8h7");
     expect(paints(dash.strokes)).toEqual(["color/text/disabled"]);
+  });
+
+  it("draws IconButton, marked internal, one variant per icon in the icon map × disabled, its glyph Phosphor's", async () => {
+    const file = await tokenFile();
+
+    const [report] = await sync(file);
+
+    const { sets, variant, bound, paints } = components(file);
+    const set = sets.find((s) => s.name === "IconButton")!;
+    expect(set.description).toMatch(/^Internal: only another component/);
+    expect(set.children!.map((c) => c.name)).toEqual([
+      "icon=close, disabled=false",
+      "icon=close, disabled=true",
+    ]);
+    const button = variant("icon=close, disabled=false", "IconButton");
+    // A square at the control height, bare at rest.
+    expect(bound(button)).toMatchObject({
+      width: "density/height/control",
+      height: "density/height/control",
+      topLeftRadius: "radius/control",
+    });
+    expect(paints(button.fills)).toEqual([]);
+    const icon = child(button, "icon");
+    expect(bound(icon)).toMatchObject({ width: "density/size/icon" });
+    const glyph = child(icon, "glyph");
+    // Phosphor's regular X, on its 256-unit grid.
+    expect(glyph.vectorPaths![0]!.data).toMatch(/^M205\.66,194\.34/);
+    expect(paints(glyph.fills)).toEqual(["color/text/ink"]);
+    // Drawn at the icon size, scaling with it when the density flips.
+    expect([glyph.width, glyph.height]).toEqual([icon.width, icon.height]);
+    expect(glyph.constraints).toEqual({
+      horizontal: "SCALE",
+      vertical: "SCALE",
+    });
+    expect(
+      paints(
+        child(
+          child(variant("icon=close, disabled=true", "IconButton"), "icon"),
+          "glyph"
+        ).fills
+      )
+    ).toEqual(["color/text/disabled"]);
+    // Every glyph's paint is currentColor, so none stays literal.
+    expect(report!.literals).toEqual([]);
+  });
+
+  it("says in the dry run which vectors keep a literal paint, and keeps it on apply", async () => {
+    const source = frameSources.find((s) => s.entry.name === "IconButton")!;
+    const literal = framesPayload(
+      [
+        {
+          ...source,
+          anatomy: () => ({
+            slot: "root",
+            children: [
+              {
+                slot: "icon",
+                children: [
+                  {
+                    vector: "glyph",
+                    svg: '<svg width="16" height="16" fill="#000"><path d="M0 0h16v16z"></path></svg>',
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      ],
+      await readTokens()
+    );
+    const file = await tokenFile();
+    const syncLiteral = async (dryRun: boolean) => {
+      const [script] = syncComponentScripts(literal, { dryRun });
+      return run(script!.code, file);
+    };
+
+    const dryRun = await syncLiteral(true);
+    const applied = await syncLiteral(false);
+
+    expect(dryRun.literals).toEqual([
+      "IconButton/icon=close, disabled=false (icon.glyph)",
+      "IconButton/icon=close, disabled=true (icon.glyph)",
+    ]);
+    expect(applied.remaining).toMatchObject({ changes: 0 });
+    const glyph = child(
+      child(
+        components(file).variant("icon=close, disabled=false", "IconButton"),
+        "icon"
+      ),
+      "glyph"
+    );
+    expect(glyph.fills).toEqual([
+      { type: "SOLID", color: { r: 0, g: 0, b: 0 } },
+    ]);
+  });
+
+  it("draws Toast as a measure-wide raised surface, its copy filling the room beside a placeholder for its close button", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints } = components(file);
+    expect(
+      sets.find((s) => s.name === "Toast")!.children!.map((c) => c.name)
+    ).toEqual(["tone=success", "tone=failure"]);
+    const failure = variant("tone=failure", "Toast");
+    expect(paints(failure.fills)).toEqual(["color/bg/error"]);
+    expect(bound(failure)).toMatchObject({
+      width: "density/max-width/measure",
+      paddingLeft: "density/padding/surface",
+      paddingRight: "space/2xs",
+      itemSpacing: "space/xs",
+    });
+    // The window strip it's fixed to isn't drawn: there's no window.
+    expect(failure.children!.map((c) => c.name)).toEqual(["text", "close"]);
+    const text = child(failure, "text");
+    const close = child(failure, "close");
+    expect(bound(text)).toMatchObject({ minHeight: "density/height/control" });
+    expect(text.width).toBe(
+      // Admin density: 20px start padding, 8px end, a 12px gap.
+      failure.width - 20 - 8 - 12 - close.width
+    );
+    const copy = child(text, "text");
+    expect(copy.characters).toMatch(/^Payment not scheduled/);
+    expect(copy.layoutSizingHorizontal).toBe("FILL");
+    expect(paints(copy.fills)).toEqual(["color/text/error"]);
+    // No IconButton instance (ADR 0015): an empty frame in its box.
+    expect(close.type).toBe("FRAME");
+    expect(close.children).toEqual([]);
+    expect(bound(close)).toMatchObject({
+      width: "density/height/control",
+      height: "density/height/control",
+    });
   });
 });
 
