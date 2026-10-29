@@ -224,6 +224,21 @@ describe("pnpm evals:calibrate", () => {
     expect(existsSync(run.out)).toBe(false);
   });
 
+  it("with --estimate prints the estimate and stops, over budget too", async () => {
+    const run = deps(scripted);
+
+    const code = await main(
+      ["--out", run.out, "--budget", "0.5", "--estimate"],
+      run.deps
+    );
+
+    expect(code).toBe(0);
+    expect(run.calls).toEqual([
+      "log estimate: $6.83 (8 screens, 33 screen states × 3 runs × $0.069 a nominal judge call), budget $0.50",
+    ]);
+    expect(existsSync(run.out)).toBe(false);
+  });
+
   // A screen state the judge couldn't answer leaves that run's verdicts
   // not run where no other state failed them, and out of the rates.
   it("leaves a verdict out of the rates when the judge couldn't answer for it", async () => {

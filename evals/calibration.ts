@@ -184,7 +184,7 @@ export type CalibrateDeps = {
 };
 
 const usage =
-  "Usage: pnpm evals:calibrate [--out <report.md>] [--budget <usd>|none]";
+  "Usage: pnpm evals:calibrate [--out <report.md>] [--budget <usd>|none] [--estimate]";
 
 export async function main(
   argv: string[],
@@ -207,6 +207,7 @@ export async function main(
   log(
     `estimate: ${dollars(estimate)} (${set.length} screens, ${states} screen states × ${runs} runs × ${dollars(nominalJudgeCall, 3)} a nominal judge call), budget ${args.budget === null ? "none" : dollars(args.budget)}`
   );
+  if (args.estimate) return 0;
   if (
     args.budget !== null &&
     estimate > args.budget &&
@@ -452,7 +453,8 @@ function report(
   return lines.join("\n") + "\n";
 }
 
-type Args = { out: string; budget: number | null };
+// `estimate` prints the estimate and stops: a look at the cost first.
+type Args = { out: string; budget: number | null; estimate: boolean };
 
 function parse(argv: string[]): Args | string {
   let values;
@@ -462,6 +464,7 @@ function parse(argv: string[]): Args | string {
       options: {
         out: { type: "string", default: "evals/calibration/report.md" },
         budget: { type: "string", default: "10" },
+        estimate: { type: "boolean", default: false },
       },
     }));
   } catch (error) {
@@ -470,5 +473,5 @@ function parse(argv: string[]): Args | string {
   const budget = values.budget === "none" ? null : Number(values.budget);
   if (budget !== null && !(budget >= 0))
     return `--budget must be dollars or none: ${values.budget}`;
-  return { out: resolve(repo, values.out), budget };
+  return { out: resolve(repo, values.out), budget, estimate: values.estimate };
 }

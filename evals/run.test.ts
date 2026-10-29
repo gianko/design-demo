@@ -1112,6 +1112,27 @@ requires:
       expect(code).toBe(0);
     });
 
+    it("with --estimate is all that runs, over budget and on a dirty tree too", async () => {
+      const at = setup("alpha", "beta");
+      earlierRuns(at);
+
+      const { code, questions, started, output } = await run(
+        at,
+        ["--budget", "2", "--estimate"],
+        { plans: twoBriefs(), dirty: true, confirm: false }
+      );
+
+      expect(output).toContain("estimate: $3.00");
+      expect(output).not.toContain("dirty tree");
+      expect(questions).toEqual([]);
+      expect(code).toBe(0);
+      expect(started).toEqual([]);
+      expect(readdirSync(at.resultsDir).sort()).toEqual([
+        "2026-10-20-afternoon.json",
+        "2026-10-20-morning.json",
+      ]);
+    });
+
     // A results file from before gate 5 can't price the judge, so the
     // estimate adds a nominal call per screen state each rep judges: the
     // light renders of the brief's final code attempt in that file, open

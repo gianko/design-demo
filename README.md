@@ -132,10 +132,10 @@ pnpm install
 pnpm storybook                         # the library
 pnpm gate                              # every gate over every story and kept screen
 pnpm test                              # unit tests
-pnpm evals                             # the eval suite; reads ANTHROPIC_API_KEY from .env, prints a cost estimate first
+pnpm evals                             # the eval suite; reads ANTHROPIC_API_KEY from .env, prints a cost estimate first; --estimate stops there
 pnpm evals:report --latest             # the HTML report for the newest run, against the baseline it names (pnpm evals --baseline)
 pnpm evals:readme                      # rewrite this README's eval table from the newest results file, after committing a run
-pnpm evals:calibrate                   # gate 5's calibration set, judged 3 times, into evals/calibration/report.md; prints a cost estimate first
+pnpm evals:calibrate                   # gate 5's calibration set, judged 3 times, into evals/calibration/report.md; prints a cost estimate first; --estimate stops there
 pnpm figma:sync-tokens                 # the Figma variables and styles, as a script for use_figma in figma/out/; --dry-run, --prune <id,…>, --split
 pnpm figma:sync-components             # the component frames, from each tv() config, run after sync-tokens; --dry-run, --prune <id,…>, --split
 ```
