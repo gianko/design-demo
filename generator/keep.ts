@@ -12,7 +12,11 @@ import type { RepTrace } from "./generate.ts";
 import { screenStories } from "./screen-stories.ts";
 import { repo } from "../repo.ts";
 
-export type KeepDeps = { log?: (line: string) => void };
+export type KeepDeps = {
+  log?: (line: string) => void;
+  // Where kept screens go; tests pass a temp dir, so they never write src/.
+  screensDir?: string;
+};
 
 export async function main(argv: string[], deps: KeepDeps = {}) {
   const log = deps.log ?? console.log;
@@ -32,7 +36,7 @@ export async function main(argv: string[], deps: KeepDeps = {}) {
     return 1;
   }
 
-  const dir = resolve(repo, "src/screens", trace.slug);
+  const dir = resolve(deps.screensDir ?? join(repo, "src/screens"), trace.slug);
   if (existsSync(dir)) {
     log(
       `${relative(repo, dir)} is already kept. Remove it first to keep this rep instead.`

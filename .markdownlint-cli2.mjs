@@ -19,6 +19,9 @@ export default {
     // AGENTS.md and similar fragments don't open with a title.
     MD041: false,
   },
+  // What git ignores isn't linted either: eval runs leave Playwright's
+  // error-context.md files under evals/runs/, which aren't ours to style.
+  gitignore: true,
   ignores: [
     ".agents/**",
     ".claude/worktrees/**",
