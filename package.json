@@ -20,6 +20,7 @@
     "keep": "tsx generator/bin/keep.ts",
     "eval": "tsx evals/bin/eval.ts",
     "eval:report": "tsx evals/bin/report.ts",
+    "eval:readme": "tsx evals/bin/readme.ts",
     "test": "vitest run",
     "test:gate": "vitest run --config gates/e2e.config.ts",
     "lint": "eslint .",
