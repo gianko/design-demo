@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import type { StepConfig } from "../generator/config.ts";
-import { criteria } from "../generator/conformance.ts";
+import { findings, rubricCriteria } from "../generator/conformance.ts";
 import type { GateName } from "../generator/failure.ts";
 import type { Attempt } from "../generator/generate.ts";
 import { pascalCase } from "../generator/screen-stories.ts";
@@ -255,7 +255,7 @@ ${legend(runs)}
 ${briefSetsDiffer(runs)}
 <section>
 <h2>Screen briefs</h2>
-<p class="note">${runs.length > 1 ? "Side by side, each cell reads run A → run B." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate. Brief conformance (gate 5) is soft, so it sits beside the passes, never in them: a judged rep passes a criterion when every screen state passes it, and a run without gate 5 reads not run.</p>
+<p class="note">${runs.length > 1 ? "Side by side, each cell reads run A → run B." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate. Brief conformance (gate 5) is soft, so it sits beside the passes, never in them: a judged rep passes a criterion when every screen state passes it, and a run without gate 5 reads not run. Cost takes in the judge's calls, and says how much of it is gate 5's.</p>
 ${summaries(runs)}
 </section>
 ${runs.map((run, index) => repsSection(run, runs.length > 1 ? letter(index) : null)).join("\n")}
@@ -465,7 +465,10 @@ function summary(
       String(counts.error),
       String(counts.skipped),
       meanAttempts(reps),
-      dollars(counts.cost),
+      // The judge's share, so a run from before gate 5 compares fairly.
+      counts.gate5
+        ? `${dollars(counts.cost)}, of which gate 5 ${dollars(counts.gate5.cost)}`
+        : dollars(counts.cost),
       duration(counts.wallMs),
       ...gates.map((gate) => String(failures[gate])),
     ];
@@ -504,7 +507,7 @@ function gate5Table(
   overallLabel: string,
   mode: Mode
 ) {
-  const head = ["Screen brief", "Judged", ...criteria, "Score", "Cost"];
+  const head = ["Screen brief", "Judged", ...rubricCriteria, "Score", "Cost"];
   const notRun = "not run";
   const cells = (run: ReportRun, slugs: string[]): string[] => {
     const counts = tally(
@@ -514,7 +517,7 @@ function gate5Table(
     const judged = counts.judged > 0;
     return [
       rate({ passed: counts.judged, of: counts.judged + counts.notRun }),
-      ...criteria.map((criterion) =>
+      ...rubricCriteria.map((criterion) =>
         judged ? rate(counts.criteria[criterion]) : notRun
       ),
       judged ? rate(counts.score) : notRun,
@@ -612,16 +615,7 @@ function gate5Details(gate5: RepGate5) {
     gate5.ran && gate5.score
       ? `gate 5 · ${gate5.score.passed}/${gate5.score.of} · soft · ${dollars(gate5.cost)}`
       : `gate 5 not run · ${gate5.notRun ?? ""}`;
-  const lines = gate5.states.flatMap((state) =>
-    state.judged
-      ? state.verdicts
-          .filter(({ pass }) => !pass)
-          .map(
-            ({ criterion, reason }) =>
-              `gate 5 · ${state.state} · ${criterion} · ${reason}`
-          )
-      : [`gate 5 · ${state.state} · not run · ${state.error}`]
-  );
+  const lines = gate5.states.flatMap(findings);
   return `<p class="gate5">${escapeHtml(head)}</p>${
     lines.length
       ? `<ul class="failures">${lines

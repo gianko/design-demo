@@ -12,12 +12,10 @@
 import { existsSync, globSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { cost } from "../generator/config.ts";
 import {
-  judgeConfig,
-  judgeScreen,
+  judgeTrace,
   judgeVersions,
-  screenshotsOf,
+  nominalJudgeCall,
 } from "../generator/conformance.ts";
 import type { Attempt, RepTrace, Versions } from "../generator/generate.ts";
 import type { Model } from "../generator/model.ts";
@@ -125,10 +123,7 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
     const states = latest.gate5
       ? 0
       : args.k *
-        briefs.reduce(
-          (sum, brief) => sum + 1 + brief.requires.states.length,
-          0
-        );
+        briefs.reduce((sum, brief) => sum + latest.judgedStates(brief), 0);
     const judging = states * nominalJudgeCall;
     const estimate = briefs.length * args.k * median + judging;
     const line = `estimate: ${dollars(estimate)} (${briefs.length} screen brief${briefs.length === 1 ? "" : "s"} × ${args.k} reps × ${dollars(median)} median rep cost, ${latest.gate5 ? "gate 5 included" : `plus ${dollars(judging)} for gate 5: ${states} screen states × ${dollars(nominalJudgeCall, 3)} a nominal judge call`}), budget ${args.budget === null ? "none" : dollars(args.budget)}`;
@@ -249,46 +244,22 @@ async function runRep(
 }
 
 // Gate 5 on the rep's final screen (ADR 0014). Anything that stops the judge
-// leaves it not run; it never ends the rep, and never changes how it ended.
+// leaves it not run (judgeTrace); it never ends the rep, and never changes
+// how it ended. Its calls spend toward the budget.
 async function judge(
   model: Model,
   brief: ScreenBrief,
   trace: RepTrace,
   spend: (cost: number) => void
 ): Promise<RepGate5> {
-  const notRun = (why: string): RepGate5 => ({
-    ran: false,
-    notRun: why,
-    states: [],
-    score: null,
-    cost: 0,
-  });
-  let screenshots;
-  try {
-    screenshots = screenshotsOf(trace);
-  } catch (error) {
-    console.error(error);
-    return notRun(`no screenshots: ${(error as Error).message}`);
-  }
-  if (screenshots.length === 0) return notRun("no screenshots");
-  // The prompt hash is the run's, in its version tuple.
-  const {
-    ran,
-    states,
-    score,
-    cost: calls,
-  } = await judgeScreen({ brief, screenshots }, model);
-  spend(calls);
-  const unjudged = states.filter((state) => !state.judged).length;
-  return {
-    ran,
-    notRun: ran
-      ? null
-      : `${unjudged} of ${states.length} state${states.length === 1 ? "" : "s"} unjudged`,
-    states,
-    score,
-    cost: calls,
-  };
+  // The prompt hash is the run's, in its version tuple, so it's left out.
+  const { ran, notRun, states, score, cost } = await judgeTrace(
+    trace,
+    brief,
+    model
+  );
+  spend(cost);
+  return { ran, notRun, states, score, cost };
 }
 
 function skipped(brief: ScreenBrief, rep: number): RepResult {
@@ -328,11 +299,16 @@ function repResult(
 }
 
 // The median cost of the reps that ran in the results file that started
-// last, and whether those costs take in gate 5's, or null if there's none. A
-// skipped rep cost nothing and says nothing about what a rep costs.
+// last, whether those costs take in gate 5's, and how many screen states the
+// judge will see for a screen brief; or null if there's none. A skipped rep
+// cost nothing and says nothing about what a rep costs.
 function latestRepCosts(
   resultsDir: string
-): { median: number; gate5: boolean } | null {
+): {
+  median: number;
+  gate5: boolean;
+  judgedStates: (brief: ScreenBrief) => number;
+} | null {
   const reps = latestResults(resultsDir)?.file.reps ?? [];
   const costs = reps
     .filter((rep) => rep.outcome !== "skipped")
@@ -340,24 +316,41 @@ function latestRepCosts(
     .sort((a, b) => a - b);
   if (costs.length === 0) return null;
   const middle = Math.floor(costs.length / 2);
+  const rendered = renderedStates(reps);
   return {
     median:
       costs.length % 2
         ? costs[middle]!
         : (costs[middle - 1]! + costs[middle]!) / 2,
     gate5: reps.some((rep) => rep.gate5 !== undefined),
+    // The judge sees each light render, so the stories' states: the default,
+    // each declared state, and the open-sheet and rows-ticked renders. A
+    // screen brief the file rendered gives its own count; one it didn't, the
+    // default and each state it requires.
+    judgedStates: (brief) =>
+      rendered.get(brief.slug) ?? 1 + brief.requires.states.length,
   };
 }
 
-// A guess at one judge call, until a results file with gate 5 prices it: a
-// screenshot and a screen brief in, the rubric and the design brief read from
-// the cache, and high effort's thinking and six verdicts out. About $0.069.
-const nominalJudgeCall = cost(judgeConfig.model, {
-  input: 2_000,
-  output: 3_000,
-  cacheRead: 5_000,
-  cacheWrite: 0,
-});
+// Per screen brief, the most light renders any rep's final code attempt
+// had in a results file: the screen states gate 5 would have judged.
+function renderedStates(reps: RepResult[]) {
+  const counts = new Map<string, number>();
+  for (const rep of reps) {
+    const final = (rep.attempts ?? []).findLast(
+      (attempt) => attempt.step === "code"
+    );
+    const states = new Set(
+      (final?.renders ?? [])
+        .filter(({ theme }) => theme === "light")
+        .map(({ state }) => state)
+    ).size;
+    if (states > (counts.get(rep.slug) ?? 0)) {
+      counts.set(rep.slug, states);
+    }
+  }
+  return counts;
+}
 
 type Args = {
   briefs: string;

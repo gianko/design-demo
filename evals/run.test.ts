@@ -787,7 +787,7 @@ requires:
 
       expect(code).toBe(0);
       expect(output).toMatch(
-        /^alpha · rep 1 · pass · passed · \$0\.12 · [\d.]+s · gate 5 10\/12$/m
+        /^alpha · rep 1 · pass · passed · \$0\.12 · [\d.]+s · gate 5 5\/6$/m
       );
       // The light shot of each state, never the dark one.
       expect(sentShots(requests)).toEqual([
@@ -798,7 +798,7 @@ requires:
       expect(rep!.gate5).toMatchObject({
         ran: true,
         notRun: null,
-        score: { passed: 10, of: 12 },
+        score: { passed: 5, of: 6 },
       });
       expect(rep!.gate5!.states.map(({ state }) => state)).toEqual([
         "default",
@@ -909,7 +909,7 @@ requires:
         judged: 2,
         notRun: 1,
         criteria: rates([1, 2], 2),
-        score: { passed: 17, of: 18 },
+        score: { passed: 11, of: 12 },
         cost: expect.closeTo(3 * 0.02546, 6),
       });
       // The rep in error is left out, as it is from the pass rates.
@@ -924,7 +924,7 @@ requires:
         judged: 4,
         notRun: 1,
         criteria: rates([1, 4], 4),
-        score: { passed: 27, of: 30 },
+        score: { passed: 21, of: 24 },
       });
     });
 
@@ -1114,7 +1114,55 @@ requires:
 
     // A results file from before gate 5 can't price the judge, so the
     // estimate adds a nominal call per screen state each rep judges: the
+    // light renders of the brief's final code attempt in that file, open
+    // sheet and ticked rows included, or for a brief it doesn't have, the
     // default and each state the screen brief requires.
+    it("counts the screen states the judge will see from the latest results file's renders", async () => {
+      const at = setup("alpha", "beta");
+      earlierRuns(at, { gate5: false });
+      const light = (states: string[]) =>
+        states.flatMap((state) =>
+          (["light", "dark"] as const).map((theme) => ({
+            theme,
+            density: "admin",
+            state,
+            gates: {},
+          }))
+        );
+      const latest = join(at.resultsDir, "2026-10-20-afternoon.json");
+      const file = JSON.parse(readFileSync(latest, "utf8"));
+      file.reps[0] = {
+        ...file.reps[0],
+        slug: "alpha",
+        attempts: [
+          { step: "spec", attempt: 1 },
+          { step: "code", attempt: 1, renders: light(["default"]) },
+          {
+            step: "code",
+            attempt: 2,
+            renders: light([
+              "default",
+              "empty",
+              "default, sheet open",
+              "default, rows ticked",
+            ]),
+          },
+        ],
+      };
+      writeFileSync(latest, JSON.stringify(file));
+
+      const { output } = await run(at, ["--budget", "3.5"], {
+        plans: twoBriefs(),
+        confirm: false,
+      });
+
+      // 3 reps × (alpha's 4 rendered states + beta's default and empty) ×
+      // $0.069 = $1.24.
+      expect(output).toContain(
+        "estimate: $4.24 (2 screen briefs × 3 reps × $0.50 median rep cost, plus $1.24 for gate 5: 18 screen states × $0.069 a nominal judge call)"
+      );
+    });
+
     it("adds a nominal judge call per screen state when the latest results file has no gate 5", async () => {
       const at = setup("alpha", "beta");
       earlierRuns(at, { gate5: false });

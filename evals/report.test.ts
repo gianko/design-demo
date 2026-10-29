@@ -418,7 +418,7 @@ describe("pnpm eval:report", () => {
           elevation: "3/3",
           copy: "3/3",
           repetition: "2/3",
-          Score: "34/36",
+          Score: "16/18",
           Cost: "$0.30",
         },
       ]);
@@ -437,7 +437,7 @@ describe("pnpm eval:report", () => {
           hierarchy: "5/5",
           accent: "4/5",
           repetition: "4/5",
-          Score: "46/48",
+          Score: "28/30",
           Cost: "$0.40",
         }),
       ]);
@@ -445,6 +445,13 @@ describe("pnpm eval:report", () => {
       expect(rows(doc, "invoice-queue")).toEqual([
         expect.objectContaining({
           "Passed (first attempt → final)": "1/3 → 2/3",
+        }),
+      ]);
+      // The cost takes in the judge's, and says how much, so a run from
+      // before gate 5 compares fairly.
+      expect(rows(doc, "All screen briefs")).toEqual([
+        expect.objectContaining({
+          Cost: expect.stringMatching(/^\$\d+\.\d\d, of which gate 5 \$0\.40$/),
         }),
       ]);
       expect(legendRow(doc, "Gate 5 judge")).toEqual([
@@ -465,6 +472,7 @@ describe("pnpm eval:report", () => {
         "All screen briefs",
       ]) {
         expect(gate5Cells(doc, brief), brief).toEqual(Array(9).fill("not run"));
+        expect(rows(doc, brief)[0]!.Cost, brief).toMatch(/^\$\d+\.\d\d$/);
       }
       expect(legendRow(doc, "Gate 5 judge")).toEqual(["not run"]);
     });
@@ -487,7 +495,7 @@ describe("pnpm eval:report", () => {
           hierarchy: "3/3 → 3/3",
           accent: "2/3 → 3/3",
           repetition: "2/3 → 3/3",
-          Score: "34/36 → 36/36",
+          Score: "16/18 → 18/18",
         }),
       ]);
       expect(gate5Rows(both, "All screen briefs")).toEqual([
@@ -497,7 +505,7 @@ describe("pnpm eval:report", () => {
         expect.objectContaining({
           Judged: "not run → 3/3",
           accent: "not run → 3/3",
-          Score: "not run → 36/36",
+          Score: "not run → 18/18",
           Cost: "not run → $0.30",
         }),
       ]);
@@ -513,7 +521,7 @@ describe("pnpm eval:report", () => {
       expect(text).toContain(
         'gate 5 · payment-scheduled · repetition · The payment-scheduled state breaks repetition, as "Every status tag carries its word."'
       );
-      expect(text).toContain("gate 5 · 11/12 · soft");
+      expect(text).toContain("gate 5 · 5/6 · soft");
       expect(text).toContain("gate 5 not run · 1 of 1 state unjudged");
     });
 
