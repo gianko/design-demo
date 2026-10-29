@@ -37,7 +37,7 @@ export const rubric = {
 } as const;
 
 export type Criterion = keyof typeof rubric;
-export const criteria = Object.keys(rubric) as Criterion[];
+export const rubricCriteria = Object.keys(rubric) as Criterion[];
 
 // One call per screen state. Thinking can't be turned off on Opus 5.5, so
 // effort is set: high, since a verdict that flips between runs is worth less
@@ -69,7 +69,8 @@ export type StateJudgement = { state: string; call: JudgeCall | null } & (
   | { judged: false; error: string }
 );
 
-// A count of criteria passed, out of those judged.
+// The criteria the screen passes, out of the six: a screen passes a
+// criterion when every state does (screenPasses).
 export type Score = { passed: number; of: number };
 
 export type Conformance = {
@@ -108,16 +109,106 @@ export async function judgeScreen(
     states,
     score: ran
       ? {
-          passed: states.reduce(
-            (sum, state) => sum + (state.judged ? state.passed : 0),
-            0
-          ),
-          of: states.length * criteria.length,
+          passed: rubricCriteria.filter((criterion) =>
+            screenPasses(states, criterion)
+          ).length,
+          of: rubricCriteria.length,
         }
       : null,
     cost: states.reduce((sum, state) => sum + (state.call?.cost ?? 0), 0),
     promptHash: prompt.hash,
   };
+}
+
+// A screen passes a criterion when every state does, and fails it when any
+// state does. Null when no state fails it but some state went unjudged, or
+// when there are no states: it's undecided.
+export function screenPasses(
+  states: StateJudgement[],
+  criterion: Criterion
+): boolean | null {
+  const verdicts = states.map((state) =>
+    state.judged
+      ? state.verdicts.find((verdict) => verdict.criterion === criterion)!.pass
+      : null
+  );
+  if (verdicts.includes(false)) return false;
+  if (verdicts.length === 0 || verdicts.includes(null)) return null;
+  return true;
+}
+
+// Gate 5 on a rep's final screen: its Conformance, with why it didn't run,
+// or null when it did. The prompt hash is null when no state was sent.
+export type Gate5 = Omit<Conformance, "promptHash"> & {
+  notRun: string | null;
+  promptHash: string | null;
+};
+
+// Gate 5 on a rep's final screen, as `pnpm generate` and eval runs judge it:
+// the light shot of each state its final attempt rendered. A screen with no
+// shots, or shots that can't be read, isn't judged, and anything else that
+// stops the judge leaves it not run too. It never throws.
+export async function judgeTrace(
+  trace: RepTrace,
+  brief: ScreenBrief,
+  model: Model,
+  designBrief?: string
+): Promise<Gate5> {
+  const notRun = (why: string): Gate5 => ({
+    ran: false,
+    notRun: why,
+    states: [],
+    score: null,
+    cost: 0,
+    promptHash: null,
+  });
+  let screenshots;
+  try {
+    screenshots = screenshotsOf(trace);
+  } catch (error) {
+    console.error(error);
+    return notRun(`no screenshots: ${message(error)}`);
+  }
+  if (screenshots.length === 0) return notRun("no screenshots");
+  try {
+    const conformance = await judgeScreen(
+      { brief, screenshots, designBrief },
+      model
+    );
+    const unjudged = conformance.states.filter((state) => !state.judged);
+    return {
+      ...conformance,
+      notRun: conformance.ran
+        ? null
+        : `${unjudged.length} of ${plural(conformance.states.length, "state")} unjudged`,
+    };
+  } catch (error) {
+    console.error(error);
+    return notRun(message(error));
+  }
+}
+
+// A state's failing verdicts, or why it wasn't judged, each as a taste
+// rule's finding reads: gate, state, criterion, reason.
+export function findings(state: StateJudgement): string[] {
+  if (!state.judged) {
+    return [`gate 5 · ${state.state} · not run · ${state.error}`];
+  }
+  return state.verdicts
+    .filter(({ pass }) => !pass)
+    .map(
+      ({ criterion, reason }) =>
+        `gate 5 · ${state.state} · ${criterion} · ${reason}`
+    );
+}
+
+// `1 state`, `2 states`.
+export function plural(n: number, word: string) {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+function message(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 // The light-theme rest shot of each state the rep's final attempt rendered,
@@ -139,7 +230,7 @@ const instructions = `You judge one screenshot of a generated product screen aga
 
 Judge each of these six criteria on its own, pass or fail:
 
-${criteria.map((criterion) => `- ${criterion}: ${rubric[criterion]}`).join("\n")}
+${rubricCriteria.map((criterion) => `- ${criterion}: ${rubric[criterion]}`).join("\n")}
 
 For each criterion, write the reason first: one sentence saying what in the screenshot meets or breaks the criterion, which quotes the words of the design brief it rests on in double quotes, copied exactly from one line of the brief. Then pass: true when the screenshot meets the criterion, false when it doesn't. A criterion the screenshot gives nothing to judge, such as elevation on a screen with no shadow or error copy on a screen with no error, passes.
 
@@ -289,7 +380,7 @@ function parseVerdicts(
     };
   }
   const brief = normalise(designBrief);
-  const list = criteria.map((criterion) => ({
+  const list = rubricCriteria.map((criterion) => ({
     criterion,
     ...result.data[criterion],
   }));

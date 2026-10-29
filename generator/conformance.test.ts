@@ -3,11 +3,18 @@
 // state, and its verdicts parsed from a recorded reply. No test calls the
 // live model.
 
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it } from "vitest";
-import { judgeScreen } from "./conformance.ts";
+import {
+  findings,
+  judgeScreen,
+  judgeTrace,
+  screenPasses,
+} from "./conformance.ts";
+import type { RepTrace } from "./generate.ts";
 import type { Model } from "./model.ts";
 import { readScreenBrief } from "./screen-brief.ts";
 import { repo } from "../repo.ts";
@@ -119,7 +126,8 @@ describe("judgeScreen", () => {
     expect(first!.verdicts.at(-1)!.reason).toBe(
       'The card says "Overdue" in its title, its status tag and its text, where the tag alone would do, since "Every status tag carries its word."'
     );
-    expect(result.score).toEqual({ passed: 10, of: 12 });
+    // Both states fail repetition, so the screen passes the other five.
+    expect(result.score).toEqual({ passed: 5, of: 6 });
     // 1650 input, 900 output and 4300 cache-read tokens at Opus 5.5's
     // prices, twice.
     expect(first!.call).toMatchObject({
@@ -128,6 +136,59 @@ describe("judgeScreen", () => {
       stopReason: "end_turn",
     });
     expect(result.cost).toBeCloseTo(2 * 0.02546, 6);
+  });
+
+  it("scores the screen as the criteria every state passes, out of six", async () => {
+    const reply = JSON.parse((recorded.content[1] as Anthropic.TextBlock).text);
+    // The default state fails repetition, as recorded; the reminder-sent
+    // state passes repetition and fails accent.
+    const { model } = recording((params) => {
+      const [, text] = params.messages[0]!
+        .content as Anthropic.TextBlockParam[];
+      if (text!.text.includes('"default"')) return recorded;
+      return {
+        ...recorded,
+        content: [
+          {
+            type: "text",
+            citations: null,
+            text: JSON.stringify({
+              ...reply,
+              accent: { ...reply.accent, pass: false },
+              repetition: { ...reply.repetition, pass: true },
+            }),
+          },
+        ],
+      };
+    });
+
+    const result = await judgeScreen(
+      { brief, screenshots: shots, designBrief },
+      model
+    );
+
+    expect(result.score).toEqual({ passed: 4, of: 6 });
+    expect(screenPasses(result.states, "hierarchy")).toBe(true);
+    expect(screenPasses(result.states, "accent")).toBe(false);
+    expect(screenPasses(result.states, "repetition")).toBe(false);
+  });
+
+  it("leaves a screen's criterion undecided when no state fails it and some state wasn't judged", async () => {
+    const failing: Model = async (params) => {
+      const [, text] = params.messages[0]!
+        .content as Anthropic.TextBlockParam[];
+      if (text!.text.includes('"default"')) throw new Error("overloaded");
+      return { message: recorded, requestId: null };
+    };
+
+    const result = await judgeScreen(
+      { brief, screenshots: shots, designBrief },
+      failing
+    );
+
+    expect(screenPasses(result.states, "hierarchy")).toBeNull();
+    expect(screenPasses(result.states, "repetition")).toBe(false);
+    expect(screenPasses([], "hierarchy")).toBeNull();
   });
 
   it("leaves gate 5 not run when a state's call fails, is refused or runs out of tokens", async () => {
@@ -200,11 +261,54 @@ describe("judgeScreen", () => {
     expect((missing.states[0] as { error: string }).error).toMatch(
       /^malformed: .*copy/
     );
+    // The judge sees the rubric and the screen brief in the same prompt, but
+    // only the design brief counts as a quote.
+    const rubricQuoted = await judgeScreen(
+      input,
+      replying(
+        JSON.stringify({
+          ...reply,
+          accent: {
+            reason:
+              'Heather fills only Send reminder, so "The accent appears only on the primary action, selection and focus."',
+            pass: true,
+          },
+        })
+      )
+    );
+    const screenBriefQuoted = await judgeScreen(
+      input,
+      replying(
+        JSON.stringify({
+          ...reply,
+          copy: {
+            reason:
+              'The button reads Send reminder, "a Send reminder action that asks the client to pay."',
+            pass: true,
+          },
+        })
+      )
+    );
+
     expect(paraphrased.states[0]).toMatchObject({
       judged: false,
       error: "malformed: accent quotes nothing in the design brief",
     });
-    for (const result of [notJson, missing, paraphrased]) {
+    expect(rubricQuoted.states[0]).toMatchObject({
+      judged: false,
+      error: "malformed: accent quotes nothing in the design brief",
+    });
+    expect(screenBriefQuoted.states[0]).toMatchObject({
+      judged: false,
+      error: "malformed: copy quotes nothing in the design brief",
+    });
+    for (const result of [
+      notJson,
+      missing,
+      paraphrased,
+      rubricQuoted,
+      screenBriefQuoted,
+    ]) {
       expect(result.ran).toBe(false);
     }
   });
@@ -224,6 +328,123 @@ describe("judgeScreen", () => {
       score: null,
       cost: 0,
     });
+  });
+});
+
+// Gate 5 on a rep's final screen, as `pnpm generate` and eval runs run it.
+describe("judgeTrace", () => {
+  // A rep's trace whose final attempt took these rest shots, each written
+  // where the render pass writes them.
+  function traced(shots: { theme: "light" | "dark"; state: string }[]) {
+    const workDir = mkdtempSync(join(tmpdir(), "judge-trace-"));
+    mkdirSync(join(workDir, "shots"));
+    for (const { theme, state } of shots) {
+      writeFileSync(join(workDir, `shots/${theme}--${state}.png`), state);
+    }
+    return {
+      slug: brief.slug,
+      workDir,
+      outcome: "pass",
+      endReason: "passed",
+      attempts: [],
+      shots: shots.map(({ theme, state }) => ({
+        theme,
+        state,
+        file: `shots/${theme}--${state}.png`,
+      })),
+    } as unknown as RepTrace;
+  }
+
+  it("judges each state's light shot and says nothing about why it didn't run", async () => {
+    const { model, requests } = recording();
+
+    const result = await judgeTrace(
+      traced([
+        { theme: "light", state: "default" },
+        { theme: "dark", state: "default" },
+        { theme: "light", state: "reminder-sent" },
+      ]),
+      brief,
+      model
+    );
+
+    expect(requests).toHaveLength(2);
+    expect(result).toMatchObject({
+      ran: true,
+      notRun: null,
+      score: { passed: 5, of: 6 },
+    });
+    expect(result.promptHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("is not run with no screenshots, or with screenshots it can't read", async () => {
+    const { model, requests } = recording();
+    const unreadable = traced([{ theme: "light", state: "default" }]);
+    unreadable.shots = [
+      { theme: "light", state: "default", file: "shots/missing.png" },
+    ];
+
+    const none = await judgeTrace(traced([]), brief, model);
+    const missing = await judgeTrace(unreadable, brief, model);
+
+    expect(requests).toEqual([]);
+    expect(none).toMatchObject({
+      ran: false,
+      notRun: "no screenshots",
+      states: [],
+      score: null,
+      cost: 0,
+    });
+    expect(missing.ran).toBe(false);
+    expect(missing.notRun).toMatch(/^no screenshots: ENOENT/);
+  });
+
+  it("says how many states went unjudged", async () => {
+    const failing: Model = async (params) => {
+      const [, text] = params.messages[0]!
+        .content as Anthropic.TextBlockParam[];
+      if (text!.text.includes('"default"')) throw new Error("overloaded");
+      return { message: recorded, requestId: null };
+    };
+
+    const result = await judgeTrace(
+      traced([
+        { theme: "light", state: "default" },
+        { theme: "light", state: "reminder-sent" },
+      ]),
+      brief,
+      failing
+    );
+
+    expect(result).toMatchObject({
+      ran: false,
+      notRun: "1 of 2 states unjudged",
+      score: null,
+    });
+    expect(result.cost).toBeCloseTo(0.02546, 6);
+  });
+});
+
+describe("findings", () => {
+  it("reads a state's failing verdicts, or why it wasn't judged, as a taste rule's finding does", async () => {
+    const failing: Model = async (params) => {
+      const [, text] = params.messages[0]!
+        .content as Anthropic.TextBlockParam[];
+      if (text!.text.includes('"default"')) throw new Error("overloaded");
+      return { message: recorded, requestId: null };
+    };
+
+    const { states } = await judgeScreen(
+      { brief, screenshots: shots, designBrief },
+      failing
+    );
+
+    expect(states.map(findings)).toEqual([
+      ["gate 5 · default · not run · api"],
+      [
+        'gate 5 · reminder-sent · repetition · The card says "Overdue" in its title, its status tag and its text, where the tag alone would do, since "Every status tag carries its word."',
+      ],
+    ]);
   });
 });
 

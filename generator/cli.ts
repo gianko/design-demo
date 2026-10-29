@@ -11,10 +11,11 @@
 import { writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import {
-  type Conformance,
-  criteria as rubricOrder,
-  judgeScreen,
-  screenshotsOf,
+  type Gate5,
+  findings,
+  judgeTrace,
+  plural,
+  rubricCriteria,
 } from "./conformance.ts";
 import { checkPassCriteria } from "./pass-criteria.ts";
 import { type Attempt, generate, type RepTrace } from "./generate.ts";
@@ -136,53 +137,39 @@ function gateResults(gates: Attempt["gates"]) {
 
 // Gate 5 on the final screen, kept in the rep dir as conformance.json. A rep
 // that ended in error isn't judged, and anything that stops the judge leaves
-// gate 5 not run: it never ends the rep.
+// gate 5 not run (judgeTrace): it never ends the rep.
 async function gate5(trace: RepTrace, brief: ScreenBrief, judge: Model) {
   if (trace.outcome === "error") {
     return "gate 5 not run · the rep ended in error";
   }
-  try {
-    const screenshots = screenshotsOf(trace);
-    if (screenshots.length === 0) return "gate 5 not run · no screenshots";
-    const conformance = await judgeScreen({ brief, screenshots }, judge);
+  const gate5 = await judgeTrace(trace, brief, judge);
+  if (gate5.states.length > 0) {
     writeFileSync(
       join(trace.workDir, "conformance.json"),
-      JSON.stringify(conformance, null, 2) + "\n"
+      JSON.stringify(gate5, null, 2) + "\n"
     );
-    return conformanceLines(conformance);
-  } catch (error) {
-    console.error(error);
-    return `gate 5 not run · ${error instanceof Error ? error.message : String(error)}`;
   }
+  return conformanceLines(gate5);
 }
 
 // Each state's verdicts and score, then each failing verdict as a taste
 // rule's finding reads: gate, state, criterion, reason. Then the screen's
 // score, or why gate 5 didn't run.
-function conformanceLines({ ran, states, score, cost }: Conformance) {
+function conformanceLines({ states, score, cost, notRun }: Gate5) {
   const lines = states.flatMap((judgement) => {
-    if (!judgement.judged) {
-      return [`gate 5 · ${judgement.state} · not run · ${judgement.error}`];
-    }
+    if (!judgement.judged) return findings(judgement);
     const verdicts = judgement.verdicts
       .map(({ criterion, pass }) => `${criterion} ${pass ? "pass" : "fail"}`)
       .join(" · ");
     return [
-      `gate 5 · ${judgement.state} · ${verdicts} · ${judgement.passed}/${rubricOrder.length}`,
-      ...judgement.verdicts
-        .filter(({ pass }) => !pass)
-        .map(
-          ({ criterion, reason }) =>
-            `  gate 5 · ${judgement.state} · ${criterion} · ${reason}`
-        ),
+      `gate 5 · ${judgement.state} · ${verdicts} · ${judgement.passed}/${rubricCriteria.length}`,
+      ...findings(judgement).map((line) => `  ${line}`),
     ];
   });
-  const plural = (n: number) => `${n} state${n === 1 ? "" : "s"}`;
-  const unjudged = states.filter((judgement) => !judgement.judged).length;
   lines.push(
-    ran && score
-      ? `gate 5 score: ${score.passed}/${score.of} over ${plural(states.length)} · soft · ${dollars(cost, 4)}`
-      : `gate 5 not run · ${unjudged} of ${plural(states.length)} unjudged`
+    score
+      ? `gate 5 score: ${score.passed}/${score.of} over ${plural(states.length, "state")} · soft · ${dollars(cost, 4)}`
+      : `gate 5 not run · ${notRun}`
   );
   return lines.join("\n");
 }
