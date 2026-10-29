@@ -29,6 +29,10 @@ export const prefixes: Record<string, "skip" | "apply"> = {
   "focus-visible": "skip",
   before: "skip",
   "motion-reduce": "apply",
+  // Checkbox: its box follows the input's states.
+  "peer-hover": "skip",
+  "peer-active": "skip",
+  "peer-focus-visible": "skip",
 };
 
 /** Motion classes: a frame is still, so they have no look. */
@@ -39,6 +43,8 @@ export const stillClasses: RegExp[] = [
   /^delay-/,
   /^animate-/,
   /^origin-/,
+  // Toast: a view transition's name.
+  /^vt-/,
 ];
 
 /**
@@ -79,6 +85,36 @@ export const layoutClasses: Record<string, Look> = {
   "h-full": { "y.fraction": 1 },
   "translate-x-full": { "x.shift": 1 },
   "translate-y-full": { "y.shift": 1 },
+  // StatusTag: a box that hugs its line, as any block does.
+  "inline-block": {},
+  // Amount: a table amount ends at its end edge.
+  "text-right": { "text.textAlignHorizontal": "RIGHT" },
+  // Checkbox: frames.ts gives a square's one bound length to both axes.
+  "aspect-square": { square: true },
+  // An edge that keeps its width with no colour: in Figma, no stroke paint.
+  "border-transparent": { strokes: [] },
+  // IconButton: Figma's auto layout never shrinks a child.
+  "shrink-0": {},
+  // Toast: its copy takes the room its close button leaves.
+  grow: { layoutGrow: 1 },
+};
+
+/**
+ * Classes with no look a Figma frame can take, each with the reason. They
+ * are skipped, so a class leaves the frames only by being listed here.
+ */
+export const unseenClasses: Record<string, string> = {
+  // Amount
+  "tabular-nums":
+    "the Plugin API reads a text's OpenType features but can't set them",
+  // Checkbox
+  "pointer-events-none":
+    "it says where the pointer goes, which a frame has no say in",
+  // Toast
+  "pointer-events-auto":
+    "it says where the pointer goes, which a frame has no say in",
+  "ms-auto":
+    "it puts the toast at the end of the window strip, which a frame doesn't draw",
 };
 
 const corners = [
@@ -132,6 +168,10 @@ export const tokenFamilies: {
       ["pr-", ["Right"]],
       ["pb-", ["Bottom"]],
       ["pl-", ["Left"]],
+      // Toast: inline start and end, which are left and right in English,
+      // the product's one language.
+      ["ps-", ["Left"]],
+      ["pe-", ["Right"]],
     ] as const
   ).map(([prefix, sides]) => ({
     prefix,
@@ -143,6 +183,23 @@ export const tokenFamilies: {
     prefix: "gap-",
     theme: ["spacing"],
     look: (v) => ({ "bind.itemSpacing": v }),
+  },
+  // Checkbox
+  {
+    prefix: "min-h-",
+    theme: ["min-height", "height", "spacing"],
+    look: (v) => ({ "bind.minHeight": v }),
+  },
+  {
+    prefix: "size-",
+    theme: ["size", "spacing"],
+    look: (v) => ({ "bind.width": v, "bind.height": v }),
+  },
+  // Text: body copy keeps a measure.
+  {
+    prefix: "max-w-",
+    theme: ["max-width", "spacing"],
+    look: (v) => ({ "bind.maxWidth": v }),
   },
 ];
 
@@ -177,6 +234,7 @@ export function classMap(tokens: Tokens): (raw: string) => Mapping {
   const utility = (name: string): Look | "skip" | null => {
     if (Object.hasOwn(layoutClasses, name)) return layoutClasses[name]!;
     if (stillClasses.some((pattern) => pattern.test(name))) return "skip";
+    if (Object.hasOwn(unseenClasses, name)) return "skip";
     const fraction = /^([wh])-(\d+)\/(\d+)$/.exec(name);
     if (fraction) {
       const [, side, top, bottom] = fraction;

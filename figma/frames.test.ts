@@ -80,4 +80,66 @@ describe("generating the frames", () => {
       "Probe (tone=plain): the root slot's classes bg-surface and bg-accent both set fills"
     );
   });
+
+  it("fails on a slot no variant draws, unless it says why", () => {
+    const source = probe("");
+    const hidden = { ...source, anatomy: () => ({ slot: "root" }) };
+
+    expect(() => framesPayload([hidden], tokens)).toThrow(
+      "Probe: no variant draws the mark slot"
+    );
+    expect(() =>
+      framesPayload([{ ...hidden, notDrawn: { mark: "a stand-in" } }], tokens)
+    ).not.toThrow();
+  });
+
+  it("binds a vector's currentColor to the colour above it, and leaves any other paint literal", () => {
+    const source = probe("", "inline-flex bg-surface text-ink");
+    const [set] = framesPayload(
+      [
+        {
+          ...source,
+          anatomy: () => ({
+            slot: "root",
+            children: [
+              {
+                slot: "mark",
+                children: [
+                  {
+                    vector: "glyph",
+                    svg: '<svg width="16" height="16" fill="currentColor" stroke="#000"><path d="M0 0h16"></path></svg>',
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      ],
+      tokens
+    ).sets;
+
+    const mark = set!.variants[0]!.children![0]!;
+    expect(mark.type === "FRAME" && mark.children).toEqual([
+      {
+        type: "VECTOR",
+        name: "glyph",
+        svg: expect.stringContaining("<svg"),
+        fills: ["color/text/ink"],
+      },
+    ]);
+  });
+
+  it("draws a root that fills what holds it at its max width", () => {
+    const [set] = framesPayload(
+      [probe("", "flex w-full max-w-measure")],
+      tokens
+    ).sets;
+
+    expect(set!.variants[0]!.bind).toEqual({
+      width: "density/max-width/measure",
+    });
+    expect(() => framesPayload([probe("", "flex w-full")], tokens)).toThrow(
+      "Probe (tone=plain): the root slot fills what holds it, and has no max-* class to draw it at"
+    );
+  });
 });
