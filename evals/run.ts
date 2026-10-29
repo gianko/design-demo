@@ -1,4 +1,4 @@
-// `pnpm eval` (ADR 0008): one eval run. Every screen brief `--briefs` matches
+// `pnpm evals` (ADR 0008): one eval run. Every screen brief `--briefs` matches
 // runs K times through generate(), in-process, three reps at a time, each in
 // its own scratch folder under `evals/runs/<run-id>/`. A rep ends as pass,
 // fail, error or skipped; the brief's pass criteria are checked once, on the
@@ -56,7 +56,7 @@ export type EvalDeps = {
 const concurrency = 3;
 
 const usage =
-  "Usage: pnpm eval [--briefs <glob>] [--k <n>] [--budget <usd>|none] [--label <label>] [--baseline <results file name>] [--allow-dirty]";
+  "Usage: pnpm evals [--briefs <glob>] [--k <n>] [--budget <usd>|none] [--label <label>] [--baseline <results file name>] [--allow-dirty] [--estimate]";
 
 export async function main(argv: string[], deps: EvalDeps): Promise<number> {
   const log = deps.log ?? console.log;
@@ -102,13 +102,13 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
 
   // A results file names the commit it ran on, which a dirty tree isn't.
   const git = await deps.git();
-  if (git.dirty && !args.allowDirty) {
+  if (git.dirty && !args.allowDirty && !args.estimate) {
     log(
       "The tree has uncommitted changes, so the git SHA wouldn't say what ran. Commit them, or pass --allow-dirty to run anyway and record it."
     );
     return 2;
   }
-  if (git.dirty) log("dirty tree: allowed, and recorded");
+  if (git.dirty && !args.estimate) log("dirty tree: allowed, and recorded");
   const versions = await deps.versions();
 
   // Screen briefs × K × the latest results file's median rep cost, which
@@ -129,6 +129,7 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
     const line = `estimate: ${dollars(estimate)} (${briefs.length} screen brief${briefs.length === 1 ? "" : "s"} × ${args.k} reps × ${dollars(median)} median rep cost, ${latest.gate5 ? "gate 5 included" : `plus ${dollars(judging)} for gate 5: ${states} screen states × ${dollars(nominalJudgeCall, 3)} a nominal judge call`}), budget ${args.budget === null ? "none" : dollars(args.budget)}`;
     log(line);
     if (
+      !args.estimate &&
       args.budget !== null &&
       estimate > args.budget &&
       !(await deps.confirm(
@@ -139,6 +140,7 @@ export async function main(argv: string[], deps: EvalDeps): Promise<number> {
       return 1;
     }
   }
+  if (args.estimate) return 0;
 
   const runId = `${stamp(started)}-${args.label}`;
   const runDir = join(runsDir, runId);
@@ -360,6 +362,8 @@ type Args = {
   // A results file's name, less `.json`.
   baseline: string | null;
   allowDirty: boolean;
+  // Print the estimate and stop: a look at the cost before deciding.
+  estimate: boolean;
 };
 
 function parse(argv: string[]): Args | string {
@@ -374,6 +378,7 @@ function parse(argv: string[]): Args | string {
         label: { type: "string", default: "eval" },
         baseline: { type: "string" },
         "allow-dirty": { type: "boolean", default: false },
+        estimate: { type: "boolean", default: false },
       },
     }));
   } catch (error) {
@@ -397,6 +402,7 @@ function parse(argv: string[]): Args | string {
     baseline:
       values.baseline === undefined ? null : basename(values.baseline, ".json"),
     allowDirty: values["allow-dirty"],
+    estimate: values.estimate,
   };
 }
 

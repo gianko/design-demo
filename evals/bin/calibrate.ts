@@ -1,4 +1,4 @@
-// `pnpm eval:calibrate`, against the real judge and render pass (ADR 0014).
+// `pnpm evals:calibrate`, against the real judge and render pass (ADR 0014).
 // The API key comes from the gitignored .env (ADR 0003). Run by hand only:
 // CI never calls the API (ADR 0009).
 
@@ -10,9 +10,11 @@ import { createInterface } from "node:readline/promises";
 import { anthropicModel } from "../../generator/model.ts";
 import { main, renderSetScreen } from "../calibration.ts";
 import { repo } from "../../repo.ts";
+import { stayAwake } from "./awake.ts";
 
 const env = resolve(repo, ".env");
 if (existsSync(env)) process.loadEnvFile(env);
+stayAwake();
 
 const git = (...args: string[]) =>
   execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();

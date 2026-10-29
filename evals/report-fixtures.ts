@@ -1,5 +1,5 @@
 // Hand-written results files and eval-run scratch for the tests that run
-// `pnpm eval:report` (report.test.ts, pages-deploy.test.ts). Each test's
+// `pnpm evals:report` (report.test.ts, pages-deploy.test.ts). Each test's
 // scratch folder is removed when it finishes.
 
 import { randomUUID } from "node:crypto";

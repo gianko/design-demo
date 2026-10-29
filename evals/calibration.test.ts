@@ -135,7 +135,7 @@ const scripted = (id: string, state: string, run: number): Criterion[] => {
   return breaks && state === "default" ? [breaks] : [];
 };
 
-describe("pnpm eval:calibrate", () => {
+describe("pnpm evals:calibrate", () => {
   it("judges every screen in the set three times and reports right verdicts and flips, overall and per criterion", async () => {
     const run = deps(scripted);
 
@@ -221,6 +221,21 @@ describe("pnpm eval:calibrate", () => {
       )
     ).toEqual([]);
     expect(run.lines.at(-1)).toBe("Not run.");
+    expect(existsSync(run.out)).toBe(false);
+  });
+
+  it("with --estimate prints the estimate and stops, over budget too", async () => {
+    const run = deps(scripted);
+
+    const code = await main(
+      ["--out", run.out, "--budget", "0.5", "--estimate"],
+      run.deps
+    );
+
+    expect(code).toBe(0);
+    expect(run.calls).toEqual([
+      "log estimate: $6.83 (8 screens, 33 screen states × 3 runs × $0.069 a nominal judge call), budget $0.50",
+    ]);
     expect(existsSync(run.out)).toBe(false);
   });
 

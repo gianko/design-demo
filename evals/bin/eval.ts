@@ -1,4 +1,4 @@
-// `pnpm eval`, against the real model and render pass. The API key comes
+// `pnpm evals`, against the real model and render pass. The API key comes
 // from the gitignored .env (ADR 0003). Run by hand only: CI never calls the
 // API (ADR 0009).
 
@@ -12,9 +12,11 @@ import { anthropicModel } from "../../generator/model.ts";
 import { loadRegistry } from "../../generator/registry.ts";
 import { main } from "../run.ts";
 import { repo } from "../../repo.ts";
+import { stayAwake } from "./awake.ts";
 
 const env = resolve(repo, ".env");
 if (existsSync(env)) process.loadEnvFile(env);
+stayAwake();
 
 const git = (...args: string[]) =>
   execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();

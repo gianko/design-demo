@@ -112,7 +112,7 @@ jobs:
       # the run that started last. Screenshots live only in local scratch.
       # With no results file it writes nothing and exits 0, so Storybook
       # still deploys.
-      - run: pnpm eval:report --latest --no-screenshots --out _site/evals/index.html
+      - run: pnpm evals:report --latest --no-screenshots --out _site/evals/index.html
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

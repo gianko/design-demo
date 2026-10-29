@@ -1,4 +1,4 @@
-// `pnpm eval:report <a.json> [b.json]` (ADR 0008): one results file gives a
+// `pnpm evals:report <a.json> [b.json]` (ADR 0008): one results file gives a
 // run report, two give a side-by-side comparison. `--latest` takes the
 // newest results file, compared against the baseline it names if it names
 // one, as the Pages deploy reports at /evals/. The report is one
@@ -34,8 +34,8 @@ export type ReportDeps = {
   resultsDir?: string;
 };
 
-const usage = `Usage: pnpm eval:report <a.json> [b.json] [--out <file.html>] [--no-screenshots]
-       pnpm eval:report --latest [--out <file.html>] [--no-screenshots]`;
+const usage = `Usage: pnpm evals:report <a.json> [b.json] [--out <file.html>] [--no-screenshots]
+       pnpm evals:report --latest [--out <file.html>] [--no-screenshots]`;
 
 export async function main(
   argv: string[],

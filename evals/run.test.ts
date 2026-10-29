@@ -1,5 +1,5 @@
 // @vitest-environment node
-// `pnpm eval` with a stubbed generate() (ADR 0009: CI never calls the API).
+// `pnpm evals` with a stubbed generate() (ADR 0009: CI never calls the API).
 // The stub's attempts are priced from their usage by the generator's own
 // pricing table, as a real rep's are. Each test runs the runner against its
 // own briefs, results folder and scratch folder.
@@ -342,7 +342,7 @@ function results(at: Run, name = "2026-10-26-eval.json"): ResultsFile {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-describe("pnpm eval", () => {
+describe("pnpm evals", () => {
   it("ends each rep as pass, fail or error, with the pass criteria checked on the final UI spec", async () => {
     const at = setup("alpha");
 
@@ -1110,6 +1110,27 @@ requires:
       expect(output).toContain("$3.00");
       expect(questions).toEqual([]);
       expect(code).toBe(0);
+    });
+
+    it("with --estimate is all that runs, over budget and on a dirty tree too", async () => {
+      const at = setup("alpha", "beta");
+      earlierRuns(at);
+
+      const { code, questions, started, output } = await run(
+        at,
+        ["--budget", "2", "--estimate"],
+        { plans: twoBriefs(), dirty: true, confirm: false }
+      );
+
+      expect(output).toContain("estimate: $3.00");
+      expect(output).not.toContain("dirty tree");
+      expect(questions).toEqual([]);
+      expect(code).toBe(0);
+      expect(started).toEqual([]);
+      expect(readdirSync(at.resultsDir).sort()).toEqual([
+        "2026-10-20-afternoon.json",
+        "2026-10-20-morning.json",
+      ]);
     });
 
     // A results file from before gate 5 can't price the judge, so the

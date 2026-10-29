@@ -1,4 +1,4 @@
-// `pnpm eval:readme`: the README's eval table, rewritten from the newest
+// `pnpm evals:readme`: the README's eval table, rewritten from the newest
 // results file. Each test writes its own results files, screen briefs and
 // README; the last one checks the real README against the committed results
 // files.
@@ -19,7 +19,7 @@ import {
 import { repo } from "../repo.ts";
 
 const start =
-  "<!-- eval-table:start: written by `pnpm eval:readme` from the newest results file -->";
+  "<!-- eval-table:start: written by `pnpm evals:readme` from the newest results file -->";
 const end = "<!-- eval-table:end -->";
 
 // A README with the markers in at.dir, beside screen briefs for the
@@ -53,7 +53,7 @@ async function run(at: At, readmePath: string) {
   return { code, output: lines.join("\n") };
 }
 
-describe("pnpm eval:readme", () => {
+describe("pnpm evals:readme", () => {
   it("writes the newest run's table between the markers and leaves the rest alone", async () => {
     const at = setup();
     write(at, "2026-10-26-before.json", runA(at));
@@ -147,11 +147,11 @@ describe("pnpm eval:readme", () => {
 });
 
 describe("README.md", () => {
-  it("has the eval table pnpm eval:readme writes from the newest results file", () => {
+  it("has the eval table pnpm evals:readme writes from the newest results file", () => {
     const text = readFileSync(join(repo, "README.md"), "utf8");
     expect(
       text,
-      "README.md's eval table is stale: run `pnpm eval:readme`"
+      "README.md's eval table is stale: run `pnpm evals:readme`"
     ).toBe(rewrittenReadme(text));
   });
 });
