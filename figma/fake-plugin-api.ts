@@ -256,6 +256,7 @@ export function fakePluginApi(
     effectStyle: (styleId) =>
       effectStyles.find((style) => style.id === styleId),
     ignoreNodeWrites,
+    mixed,
   });
 
   const figma = {

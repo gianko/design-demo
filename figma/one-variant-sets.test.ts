@@ -5,11 +5,18 @@
 // auto-layout placeholder frames, run against the fake Plugin API.
 
 import { readFile } from "node:fs/promises";
+import { tv } from "tailwind-variants/lite";
 import { beforeAll, describe, expect, it } from "vitest";
+import { z } from "zod";
+import { defineEntry } from "../src/registry/entry.ts";
 import { repo } from "../repo.ts";
 import type { FigmaPayload } from "../tokens/build.ts";
 import { frameSources } from "./components.ts";
-import { fakePluginApi, runScript, type FakePluginApi } from "./fake-plugin-api.ts";
+import {
+  fakePluginApi,
+  runScript,
+  type FakePluginApi,
+} from "./fake-plugin-api.ts";
 import {
   framesPayload,
   readTokens,
@@ -20,7 +27,13 @@ import {
 import { syncComponentScripts, type SyncOptions } from "./sync-components.ts";
 import { syncScripts as tokenScripts } from "./sync-tokens.ts";
 
-const oneVariantSets = ["Card", "EmptyState", "PageHeader", "Sheet", "DataTable"];
+const oneVariantSets = [
+  "Card",
+  "EmptyState",
+  "PageHeader",
+  "Sheet",
+  "DataTable",
+];
 
 let tokens: FigmaPayload;
 let payload: ComponentsPayload;
@@ -158,7 +171,11 @@ describe("the one-variant sets", () => {
         (n): n is FramePlan => n.type === "FRAME"
       );
       const named = new Set(
-        frames.filter((f) => f.name.endsWith(" slot") || placeholders.includes(f.name)).map((f) => f.name)
+        frames
+          .filter(
+            (f) => f.name.endsWith(" slot") || placeholders.includes(f.name)
+          )
+          .map((f) => f.name)
       );
       expect([...named]).toEqual(placeholders);
       for (const frame of frames.filter((f) => named.has(f.name))) {
@@ -174,6 +191,101 @@ describe("the one-variant sets", () => {
         expect(["FRAME", "TEXT"]).toContain(node.type);
       }
     }
+  });
+});
+
+// A stand-in with no variants: its root holds a `box` slot, which holds a
+// `part` slot or a placeholder.
+function probe(root: string, box: string, part: string | null = "") {
+  const styles = tv({ slots: { root, box, part: part ?? "" } });
+  return {
+    entry: defineEntry({
+      name: "Probe",
+      use: "A stand-in.",
+      props: z.object({}),
+    }),
+    styles,
+    anatomy: () => ({
+      slot: "root",
+      children: [
+        {
+          slot: "box",
+          children: [
+            part === null ? { placeholder: "part slot" } : { slot: "part" },
+          ],
+        },
+      ],
+    }),
+    copy: { "part slot": "Part slot" },
+  };
+}
+
+const probeRoot = async (...args: Parameters<typeof probe>) =>
+  framesPayload([probe(...args)], await readTokens()).sets[0]!.variants[0]!;
+
+describe("generating a one-variant set", () => {
+  it("draws a placeholder as a chip of sample copy, styled by the placeholder classes", async () => {
+    const root = await probeRoot("flex", "flex", null);
+
+    const box = root.children![0] as FramePlan;
+    expect(box.children).toEqual([
+      expect.objectContaining({
+        name: "part slot",
+        layoutMode: "HORIZONTAL",
+        fills: ["color/bg/surface-hover"],
+        children: [
+          {
+            type: "TEXT",
+            name: "label",
+            characters: "Part slot",
+            textStyle: "caption",
+            fills: ["color/text/ink-muted"],
+          },
+        ],
+      }),
+    ]);
+  });
+
+  it("rules one side of a frame with that side's stroke weight only", async () => {
+    const root = await probeRoot("flex border-t border-line", "flex");
+
+    expect(root.strokeWeights).toEqual([1, 0, 0, 0]);
+    expect(root.strokeWeight).toBeUndefined();
+  });
+
+  it("gives a row its gap-x and a column its gap-y", async () => {
+    const root = await probeRoot(
+      "flex gap-x-sm gap-y-xs",
+      "flex flex-col gap-x-sm gap-y-xs"
+    );
+
+    expect(root.bind).toEqual({ itemSpacing: "space/sm" });
+    expect((root.children![0] as FramePlan).bind).toEqual({
+      itemSpacing: "space/xs",
+    });
+  });
+
+  it("drops a full share or a grow in a parent that hugs, and fails in one that's fixed", async () => {
+    await expect(
+      probeRoot("flex", "flex", "flex w-full grow")
+    ).resolves.toBeDefined();
+
+    await expect(
+      probeRoot("flex", "flex w-sheet", "flex w-full")
+    ).rejects.toThrow(
+      "Probe (variant=default): the part slot is in auto layout, where figma:sync-components can't place it by x.fraction yet"
+    );
+    await expect(
+      probeRoot("flex", "flex w-sheet", "flex grow")
+    ).rejects.toThrow(
+      "Probe (variant=default): the part slot takes its parent's spare room"
+    );
+  });
+
+  it("fails on a wrap along a fixed length", async () => {
+    await expect(probeRoot("flex", "flex flex-wrap w-sheet")).rejects.toThrow(
+      "the box slot wraps along a fixed length"
+    );
   });
 });
 
@@ -296,9 +408,7 @@ describe("a first apply of the one-variant sets", () => {
       "title slot",
       "description slot",
     ]);
-    expect(bound(at(header, "actions"))).toEqual({
-      itemSpacing: "space/2xs",
-    });
+    expect(bound(at(header, "actions"))).toEqual({ itemSpacing: "space/2xs" });
   });
 
   it("has no instance anywhere on the page", async () => {

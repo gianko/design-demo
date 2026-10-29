@@ -11,9 +11,10 @@
 // name (#15's Button) is an orphan, not something to update.
 const MARK = ["dill", "generator", "figma:sync-components"];
 
-const BIND_FIELDS = [
-  "width",
-  "height",
+// With no class binding them, these are 0: a frame without a padding class
+// has none. An unbound length, or its floor or ceiling, is the layout's to
+// decide.
+const ZERO_UNBOUND = [
   "paddingLeft",
   "paddingRight",
   "paddingTop",
@@ -24,9 +25,17 @@ const BIND_FIELDS = [
   "bottomLeftRadius",
   "bottomRightRadius",
 ];
-// With no class binding them, these are 0: a frame without a padding class
-// has none. An unbound width or height is the layout's to decide.
-const ZERO_UNBOUND = BIND_FIELDS.slice(2);
+const BIND_FIELDS = [
+  "width",
+  "height",
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
+  ...ZERO_UNBOUND,
+];
+// A stroke's sides, when they differ: DataTable's rows rule only their top.
+const STROKE_SIDES = ["Top", "Right", "Bottom", "Left"];
 
 // Room around and between a set's variants on the canvas, in px. It isn't a
 // design token: nothing in the code spaces variants apart.
@@ -232,7 +241,14 @@ async function componentsPass(RUN, PAYLOAD) {
     set("layoutMode", plan.layoutMode);
     set("layoutPositioning", plan.layoutPositioning);
     set("clipsContent", plan.clipsContent);
-    set("strokeWeight", plan.strokeWeight);
+    if (plan.strokeWeights) {
+      STROKE_SIDES.forEach((side, i) =>
+        set(`stroke${side}Weight`, plan.strokeWeights[i])
+      );
+    } else {
+      // figma.mixed while the sides differ, which no number matches.
+      set("strokeWeight", plan.strokeWeight);
+    }
     for (const field of BIND_FIELDS) {
       const bound = node.boundVariables?.[field];
       if (plan.bind[field]) {

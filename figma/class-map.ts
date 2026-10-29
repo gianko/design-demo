@@ -29,6 +29,10 @@ export const prefixes: Record<string, "skip" | "apply"> = {
   "focus-visible": "skip",
   before: "skip",
   "motion-reduce": "apply",
+  // Sheet's ::backdrop, the scrim behind the panel, isn't the panel's frame.
+  backdrop: "skip",
+  // DataTable's cell styles its children, which a frame holds as placeholders.
+  "*": "skip",
 };
 
 /** Motion classes: a frame is still, so they have no look. */
@@ -39,6 +43,8 @@ export const stillClasses: RegExp[] = [
   /^delay-/,
   /^animate-/,
   /^origin-/,
+  // Sheet's View Transition name.
+  /^vt-/,
 ];
 
 /**
@@ -79,6 +85,43 @@ export const layoutClasses: Record<string, Look> = {
   "h-full": { "y.fraction": 1 },
   "translate-x-full": { "x.shift": 1 },
   "translate-y-full": { "y.shift": 1 },
+
+  // PageHeader. A frame that hugs its content never runs out of room to
+  // wrap, and leaves no spare room to grow into; frames.ts throws where a
+  // fixed length would make either matter.
+  "flex-wrap": { wrap: true },
+  grow: { fill: true },
+
+  // Sheet. Pushed to the end of its line, through spare room as `grow`
+  // takes it; and limits relative to the page, the parent or the content,
+  // which a frame of sample copy never reaches.
+  "ms-auto": { fill: true },
+  "max-h-none": {},
+  "max-w-full": {},
+  "min-h-0": {},
+  // A frame clips where the element scrolls; a frame doesn't scroll.
+  "overflow-y-auto": { clipsContent: true },
+  // A focus outline, which a frame at rest doesn't have.
+  "outline-hidden": {},
+
+  // DataTable.
+  "overflow-x-auto": { clipsContent: true },
+  // As wide as its content, and at least its parent, which hugs it.
+  "w-max": {},
+  "min-w-full": {},
+  // Adjacent cells' borders merging, and its cells have none.
+  "border-collapse": {},
+  // A cell's content, centred down its row's height.
+  "align-middle": { counterAxisAlignItems: "CENTER" },
+  "text-nowrap": { "text.textAutoResize": "WIDTH_AND_HEIGHT" },
+  // The start edge, where a frame's content sits already.
+  "text-left": {},
+  // A rule along the top: a 1px edge on that side only.
+  "border-t": { strokeTopWeight: 1 },
+  // Stuck to the start edge as its container scrolls; frames.ts keeps a
+  // sticky frame in the flow.
+  sticky: { sticky: true },
+  "start-0": { "x.start": 0 },
 };
 
 const corners = [
@@ -113,6 +156,12 @@ export const tokenFamilies: {
     theme: ["radius"],
     look: (v) => Object.fromEntries(corners.map((c) => [`bind.${c}`, v])),
   },
+  // Sheet: the corners facing the page, in a left-to-right file.
+  {
+    prefix: "rounded-s-",
+    theme: ["radius"],
+    look: (v) => ({ "bind.topLeftRadius": v, "bind.bottomLeftRadius": v }),
+  },
   {
     prefix: "h-",
     theme: ["height", "spacing"],
@@ -144,7 +193,36 @@ export const tokenFamilies: {
     theme: ["spacing"],
     look: (v) => ({ "bind.itemSpacing": v }),
   },
+  // Card, EmptyState, Sheet and DataTable: a length's floor and ceiling,
+  // from Tailwind's own namespaces for them.
+  {
+    prefix: "min-h-",
+    theme: ["min-height", "height", "spacing"],
+    look: (v) => ({ "bind.minHeight": v }),
+  },
+  {
+    prefix: "max-h-",
+    theme: ["max-height", "height", "spacing"],
+    look: (v) => ({ "bind.maxHeight": v }),
+  },
+  {
+    prefix: "max-w-",
+    theme: ["max-width", "spacing"],
+    look: (v) => ({ "bind.maxWidth": v }),
+  },
+  // DataTable's footer: a gap across and a gap down, which frames.ts gives
+  // the frame's own direction.
+  { prefix: "gap-x-", theme: ["spacing"], look: (v) => ({ "gap.x": v }) },
+  { prefix: "gap-y-", theme: ["spacing"], look: (v) => ({ "gap.y": v }) },
 ];
+
+/**
+ * A placeholder's look (frames.ts), where a UI spec puts components in a
+ * slot or a component renders another: a tinted chip naming what goes
+ * there, in muted caption type, so it doesn't read as content.
+ */
+export const placeholderClasses =
+  "flex items-center rounded-control bg-surface-hover px-xs py-3xs text-caption text-ink-muted";
 
 /** A class's look, "skip" for none, or null when nothing maps it. */
 export type Mapping = { look: Look; applied: number } | "skip" | null;

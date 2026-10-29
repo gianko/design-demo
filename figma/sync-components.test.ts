@@ -123,7 +123,8 @@ describe("a first apply", () => {
     const [report] = await sync(file);
 
     const { sets } = components(file);
-    expect(sets.map((s) => s.name)).toEqual(["Button"]);
+    expect(sets.map((s) => s.name)).toEqual(payload.setNames);
+    expect(sets[0]!.name).toBe("Button");
     expect(sets[0]!.children!.map((c) => c.name)).toEqual([
       "intent=primary, disabled=false, pending=false",
       "intent=secondary, disabled=false, pending=false",
@@ -138,7 +139,11 @@ describe("a first apply", () => {
       "intent=secondary, disabled=true, pending=true",
       "intent=quiet, disabled=true, pending=true",
     ]);
-    expect(report!.created).toEqual([
+    expect(
+      report!.created.filter((name) =>
+        /^(Components \(page\)|Button[ /])/.test(name)
+      )
+    ).toEqual([
       "Components (page)",
       "Button (component set)",
       ...sets[0]!.children!.map((c) => `Button/${c.name}`),
@@ -263,8 +268,11 @@ describe("a re-run", () => {
         updated: 0,
         changes: 0,
         orphans: 0,
-        // Twelve variants and the set.
-        unchanged: 13,
+        // Every variant and every set.
+        unchanged: payload.sets.reduce(
+          (sum, set) => sum + set.variants.length + 1,
+          0
+        ),
       });
     }
     expect(file.state()).toEqual(before);
@@ -331,7 +339,7 @@ describe("orphans", () => {
     expect(page!.children!.map((n) => n.id)).toEqual(
       expect.arrayContaining([spike.id, modes.id])
     );
-    expect(sets).toHaveLength(2);
+    expect(sets).toHaveLength(payload.sets.length + 1);
     // A re-run finds its own set by its mark, not the hand-built one.
     expect((await sync(file, { dryRun: true }))[0]!.counts.changes).toBe(0);
   });
@@ -403,7 +411,9 @@ describe("--split", () => {
     });
     await sync(split, { dryRun: false, split: true });
 
-    expect(scripts.map((s) => s.name)).toEqual(["button"]);
+    expect(scripts.map((s) => s.name)).toEqual(
+      payload.setNames.map((name) => name.toLowerCase())
+    );
     expect(strip(split.state())).toEqual(strip(whole.state()));
   });
 });

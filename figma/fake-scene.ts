@@ -26,6 +26,8 @@ export type SceneDeps = {
   effectStyle: (id: string) => { effects: unknown[] } | undefined;
   /** Node properties whose writes are silently dropped. */
   ignoreNodeWrites: string[];
+  /** What Figma returns for a property that varies, such as a stroke's sides. */
+  mixed: symbol;
 };
 
 const numberFields = [
@@ -132,7 +134,10 @@ export function fakeScene(deps: SceneDeps) {
     primaryAxisSizingMode = "AUTO";
     counterAxisSizingMode = "AUTO";
     clipsContent = true;
-    strokeWeight = 1;
+    strokeTopWeight = 1;
+    strokeRightWeight = 1;
+    strokeBottomWeight = 1;
+    strokeLeftWeight = 1;
     description = "";
     effectStyleId = "";
     private _effects: unknown[] = [];
@@ -142,6 +147,25 @@ export function fakeScene(deps: SceneDeps) {
     private numbers: Record<string, number> = {};
     private fixed = { width: 100, height: 100 };
 
+    get strokeWeights() {
+      return [
+        this.strokeTopWeight,
+        this.strokeRightWeight,
+        this.strokeBottomWeight,
+        this.strokeLeftWeight,
+      ];
+    }
+    /** One weight for every side, or figma.mixed while they differ. */
+    get strokeWeight(): number | symbol {
+      const [top, ...rest] = this.strokeWeights;
+      return rest.every((weight) => weight === top) ? top! : deps.mixed;
+    }
+    set strokeWeight(weight: number) {
+      this.strokeTopWeight = weight;
+      this.strokeRightWeight = weight;
+      this.strokeBottomWeight = weight;
+      this.strokeLeftWeight = weight;
+    }
     get boundVariables() {
       return structuredClone(this.bound);
     }
@@ -371,7 +395,9 @@ export function fakeScene(deps: SceneDeps) {
         alignment: [node.primaryAxisAlignItems, node.counterAxisAlignItems],
         sizing: [node.primaryAxisSizingMode, node.counterAxisSizingMode],
         clipsContent: node.clipsContent,
-        strokeWeight: node.strokeWeight,
+        strokeWeight:
+          typeof node.strokeWeight === "number" ? node.strokeWeight : "mixed",
+        strokeWeights: node.strokeWeights,
         numbers: numberFields.map((field) => node.number(field)),
         boundVariables: node.boundVariables,
         fills: node.fills,
