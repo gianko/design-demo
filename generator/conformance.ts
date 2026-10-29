@@ -48,6 +48,17 @@ export const judgeConfig = {
   maxTokens: 16_000,
 } as const;
 
+// A guess at one judge call's cost, for an estimate made before any results
+// prices it: a screenshot and a screen brief in, the rubric and the design
+// brief read from the cache, and high effort's thinking and six verdicts
+// out. About $0.069.
+export const nominalJudgeCall = cost(judgeConfig.model, {
+  input: 2_000,
+  output: 3_000,
+  cacheRead: 5_000,
+  cacheWrite: 0,
+});
+
 // One screen state's light-theme shot at the audience's density.
 export type Screenshot = { state: string; png: Buffer };
 
@@ -221,6 +232,15 @@ export function screenshotsOf(trace: RepTrace): Screenshot[] {
       png: readFileSync(resolve(trace.workDir, file)),
     }));
 }
+
+// The judge's half of a results file's version tuple (ADR 0008): its config
+// and the hash of the rubric's and the design brief's words, as every
+// Conformance it gives records it.
+export function judgeVersions(designBrief = readDesignBrief()) {
+  return { ...judgeConfig, promptHash: judgePrompt(designBrief).hash };
+}
+
+export type JudgeVersions = ReturnType<typeof judgeVersions>;
 
 export function readDesignBrief() {
   return readFileSync(resolve(repo, "docs/design-brief.md"), "utf8");
