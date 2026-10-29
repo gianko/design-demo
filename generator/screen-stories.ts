@@ -13,6 +13,7 @@
 //
 // The title's last segment is the slug, so `pnpm gate <slug>` selects them.
 
+import ts from "typescript";
 import type {
   ScreenAction,
   ScreenActionParameters,
@@ -66,9 +67,15 @@ export function storyStates({
 function openSheets(nodes: readonly UiNode[]) {
   return tablesWith(nodes, "detail", defaultState).map((_, index) => ({
     index,
-    state: `${defaultState}, sheet ${index === 0 ? "" : `${index + 1} `}open`,
+    state: sheetOpenState(index),
   }));
 }
+
+const sheetOpenState = (index: number) =>
+  `${defaultState}, sheet ${index === 0 ? "" : `${index + 1} `}open`;
+
+const rowsTickedState = (index: number) =>
+  `${defaultState}, rows ticked${index === 0 ? "" : ` in table ${index + 1}`}`;
 
 // The rows-ticked render (ADR 0013): for each DataTable with actions, the
 // default state with every row of it ticked, which the story's `tickRows`
@@ -78,7 +85,7 @@ function openSheets(nodes: readonly UiNode[]) {
 function tickedRows(nodes: readonly UiNode[]) {
   return tablesWith(nodes, "actions", defaultState).map((_, index) => ({
     index,
-    state: `${defaultState}, rows ticked${index === 0 ? "" : ` in table ${index + 1}`}`,
+    state: rowsTickedState(index),
   }));
 }
 
@@ -210,6 +217,60 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 ${stories.join("\n")}`;
+}
+
+// storyStates read back from a stories file screenStories wrote, for a kept
+// screen, which keeps its stories but not its UI spec: each exported story's
+// state is the one its `screenState` names, or the open-sheet or rows-ticked
+// render its `openSheet` or `tickRows` sets, or else the default.
+export function keptStoryStates(source: string) {
+  const file = ts.createSourceFile(
+    "stories.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TSX
+  );
+  // A property of an object literal, by name.
+  const property = (object: ts.Expression | undefined, name: string) => {
+    if (!object || !ts.isObjectLiteralExpression(object)) return undefined;
+    for (const each of object.properties) {
+      if (
+        ts.isPropertyAssignment(each) &&
+        (ts.isIdentifier(each.name) || ts.isStringLiteral(each.name)) &&
+        each.name.text === name
+      )
+        return each.initializer;
+    }
+    return undefined;
+  };
+  const number = (value: ts.Expression | undefined) =>
+    value && ts.isNumericLiteral(value) ? Number(value.text) : undefined;
+  return file.statements.flatMap((statement) => {
+    if (
+      !ts.isVariableStatement(statement) ||
+      !statement.modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword
+      )
+    )
+      return [];
+    return statement.declarationList.declarations.flatMap((declaration) => {
+      if (!ts.isIdentifier(declaration.name)) return [];
+      const parameters = property(declaration.initializer, "parameters");
+      const named = property(property(parameters, parameter), "name");
+      const sheet = number(property(parameters, openSheetParameter));
+      const tick = number(property(parameters, tickRowsParameter));
+      const state =
+        named && ts.isStringLiteral(named)
+          ? named.text
+          : sheet !== undefined
+            ? sheetOpenState(sheet)
+            : tick !== undefined
+              ? rowsTickedState(tick)
+              : defaultState;
+      return [{ exportName: declaration.name.text, state }];
+    });
+  });
 }
 
 // Each declared action as the action-transitions rule clicks it: its

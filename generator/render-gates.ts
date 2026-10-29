@@ -71,6 +71,33 @@ const notRun = { "gate 4": "not-run", "gate 7 render": "not-run" } as const;
 const htmlLimit = 200;
 
 export async function renderGates(input: RenderInput): Promise<RenderGates> {
+  return renderStories({
+    dir: input.dir,
+    slug: input.slug,
+    audience: input.audience,
+    files: {
+      [`${input.name}.tsx`]: input.source,
+      [`${input.name}.stories.tsx`]: screenStories(input),
+    },
+    states: storyStates(input),
+  });
+}
+
+// One screen and its stories, rendered as the render pass renders a
+// generated screen: what renderGates builds, and what the calibration set
+// (evals/calibration.ts) builds from a kept screen's own stories.
+export type StoriesInput = {
+  // The build and its results go in `render/` there.
+  dir: string;
+  slug: string;
+  audience: Density;
+  // The screen's TSX and its stories, by file name.
+  files: Record<string, string>;
+  // Each story's export name and the screen state it renders.
+  states: { exportName: string; state: string }[];
+};
+
+export async function renderStories(input: StoriesInput): Promise<RenderGates> {
   const render = resolve(input.dir, "render");
   // The screen sits two folders below a barrel shim, so its own import of
   // "../../index.ts" reaches the library as it will once kept.
@@ -80,11 +107,9 @@ export async function renderGates(input: RenderInput): Promise<RenderGates> {
     join(render, "index.ts"),
     `export * from ${JSON.stringify(relative(render, resolve(repo, "src/index.ts")))};\n`
   );
-  writeFileSync(join(screens, `${input.name}.tsx`), input.source);
-  writeFileSync(
-    join(screens, `${input.name}.stories.tsx`),
-    screenStories(input)
-  );
+  for (const [file, content] of Object.entries(input.files)) {
+    writeFileSync(join(screens, file), content);
+  }
 
   const storybook = join(render, "storybook-static");
   const build = await run(
@@ -165,10 +190,10 @@ type StorybookIndex = {
 function readResults(
   report: Report,
   index: StorybookIndex,
-  input: RenderInput
+  input: StoriesInput
 ): RenderGates {
   const stateOf = new Map(
-    storyStates(input).map(({ exportName, state }) => [exportName, state])
+    input.states.map(({ exportName, state }) => [exportName, state])
   );
   const states = new Map(
     Object.values(index.entries)

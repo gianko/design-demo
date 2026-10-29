@@ -1,0 +1,477 @@
+// The calibration set and `pnpm eval:calibrate` (ADR 0014, glossary:
+// Calibration set): the evidence that brief conformance can be trusted.
+//
+// The set is every kept screen as it is, and copies of kept screens, each
+// broken by hand against one brief-conformance criterion. A copy sits in
+// `evals/calibration/screens/<kept slug>--<criterion>/`, under its kept
+// screen's file name, and renders with its kept screen's stories, so in the
+// same states. It's never kept, baselined, captured or gated: it isn't
+// under src/, and it has no stories of its own.
+//
+// The command renders each screen in the set once, as the render pass
+// renders a generated screen, then judges each one three times with gate 5's
+// judge, and writes a report of the verdicts it expected and got: how many
+// were right and how many flipped between runs, overall and per criterion.
+// It prints a cost estimate before it spends anything. Run by hand only.
+
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { parseArgs } from "node:util";
+import {
+  criteria,
+  judgeConfig,
+  judgeScreen,
+  type Conformance,
+  type Criterion,
+  type Screenshot,
+  type StateJudgement,
+} from "../generator/conformance.ts";
+import { cost } from "../generator/config.ts";
+import type { Model } from "../generator/model.ts";
+import { renderStories } from "../generator/render-gates.ts";
+import { keptStoryStates } from "../generator/screen-stories.ts";
+import {
+  readScreenBrief,
+  type ScreenBrief,
+} from "../generator/screen-brief.ts";
+import { day, dollars, stamp } from "../format.ts";
+import { repo } from "../repo.ts";
+
+// Each broken copy: the kept screen it copies, the one criterion it breaks
+// and how.
+export const brokenCopies: { kept: string; breaks: Criterion; how: string }[] =
+  [
+    {
+      kept: "payment-status",
+      breaks: "accent",
+      how: "A second primary Button, Download invoice, beside Send reminder.",
+    },
+    {
+      kept: "payment-status",
+      breaks: "elevation",
+      how: "The invoice's Card sits on a raised shadow.",
+    },
+    {
+      kept: "bulk-pay",
+      breaks: "copy",
+      how: "The title says Streamline your payroll, not Pay invoices.",
+    },
+    {
+      kept: "bulk-pay",
+      breaks: "density",
+      how: "The admin screen's Screen sets the contractor's density.",
+    },
+    {
+      kept: "my-invoices",
+      breaks: "hierarchy",
+      how: "The title is muted body Text, not a level-1 Heading.",
+    },
+  ];
+
+export type SetScreen = {
+  // The kept screen's slug, or a copy's `<kept slug>--<criterion>`.
+  id: string;
+  kept: string;
+  // The criterion a copy breaks, and how; null for a kept screen.
+  breaks: Criterion | null;
+  how: string | null;
+  // The kept screen's screen brief, which the judge reads.
+  brief: ScreenBrief;
+  // The screen's component and file name, e.g. PaymentStatus.
+  name: string;
+  source: string;
+  // The kept screen's stories, and the state each one renders.
+  stories: string;
+  states: string[];
+};
+
+const screensDir = join(repo, "src/screens");
+const copiesDir = join(repo, "evals/calibration/screens");
+
+export function calibrationSet(): SetScreen[] {
+  const kept = readdirSync(screensDir)
+    .sort()
+    .map((slug): SetScreen => {
+      const dir = join(screensDir, slug);
+      const stories = readdirSync(dir).find((file) =>
+        file.endsWith(".stories.tsx")
+      );
+      if (!stories) throw new Error(`src/screens/${slug} has no stories.`);
+      const name = basename(stories, ".stories.tsx");
+      const storiesSource = readFileSync(join(dir, stories), "utf8");
+      return {
+        id: slug,
+        kept: slug,
+        breaks: null,
+        how: null,
+        brief: readScreenBrief(join(repo, "evals/briefs", `${slug}.md`)),
+        name,
+        source: readFileSync(join(dir, `${name}.tsx`), "utf8"),
+        stories: storiesSource,
+        states: keptStoryStates(storiesSource).map(({ state }) => state),
+      };
+    });
+  const copies = brokenCopies.map(({ kept: slug, breaks, how }): SetScreen => {
+    const original = kept.find((screen) => screen.kept === slug);
+    if (!original) throw new Error(`${slug} isn't a kept screen.`);
+    const id = `${slug}--${breaks}`;
+    return {
+      ...original,
+      id,
+      breaks,
+      how,
+      source: readFileSync(join(copiesDir, id, `${original.name}.tsx`), "utf8"),
+    };
+  });
+  return [...kept, ...copies];
+}
+
+// One screen of the set through the render pass, at its brief's audience
+// density, in a folder of its own; the light rest shot of each state, which
+// gate 5 judges. Needs Docker, like the render pass.
+export async function renderSetScreen(
+  screen: SetScreen,
+  dir: string
+): Promise<Screenshot[]> {
+  const result = await renderStories({
+    dir,
+    slug: screen.id,
+    audience: screen.brief.audience,
+    files: {
+      [`${screen.name}.tsx`]: screen.source,
+      [`${screen.name}.stories.tsx`]: screen.stories,
+    },
+    states: keptStoryStates(screen.stories),
+  });
+  if (!result.built) {
+    throw new Error(
+      `${screen.id} doesn't build: ${result.failures[0]?.message ?? "no output"}`
+    );
+  }
+  return (result.shots ?? [])
+    .filter(({ theme }) => theme === "light")
+    .map(({ state, file }) => ({ state, png: readFileSync(file) }));
+}
+
+// ── The command ───────────────────────────────────────────────────────────
+
+// Every screen is judged this many times, on the same screenshots, so a
+// verdict that changes between runs is the judge's.
+export const runs = 3;
+
+// A judge call's tokens for the estimate: a screenshot and the screen brief
+// in, the cached rubric and design brief read, and effort-high thinking
+// before six reasons out. The Console spend limit stays the backstop.
+const estimatedCall = cost(judgeConfig.model, {
+  input: 2_000,
+  output: 2_000,
+  cacheRead: 4_500,
+  cacheWrite: 0,
+});
+
+export type CalibrateDeps = {
+  // One screen of the set rendered in `dir`: its light shot per state.
+  render: (screen: SetScreen, dir: string) => Promise<Screenshot[]>;
+  judge: Model;
+  // Asked only when the estimate is over budget; false stops the run.
+  confirm: (question: string) => Promise<boolean>;
+  git: () => Promise<{ sha: string; dirty: boolean }>;
+  log?: (line: string) => void;
+  now?: () => Date;
+  // Where each screen renders, in a folder per run.
+  runsDir?: string;
+};
+
+const usage =
+  "Usage: pnpm eval:calibrate [--out <report.md>] [--budget <usd>|none]";
+
+export async function main(
+  argv: string[],
+  deps: CalibrateDeps
+): Promise<number> {
+  const log = deps.log ?? console.log;
+  const now = deps.now ?? (() => new Date());
+  const args = parse(argv);
+  if (typeof args === "string") {
+    log(args);
+    log(usage);
+    return 2;
+  }
+
+  const set = calibrationSet();
+  const states = set.reduce((sum, screen) => sum + screen.states.length, 0);
+  const estimate = states * runs * estimatedCall;
+  log(
+    `estimate: ${dollars(estimate)} (${set.length} screens, ${states} screen states × ${runs} runs × ${dollars(estimatedCall)} a judge call), budget ${args.budget === null ? "none" : dollars(args.budget)}`
+  );
+  if (
+    args.budget !== null &&
+    estimate > args.budget &&
+    !(await deps.confirm(
+      `The estimate of ${dollars(estimate)} is over the ${dollars(args.budget)} budget. Run anyway?`
+    ))
+  ) {
+    log("Not run.");
+    return 1;
+  }
+
+  const started = now();
+  const git = await deps.git();
+  const runDir = join(
+    deps.runsDir ?? join(repo, ".generated", "calibration"),
+    stamp(started)
+  );
+
+  // Rendered once, so every run judges the same screenshots.
+  const shots = new Map<string, Screenshot[]>();
+  for (const screen of set) {
+    try {
+      const rendered = await deps.render(screen, join(runDir, screen.id));
+      log(`rendered ${screen.id} · ${rendered.length} states`);
+      shots.set(screen.id, rendered);
+    } catch (error) {
+      console.error(error);
+      log(`rendered ${screen.id} · failed, so it's not judged`);
+      shots.set(screen.id, []);
+    }
+  }
+
+  const judged: Judged[] = set.map((screen) => ({ screen, runs: [] }));
+  for (let run = 1; run <= runs; run++) {
+    for (const entry of judged) {
+      const conformance = await judgeScreen(
+        { brief: entry.screen.brief, screenshots: shots.get(entry.screen.id)! },
+        deps.judge
+      );
+      entry.runs.push(conformance);
+      log(runLine(run, entry.screen, conformance));
+    }
+  }
+
+  const tally = tallyOf(judged);
+  mkdirSync(dirname(args.out), { recursive: true });
+  writeFileSync(
+    args.out,
+    report(judged, tally, { started, git, cost: totalCost(judged) })
+  );
+  log(
+    `right verdicts: ${share(tally.all.right)} · flipped: ${share(tally.all.flipped)} · cost ${dollars(totalCost(judged))}`
+  );
+  log(
+    `wrote ${args.out.startsWith(repo + sep) ? relative(repo, args.out) : args.out}`
+  );
+  return 0;
+}
+
+type Judged = { screen: SetScreen; runs: Conformance[] };
+
+// A screen's verdict on one criterion in one run: fail when any state fails
+// it, pass when every state passes it, and not run when no state fails it
+// but some state went unjudged. Its reasons are those of each state that
+// failed it, or of the first state when it passed, or why each unjudged
+// state went unjudged.
+type ScreenVerdict = {
+  pass: boolean | null;
+  reasons: { state: string; reason: string }[];
+};
+
+type Judgement = Extract<StateJudgement, { judged: true }>;
+
+function screenVerdict(
+  conformance: Conformance,
+  criterion: Criterion
+): ScreenVerdict {
+  const judged = conformance.states.filter(
+    (state): state is Judgement => state.judged
+  );
+  const verdictOf = (state: Judgement) =>
+    state.verdicts.find((verdict) => verdict.criterion === criterion)!;
+  const failing = judged.filter((state) => !verdictOf(state).pass);
+  if (failing.length > 0) {
+    return {
+      pass: false,
+      reasons: failing.map((state) => ({
+        state: state.state,
+        reason: verdictOf(state).reason,
+      })),
+    };
+  }
+  const unjudged = conformance.states.flatMap((state) =>
+    state.judged ? [] : [{ state: state.state, reason: state.error }]
+  );
+  if (unjudged.length > 0 || judged.length === 0) {
+    return {
+      pass: null,
+      reasons: unjudged.length
+        ? unjudged
+        : [{ state: "(screen)", reason: "no screenshots" }],
+    };
+  }
+  return {
+    pass: true,
+    reasons: [
+      { state: judged[0]!.state, reason: verdictOf(judged[0]!).reason },
+    ],
+  };
+}
+
+// The verdict a screen should get: a kept screen passes every criterion,
+// and a copy fails only the one it breaks.
+const expected = (screen: SetScreen, criterion: Criterion) =>
+  screen.breaks !== criterion;
+
+type Count = { n: number; of: number };
+
+type Tally = {
+  // Per criterion, then over all of them: verdicts that matched the
+  // expected one, of those judged; screens whose judged verdicts on it
+  // differ between runs, of those judged in two runs or more; and verdicts
+  // not run.
+  byCriterion: Record<Criterion, { right: Count; flipped: Count }>;
+  all: { right: Count; flipped: Count; notRun: number };
+};
+
+function tallyOf(judged: Judged[]): Tally {
+  const zero = () => ({ right: { n: 0, of: 0 }, flipped: { n: 0, of: 0 } });
+  const all = { ...zero(), notRun: 0 };
+  const byCriterion = Object.fromEntries(
+    criteria.map((criterion) => [criterion, zero()])
+  ) as Tally["byCriterion"];
+  for (const { screen, runs: conformances } of judged) {
+    for (const criterion of criteria) {
+      const verdicts = conformances
+        .map((conformance) => screenVerdict(conformance, criterion).pass)
+        .filter((pass): pass is boolean => pass !== null);
+      all.notRun += conformances.length - verdicts.length;
+      const right = verdicts.filter(
+        (pass) => pass === expected(screen, criterion)
+      ).length;
+      for (const count of [byCriterion[criterion], all]) {
+        count.right.n += right;
+        count.right.of += verdicts.length;
+        if (verdicts.length >= 2) {
+          count.flipped.of += 1;
+          if (new Set(verdicts).size > 1) count.flipped.n += 1;
+        }
+      }
+    }
+  }
+  return { byCriterion, all };
+}
+
+const totalCost = (judged: Judged[]) =>
+  judged.reduce(
+    (sum, { runs: conformances }) =>
+      sum + conformances.reduce((each, { cost }) => each + cost, 0),
+    0
+  );
+
+// `142/144 (99%)`.
+function share({ n, of }: Count) {
+  return of === 0 ? "none" : `${n}/${of} (${Math.round((100 * n) / of)}%)`;
+}
+
+const verdictWord = (pass: boolean | null) =>
+  pass === null ? "not run" : pass ? "pass" : "fail";
+
+function runLine(run: number, screen: SetScreen, conformance: Conformance) {
+  const verdicts = criteria
+    .map(
+      (criterion) =>
+        `${criterion} ${verdictWord(screenVerdict(conformance, criterion).pass)}`
+    )
+    .join(" · ");
+  return `run ${run} · ${screen.id} · ${verdicts} · ${dollars(conformance.cost)}`;
+}
+
+function report(
+  judged: Judged[],
+  tally: Tally,
+  meta: { started: Date; git: { sha: string; dirty: boolean }; cost: number }
+) {
+  const copies = judged.filter(({ screen }) => screen.breaks !== null).length;
+  const states = judged.reduce(
+    (sum, { screen }) => sum + screen.states.length,
+    0
+  );
+  const promptHash = judged[0]?.runs[0]?.promptHash ?? "";
+  const lines = [
+    "# Brief conformance calibration",
+    "",
+    `Written by \`pnpm eval:calibrate\` (ADR 0014) on ${day(meta.started)}, at \`${meta.git.sha.slice(0, 7)}\`${meta.git.dirty ? " with uncommitted changes" : ""}. The judge is ${judgeConfig.model} at effort ${judgeConfig.effort}, prompt \`${promptHash.slice(0, 12)}\`. The calibration set's ${judged.length} screens, ${judged.length - copies} kept screens as they are and ${copies} broken copies, have ${states} screen states, and each was judged ${runs} times. It cost ${dollars(meta.cost)}.`,
+    "",
+    "## Right verdicts and flips",
+    "",
+    "A screen's verdict on a criterion in one run fails when any of its states fails it. It's right when a kept screen passes, and when a broken copy fails the criterion it breaks and passes the rest. A screen's criterion flipped when its verdicts differ between runs.",
+    "",
+    "| Criterion | Right | Flipped |",
+    "| --- | --- | --- |",
+    ...criteria.map(
+      (criterion) =>
+        `| ${criterion} | ${share(tally.byCriterion[criterion].right)} | ${share(tally.byCriterion[criterion].flipped)} |`
+    ),
+    `| **All** | ${share(tally.all.right)} | ${share(tally.all.flipped)} |`,
+  ];
+  if (tally.all.notRun > 0) {
+    lines.push(
+      "",
+      `${tally.all.notRun} verdict${tally.all.notRun === 1 ? "" : "s"} not run, and left out of both: the judge didn't answer for a state, and no other state failed the criterion.`
+    );
+  }
+  for (const { screen, runs: conformances } of judged) {
+    lines.push(
+      "",
+      `## ${screen.id}`,
+      "",
+      screen.breaks === null
+        ? "Kept, as it is."
+        : `Breaks ${screen.breaks}: ${screen.how}`,
+      "",
+      `States: ${screen.states.join(" · ")}.`,
+      "",
+      `| Criterion | Expected | ${conformances.map((_, i) => `Run ${i + 1}`).join(" | ")} |`,
+      `| --- | --- | ${conformances.map(() => "---").join(" | ")} |`,
+      ...criteria.map(
+        (criterion) =>
+          `| ${criterion} | ${verdictWord(expected(screen, criterion))} | ${conformances
+            .map((conformance) =>
+              verdictWord(screenVerdict(conformance, criterion).pass)
+            )
+            .join(" | ")} |`
+      ),
+      ""
+    );
+    for (const criterion of criteria) {
+      conformances.forEach((conformance, i) => {
+        const { pass, reasons } = screenVerdict(conformance, criterion);
+        for (const { state, reason } of reasons) {
+          lines.push(
+            `- ${criterion} · run ${i + 1} · ${verdictWord(pass)} · ${state}: ${reason}`
+          );
+        }
+      });
+    }
+  }
+  return lines.join("\n") + "\n";
+}
+
+type Args = { out: string; budget: number | null };
+
+function parse(argv: string[]): Args | string {
+  let values;
+  try {
+    ({ values } = parseArgs({
+      args: argv,
+      options: {
+        out: { type: "string", default: "evals/calibration/report.md" },
+        budget: { type: "string", default: "10" },
+      },
+    }));
+  } catch (error) {
+    return (error as Error).message;
+  }
+  const budget = values.budget === "none" ? null : Number(values.budget);
+  if (budget !== null && !(budget >= 0))
+    return `--budget must be dollars or none: ${values.budget}`;
+  return { out: resolve(repo, values.out), budget };
+}

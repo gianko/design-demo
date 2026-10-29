@@ -118,6 +118,7 @@ pnpm gate                              # every gate over every story and kept sc
 pnpm test                              # unit tests
 pnpm eval                              # the eval suite; reads ANTHROPIC_API_KEY from .env, prints a cost estimate first
 pnpm eval:report --latest              # the HTML report for the newest run, against the baseline it names (pnpm eval --baseline)
+pnpm eval:calibrate                    # gate 5's calibration set, judged 3 times, into evals/calibration/report.md; prints a cost estimate first
 ```
 
 [`docs/spec.md`](docs/spec.md) has the full build plan, and [`GLOSSARY.md`](GLOSSARY.md) has the vocabulary.
