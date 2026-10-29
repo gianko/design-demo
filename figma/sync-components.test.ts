@@ -97,9 +97,9 @@ function components(file: FakePluginApi) {
   const textStyle = (id: string | undefined) =>
     state.textStyles.find((s) => s.id === id)?.name;
   const sets = (page?.children ?? []).filter((n) => n.type === "COMPONENT_SET");
-  const variant = (name: string) =>
+  const variant = (name: string, set = "Button") =>
     sets
-      .find((s) => s.generator === "figma:sync-components")!
+      .find((s) => s.name === set && s.generator === "figma:sync-components")!
       .children!.find((c) => c.name === name)!;
   const bound = (layer: Layer) =>
     Object.fromEntries(
@@ -245,6 +245,38 @@ describe("a first apply", () => {
     await expect(sync(file, { dryRun: true })).rejects.toThrow(
       "run figma:sync-tokens first"
     );
+  });
+});
+
+describe("the rest of the library", () => {
+  it("draws StatusTag's statuses in the tag's own words, each on its tint", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints, textStyle } = components(file);
+    const tag = sets.find((s) => s.name === "StatusTag")!;
+    expect(tag.children!.map((c) => c.name)).toEqual([
+      "status=awaiting",
+      "status=overdue",
+      "status=paid",
+      "status=scheduled",
+      "status=failed",
+    ]);
+    const overdue = variant("status=overdue", "StatusTag");
+    expect(paints(overdue.fills)).toEqual(["color/bg/overdue"]);
+    expect(bound(overdue)).toMatchObject({
+      paddingLeft: "space/2xs",
+      paddingRight: "space/2xs",
+      topLeftRadius: "radius/tag",
+    });
+    // It hugs its word, as an inline-block does.
+    expect(overdue.layoutMode).not.toBe("NONE");
+    expect(overdue.sizing).toEqual(["AUTO", "AUTO"]);
+    const word = child(overdue, "word");
+    expect(word.characters).toBe("Overdue");
+    expect(textStyle(word.textStyleId)).toBe("label");
+    expect(paints(word.fills)).toEqual(["color/text/overdue"]);
   });
 });
 
