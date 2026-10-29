@@ -1,4 +1,4 @@
-# Case study: an AI-built design system, held to a brief I wrote
+# Case study: an AI-built design system, held to a design brief I wrote
 
 I've spent 15 years making designers' work ship at award level. This repo is that craft built as a system: a one-page [design brief](design-brief.md) I wrote, a design system Claude Code built against it, and the gates and evals that keep generated screens production-ready. Every claim links to its evidence.
 
@@ -16,14 +16,14 @@ The screens here are contractor payroll and invoicing. Deel is "the all-in-one p
 
 <!-- tailored:end -->
 
-## 2. The brief I wrote, and what Claude built
+## 2. The design brief I wrote, and what Claude built
 
 The [design brief](design-brief.md) came before any component: warm, assured, plain-spoken; [density by audience](adr/0001-density-by-audience.md), dense for the admin who clears dozens of invoices a day, roomy for the contractor who checks in a few times a month; Instrument Sans alone; one heather accent over plum-tinted neutrals; motion as the signature; and the generic AI defaults banned.
 
 Claude Code built against it:
 
 - **Tokens**, built into CSS, TypeScript and Figma variables ([ADR 0005](adr/0005-dtcg-tokens-hand-built-into-css-ts-and-figma.md)).
-- **[Fifteen components](../src/components/)**, each by one headless `/build-component` session that had to pass every gate ([ADR 0006](adr/0006-one-gated-build-component-session-per-component.md)). The sessions wrote up 74 gap issues where the brief didn't decide; I triaged each one ([`.out-of-scope/`](../.out-of-scope/)).
+- **[Fifteen components](../src/components/)**, each by one headless `/build-component` session that had to pass every gate ([ADR 0006](adr/0006-one-gated-build-component-session-per-component.md)). The sessions wrote up 74 gap issues where the design brief didn't decide; I triaged each one ([`.out-of-scope/`](../.out-of-scope/)).
 - **A generator** of two model calls: a screen brief becomes a Zod-validated UI spec naming only registered components, then React/TSX ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md), [ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)).
 - **[Sixteen taste rules](../lint/taste/RULES.md)** and **[fifteen screen briefs](../evals/briefs/)**.
 
@@ -71,9 +71,9 @@ Gates 2, 4, 6 and 8 haven't failed a rep in a committed run. Gate 2 is mostly me
 | [2026-10-26-rerun](../evals/results/2026-10-26-rerun.json), after #199 | 5 | 15 / 15 | 14 / 15 | $3.98 |
 | [2026-10-28-p1](../evals/results/2026-10-28-p1.json) | 15 | 44 / 45 | 41 / 45 | $10.22 |
 
-K = 3, Opus 5.5, clean tree, compared in the [eval report](https://gianko.github.io/design-demo/evals/) ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)). On the five briefs the last two share, first attempts went from 14 / 15 to 15 / 15 and cost from $3.98 to $3.56 ([#312](https://github.com/gianko/design-demo/pull/312)), though [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) changed invoice-queue in between.
+K = 3, Opus 5.5, clean tree, compared in the [eval report](https://gianko.github.io/design-demo/evals/) ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)). On the five screen briefs the last two share, first attempts went from 14 / 15 to 15 / 15 and cost from $3.98 to $3.56 ([#312](https://github.com/gianko/design-demo/pull/312)), though [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) changed invoice-queue in between.
 
-At 44 of 45, the gates no longer tell runs apart, and none asks whether a screen looks like the brief. That's gate 5, brief conformance: Opus 5.5 judging screenshots on six criteria from the brief, soft until a calibration set shows its verdicts can be trusted ([ADR 0014](adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)).
+At 44 of 45, the gates no longer tell runs apart, and none asks whether a screen looks like the design brief. That's gate 5, brief conformance: Opus 5.5 judging screenshots on six criteria from the design brief, soft until a calibration set shows its verdicts can be trusted ([ADR 0014](adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)).
 
 - **Gate 5, P2 eval run:** **#325 fills this** with the pass rate per criterion ([#319](https://github.com/gianko/design-demo/issues/319)).
 - **Calibration:** **#325 fills this** with right verdicts and flips ([#318](https://github.com/gianko/design-demo/issues/318)).
@@ -95,12 +95,12 @@ Code is the source of truth; Figma is where a designer comments. `figma:sync-tok
 
 ## 8. Decisions I reversed
 
-- **ActionBar.** [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) gave a bulk action a raised bar that turned into the success toast. On the kept bulk-pay screen it read as a slab floating apart from its table, and it popped in and out with the selection. [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) moved bulk actions into DataTable's actions footer and made the result a corner toast ([#298](https://github.com/gianko/design-demo/issues/298)). The cost: four briefs' runs don't compare across it, and a success toast now leaves on its own, bending the brief's "motion only when the user acts".
-- **The row expanding into the sheet.** That morph was one of the brief's own signature transitions. [#292](https://github.com/gianko/design-demo/issues/292) made the sheet slide in from the edge instead, and the brief changed in the same PR ([#302](https://github.com/gianko/design-demo/pull/302)), with no baseline changed.
+- **ActionBar.** [ADR 0011](adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md) gave a bulk action a raised bar that turned into the success toast. On the kept bulk-pay screen it read as a slab floating apart from its table, and it popped in and out with the selection. [ADR 0013](adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) moved bulk actions into DataTable's actions footer and made the result a corner toast ([#298](https://github.com/gianko/design-demo/issues/298)). The cost: four screen briefs' runs don't compare across it, and a success toast now leaves on its own, bending the design brief's "motion only when the user acts".
+- **The row expanding into the sheet.** That morph was one of the design brief's own signature transitions. [#292](https://github.com/gianko/design-demo/issues/292) made the sheet slide in from the edge instead, and the design brief changed in the same PR ([#302](https://github.com/gianko/design-demo/pull/302)), with no baseline changed.
 
 ## 9. What a designer should change
 
-These are my calls, the ones the brief names as [the first I'd hand to a designer](design-brief.md#calls-id-hand-to-a-designer):
+These are my calls, the ones the design brief names as [the first I'd hand to a designer](design-brief.md#calls-id-hand-to-a-designer):
 
 - **The heather accent.** Does one accent carry the primary action on a busy admin table?
 - **Instrument Sans alone**, with no display face. Is there enough hierarchy and warmth?
