@@ -4,7 +4,7 @@ An AI-built design system, and the guardrails that keep AI-generated screens on 
 
 I've spent 15 years making designers' work ship at award level. This repo encodes that craft as a system: a one-page design brief I wrote, a component library Claude Code builds against it, and the gates and evals that keep AI output production-ready.
 
-**[Storybook](https://gianko.github.io/design-demo/)** · **[Eval report](https://gianko.github.io/design-demo/evals/)** · **[Figma file](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo)** · **[Design brief](docs/design-brief.md)** · **[Where it stands](#where-it-stands)**
+**[Case study](docs/case-study.md)** · **[Storybook](https://gianko.github.io/design-demo/)** · **[Eval report](https://gianko.github.io/design-demo/evals/)** · **[Figma file](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo)** · **[Design brief](docs/design-brief.md)** · **[Where it stands](#where-it-stands)**
 
 | A generated screen, kept and gated | A library component at admin density |
 |---|---|
@@ -30,18 +30,17 @@ The domain is contractor payroll and invoicing: an admin who clears dozens of in
 |---|---|---|
 | Design brief | ✅ | |
 | Tokens → CSS, TypeScript and Figma variables | ✅ | |
-| Component library in Storybook | ✅ | 11 components |
+| Component library in Storybook | ✅ | 15 components |
 | Two-step generator with repair | ✅ | |
 | Gates 1–4, 6 and 8 | ✅ | [The gates](#the-gates) |
-| Taste lint (gate 7) | 🚧 | 5 of 16 rules |
-| Eval runner and report | ✅ | [First full run](#results-first-full-eval-run) |
-| Eval set | 🚧 | 5 of 15–20 screen briefs |
-| Comparison across prompt versions | 🚧 | The report compares runs; the second run comes with the first prompt fix |
+| Taste lint (gate 7) | ✅ | All 16 rules |
+| Eval runner and report | ✅ | [Latest run](#results-latest-eval-run) |
+| Eval set | ✅ | 15 screen briefs, for admins and contractors |
+| Comparison across prompt versions | ✅ | The report compares each run against the baseline it names |
 | Figma: variables with modes, screen captures | ✅ | |
 | Motion: screen-state View Transitions | ✅ | |
-| Motion: Toast, Sheet, table-action-to-toast, row-to-sheet | ○ | [ADR 0011](docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md), [ADR 0013](docs/adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) |
+| Motion: Toast, Sheet, table-action-to-toast, row-to-sheet | ✅ | [ADR 0011](docs/adr/0011-motion-follows-declared-state-changes-owned-by-the-library.md), [ADR 0013](docs/adr/0013-bulk-actions-live-in-datatables-footer-results-are-toasts.md) |
 | Brief conformance (gate 5) | ○ | |
-| An agent-run screen brief: the repair loop as UI | ○ | [#198](https://github.com/gianko/design-demo/issues/198) |
 | Figma: component frames | ○ | |
 | Case study | ○ | Including what a designer should change |
 
@@ -49,23 +48,37 @@ The domain is contractor payroll and invoicing: an admin who clears dozens of in
 
 Every change lands as a pull request, every eval run's results file is committed, and the [eval report](https://gianko.github.io/design-demo/evals/) is redeployed from `main`. The record of how the system gets better is the comparison between runs, not a claim in this README.
 
-**Latest:** 2026-10-26, the first full eval run, 15 of 15.
-**Next:** stop the code step dereferencing nullable bindings, and run again to compare.
+**Latest:** the P1 eval run, [below](#results-latest-eval-run).
+**Next:** brief conformance (gate 5), a vision judge of each screen against the design brief, and an eval run with it on to compare.
 
-## Results: first full eval run
+## Results: latest eval run
 
-Five screen briefs, K = 3, Opus 5.5, on a clean tree at `ce3d3b5` ([results file](evals/results/2026-10-26-eval.json), [report](https://gianko.github.io/design-demo/evals/)).
+<!-- eval-table:start: written by `pnpm eval:readme` from the newest results file -->
+
+15 screen briefs, K = 3, Opus 5.5, on a clean tree at `2d7aa70` ([results file](evals/results/2026-10-28-p1.json)). The [report](https://gianko.github.io/design-demo/evals/) compares it against [2026-10-26-rerun](evals/results/2026-10-26-rerun.json).
 
 | Screen brief | Audience | Passed | First attempt | Cost |
 |---|---|---|---|---|
-| [invoice-queue](evals/briefs/invoice-queue.md) | admin | 3 / 3 | 3 / 3 | $0.76 |
-| [invoice-review](evals/briefs/invoice-review.md) | admin | 3 / 3 | 0 / 3 | $0.92 |
-| [payment-overview](evals/briefs/payment-overview.md) | contractor | 3 / 3 | 3 / 3 | $0.76 |
-| [payment-run](evals/briefs/payment-run.md) | admin | 3 / 3 | 2 / 3 | $0.79 |
-| [payment-status](evals/briefs/payment-status.md) | contractor | 3 / 3 | 2 / 3 | $0.75 |
-| **All** | | **15 / 15** | **10 / 15** | **$3.98** |
+| [annual-summary](evals/briefs/annual-summary.md) | contractor | 3 / 3 | 3 / 3 | $0.56 |
+| [bulk-pay](evals/briefs/bulk-pay.md) | admin | 2 / 3 | 2 / 3 | $0.72 |
+| [contractors](evals/briefs/contractors.md) | admin | 3 / 3 | 3 / 3 | $0.55 |
+| [failed-payments](evals/briefs/failed-payments.md) | admin | 3 / 3 | 0 / 3 | $0.90 |
+| [invoice-queue](evals/briefs/invoice-queue.md) | admin | 3 / 3 | 3 / 3 | $0.66 |
+| [invoice-review](evals/briefs/invoice-review.md) | admin | 3 / 3 | 3 / 3 | $0.67 |
+| [my-invoices](evals/briefs/my-invoices.md) | contractor | 3 / 3 | 3 / 3 | $0.48 |
+| [overdue-invoices](evals/briefs/overdue-invoices.md) | admin | 3 / 3 | 3 / 3 | $0.83 |
+| [payment-failed](evals/briefs/payment-failed.md) | contractor | 3 / 3 | 3 / 3 | $0.65 |
+| [payment-overview](evals/briefs/payment-overview.md) | contractor | 3 / 3 | 3 / 3 | $0.51 |
+| [payment-run](evals/briefs/payment-run.md) | admin | 3 / 3 | 3 / 3 | $0.67 |
+| [payment-status](evals/briefs/payment-status.md) | contractor | 3 / 3 | 3 / 3 | $1.06 |
+| [payments-received](evals/briefs/payments-received.md) | contractor | 3 / 3 | 3 / 3 | $0.57 |
+| [run-history](evals/briefs/run-history.md) | admin | 3 / 3 | 3 / 3 | $0.55 |
+| [withdraw-invoice](evals/briefs/withdraw-invoice.md) | contractor | 3 / 3 | 3 / 3 | $0.85 |
+| **All** | | **44 / 45** | **41 / 45** | **$10.22** |
 
-Every first-attempt failure was the same one: the code step read a fixture binding that is `null` in the empty state, and TypeScript (gate 3) caught it. One repair turn fixed each.
+<!-- eval-table:end -->
+
+The table is written from the newest results file. After committing an eval run, run `pnpm eval:readme` to rewrite it; a test fails while it's stale.
 
 ## The gates
 
@@ -79,7 +92,7 @@ Gates run on generated screens and on the design system itself, so the library i
 | 4 | Accessibility: axe-core, serious or critical fails | ✅ |
 | 5 | Brief conformance: Opus 5.5 judges each screen state's screenshot against six criteria from the design brief, soft until calibrated ([ADR 0014](docs/adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)) | 🚧 `pnpm generate` |
 | 6 | Visual regression: zero differing pixels against committed baselines | ✅ |
-| 7 | Taste lint: our own rules, static and rendered ([`RULES.md`](lint/taste/RULES.md)) | 🚧 5 of 16 |
+| 7 | Taste lint: our own rules, static and rendered ([`RULES.md`](lint/taste/RULES.md)) | ✅ |
 | 8 | Style expectations: a story's own assertions on computed style | ✅ |
 
 The taste rules are a triage of [impeccable](https://github.com/pbakaus/impeccable)'s 61 detector rules (kept, adapted or skipped, each with a reason), plus rules the brief demands that impeccable doesn't have, such as tabular figures on money and motion only through tokens. No code is copied.
@@ -118,6 +131,7 @@ pnpm gate                              # every gate over every story and kept sc
 pnpm test                              # unit tests
 pnpm eval                              # the eval suite; reads ANTHROPIC_API_KEY from .env, prints a cost estimate first
 pnpm eval:report --latest              # the HTML report for the newest run, against the baseline it names (pnpm eval --baseline)
+pnpm eval:readme                       # rewrite this README's eval table from the newest results file, after committing a run
 ```
 
 [`docs/spec.md`](docs/spec.md) has the full build plan, and [`GLOSSARY.md`](GLOSSARY.md) has the vocabulary.
