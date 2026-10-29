@@ -28,6 +28,10 @@ _Avoid_: Ralph, agent loop
 The row heights, container padding and target sizes for one audience: working density for the admin, full room for the contractor.
 _Avoid_: Compact mode, size variant
 
+**Component frame**:
+The Figma component set for one library component, its main variants made from the component's own code and bound to the file's variables; a surface a designer opens and comments on, never an input to the code.
+_Avoid_: Figma component, master component, design component
+
 ## People
 
 **Admin**:
@@ -125,6 +129,14 @@ _Avoid_: Slop detector, design lint
 **Taste rule**:
 One named, deterministic check in the taste lint, run on source code or on a rendered story or screen.
 _Avoid_: Detector, heuristic
+
+**Brief conformance**:
+The gate that judges how a generated screen looks against the design brief, one pass/fail criterion at a time, each with a reason; it reports without failing a rep until its verdicts are shown to be trusted.
+_Avoid_: Vision gate, AI judge, design review
+
+**Calibration set**:
+Copies of kept screens, each broken by hand against one brief-conformance criterion, judged beside the kept screens as they are to show whether brief conformance's verdicts are right and repeatable.
+_Avoid_: Golden set, test set
 
 **Baseline**:
 The approved screenshot of one story in one theme and density that visual regression compares against; only the human changes one.

@@ -4,15 +4,15 @@ Input for `/wayfinder`. Decisions marked **DECIDED** are settled; don't reopen t
 
 ## 1. Why this exists
 
-Portfolio demo for **AI Design Engineer**-type roles (design systems + AI tooling, usually sitting in a Product Design team). The common core of these postings: build the system that lets AI build products, with humans defining the taste, the guardrails, and the standards it works within. Hands-on design is often also required; I have none. The demo is honest about that: the design system itself is built _with_ Claude Code against a written design brief I own, then everything downstream (generation, gates, evals, Figma sync) is the system side at a level nobody else will bring.
+Portfolio demo for **AI Design Engineer**-type roles (design systems + AI tooling, usually sitting in a Product Design team). The common core of these postings: build the system that lets AI build products, with humans defining the taste, the guardrails, and the standards it works within. The design system itself is built _with_ Claude Code against a written design brief I own, then everything downstream (generation, gates, evals, Figma sync) is the system side at a level nobody else will bring.
 
-Narrative: _"I'm not a designer. I've spent 15 years making designers' work ship at award level. This is that craft encoded into a system: a human-written brief, an AI-built design system, and the guardrails and evals that keep AI output production-ready."_
+Narrative: _"I've spent 15 years making designers' work ship at award level. This is that craft encoded into a system: a human-written brief, an AI-built design system, and the guardrails and evals that keep AI output production-ready."_
 
-Audience: a product-design lead and an engineer at the hiring company, evaluating in ~10 minutes. The deliverables they'll touch, in order: Loom → README/case study → Storybook → repo.
+Audience: a product-design lead and an engineer at the hiring company, evaluating in ~10 minutes. The deliverables they'll touch, in order: video → README/case study → Storybook → repo.
 
 Hard deadline: see _Scope and timebox_.
 
-Tailoring per application (README/case study/Loom only; the system itself stays the same): role title, the posting's own phrasing of the core ask, who's evaluating, and why the screen domain is relevant to that company.
+Tailoring per application (README/case study/video only; the system itself stays the same): role title, the posting's own phrasing of the core ask, who's evaluating, and why the screen domain is relevant to that company.
 
 ## 2. What it is
 
@@ -45,7 +45,7 @@ Domain for the generated screens: **contractor payroll / invoicing** (I live it 
 - **DECIDED** No workbench UI, no backend service, no database, no conversational editing. CLI + Storybook + static eval report. If something needs persistence it's a JSON file in the repo.
 - **DECIDED** Generative UI in-product (adaptive runtime interfaces) is **out of scope**. Deliberately. Mention in the case study as the obvious next step.
 - **DECIDED** Repo conventions: written domain model, ADRs, spec-first, TypeScript strict, Vitest, Playwright, ESLint. Same as my other repos.
-- **DECIDED** Deliverables: public GitHub repo, deployed Storybook, 3-minute Loom (design brief → Storybook → screen brief → generated screen → failing gate → repair → passing → screen appears in Figma), case study doc in the repo (`docs/case-study.md`) with a section titled "What a designer should change".
+- **DECIDED** Deliverables: public GitHub repo, deployed Storybook, a 90-second motion-graphics video (design brief → the system → screen brief → generated screen → failing gate → repair → passing → evals → Figma; every claim on screen is real footage or committed data, narrated by an AI voice from my script and saying so; published unlisted and as a release asset, its source not committed; see [P2](https://github.com/gianko/design-demo/issues/314)), case study doc in the repo (`docs/case-study.md`) with a section titled "What a designer should change".
 - **DECIDED** Anthropic's `frontend-design` skill is loaded for every session where Claude Code builds or modifies a component. It is the only third-party design skill in the loop. Its current bans are restated in the design brief so the brief stands on its own. Since its 2026-09-03 rewrite the skill bans typographic tells and default clusters rather than named fonts, so the design brief names the banned fonts (Inter, Geist, Roboto, Arial, Space Grotesk) itself.
 - **DECIDED** No impeccable dependency. Its 61 detector rules are used as a **reference list only**: read them, pick the ones that apply to a dense B2B product UI, reimplement that subset in our own taste lint (gate 7), credit the source in the rule file. Rules we skip are listed with a one-line reason. Our rule set is small enough to read in one sitting and goes beyond impeccable in at least one direction the brief cares about (density, motion or type).
 
@@ -63,7 +63,7 @@ Tokens: colour (semantic, light + dark modes), spacing, radius, type scale + pai
 2. **Token lint** — ESLint rule(s): no raw colour/spacing/radius/font values, no inline styles, no imports outside the library barrel. Hard fail.
 3. **TypeScript + build** — hard fail.
 4. **a11y** — axe-core via Playwright; serious/critical = hard fail.
-5. **Brief conformance** — rendered screenshot judged against `docs/design-brief.md` (density, hierarchy, spacing rhythm, motion used where the brief says). Approach is an open question (vision-model judge with a rubric vs structural heuristics). Report, soft fail initially; promote to hard once the signal is trusted.
+5. **Brief conformance** — rendered screenshot judged against `docs/design-brief.md` (density, hierarchy, spacing rhythm, motion used where the brief says). **DECIDED** ([ADR 0014](adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)): a vision-model judge with six binary criteria from the brief, soft in P2, proved by a calibration set; promote to hard once its numbers say the signal is trusted.
 6. **Visual regression** — Playwright screenshots of library stories and kept screens, CI-gated. Fresh generated screens have no baseline, so a generated screen enters gate 6 only once it is kept ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)).
 7. **Taste lint** — our own deterministic rules, `lint/taste/*.ts`, run via ESLint + a Playwright pass over rendered stories. Subset reimplemented from impeccable's detector (credited), plus brief-specific rules. Starting candidates: nested cards, pure black / pure gray text, gray text on coloured backgrounds, bounce/elastic easing, touch targets under 44px, skipped heading levels, gradient-as-decoration, shadow-as-border, more than two type weights on screen, off-scale spacing values, transitions without motion tokens. Hard fail on the design system; hard fail on generated screens once the system passes clean.
 
@@ -83,7 +83,7 @@ The same gates 2, 4, 6 and 7 run on the **design system itself** during its AI-a
 Order matters: variables first, then component frames, then screen captures, so everything downstream binds to the variables.
 
 - **Tokens → variables (`use_figma`):** a repo skill/script hands the agent the token JSON; the agent creates/updates variable collections with light/dark modes. Re-running updates by stable name rather than duplicating. This is the sync we'd want to be idempotent and testable: a `figma:sync-tokens` command with a dry-run that prints the diff. **DECIDED** ([ADR 0007](adr/0007-figma-sync-is-a-generated-one-call-script.md)): a generated Plugin API script, passed verbatim to `use_figma` in one atomic call, checksummed; the skill only drives it.
-- **Components → frames (`use_figma`):** one frame per library component with its main variants, auto layout, fills bound to variables. Thin is acceptable: correct tokens, names, hierarchy. "A designer can open it and comment" is the bar.
+- **Components → frames (`use_figma`):** one frame per library component with its main variants, auto layout, fills bound to variables. Thin is acceptable: correct tokens, names, hierarchy. "A designer can open it and comment" is the bar. **DECIDED** ([ADR 0015](adr/0015-component-frames-are-generated-from-each-components-tv-config.md)): generated from each component's `tv()` config by `figma:sync-components`, on the same runtime as `figma:sync-tokens`.
 - **Generated screens → layers (`generate_figma_design`):** capture each generated screen (and its key states) from the local dev server into the project file. No code beyond the MCP config and the prompt/skill that runs it.
 - **Verify after write:** no extra read. The write script returns its own evidence (created/updated/unchanged, orphans, bindings, values per mode), and a failed call rolls back. A capture can optionally be checked with a read-only `use_figma` walk of its bindings ([ADR 0007](adr/0007-figma-sync-is-a-generated-one-call-script.md)).
 - Remote MCP server only; do not also configure the desktop server (`127.0.0.1:3845`) or the write/capture tools won't load.
@@ -91,9 +91,9 @@ Order matters: variables first, then component frames, then screen captures, so 
 
 ## 8. Scope and timebox
 
-- Target: **3 weekends** of focused work, plus evenings for the design brief, case study and Loom.
+- Target: **3 weekends** of focused work, ending 2026-11-08, plus evenings for the design brief, case study and video.
 - Order: design brief (evening, before anything else) → vertical slice: tokens + 4 components + one screen brief + gates 1–4 + taste lint (first 5 rules) + one Figma push → then widen.
-- Fallback if time runs out (cut from the end): drop component frames → drop brief-conformance gate → ship as "AI-built design system + Design System Guardian" (token lint + a11y + evals on generated screens) and still have a coherent story.
+- P2 is built in one order, so cuts fall off the end: README eval table → brief-conformance gate → component frames → case study → video. Fallback if time runs out: drop component frames → drop brief-conformance gate; the README, case study and video are never cut. Without both, it still ships as "AI-built design system + Design System Guardian" (token lint + a11y + evals on generated screens) and still have a coherent story.
 
 Priority:
 
@@ -101,7 +101,7 @@ Priority:
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | P0  | Design brief; tokens pipeline; component library + Storybook (AI-built, gated); spec→code agent; gates 1–4; repair loop; 5 screen briefs in evals; taste lint (first 5 rules) |
 | P1  | Motion in generated screens; full brief set; eval comparison across versions; Figma: variables with modes + screen captures; taste lint complete                              |
-| P2  | Brief-conformance gate; Figma: component frames; case study; Loom; deployed Storybook; README eval table auto-generated; an agent-run screen brief, the repair loop as UI ([#198](https://github.com/gianko/design-demo/issues/198)) |
+| P2  | README eval table auto-generated; brief-conformance gate; Figma: component frames; case study; video ([#314](https://github.com/gianko/design-demo/issues/314)) |
 
 ## 9. Open questions (investigation tickets)
 
@@ -115,11 +115,11 @@ Priority:
 4. **DECIDED** ([ADR 0002](adr/0002-token-only-tailwind-and-eslint-token-lint.md)): Radix + Tailwind v4. **Radix+Tailwind v4 vs CSS modules** for the library. Criteria: how legibly the token constraints can be linted; how the agent's generated code reads; bundle/setup cost.
 5. **DECIDED** ([ADR 0003](adr/0003-generator-on-messages-api-not-an-agent-loop.md)): Messages API, two calls, no agent loop. **Agent runtime:** Claude Agent SDK vs hand-rolled tool-calling loop vs reusing the agent-quiz-app Ralph loop as-is. Criteria: least code, structured output support for the spec step, ability to inject gate failures as follow-up turns.
 6. **DECIDED** ([ADR 0004](adr/0004-flat-library-only-ui-spec-and-zod-first-registry.md)): a flat, library-only node list with layout, copy, bindings, screen states and actions; a Zod-first registry derived into the library's props. **Spec schema design** — shape of the typed UI spec (tree of registered components + props + slots + data bindings?). How much layout does the spec carry vs the code step? How does the registry get generated from the component library (from TS types? from Storybook metadata?) so it can't drift?
-7. **Brief-conformance gate** — vision-model judge with a rubric derived from the brief vs structural heuristics (spacing values on the rhythm, type sizes on the scale, motion present). Which gives a useful, repeatable signal? Cost per run?
+7. **DECIDED** ([ADR 0014](adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)): an Opus 5.5 judge on screenshots, six binary criteria with reasons, soft, proved by a calibration set; heuristics would repeat gates 2 and 7. **Brief-conformance gate** — vision-model judge with a rubric derived from the brief vs structural heuristics (spacing values on the rhythm, type sizes on the scale, motion present). Which gives a useful, repeatable signal? Cost per run?
 8. **DECIDED** ([ADR 0002](adr/0002-token-only-tailwind-and-eslint-token-lint.md)): ESLint only. **Token lint implementation** — custom ESLint rules vs Stylelint vs a Tailwind-class allowlist plugin. Must catch raw values in TSX, CSS, and Tailwind arbitrary values.
 9. **DECIDED** ([`lint/taste/RULES.md`](../lint/taste/RULES.md)): 15 taste rules (5 kept from impeccable, 5 adapted, 5 new), the first 5 in P0; token-level checks move to the token build. **Taste lint rule selection** — read impeccable's 61 detector rules (github.com/pbakaus/impeccable, Apache 2.0). For each: keep / adapt / skip, with a reason. Target 10–15 rules. Decide what's checkable statically (ESLint on TSX/CSS) vs needs a render (Playwright: computed styles, bounding boxes, heading order). Add 2–3 rules impeccable doesn't have that the brief demands. Output: `lint/taste/RULES.md` with the kept/skipped table, then the implementations.
 10. **DECIDED** ([ADR 0008](adr/0008-eval-runs-are-a-budgeted-script-compared-after-the-fact.md)): a standalone `pnpm eval` script with a dollar budget, compared after the fact from committed results files in an HTML report. **Eval runner shape** — reuse Vitest as the runner (each brief = a test, K reps) vs standalone script. Cost control: cap total runs per eval invocation.
-11. **Case study outline** — what goes in, the eval table, which failures to show honestly, and the "What a designer should change" section.
+11. **DECIDED** ([P2](https://github.com/gianko/design-demo/issues/314)): ten sections, about a four-minute read, from the ask to what a designer should change, each gate shown with a real failure from committed results. **Case study outline** — what goes in, the eval table, which failures to show honestly, and the "What a designer should change" section.
 12. **DECIDED** ([ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md)): one GitHub Actions job on an arm64 runner runs the token build, Vitest and `pnpm gate`, with every screenshot rendered in one pinned Playwright image locally and in CI; Storybook and the newest eval report deploy to GitHub Pages; no secrets in CI. **CI** — GitHub Actions: lint + typecheck + unit + Storybook build + Playwright visual regression. Evals run manually (cost), results committed.
 
 ## 10. Non-goals
