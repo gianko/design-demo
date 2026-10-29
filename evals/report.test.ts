@@ -447,6 +447,13 @@ describe("pnpm eval:report", () => {
           "Passed (first attempt → final)": "1/3 → 2/3",
         }),
       ]);
+      // The cost takes in the judge's, and says how much, so a run from
+      // before gate 5 compares fairly.
+      expect(rows(doc, "All screen briefs")).toEqual([
+        expect.objectContaining({
+          Cost: expect.stringMatching(/^\$\d+\.\d\d, of which gate 5 \$0\.40$/),
+        }),
+      ]);
       expect(legendRow(doc, "Gate 5 judge")).toEqual([
         "claude-opus-5-5, high effort",
       ]);
@@ -465,6 +472,7 @@ describe("pnpm eval:report", () => {
         "All screen briefs",
       ]) {
         expect(gate5Cells(doc, brief), brief).toEqual(Array(9).fill("not run"));
+        expect(rows(doc, brief)[0]!.Cost, brief).toMatch(/^\$\d+\.\d\d$/);
       }
       expect(legendRow(doc, "Gate 5 judge")).toEqual(["not run"]);
     });

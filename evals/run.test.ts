@@ -1114,7 +1114,55 @@ requires:
 
     // A results file from before gate 5 can't price the judge, so the
     // estimate adds a nominal call per screen state each rep judges: the
+    // light renders of the brief's final code attempt in that file, open
+    // sheet and ticked rows included, or for a brief it doesn't have, the
     // default and each state the screen brief requires.
+    it("counts the screen states the judge will see from the latest results file's renders", async () => {
+      const at = setup("alpha", "beta");
+      earlierRuns(at, { gate5: false });
+      const light = (states: string[]) =>
+        states.flatMap((state) =>
+          (["light", "dark"] as const).map((theme) => ({
+            theme,
+            density: "admin",
+            state,
+            gates: {},
+          }))
+        );
+      const latest = join(at.resultsDir, "2026-10-20-afternoon.json");
+      const file = JSON.parse(readFileSync(latest, "utf8"));
+      file.reps[0] = {
+        ...file.reps[0],
+        slug: "alpha",
+        attempts: [
+          { step: "spec", attempt: 1 },
+          { step: "code", attempt: 1, renders: light(["default"]) },
+          {
+            step: "code",
+            attempt: 2,
+            renders: light([
+              "default",
+              "empty",
+              "default, sheet open",
+              "default, rows ticked",
+            ]),
+          },
+        ],
+      };
+      writeFileSync(latest, JSON.stringify(file));
+
+      const { output } = await run(at, ["--budget", "3.5"], {
+        plans: twoBriefs(),
+        confirm: false,
+      });
+
+      // 3 reps × (alpha's 4 rendered states + beta's default and empty) ×
+      // $0.069 = $1.24.
+      expect(output).toContain(
+        "estimate: $4.24 (2 screen briefs × 3 reps × $0.50 median rep cost, plus $1.24 for gate 5: 18 screen states × $0.069 a nominal judge call)"
+      );
+    });
+
     it("adds a nominal judge call per screen state when the latest results file has no gate 5", async () => {
       const at = setup("alpha", "beta");
       earlierRuns(at, { gate5: false });

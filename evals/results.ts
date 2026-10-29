@@ -10,10 +10,11 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Attempt, EndReason, Versions } from "../generator/generate.ts";
 import {
-  type Conformance,
   type Criterion,
+  type Gate5,
   type JudgeVersions,
   rubricCriteria,
+  screenPasses,
 } from "../generator/conformance.ts";
 import type { CriteriaResult } from "../generator/pass-criteria.ts";
 
@@ -56,10 +57,8 @@ export type RepResult = {
 
 // One rep's brief conformance: each screen state's verdicts with their
 // reasons, or why it wasn't judged, and the score once every state was.
-export type RepGate5 = Omit<Conformance, "promptHash"> & {
-  // Why gate 5 didn't run, or null when it did.
-  notRun: string | null;
-};
+// The prompt hash is the run's, in its version tuple.
+export type RepGate5 = Omit<Gate5, "promptHash">;
 
 // A count out of the reps a pass rate counts.
 export type Rate = { passed: number; of: number };
@@ -92,7 +91,7 @@ export type Gate5Tally = {
   notRun: number;
   // Per criterion, the judged reps whose every state passed it.
   criteria: Record<Criterion, Rate>;
-  // Verdicts passed out of every judged rep's.
+  // Criteria passed out of six, summed over the judged reps.
   score: Rate;
   // USD, every judge call's, judged or not.
   cost: number;
@@ -182,12 +181,6 @@ export function tally(reps: RepResult[]): Tally {
 function gate5Tally(reps: RepResult[]): Gate5Tally {
   const ran = reps.filter(counted).map((rep) => rep.gate5);
   const judged = ran.filter((each): each is RepGate5 => each?.ran === true);
-  const passes = (gate5: RepGate5, criterion: Criterion) =>
-    gate5.states.every(
-      (state) =>
-        state.judged &&
-        state.verdicts.some((v) => v.criterion === criterion && v.pass)
-    );
   const sum = (count: (gate5: RepGate5) => number) =>
     judged.reduce((total, each) => total + count(each), 0);
   return {
@@ -197,7 +190,8 @@ function gate5Tally(reps: RepResult[]): Gate5Tally {
       rubricCriteria.map((criterion) => [
         criterion,
         {
-          passed: judged.filter((each) => passes(each, criterion)).length,
+          passed: judged.filter((each) => screenPasses(each.states, criterion))
+            .length,
           of: judged.length,
         },
       ])
