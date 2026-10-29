@@ -6,7 +6,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { readScreenBrief } from "../generator/screen-brief.ts";
-import { type Rate, type ResultsFile, latestResults } from "./results.ts";
+import {
+  type Rate,
+  type ResultsFile,
+  type Tally,
+  latestResults,
+} from "./results.ts";
 import { dollars } from "../format.ts";
 import { repo } from "../repo.ts";
 
@@ -101,6 +106,13 @@ function modelName(id: string) {
 
 const rate = ({ passed, of }: Rate) => `${passed} / ${of}`;
 
+// The judge's share, as the report shows it, so a run with gate 5 compares
+// fairly with one from before it.
+const cost = ({ cost, gate5 }: Tally) =>
+  gate5
+    ? `${dollars(cost)}, of which gate 5 ${dollars(gate5.cost)}`
+    : dollars(cost);
+
 const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
 function evalTable(path: string, file: ResultsFile, paths: ReadmePaths) {
@@ -121,13 +133,13 @@ function evalTable(path: string, file: ResultsFile, paths: ReadmePaths) {
   const rows = file.briefSlugs.map((slug) => {
     const brief = join(paths.briefsDir, `${slug}.md`);
     const tally = file.perBrief[slug]!;
-    return `| [${slug}](${link(brief)}) | ${readScreenBrief(brief).audience} | ${rate(tally.final)} | ${rate(tally.firstAttempt)} | ${dollars(tally.cost)} |`;
+    return `| [${slug}](${link(brief)}) | ${readScreenBrief(brief).audience} | ${rate(tally.final)} | ${rate(tally.firstAttempt)} | ${cost(tally)} |`;
   });
   const table = [
     "| Screen brief | Audience | Passed | First attempt | Cost |",
     "|---|---|---|---|---|",
     ...rows,
-    `| **All** | | **${rate(totals.final)}** | **${rate(totals.firstAttempt)}** | **${dollars(totals.cost)}** |`,
+    `| **All** | | **${rate(totals.final)}** | **${rate(totals.firstAttempt)}** | **${cost(totals)}** |`,
   ].join("\n");
 
   // "1 rep errored and 2 were skipped", the noun on the first only.

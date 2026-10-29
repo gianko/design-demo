@@ -7,7 +7,15 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { main, rewrittenReadme } from "./readme.ts";
-import { type At, runA, runB, setup, write } from "./report-fixtures.ts";
+import {
+  type At,
+  gate5,
+  judged,
+  runA,
+  runB,
+  setup,
+  write,
+} from "./report-fixtures.ts";
 import { repo } from "../repo.ts";
 
 const start =
@@ -91,6 +99,26 @@ describe("pnpm eval:readme", () => {
     );
     expect(text).toContain(
       "1 rep errored and 2 were skipped; the pass rates leave them out."
+    );
+  });
+
+  it("says how much of each cost is gate 5's, for a run with gate 5", async () => {
+    const at = setup();
+    write(
+      at,
+      "2026-10-27-after.json",
+      judged(runA(at), () => gate5({ default: [] }))
+    );
+    const path = readme(at);
+
+    expect((await run(at, path)).code).toBe(0);
+
+    const text = readFileSync(path, "utf8");
+    expect(text).toContain(
+      "| [invoice-queue](briefs/invoice-queue.md) | admin | 2 / 3 | 1 / 3 | $1.05, of which gate 5 $0.15 |"
+    );
+    expect(text).toContain(
+      "| **All** | | **5 / 6** | **3 / 6** | **$1.90, of which gate 5 $0.30** |"
     );
   });
 
