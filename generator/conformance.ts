@@ -223,8 +223,11 @@ function message(error: unknown) {
 }
 
 // The light-theme rest shot of each state the rep's final attempt rendered,
-// at its audience's density: what gate 5 judges.
-export function screenshotsOf(trace: RepTrace): Screenshot[] {
+// at its audience's density: what gate 5 judges. Each shot's file is
+// relative to workDir, or absolute.
+export function screenshotsOf(
+  trace: Pick<RepTrace, "shots" | "workDir">
+): Screenshot[] {
   return (trace.shots ?? [])
     .filter(({ theme }) => theme === "light")
     .map(({ state, file }) => ({

@@ -8,7 +8,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ScreenStateParameters } from "../src/components/Screen/screen-state.tsx";
-import { screenStories, storyStates } from "./screen-stories.ts";
+import {
+  keptStoryStates,
+  screenStories,
+  storyStates,
+} from "./screen-stories.ts";
 import type { UiNode } from "./ui-spec.ts";
 import { repo } from "../repo.ts";
 
@@ -221,6 +225,68 @@ describe("screenStories' rows-ticked render", () => {
       ["Default", "default"],
       ["DefaultSheetOpen", "default, sheet open"],
       ["DefaultRowsTicked", "default, rows ticked"],
+    ]);
+  });
+});
+
+// A kept screen keeps no UI spec, only its stories, so the calibration set
+// (evals/calibration.ts) reads its states back from them.
+describe("keptStoryStates", () => {
+  it("reads back each story's state from the stories screenStories writes", () => {
+    const input = {
+      slug: "invoices",
+      name: "Invoices",
+      states: [
+        { name: "empty", fixture: "my-invoices/empty" },
+        { name: "reminder-sent", fixture: "payment-status/reminder-sent" },
+      ],
+      nodes: [
+        ...withBoth,
+        node("more", "DataTable", "screen", "body"),
+        node("more-pay", "Button", "more", "actions"),
+      ],
+      actions: [],
+    };
+
+    expect(keptStoryStates(screenStories(input))).toEqual([
+      { exportName: "Default", state: "default" },
+      { exportName: "Empty", state: "empty" },
+      { exportName: "ReminderSent", state: "reminder-sent" },
+      { exportName: "DefaultSheetOpen", state: "default, sheet open" },
+      { exportName: "DefaultRowsTicked", state: "default, rows ticked" },
+      {
+        exportName: "DefaultRowsTickedInTable2",
+        state: "default, rows ticked in table 2",
+      },
+    ]);
+  });
+
+  it("reads each kept screen's states, formatted as kept", () => {
+    const states = (slug: string, name: string) =>
+      keptStoryStates(
+        readFileSync(
+          join(repo, "src/screens", slug, `${name}.stories.tsx`),
+          "utf8"
+        )
+      ).map(({ state }) => state);
+
+    expect(states("bulk-pay", "BulkPay")).toEqual([
+      "default",
+      "empty",
+      "payment-scheduled",
+      "payment-failed",
+      "default, rows ticked",
+    ]);
+    expect(states("my-invoices", "MyInvoices")).toEqual([
+      "default",
+      "empty",
+      "default, sheet open",
+    ]);
+    expect(states("payment-status", "PaymentStatus")).toEqual([
+      "default",
+      "empty",
+      "reminder-sent",
+      "reminder-failed",
     ]);
   });
 });

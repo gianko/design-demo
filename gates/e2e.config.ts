@@ -11,12 +11,13 @@ import { repo } from "../repo.ts";
 export default defineConfig({
   test: {
     root: repo,
-    // The gate's cases, the kept screen's (spec § Keep) and the generator's
-    // render pass.
+    // The gate's cases, the kept screen's (spec § Keep), the generator's
+    // render pass and the calibration set's.
     include: [
       "gates/gate.e2e.ts",
       "generator/keep.e2e.ts",
       "generator/render-gates.e2e.ts",
+      "evals/calibration.e2e.ts",
     ],
     // Every file runs `pnpm gate` or a Storybook build over the one
     // checkout, and the first two plant files in src/ that the others' runs
