@@ -1,7 +1,9 @@
 .DS_Store
 .claude/worktrees/
 # A session's scratch files (AGENTS.md § Working copy).
-.scratch/
+# The folder is kept, so it is there in every new worktree.
+.scratch/*
+!.scratch/.gitkeep
 node_modules/
 storybook-static/
 # rtk's vitest wrapper writes its JSON report here.
