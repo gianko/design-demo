@@ -11,7 +11,7 @@ import {
   type FakePluginApi,
 } from "./fake-plugin-api.ts";
 import { framesPayload, readTokens, type ComponentsPayload } from "./frames.ts";
-import { codeLimit } from "./scripts.ts";
+import { codeLimit, overLimit } from "./scripts.ts";
 import { syncComponentScripts, type SyncOptions } from "./sync-components.ts";
 import { syncScripts as tokenScripts } from "./sync-tokens.ts";
 
@@ -41,7 +41,7 @@ type Report = {
 
 // ADR 0015's sets, and how many variants they hold between them: Button's
 // 12, StatusTag's 5, Toast's 2, Text's 4, Heading's 3, Amount's 2,
-// Checkbox's 6 and IconButton's 2.
+// Checkbox's 6 and IconButton's 2, then the five one-variant sets.
 const setNames = [
   "Button",
   "StatusTag",
@@ -51,8 +51,13 @@ const setNames = [
   "Amount",
   "Checkbox",
   "IconButton",
+  "Card",
+  "EmptyState",
+  "PageHeader",
+  "Sheet",
+  "DataTable",
 ];
-const variantCount = 36;
+const variantCount = 41;
 
 const run = (code: string, file: FakePluginApi) =>
   runScript(code, file) as Promise<Report>;
@@ -642,6 +647,31 @@ describe("orphans", () => {
     expect(ids).toContain(modes.id);
   });
 
+  // Every split script knows all of setNames, so each finds the same
+  // orphans; the last one prunes them, once every set has synced.
+  it("prunes with --split in the last script only, after every set is synced", async () => {
+    const { file, spike, modes } = await withSpikeSet();
+
+    const reports = await sync(file, {
+      dryRun: false,
+      prune: [spike.id],
+      split: true,
+    });
+
+    expect(reports).toHaveLength(setNames.length);
+    expect(reports.slice(0, -1).map((report) => report.pruned)).toEqual(
+      setNames.slice(0, -1).map(() => [])
+    );
+    expect(reports.at(-1)!.pruned).toEqual([
+      { kind: "COMPONENT_SET", name: "Button", id: spike.id },
+    ]);
+    const ids = components(file).page!.children!.map((n) => n.id);
+    expect(ids).not.toContain(spike.id);
+    expect(ids).toContain(modes.id);
+    expect(components(file).sets.map((set) => set.name)).toEqual(setNames);
+    expect((await sync(file, { dryRun: true }))[0]!.counts.changes).toBe(0);
+  });
+
   it("refuses to prune what it generated, and writes nothing", async () => {
     const file = await tokenFile();
     await sync(file);
@@ -704,10 +734,32 @@ describe("--split", () => {
 });
 
 describe("the generated script", () => {
-  it("fits one use_figma call", () => {
-    const [script] = syncComponentScripts(payload, { dryRun: false });
+  // ADR 0015: the whole library may outgrow one call; then --split, one
+  // script per set, is how it reaches Figma.
+  it("fits one use_figma call, or --split gives scripts that each fit one", () => {
+    const [whole] = syncComponentScripts(payload, { dryRun: false });
+    if (whole!.code.length <= codeLimit) return;
 
-    expect(script!.code.length).toBeLessThanOrEqual(codeLimit);
+    const split = syncComponentScripts(payload, { dryRun: false, split: true });
+    for (const { name, code } of split) {
+      expect(code.length, name).toBeLessThanOrEqual(codeLimit);
+    }
+  });
+
+  it("is refused whole over the limit, with a pointer to --split", () => {
+    const whole = syncComponentScripts(payload, { dryRun: false });
+    const split = syncComponentScripts(payload, { dryRun: false, split: true });
+    const over = [{ name: "all", code: "x".repeat(codeLimit + 1) }];
+
+    expect(overLimit("figma:sync-components", over, false)).toBe(
+      `figma:sync-components: all is ${codeLimit + 1} chars, over use_figma's ${codeLimit}-char limit. Rerun with --split, which gives up the one-call rollback.`
+    );
+    expect(overLimit("figma:sync-components", split, true)).toBeNull();
+    if (whole[0]!.code.length > codeLimit) {
+      expect(overLimit("figma:sync-components", whole, false)).toMatch(
+        /Rerun with --split/
+      );
+    }
   });
 
   it("is plain ASCII, so re-typing it can't turn Amount's no-break space into a space", async () => {

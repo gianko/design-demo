@@ -142,4 +142,17 @@ describe("generating the frames", () => {
       "Probe (tone=plain): the root slot fills what holds it, and has no max-* class to draw it at"
     );
   });
+
+  it("draws a root that fills what holds it with no ceiling as hugging its content", () => {
+    const [set] = framesPayload(
+      [probe("", "flex flex-col h-full max-h-none")],
+      tokens
+    ).sets;
+
+    const [root] = set!.variants;
+    expect(root!.layoutMode).toBe("VERTICAL");
+    // Neither bound nor fixed: the defaults, which the plan leaves out.
+    expect(root!.bind).toBeUndefined();
+    expect(root!.primaryAxisSizingMode).toBeUndefined();
+  });
 });

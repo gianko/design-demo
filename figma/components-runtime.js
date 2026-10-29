@@ -33,6 +33,8 @@ const BIND_FIELDS = [
 const ZERO_UNBOUND = BIND_FIELDS.slice(2, 11);
 // And these are null: a frame without a min-* or max-* class has no limit.
 const NULL_UNBOUND = BIND_FIELDS.slice(11);
+// A stroke's sides, when they differ: DataTable's rows rule only their top.
+const STROKE_SIDES = ["Top", "Right", "Bottom", "Left"];
 
 // Room around and between a set's variants on the canvas, in px. It isn't a
 // design token: nothing in the code spaces variants apart.
@@ -309,7 +311,14 @@ async function componentsPass(RUN, PAYLOAD) {
     set("layoutPositioning", plan.layoutPositioning);
     set("layoutGrow", plan.layoutGrow);
     set("clipsContent", plan.clipsContent);
-    set("strokeWeight", plan.strokeWeight);
+    if (plan.strokeWeights) {
+      STROKE_SIDES.forEach((side, i) =>
+        set(`stroke${side}Weight`, plan.strokeWeights[i])
+      );
+    } else {
+      // figma.mixed while the sides differ, which no number matches.
+      set("strokeWeight", plan.strokeWeight);
+    }
     for (const field of BIND_FIELDS) {
       const bound = node.boundVariables?.[field];
       if (plan.bind[field]) {
