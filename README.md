@@ -55,26 +55,26 @@ Every change lands as a pull request, every eval run's results file is committed
 
 <!-- eval-table:start: written by `pnpm eval:readme` from the newest results file -->
 
-15 screen briefs, K = 3, Opus 5.5, on a clean tree at `2d7aa70` ([results file](evals/results/2026-10-28-p1.json)). The [report](https://gianko.github.io/design-demo/evals/) compares it against [2026-10-26-rerun](evals/results/2026-10-26-rerun.json).
+15 screen briefs, K = 3, Opus 5.5, on a clean tree at `25e2624` ([results file](evals/results/2026-10-29-p2.json)). The [report](https://gianko.github.io/design-demo/evals/) compares it against [2026-10-28-p1](evals/results/2026-10-28-p1.json).
 
 | Screen brief | Audience | Passed | First attempt | Cost |
 |---|---|---|---|---|
-| [annual-summary](evals/briefs/annual-summary.md) | contractor | 3 / 3 | 3 / 3 | $0.56 |
-| [bulk-pay](evals/briefs/bulk-pay.md) | admin | 2 / 3 | 2 / 3 | $0.72 |
-| [contractors](evals/briefs/contractors.md) | admin | 3 / 3 | 3 / 3 | $0.55 |
-| [failed-payments](evals/briefs/failed-payments.md) | admin | 3 / 3 | 0 / 3 | $0.90 |
-| [invoice-queue](evals/briefs/invoice-queue.md) | admin | 3 / 3 | 3 / 3 | $0.66 |
-| [invoice-review](evals/briefs/invoice-review.md) | admin | 3 / 3 | 3 / 3 | $0.67 |
-| [my-invoices](evals/briefs/my-invoices.md) | contractor | 3 / 3 | 3 / 3 | $0.48 |
-| [overdue-invoices](evals/briefs/overdue-invoices.md) | admin | 3 / 3 | 3 / 3 | $0.83 |
-| [payment-failed](evals/briefs/payment-failed.md) | contractor | 3 / 3 | 3 / 3 | $0.65 |
-| [payment-overview](evals/briefs/payment-overview.md) | contractor | 3 / 3 | 3 / 3 | $0.51 |
-| [payment-run](evals/briefs/payment-run.md) | admin | 3 / 3 | 3 / 3 | $0.67 |
-| [payment-status](evals/briefs/payment-status.md) | contractor | 3 / 3 | 3 / 3 | $1.06 |
-| [payments-received](evals/briefs/payments-received.md) | contractor | 3 / 3 | 3 / 3 | $0.57 |
-| [run-history](evals/briefs/run-history.md) | admin | 3 / 3 | 3 / 3 | $0.55 |
-| [withdraw-invoice](evals/briefs/withdraw-invoice.md) | contractor | 3 / 3 | 3 / 3 | $0.85 |
-| **All** | | **44 / 45** | **41 / 45** | **$10.22** |
+| [annual-summary](evals/briefs/annual-summary.md) | contractor | 3 / 3 | 3 / 3 | $0.48, of which gate 5 $0.13 |
+| [bulk-pay](evals/briefs/bulk-pay.md) | admin | 1 / 3 | 1 / 3 | $0.99, of which gate 5 $0.34 |
+| [contractors](evals/briefs/contractors.md) | admin | 3 / 3 | 3 / 3 | $0.68, of which gate 5 $0.19 |
+| [failed-payments](evals/briefs/failed-payments.md) | admin | 1 / 3 | 0 / 3 | $1.25, of which gate 5 $0.43 |
+| [invoice-queue](evals/briefs/invoice-queue.md) | admin | 3 / 3 | 3 / 3 | $1.05, of which gate 5 $0.39 |
+| [invoice-review](evals/briefs/invoice-review.md) | admin | 3 / 3 | 3 / 3 | $0.90, of which gate 5 $0.23 |
+| [my-invoices](evals/briefs/my-invoices.md) | contractor | 3 / 3 | 3 / 3 | $0.63, of which gate 5 $0.24 |
+| [overdue-invoices](evals/briefs/overdue-invoices.md) | admin | 3 / 3 | 3 / 3 | $1.13, of which gate 5 $0.54 |
+| [payment-failed](evals/briefs/payment-failed.md) | contractor | 3 / 3 | 3 / 3 | $0.74, of which gate 5 $0.25 |
+| [payment-overview](evals/briefs/payment-overview.md) | contractor | 3 / 3 | 3 / 3 | $0.49, of which gate 5 $0.16 |
+| [payment-run](evals/briefs/payment-run.md) | admin | 3 / 3 | 3 / 3 | $0.59, of which gate 5 $0.17 |
+| [payment-status](evals/briefs/payment-status.md) | contractor | 3 / 3 | 3 / 3 | $1.03, of which gate 5 $0.30 |
+| [payments-received](evals/briefs/payments-received.md) | contractor | 3 / 3 | 3 / 3 | $0.54, of which gate 5 $0.22 |
+| [run-history](evals/briefs/run-history.md) | admin | 3 / 3 | 3 / 3 | $0.62, of which gate 5 $0.24 |
+| [withdraw-invoice](evals/briefs/withdraw-invoice.md) | contractor | 3 / 3 | 3 / 3 | $0.87, of which gate 5 $0.22 |
+| **All** | | **41 / 45** | **40 / 45** | **$11.99, of which gate 5 $4.03** |
 
 <!-- eval-table:end -->
 
