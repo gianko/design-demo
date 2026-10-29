@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
     environment: "jsdom",
+    globalSetup: ["vitest.src-guard.ts"],
     // Globs skip dot-directories, so .storybook is named on its own.
     include: ["**/*.test.{ts,tsx}", ".storybook/**/*.test.{ts,tsx}"],
     exclude: [

@@ -44,9 +44,19 @@ function repDir({
   const id = randomUUID().slice(0, 8);
   const slug = `keep-${id}`;
   const name = pascalCase(slug);
-  const dir = join(repo, ".generated", `vitest-keep-${id}`);
+  const root = join(repo, ".generated", `vitest-keep-${id}`);
+  const dir = join(root, "rep");
+  // Kept screens go under the git-ignored root, never src/ (vitest.src-guard.ts),
+  // still inside the repo so they're formatted with its Prettier config.
+  const screensDir = join(root, "src", "screens");
   mkdirSync(join(dir, "attempt-1-code"), { recursive: true });
-  cleanup.push(dir, join(repo, "src/screens", slug));
+  mkdirSync(screensDir, { recursive: true });
+  // A kept screen imports the library as ../../index.ts.
+  writeFileSync(
+    join(root, "src", "index.ts"),
+    `export * from ${JSON.stringify(join(repo, "src", "index.ts"))};\n`
+  );
+  cleanup.push(root);
   writeFileSync(join(dir, "attempt-1-code", `${name}.tsx`), tsx(name));
   writeFileSync(
     join(dir, "rep.json"),
@@ -60,12 +70,15 @@ function repDir({
       attempts: [],
     })
   );
-  return { dir, slug, name: name, kept: join(repo, "src/screens", slug) };
+  return { dir, slug, name: name, screensDir, kept: join(screensDir, slug) };
 }
 
-async function keep(dir: string) {
+async function keep({ dir, screensDir }: ReturnType<typeof repDir>) {
   const lines: string[] = [];
-  const code = await main([dir], { log: (line) => lines.push(line) });
+  const code = await main([dir], {
+    log: (line) => lines.push(line),
+    screensDir,
+  });
   return { code, output: lines.join("\n") };
 }
 
@@ -73,7 +86,7 @@ describe("pnpm keep", () => {
   it("copies a passed rep's final TSX to src/screens/<slug>/, formatted", async () => {
     const rep = repDir();
 
-    const { code, output } = await keep(rep.dir);
+    const { code, output } = await keep(rep);
 
     expect(code).toBe(0);
     expect(readFileSync(join(rep.kept, `${rep.name}.tsx`), "utf8")).toBe(
@@ -99,7 +112,7 @@ export function ${rep.name}() {
       ],
     });
 
-    await keep(rep.dir);
+    await keep(rep);
 
     const stories = readFileSync(
       join(rep.kept, `${rep.name}.stories.tsx`),
@@ -167,7 +180,7 @@ export function ${rep.name}() {
       ],
     });
 
-    await keep(rep.dir);
+    await keep(rep);
 
     const stories = await import(join(rep.kept, `${rep.name}.stories.tsx`));
     const sent = {
@@ -205,7 +218,7 @@ export function ${rep.name}() {
       ],
     });
 
-    await keep(rep.dir);
+    await keep(rep);
 
     const stories = readFileSync(
       join(rep.kept, `${rep.name}.stories.tsx`),
@@ -252,7 +265,7 @@ export function ${rep.name}() {
       states: [{ name: "paid", fixture: "payment-status/reminder-sent" }],
     });
 
-    await keep(rep.dir);
+    await keep(rep);
 
     const stories = await import(join(rep.kept, `${rep.name}.stories.tsx`));
     expect(stories.DefaultSheetOpen.parameters).toEqual({
@@ -299,7 +312,7 @@ export function ${rep.name}() {
       states: [{ name: "paid", fixture: "payment-status/reminder-sent" }],
     });
 
-    await keep(rep.dir);
+    await keep(rep);
 
     const stories = await import(join(rep.kept, `${rep.name}.stories.tsx`));
     expect(stories.DefaultRowsTicked.parameters).toEqual({ tickRows: 0 });
@@ -323,7 +336,7 @@ export function ${rep.name}() {
       ],
     });
 
-    await keep(rep.dir);
+    await keep(rep);
 
     const stories = await import(join(rep.kept, `${rep.name}.stories.tsx`));
     expect(Object.keys(stories).sort()).toEqual(["Default", "default"]);
@@ -332,7 +345,7 @@ export function ${rep.name}() {
   it("refuses a rep that didn't pass, and writes nothing", async () => {
     const rep = repDir({ endReason: "code-attempts-exhausted" });
 
-    const { code, output } = await keep(rep.dir);
+    const { code, output } = await keep(rep);
 
     expect(code).toBe(1);
     expect(output).toMatch(/code-attempts-exhausted/);
@@ -344,7 +357,7 @@ export function ${rep.name}() {
     mkdirSync(rep.kept, { recursive: true });
     writeFileSync(join(rep.kept, "Mine.tsx"), "// kept by hand\n");
 
-    const { code, output } = await keep(rep.dir);
+    const { code, output } = await keep(rep);
 
     expect(code).toBe(1);
     expect(output).toMatch(/already kept/);
