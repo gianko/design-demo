@@ -1,7 +1,10 @@
-// An in-memory stand-in for the slice of Figma's Plugin API that a
-// figma:sync-tokens script touches, so its tests run without a Figma file.
-// It throws where Figma was seen to throw in the spike: scopes on TIMING and
-// EASING variables, an unknown mode, and a font that isn't loaded.
+// An in-memory stand-in for the slice of Figma's Plugin API that the
+// figma:sync-* and figma:walk-capture scripts touch, so their tests run
+// without a Figma file. It throws where Figma was seen to throw in the
+// spike: scopes on TIMING and EASING variables, an unknown mode, and a font
+// that isn't loaded. Pages and layers are in fake-scene.ts.
+
+import { fakeScene } from "./fake-scene.ts";
 
 type Alias = { type: "VARIABLE_ALIAS"; id: string };
 type Mode = { modeId: string; name: string };
@@ -18,9 +21,12 @@ export function fakePluginApi(
   fonts: FontName[] = instrumentSans,
   {
     ignoreWritesTo = [],
+    ignoreNodeWrites = [],
   }: {
     /** Variables whose setValueForMode silently keeps the old value. */
     ignoreWritesTo?: string[];
+    /** Layer properties whose writes are silently dropped. */
+    ignoreNodeWrites?: string[];
   } = {}
 ) {
   let nextId = 1;
@@ -231,7 +237,36 @@ export function fakePluginApi(
     return node;
   }
 
+  const scene = fakeScene({
+    id,
+    alias: (variable) => ({ type: "VARIABLE_ALIAS", id: variable.id }),
+    resolve(bound) {
+      let value: unknown = bound;
+      while ((value as Alias)?.type === "VARIABLE_ALIAS") {
+        const variable = variables.find((v) => v.id === (value as Alias).id)!;
+        const collection = collections.find(
+          (c) => c.id === variable.variableCollectionId
+        )!;
+        value = variable.valuesByMode[collection.modes[0]!.modeId];
+      }
+      return value;
+    },
+    fontLoaded: (font) => loaded.has(fontKey(font)),
+    textStyle: (styleId) => textStyles.find((style) => style.id === styleId),
+    effectStyle: (styleId) =>
+      effectStyles.find((style) => style.id === styleId),
+    ignoreNodeWrites,
+  });
+
   const figma = {
+    ...scene.api,
+    // Spread would read the getters once; these stay live.
+    get root() {
+      return scene.api.root;
+    },
+    get currentPage() {
+      return scene.api.currentPage;
+    },
     mixed,
     getNodeByIdAsync: async (nodeId: string) => nodes.get(nodeId) ?? null,
     variables: {
@@ -252,6 +287,16 @@ export function fakePluginApi(
         return variable;
       },
       createVariableAlias: alias,
+      setBoundVariableForPaint(
+        paint: Record<string, unknown>,
+        field: string,
+        variable: Variable
+      ) {
+        return {
+          ...structuredClone(paint),
+          boundVariables: { [field]: alias(variable) },
+        };
+      },
       setBoundVariableForEffect(
         effect: Effect,
         field: string,
@@ -319,6 +364,7 @@ export function fakePluginApi(
         name,
         effects,
       })),
+      pages: scene.pages(),
     });
   }
 
@@ -357,9 +403,11 @@ export function runScript(code: string, file: FakePluginApi) {
   return new AsyncFunction("figma", code)(file.figma);
 }
 
+// Inter is what a new text layer starts in, as in Figma.
 const instrumentSans: FontName[] = [
-  "Regular",
-  "Medium",
-  "SemiBold",
-  "Bold",
-].map((style) => ({ family: "Instrument Sans", style }));
+  ...["Regular", "Medium", "SemiBold", "Bold"].map((style) => ({
+    family: "Instrument Sans",
+    style,
+  })),
+  { family: "Inter", style: "Regular" },
+];
