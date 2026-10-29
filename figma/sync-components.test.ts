@@ -709,6 +709,17 @@ describe("the generated script", () => {
 
     expect(script!.code.length).toBeLessThanOrEqual(codeLimit);
   });
+
+  it("is plain ASCII, so re-typing it can't turn Amount's no-break space into a space", async () => {
+    const [script] = syncComponentScripts(payload, { dryRun: true });
+
+    expect(script!.code).toMatch(/^[\n\x20-\x7e]*$/);
+    expect(script!.code).toContain("4,800.00\\u00a0USD");
+    // The escape parses back to the same copy, so the checksum still holds.
+    await expect(run(script!.code, await tokenFile())).resolves.toMatchObject({
+      dryRun: true,
+    });
+  });
 });
 
 // ── Helpers ──

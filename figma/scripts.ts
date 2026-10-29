@@ -42,6 +42,19 @@ function fnv1a(text: string): string {
 export type SyncRun = { dryRun: boolean; prune: string[] };
 
 /**
+ * JSON with every non-ASCII character escaped. The agent re-types the
+ * script, and a character it can't see, like the no-break space in an
+ * Amount, would come back as a plain space and fail the checksum. The
+ * escape parses to the same string, so the checksum doesn't change.
+ */
+function ascii(json: string): string {
+  return json.replace(
+    /[^\x20-\x7e]/g,
+    (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`
+  );
+}
+
+/**
  * One sync script: RUN and PAYLOAD as literals, the checksum of both, the
  * runtime, and the call that returns its report.
  */
@@ -66,7 +79,7 @@ export function syncScript({
     `// ${command}${run.dryRun ? " --dry-run" : ""}, written by ${source} (ADR 0007).`,
     "// Pass it to use_figma verbatim: a changed byte of its data makes it throw, writing nothing.",
     `const RUN = ${JSON.stringify(run)};`,
-    `const PAYLOAD = ${JSON.stringify(payload)};`,
+    `const PAYLOAD = ${ascii(JSON.stringify(payload))};`,
     `const CHECKSUM = "${fnv1a(JSON.stringify([run, payload]))}";`,
     runtime,
     `return await ${call}(RUN, PAYLOAD, CHECKSUM);`,
