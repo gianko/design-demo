@@ -16,6 +16,10 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 To triage an issue, including a `<Component> gap:` issue, follow `.claude/skills/triage/SKILL.md`. It's user-invoked, so read the file rather than calling the Skill tool.
 
+### Pull requests
+
+Work that spans several tickets (`/implement-spec`, `/implement`) lands as stacked pull requests, one per ticket, never one integration PR. See `docs/agents/pull-requests.md`.
+
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
