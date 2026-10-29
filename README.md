@@ -118,6 +118,8 @@ pnpm gate                              # every gate over every story and kept sc
 pnpm test                              # unit tests
 pnpm eval                              # the eval suite; reads ANTHROPIC_API_KEY from .env, prints a cost estimate first
 pnpm eval:report --latest              # the HTML report for the newest run, against the baseline it names (pnpm eval --baseline)
+pnpm figma:sync-tokens                 # the Figma variables and styles, as a script for use_figma in figma/out/; --dry-run, --prune <id,…>, --split
+pnpm figma:sync-components             # the component frames, from each tv() config, run after sync-tokens; --dry-run, --prune <id,…>, --split
 ```
 
 [`docs/spec.md`](docs/spec.md) has the full build plan, and [`GLOSSARY.md`](GLOSSARY.md) has the vocabulary.
