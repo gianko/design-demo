@@ -329,6 +329,27 @@ describe("judgeScreen", () => {
     }
   });
 
+  // A line with quotes of its own, like elevation's, would pass the check
+  // above on any fragment, so each line is held to the brief whole, read as
+  // a quote of the brief is: words, not markdown emphasis, code ticks,
+  // curly apostrophes or line breaks.
+  it("takes every rubric line whole from the design brief", () => {
+    const read = (text: string) =>
+      text
+        .replace(/[*_`]/g, "")
+        .replace(/[‘’]/g, "'")
+        .replace(/\s+/g, " ")
+        .toLowerCase();
+
+    for (const criterion of rubricCriteria) {
+      for (const words of rubric[criterion]) {
+        expect(read(designBrief), `${criterion}: ${words}`).toContain(
+          read(words)
+        );
+      }
+    }
+  });
+
   it("leaves gate 5 not run on verdicts that don't parse", async () => {
     const replying = (text: string) =>
       recording(() => ({

@@ -311,7 +311,7 @@ function screenVerdict(
       .filter((verdict) => verdict.criterion === criterion)
       .map((verdict) => ({
         state: state.state,
-        reason: `unquoted: ${verdict.reason}`,
+        reason: `unquoted · ${verdict.reason}`,
       }));
   });
   return {

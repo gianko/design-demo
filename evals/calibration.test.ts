@@ -81,11 +81,11 @@ function recording(
     seen.set(key, run);
     calls.push(`judge ${key}`);
     const [id, state] = key.split("|") as [string, string];
-    const fails = verdict(id, state, run);
-    if (fails === "throw") throw new Error("overloaded");
-    const message = Array.isArray(fails)
-      ? reply(fails)
-      : reply([], fails.unquoted);
+    const answer = verdict(id, state, run);
+    if (answer === "throw") throw new Error("overloaded");
+    const message = Array.isArray(answer)
+      ? reply(answer)
+      : reply([], answer.unquoted);
     return { message, requestId: "req_recorded" };
   };
   const render = async (screen: SetScreen) => {
@@ -291,7 +291,7 @@ describe("pnpm evals:calibrate", () => {
       /## payment-status\n[\s\S]*?\| copy +\| pass +\| undecided +\| pass +\| pass +\|/
     );
     expect(report).toContain(
-      "- copy · run 1 · undecided · empty: unquoted: The screen meets copy."
+      "- copy · run 1 · undecided · empty: unquoted · The screen meets copy."
     );
     expect(report).toMatch(
       /\| \*\*All\*\* +\| 141\/143 \(99%\) +\| 2\/48 \(4%\) +\|/
