@@ -89,10 +89,14 @@ export type Gate5Tally = {
   judged: number;
   // Reps that passed or failed whose gate 5 didn't run.
   notRun: number;
-  // Per criterion, the judged reps whose every state passed it.
+  // Per criterion, the judged reps whose every state passed it, of those
+  // the criterion is decided in.
   criteria: Record<Criterion, Rate>;
-  // Criteria passed out of six, summed over the judged reps.
+  // Criteria passed out of those decided, summed over the judged reps.
   score: Rate;
+  // The judged reps' undecided criteria, summed: no state failed one, and
+  // some state's verdict on it quoted nothing in the design brief.
+  undecided: number;
   // USD, every judge call's, judged or not.
   cost: number;
 };
@@ -187,19 +191,29 @@ function gate5Tally(reps: RepResult[]): Gate5Tally {
     judged: judged.length,
     notRun: ran.length - judged.length,
     criteria: Object.fromEntries(
-      rubricCriteria.map((criterion) => [
-        criterion,
-        {
-          passed: judged.filter((each) => screenPasses(each.states, criterion))
-            .length,
-          of: judged.length,
-        },
-      ])
+      rubricCriteria.map((criterion) => {
+        const passes = judged.map((each) =>
+          screenPasses(each.states, criterion)
+        );
+        return [
+          criterion,
+          {
+            passed: passes.filter((pass) => pass === true).length,
+            of: passes.filter((pass) => pass !== null).length,
+          },
+        ];
+      })
     ) as Record<Criterion, Rate>,
     score: {
       passed: sum((each) => each.score?.passed ?? 0),
       of: sum((each) => each.score?.of ?? 0),
     },
+    undecided: sum(
+      (each) =>
+        rubricCriteria.filter(
+          (criterion) => screenPasses(each.states, criterion) === null
+        ).length
+    ),
     cost: reps.reduce((total, rep) => total + (rep.gate5?.cost ?? 0), 0),
   };
 }

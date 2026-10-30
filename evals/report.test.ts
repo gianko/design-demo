@@ -419,6 +419,7 @@ describe("pnpm evals:report", () => {
           copy: "3/3",
           repetition: "2/3",
           Score: "16/18",
+          Undecided: "0",
           Cost: "$0.30",
         },
       ]);
@@ -471,7 +472,9 @@ describe("pnpm evals:report", () => {
         "payment-status",
         "All screen briefs",
       ]) {
-        expect(gate5Cells(doc, brief), brief).toEqual(Array(9).fill("not run"));
+        expect(gate5Cells(doc, brief), brief).toEqual(
+          Array(10).fill("not run")
+        );
         expect(rows(doc, brief)[0]!.Cost, brief).toMatch(/^\$\d+\.\d\d$/);
       }
       expect(legendRow(doc, "Gate 5 judge")).toEqual(["not run"]);
@@ -523,6 +526,66 @@ describe("pnpm evals:report", () => {
       );
       expect(text).toContain("gate 5 · 5/6 · soft");
       expect(text).toContain("gate 5 not run · 1 of 1 state unjudged");
+    });
+
+    it("leaves a rep's undecided criterion out of that criterion's rate and the score, and counts it", async () => {
+      // As judgedA, but payment-status rep 1's copy reason quoted nothing in
+      // the brief, so its copy is undecided; invoice-queue rep 2's
+      // repetition reason on default quoted nothing, but payment-scheduled
+      // fails repetition, so it's decided.
+      const at = setup();
+      const a = write(
+        at,
+        "2026-10-29-p2.json",
+        judged(runA(at), (rep) => {
+          if (rep.slug === "payment-status" && rep.rep === 1)
+            return gate5({ default: [] }, { default: ["copy"] });
+          if (rep.slug === "invoice-queue" && rep.rep === 2)
+            return gate5(
+              { default: [], "payment-scheduled": ["repetition"] },
+              { default: ["repetition"] }
+            );
+          return judgedA(at).reps.find(
+            (each) => each.slug === rep.slug && each.rep === rep.rep
+          )!.gate5!;
+        })
+      );
+
+      await report(at, [a]);
+
+      const { doc } = written(at);
+      expect(gate5Rows(doc, "payment-status")).toEqual([
+        expect.objectContaining({
+          Judged: "2/3",
+          hierarchy: "2/2",
+          copy: "1/1",
+          Score: "11/11",
+          Undecided: "1",
+        }),
+      ]);
+      expect(gate5Rows(doc, "invoice-queue")).toEqual([
+        expect.objectContaining({
+          repetition: "2/3",
+          Score: "16/18",
+          Undecided: "0",
+        }),
+      ]);
+      expect(gate5Rows(doc, "All screen briefs")).toEqual([
+        expect.objectContaining({
+          Judged: "5/6",
+          copy: "4/4",
+          Score: "27/29",
+          Undecided: "1",
+        }),
+      ]);
+      const text = doc.body.textContent ?? "";
+      expect(text).toContain("gate 5 · 5/5 · 1 undecided · soft");
+      expect(text).toContain(
+        "gate 5 · default · copy · unquoted · The default state meets copy."
+      );
+      expect(text).toContain(
+        "gate 5 · default · repetition · unquoted · The default state meets repetition."
+      );
     });
 
     it("still loads and renders every committed results file, with gate 5 not run in those from before it", async () => {

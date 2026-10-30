@@ -910,6 +910,7 @@ requires:
         notRun: 1,
         criteria: rates([1, 2], 2),
         score: { passed: 11, of: 12 },
+        undecided: 0,
         cost: expect.closeTo(3 * 0.02546, 6),
       });
       // The rep in error is left out, as it is from the pass rates.
@@ -918,6 +919,7 @@ requires:
         notRun: 0,
         criteria: rates([0, 2], 2),
         score: { passed: 10, of: 12 },
+        undecided: 0,
         cost: expect.closeTo(2 * 0.02546, 6),
       });
       expect(totals.gate5).toMatchObject({

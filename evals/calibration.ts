@@ -271,9 +271,10 @@ type Judged = { screen: SetScreen; runs: Conformance[] };
 
 // A screen's verdict on one criterion in one run, as gate 5 gives it
 // (screenPasses): fail when any state fails it, pass when every state passes
-// it, and not run when no state fails it but some state went unjudged. Its
-// reasons are those of each state that failed it, or of the first state when
-// it passed, or why each unjudged state went unjudged.
+// it, and undecided when no state fails it but some state went unjudged or
+// quoted nothing in the brief for it. Its reasons are those of each state
+// that failed it, or of the first state when it passed, or why each state
+// left it undecided.
 type ScreenVerdict = {
   pass: boolean | null;
   reasons: { state: string; reason: string }[];
@@ -290,25 +291,33 @@ function screenVerdict(
     (state): state is Judgement => state.judged
   );
   const verdictOf = (state: Judgement) =>
-    state.verdicts.find((verdict) => verdict.criterion === criterion)!;
+    state.verdicts.find((verdict) => verdict.criterion === criterion);
   const reasonOf = (state: Judgement) => ({
     state: state.state,
-    reason: verdictOf(state).reason,
+    reason: verdictOf(state)!.reason,
   });
   if (pass === false) {
     return {
       pass,
-      reasons: judged.filter((state) => !verdictOf(state).pass).map(reasonOf),
+      reasons: judged
+        .filter((state) => verdictOf(state)?.pass === false)
+        .map(reasonOf),
     };
   }
   if (pass === true) return { pass, reasons: [reasonOf(judged[0]!)] };
-  const unjudged = conformance.states.flatMap((state) =>
-    state.judged ? [] : [{ state: state.state, reason: state.error }]
-  );
+  const undecided = conformance.states.flatMap((state) => {
+    if (!state.judged) return [{ state: state.state, reason: state.error }];
+    return (state.unquoted ?? [])
+      .filter((verdict) => verdict.criterion === criterion)
+      .map((verdict) => ({
+        state: state.state,
+        reason: `unquoted · ${verdict.reason}`,
+      }));
+  });
   return {
     pass,
-    reasons: unjudged.length
-      ? unjudged
+    reasons: undecided.length
+      ? undecided
       : [{ state: "(screen)", reason: "no screenshots" }],
   };
 }
@@ -324,14 +333,14 @@ type Tally = {
   // Per criterion, then over all of them: verdicts that matched the
   // expected one, of those judged; screens whose judged verdicts on it
   // differ between runs, of those judged in two runs or more; and verdicts
-  // not run.
+  // undecided.
   byCriterion: Record<Criterion, { right: Count; flipped: Count }>;
-  all: { right: Count; flipped: Count; notRun: number };
+  all: { right: Count; flipped: Count; undecided: number };
 };
 
 function tallyOf(judged: Judged[]): Tally {
   const zero = () => ({ right: { n: 0, of: 0 }, flipped: { n: 0, of: 0 } });
-  const all = { ...zero(), notRun: 0 };
+  const all = { ...zero(), undecided: 0 };
   const byCriterion = Object.fromEntries(
     rubricCriteria.map((criterion) => [criterion, zero()])
   ) as Tally["byCriterion"];
@@ -340,7 +349,7 @@ function tallyOf(judged: Judged[]): Tally {
       const verdicts = conformances
         .map((conformance) => screenVerdict(conformance, criterion).pass)
         .filter((pass): pass is boolean => pass !== null);
-      all.notRun += conformances.length - verdicts.length;
+      all.undecided += conformances.length - verdicts.length;
       const right = verdicts.filter(
         (pass) => pass === expected(screen, criterion)
       ).length;
@@ -370,7 +379,7 @@ function share({ n, of }: Count) {
 }
 
 const verdictWord = (pass: boolean | null) =>
-  pass === null ? "not run" : pass ? "pass" : "fail";
+  pass === null ? "undecided" : pass ? "pass" : "fail";
 
 function runLine(run: number, screen: SetScreen, conformance: Conformance) {
   const verdicts = rubricCriteria
@@ -410,10 +419,10 @@ function report(
     ),
     `| **All** | ${share(tally.all.right)} | ${share(tally.all.flipped)} |`,
   ];
-  if (tally.all.notRun > 0) {
+  if (tally.all.undecided > 0) {
     lines.push(
       "",
-      `${tally.all.notRun} verdict${tally.all.notRun === 1 ? "" : "s"} not run, and left out of both: the judge didn't answer for a state, and no other state failed the criterion.`
+      `${tally.all.undecided} verdict${tally.all.undecided === 1 ? "" : "s"} undecided, and left out of both: the judge didn't answer for a state, or its reason quoted nothing in the design brief, and no other state failed the criterion.`
     );
   }
   for (const { screen, runs: conformances } of judged) {

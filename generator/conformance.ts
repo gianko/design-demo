@@ -7,9 +7,11 @@
 //
 // It's soft: nothing it says reaches a repair turn or a rep's outcome, and
 // its failures aren't a GateName, so they can't. A call that errors, is
-// refused, runs out of tokens or replies with verdicts that don't parse or
-// don't quote the brief leaves its state unjudged, and the screen's gate 5
-// not run. It runs in `pnpm generate` and eval runs, never in `pnpm gate`.
+// refused, runs out of tokens or replies with verdicts that don't parse
+// leaves its state unjudged, and the screen's gate 5 not run. A verdict whose
+// reason quotes nothing in the brief isn't counted, and the state's other
+// verdicts stand. It runs in `pnpm generate` and eval runs, never in
+// `pnpm gate`.
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -23,18 +25,26 @@ import type { Model } from "./model.ts";
 import type { ScreenBrief } from "./screen-brief.ts";
 import { repo } from "../repo.ts";
 
-// The rubric, in the order the judge answers and the CLI prints it.
+// The rubric, in the order the judge answers and the CLI prints it. Each
+// criterion is the design brief's own words, copied from its lines, so a
+// reason that quotes the rubric quotes the brief (#341).
 export const rubric = {
-  hierarchy:
-    "Hierarchy reads from size and weight: one clear title, then content.",
-  density:
-    "Density fits the audience: dense for the admin, roomy for the contractor.",
-  accent: "The accent appears only on the primary action, selection and focus.",
-  elevation: "A shadow means it floats, never just a box.",
-  copy: "Copy is second person and specific; errors say what happened and what to do next.",
-  repetition:
-    'Nothing repeats itself: no card saying "Overdue" in its title, its tag and its text.',
-} as const;
+  hierarchy: ["hierarchy comes from size and weight, not from a second face."],
+  density: [
+    "density follows who's looking.",
+    "Admin screens are dense.",
+    "Contractor screens have room.",
+  ],
+  accent: ["a dusty berry for primary actions, selection and focus only."],
+  elevation: ['A shadow means "this floats", never "this is a box".'],
+  copy: [
+    "Copy is second person, active and specific",
+    "Errors say what happened and what to do next.",
+  ],
+  repetition: [
+    'Say a thing once: a card doesn\'t repeat "Overdue" in its title, its tag and its text.',
+  ],
+} as const satisfies Record<string, readonly string[]>;
 
 export type Criterion = keyof typeof rubric;
 export const rubricCriteria = Object.keys(rubric) as Criterion[];
@@ -75,13 +85,23 @@ export type JudgeCall = {
 };
 
 export type StateJudgement = { state: string; call: JudgeCall | null } & (
-  | { judged: true; verdicts: Verdict[]; passed: number }
+  | {
+      judged: true;
+      // The verdicts counted: those whose reason quotes the design brief.
+      verdicts: Verdict[];
+      passed: number;
+      // The verdicts whose reason quotes nothing in the design brief, kept
+      // so a run shows why. They aren't counted. Absent from results files
+      // from before #341.
+      unquoted?: Verdict[];
+    }
   // `api`, `refusal`, `max_tokens`, or `malformed: <why>`.
   | { judged: false; error: string }
 );
 
-// The criteria the screen passes, out of the six: a screen passes a
-// criterion when every state does (screenPasses).
+// The criteria the screen passes, out of those decided: a screen passes a
+// criterion when every state does (screenPasses), and an undecided one isn't
+// counted.
 export type Score = { passed: number; of: number };
 
 export type Conformance = {
@@ -115,15 +135,16 @@ export async function judgeScreen(
     )
   );
   const ran = states.length > 0 && states.every((state) => state.judged);
+  const passes = rubricCriteria.map((criterion) =>
+    screenPasses(states, criterion)
+  );
   return {
     ran,
     states,
     score: ran
       ? {
-          passed: rubricCriteria.filter((criterion) =>
-            screenPasses(states, criterion)
-          ).length,
-          of: rubricCriteria.length,
+          passed: passes.filter((pass) => pass === true).length,
+          of: passes.filter((pass) => pass !== null).length,
         }
       : null,
     cost: states.reduce((sum, state) => sum + (state.call?.cost ?? 0), 0),
@@ -132,15 +153,17 @@ export async function judgeScreen(
 }
 
 // A screen passes a criterion when every state does, and fails it when any
-// state does. Null when no state fails it but some state went unjudged, or
-// when there are no states: it's undecided.
+// state does. Null when no state fails it but some state went unjudged or
+// has no counted verdict on it, or when there are no states: it's
+// undecided.
 export function screenPasses(
   states: StateJudgement[],
   criterion: Criterion
 ): boolean | null {
   const verdicts = states.map((state) =>
     state.judged
-      ? state.verdicts.find((verdict) => verdict.criterion === criterion)!.pass
+      ? (state.verdicts.find((verdict) => verdict.criterion === criterion)
+          ?.pass ?? null)
       : null
   );
   if (verdicts.includes(false)) return false;
@@ -199,18 +222,25 @@ export async function judgeTrace(
   }
 }
 
-// A state's failing verdicts, or why it wasn't judged, each as a taste
-// rule's finding reads: gate, state, criterion, reason.
+// A state's failing verdicts, then those not counted, or why it wasn't
+// judged, each as a taste rule's finding reads: gate, state, criterion,
+// reason.
 export function findings(state: StateJudgement): string[] {
   if (!state.judged) {
     return [`gate 5 · ${state.state} · not run · ${state.error}`];
   }
-  return state.verdicts
-    .filter(({ pass }) => !pass)
-    .map(
+  return [
+    ...state.verdicts
+      .filter(({ pass }) => !pass)
+      .map(
+        ({ criterion, reason }) =>
+          `gate 5 · ${state.state} · ${criterion} · ${reason}`
+      ),
+    ...(state.unquoted ?? []).map(
       ({ criterion, reason }) =>
-        `gate 5 · ${state.state} · ${criterion} · ${reason}`
-    );
+        `gate 5 · ${state.state} · ${criterion} · unquoted · ${reason}`
+    ),
+  ];
 }
 
 // `1 state`, `2 states`.
@@ -253,9 +283,9 @@ const instructions = `You judge one screenshot of a generated product screen aga
 
 Judge each of these six criteria on its own, pass or fail:
 
-${rubricCriteria.map((criterion) => `- ${criterion}: ${rubric[criterion]}`).join("\n")}
+${rubricCriteria.map((criterion) => `- ${criterion}:\n${rubric[criterion].map((words) => `  - ${words}`).join("\n")}`).join("\n")}
 
-For each criterion, write the reason first: one sentence saying what in the screenshot meets or breaks the criterion, which quotes the words of the design brief it rests on in double quotes, copied exactly from one line of the brief. Then pass: true when the screenshot meets the criterion, false when it doesn't. A criterion the screenshot gives nothing to judge, such as elevation on a screen with no shadow or error copy on a screen with no error, passes.
+Each criterion is in the design brief's own words, copied from its lines. For each criterion, write the reason first: one sentence saying what in the screenshot meets or breaks the criterion, which quotes the words of the design brief it rests on in double quotes, copied exactly from one line of the brief, such as one of the criterion's own lines above. Then pass: true when the screenshot meets the criterion, false when it doesn't. A criterion the screenshot gives nothing to judge, such as elevation on a screen with no shadow or error copy on a screen with no error, passes.
 
 Judge only what the screenshot shows. The screen brief says what the screen is for and who it's for; where it gives exact copy, that copy is the brief's to answer for, not the screen's.`;
 
@@ -382,14 +412,16 @@ async function judgeState(
     judged: true,
     verdicts: parsed.verdicts,
     passed: parsed.verdicts.filter((v) => v.pass).length,
+    unquoted: parsed.unquoted,
   };
 }
 
-// The reply's verdicts, checked by the schema and for a quote of the brief.
+// The reply's verdicts, checked by the schema, and split by whether each
+// reason quotes the brief (ADR 0014).
 function parseVerdicts(
   reply: string,
   designBrief: string
-): { verdicts: Verdict[] } | { error: string } {
+): { verdicts: Verdict[]; unquoted: Verdict[] } | { error: string } {
   let json;
   try {
     json = JSON.parse(reply);
@@ -407,15 +439,12 @@ function parseVerdicts(
     criterion,
     ...result.data[criterion],
   }));
-  const unquoted = list.filter(
-    ({ reason }) => !quotes(reason).some((quote) => brief.includes(quote))
-  );
-  if (unquoted.length) {
-    return {
-      error: `malformed: ${unquoted.map((v) => v.criterion).join(", ")} quote${unquoted.length === 1 ? "s" : ""} nothing in the design brief`,
-    };
-  }
-  return { verdicts: list };
+  const quoted = ({ reason }: Verdict) =>
+    quotes(reason).some((quote) => brief.includes(quote));
+  return {
+    verdicts: list.filter(quoted),
+    unquoted: list.filter((verdict) => !quoted(verdict)),
+  };
 }
 
 // The double-quoted spans of a reason, straight or curly, normalised.
