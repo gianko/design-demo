@@ -145,6 +145,49 @@ const allPass: Anthropic.Message = {
   ],
 };
 
+// The recorded reply with the copy verdict's reason quoting nothing in the
+// design brief, so copy is undecided; every verdict counted passes.
+const misquoted: Anthropic.Message = {
+  ...allPass,
+  content: [
+    allPass.content[0]!,
+    {
+      ...(allPass.content[1] as Anthropic.TextBlock),
+      text: (allPass.content[1] as Anthropic.TextBlock).text.replace(
+        'as \\"Copy is second person, active and specific\\" asks',
+        "as the brief asks"
+      ),
+    },
+  ],
+};
+
+// The recorded reply with every verdict failing.
+const allFail: Anthropic.Message = {
+  ...recorded,
+  content: [
+    recorded.content[0]!,
+    {
+      ...(recorded.content[1] as Anthropic.TextBlock),
+      text: (recorded.content[1] as Anthropic.TextBlock).text.replaceAll(
+        '"pass":true',
+        '"pass":false'
+      ),
+    },
+  ],
+};
+
+// The every-verdict-passing reply, at no cost.
+const free: Anthropic.Message = {
+  ...allPass,
+  usage: {
+    ...allPass.usage,
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+  },
+};
+
 // A judge that answers every request with `reply`, keeping the requests.
 function judging(
   reply: () => Anthropic.Message | Promise<Anthropic.Message> = () => recorded
@@ -174,7 +217,8 @@ type Plan = {
   attempts: Attempt[];
   endReason: EndReason;
   uiSpec?: UiSpec;
-  // The screen states its final code attempt shot, each light and dark.
+  // The screen states its final code attempt shot, each light and dark: the
+  // default state unless given.
   shots?: string[];
   // generate() itself throws after its attempts: the harness crashed.
   crash?: boolean;
@@ -276,7 +320,9 @@ type Stub = {
   plans: Record<string, Plan[]>;
   dirty?: boolean;
   confirm?: boolean;
-  // Gate 5's judge; the recorded reply unless given.
+  // Gate 5's judge; one that passes every criterion at no cost unless
+  // given, so a test about something else sees reps end as their attempts
+  // say.
   judge?: Model;
 };
 
@@ -291,7 +337,7 @@ async function run(at: Run, argv: string[], stub: Stub) {
       await plan.hold;
       mkdirSync(workDir, { recursive: true });
       const shotsDir = join("attempt-1-code", "render", "shots");
-      const shots = (plan.shots ?? []).flatMap((state) =>
+      const shots = (plan.shots ?? ["default"]).flatMap((state) =>
         (["light", "dark"] as const).map((theme) => {
           const file = join(shotsDir, `${theme}-${state}.png`);
           mkdirSync(join(workDir, shotsDir), { recursive: true });
@@ -315,11 +361,11 @@ async function run(at: Run, argv: string[], stub: Stub) {
               : "fail",
         endReason: plan.endReason,
         ...(plan.uiSpec ? { uiSpec: plan.uiSpec } : {}),
-        ...(plan.shots ? { shots } : {}),
+        shots,
       };
       return trace;
     },
-    judge: stub.judge ?? judging().judge,
+    judge: stub.judge ?? judging(() => free).judge,
     versions: async () => versions,
     git: async () => ({ sha: "a".repeat(40), dirty: stub.dirty ?? false }),
     confirm: async (question) => {
@@ -630,12 +676,14 @@ requires:
         maxTokens: 64_000,
         attempts: 3,
       },
-      // Gate 5's judge, and the rubric's and the design brief's hash.
+      // Gate 5's judge, the rubric's and the design brief's hash, and that
+      // gate 5 was hard, so a report tells this run from a soft one.
       judge: {
         model: "claude-opus-5-5",
         effort: "high",
         maxTokens: 16_000,
         promptHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+        hard: true,
       },
       gitSha: "a".repeat(40),
       dirty: false,
@@ -787,7 +835,7 @@ requires:
 
       expect(code).toBe(0);
       expect(output).toMatch(
-        /^alpha · rep 1 · pass · passed · \$0\.12 · [\d.]+s · gate 5 5\/6$/m
+        /^alpha · rep 1 · fail · gate5-failed · \$0\.12 · [\d.]+s · gate 5 5\/6$/m
       );
       // The light shot of each state, never the dark one.
       expect(sentShots(requests)).toEqual([
@@ -814,39 +862,29 @@ requires:
       });
     });
 
-    it("leaves each rep's outcome and the run's pass rates as they'd be without it, whatever the judge says", async () => {
+    it("fails a rep that failed a criterion in any state, with gate 5 as the end reason, and counts it in the pass rates", async () => {
       const at = setup("alpha");
-      const failing = {
-        ...recorded,
-        content: [
-          recorded.content[0]!,
-          {
-            ...(recorded.content[1] as Anthropic.TextBlock),
-            text: (recorded.content[1] as Anthropic.TextBlock).text.replaceAll(
-              '"pass":true',
-              '"pass":false'
-            ),
-          },
-        ],
-      };
+      // Every verdict passes on the empty state; on the default, repetition
+      // fails.
+      const { judge } = judging();
+      const byState: Model = async (params) =>
+        sentShots([params])[0]!.endsWith("empty")
+          ? { message: allPass, requestId: "req_judge" }
+          : judge(params);
 
-      await run(at, ["--k", "3"], {
+      await run(at, ["--k", "4"], {
         plans: {
           alpha: [
-            { ...plans.firstTry(), shots: ["default"] },
+            { ...plans.firstTry(), shots: ["empty"] },
+            { ...plans.firstTry(), shots: ["default", "empty"] },
+            { ...plans.repaired(), shots: ["empty"] },
             { ...plans.repaired(), shots: ["default"] },
-            { ...plans.exhausted(), shots: ["default"] },
           ],
         },
-        judge: judging(() => failing).judge,
+        judge: byState,
       });
 
       const { reps, totals } = results(at);
-      expect(reps.map((rep) => rep.gate5?.score)).toEqual([
-        { passed: 0, of: 6 },
-        { passed: 0, of: 6 },
-        { passed: 0, of: 6 },
-      ]);
       expect(
         reps.map(({ outcome, endReason, firstAttempt }) => ({
           outcome,
@@ -855,18 +893,52 @@ requires:
         }))
       ).toEqual([
         { outcome: "pass", endReason: "passed", firstAttempt: true },
+        { outcome: "fail", endReason: "gate5-failed", firstAttempt: false },
         { outcome: "pass", endReason: "passed", firstAttempt: false },
-        {
-          outcome: "fail",
-          endReason: "code-attempts-exhausted",
-          firstAttempt: false,
-        },
+        { outcome: "fail", endReason: "gate5-failed", firstAttempt: false },
       ]);
       expect(totals).toMatchObject({
         pass: 2,
-        fail: 1,
-        firstAttempt: { passed: 1, of: 3 },
-        final: { passed: 2, of: 3 },
+        fail: 2,
+        firstAttempt: { passed: 1, of: 4 },
+        final: { passed: 2, of: 4 },
+      });
+    });
+
+    it("keeps a failed rep's own end reason, whatever the judge says", async () => {
+      const at = setup("alpha");
+
+      await run(at, ["--k", "2"], {
+        plans: { alpha: [plans.exhausted(), plans.criteriaUnmet()] },
+        judge: judging(() => allFail).judge,
+      });
+
+      const { reps } = results(at);
+      expect(reps.map((rep) => rep.gate5?.score)).toEqual([
+        { passed: 0, of: 6 },
+        { passed: 0, of: 6 },
+      ]);
+      expect(
+        reps.map(({ outcome, endReason }) => [outcome, endReason])
+      ).toEqual([
+        ["fail", "code-attempts-exhausted"],
+        ["fail", "criteria-not-met"],
+      ]);
+    });
+
+    it("passes a rep whose only gap in gate 5 is an undecided criterion", async () => {
+      const at = setup("alpha");
+
+      await run(at, ["--k", "1"], {
+        plans: { alpha: [plans.firstTry()] },
+        judge: judging(() => misquoted).judge,
+      });
+
+      const [rep] = results(at).reps;
+      expect(rep).toMatchObject({
+        outcome: "pass",
+        endReason: "passed",
+        gate5: { ran: true, score: { passed: 5, of: 5 } },
       });
     });
 
@@ -885,7 +957,7 @@ requires:
           alpha: [
             { ...plans.firstTry(), shots: ["default", "empty"] },
             { ...plans.firstTry(), shots: ["empty"] },
-            plans.firstTry(),
+            { ...plans.exhausted(), shots: [] },
           ],
           beta: [
             { ...plans.firstTry(), shots: ["default"] },
@@ -941,6 +1013,7 @@ requires:
       // $0.17 budget; each one's two judge calls take it over.
       await run(at, ["--k", "4", "--budget", "0.17"], {
         plans: { alpha: [judged(), judged(), judged(), plans.firstTry()] },
+        judge: judging(() => allPass).judge,
       });
 
       const { reps, totals } = results(at);
@@ -958,7 +1031,7 @@ requires:
 
     it("doesn't judge a rep that ended in error or was skipped", async () => {
       const at = setup("alpha");
-      const { judge, requests } = judging();
+      const { judge, requests } = judging(() => allPass);
       const { hold, release } = latch();
 
       // The first rep spends past the budget while the other two are in
@@ -985,34 +1058,47 @@ requires:
       expect(requests).toHaveLength(1);
     });
 
-    it("shows as not run when the judge's call fails or the screen never rendered, and the rep ends as it would without it", async () => {
+    it("ends a rep in error when the judge's call fails, or when it passed every other gate with no shots to judge", async () => {
       const at = setup("alpha");
 
-      await run(at, ["--k", "2"], {
+      await run(at, ["--k", "4"], {
         plans: {
           alpha: [
-            { ...plans.firstTry(), shots: ["default"] },
             plans.firstTry(),
+            plans.exhausted(),
+            { ...plans.firstTry(), shots: [] },
+            { ...plans.exhausted(), shots: [] },
           ],
         },
         judge: judging(() => Promise.reject(new Error("overloaded"))).judge,
       });
 
-      const { reps } = results(at);
-      expect(reps.map(({ outcome }) => outcome)).toEqual(["pass", "pass"]);
+      const { reps, totals } = results(at);
+      expect(
+        reps.map(({ outcome, endReason }) => [outcome, endReason])
+      ).toEqual([
+        ["error", "error:gate5"],
+        ["error", "error:gate5"],
+        ["error", "error:gate5"],
+        // A failed rep whose screen never rendered has nothing to judge.
+        ["fail", "code-attempts-exhausted"],
+      ]);
       expect(reps[0]!.gate5).toMatchObject({
         ran: false,
         notRun: "1 of 1 state unjudged",
         score: null,
         states: [{ state: "default", judged: false, error: "api" }],
       });
-      expect(reps[1]!.gate5).toEqual({
+      expect(reps[2]!.gate5).toEqual({
         ran: false,
         notRun: "no screenshots",
         states: [],
         score: null,
         cost: 0,
       });
+      // Errors are left out of the pass rates, so a broken judge lets no
+      // rep through.
+      expect(totals).toMatchObject({ error: 3, final: { passed: 0, of: 1 } });
     });
   });
 

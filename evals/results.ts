@@ -12,6 +12,7 @@ import type { Attempt, EndReason, Versions } from "../generator/generate.ts";
 import {
   type Criterion,
   type Gate5,
+  type Gate5EndReason,
   type JudgeVersions,
   rubricCriteria,
   screenPasses,
@@ -26,6 +27,8 @@ export type RepEndReason =
   | EndReason
   // Every hard gate passed, but the final UI spec misses a pass criterion.
   | "criteria-not-met"
+  // Gate 5 failed a criterion on a rep every other gate passed (ADR 0014).
+  | Gate5EndReason
   // The budget ran out before the rep could start.
   | "skipped:budget";
 
@@ -49,9 +52,10 @@ export type RepResult = {
   // Each attempt as generate() logged it (ADR 0010).
   attempts: Attempt[];
   // Gate 5 on the final screen, after the last attempt (ADR 0014). It's
-  // soft: it's beside the outcome, never in it. Null for a rep that ended in
-  // error or was skipped, which isn't judged; absent from results files from
-  // before gate 5.
+  // hard, so it's in the outcome, where the version tuple's `judge.hard`
+  // says so: in results files from before #347 it was soft, beside the
+  // outcome. Null for a rep that ended in error or was skipped before it,
+  // which isn't judged; absent from results files from before gate 5.
   gate5?: RepGate5 | null;
 };
 
@@ -78,8 +82,8 @@ export type Tally = {
   final: Rate;
   cost: number;
   wallMs: number;
-  // Gate 5 over the same reps, soft and apart from the pass rates. Null for
-  // a run without gate 5; absent from results files from before it.
+  // Gate 5 over the same reps, criterion by criterion. Null for a run
+  // without gate 5; absent from results files from before it.
   gate5?: Gate5Tally | null;
 };
 
@@ -130,6 +134,15 @@ export type ResultsFile = {
   perBrief: Record<string, Tally>;
   reps: RepResult[];
 };
+
+// How a run had gate 5: hard, in its passes, since #347; soft, beside them,
+// before it; or not at all, before gate 5.
+export type Gate5Mode = "hard" | "soft" | "none";
+
+export function gate5Mode(file: ResultsFile): Gate5Mode {
+  const { judge } = file.versions;
+  return judge ? (judge.hard ? "hard" : "soft") : "none";
+}
 
 // The results file in `dir` that started last, or null if there's none: the
 // one the runner's estimate reads, and the one the Pages deploy reports on.

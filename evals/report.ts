@@ -15,11 +15,13 @@ import type { Attempt } from "../generator/generate.ts";
 import { pascalCase } from "../generator/screen-stories.ts";
 import { defaultState } from "../src/components/Screen/default-state.ts";
 import {
+  type Gate5Mode,
   type Rate,
   type RepGate5,
   type RepResult,
   type ResultsFile,
   counted,
+  gate5Mode,
   latestResults,
   tally,
 } from "./results.ts";
@@ -253,9 +255,10 @@ ${styles()}
 <h1>${escapeHtml(title)}</h1>
 ${legend(runs)}
 ${briefSetsDiffer(runs)}
+${gate5Soft(runs)}
 <section>
 <h2>Screen briefs</h2>
-<p class="note">${runs.length > 1 ? "Side by side, each cell reads run A → run B." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate. Brief conformance (gate 5) is soft, so it sits beside the passes, never in them: a judged rep passes a criterion when every screen state passes it, and a run without gate 5 reads not run. Cost takes in the judge's calls, and says how much of it is gate 5's.</p>
+<p class="note">${runs.length > 1 ? "Side by side, each cell reads run A → run B." : "Passes read first attempt → final."} Counts, not percentages: at K = ${[...new Set(runs.map((run) => run.file.k))].join(" and ")} a difference of one rep is no evidence either way. Errors and skips are left out of the passes. Mean attempts are per step, over the reps that passed or failed. Gate columns count the attempts that failed each gate. Brief conformance (gate 5) is hard: a rep whose final screen fails a criterion in any screen state fails, with gate 5 as its end reason, and one gate 5 couldn't judge ends in error. Its own table gives each criterion's pass rate over the reps judged, where a judged rep passes a criterion when every screen state passes it, and a run without gate 5 reads not run. Cost takes in the judge's calls, and says how much of it is gate 5's.</p>
 ${summaries(runs)}
 </section>
 ${runs.map((run, index) => repsSection(run, runs.length > 1 ? letter(index) : null)).join("\n")}
@@ -303,6 +306,13 @@ function legend(runs: ReportRun[]) {
       "Gate 5 prompt",
       ({ versions: { judge } }) =>
         judge ? short(judge.promptHash) : "not run",
+    ],
+    [
+      "Gate 5",
+      (file) => {
+        const mode = gate5Mode(file);
+        return mode === "none" ? "not run" : mode;
+      },
     ],
     ["Screen briefs", (file) => `${file.briefSlugs.length} (${file.briefs})`],
     ["K", (file) => String(file.k)],
@@ -367,6 +377,31 @@ function briefSetsDiffer(runs: ReportRun[]) {
   return `<aside class="brief-sets-differ" role="note">
 <p><strong>These runs cover different screen briefs</strong>, so only the screen briefs both runs cover are compared side by side, with an overall row over those alone. The others are shown on their own, below.</p>
 <ul>${only("A", onlyA)}${only("B", onlyB)}</ul>
+</aside>`;
+}
+
+// Gate 5 counts in a run's passes only where it was hard (since #347). When
+// a report has gate 5 at all, it names each run whose passes don't count
+// it, so they aren't read as passes that do: one where gate 5 was soft, or
+// one from before it.
+function gate5Soft(runs: ReportRun[]) {
+  const modes = runs.map((run) => gate5Mode(run.file));
+  if (
+    modes.every((mode) => mode === "hard") ||
+    modes.every((mode) => mode === "none")
+  )
+    return "";
+  const lines = runs.flatMap((_, index) => {
+    const mode = modes[index]!;
+    if (mode === "hard") return [];
+    const name = runs.length > 1 ? `Run ${letter(index)}` : "This run";
+    return [
+      `<li>${name} ${mode === "soft" ? "had gate 5 soft" : "ran without gate 5"}, so its passes don't count brief conformance.</li>`,
+    ];
+  });
+  return `<aside class="gate5-soft" role="note">
+<p><strong>Not every run here counts brief conformance (gate 5) in its passes.</strong> Gate 5 fails a rep only in a run where it was hard; before #347 it was soft, measured beside the passes.</p>
+<ul>${lines.join("")}</ul>
 </aside>`;
 }
 
@@ -549,7 +584,7 @@ function gate5Table(
     row(overallLabel, briefs, true),
   ];
   return `<div class="table"><table class="gate5">
-<caption>Brief conformance (gate 5), soft</caption>
+<caption>Brief conformance (gate 5)</caption>
 <thead><tr>${head.map((cell) => `<th scope="col">${escapeHtml(cell)}</th>`).join("")}</tr></thead>
 <tbody>
 ${body.join("\n")}
@@ -582,7 +617,9 @@ function repDetails(run: ReportRun, rep: RepResult) {
   const missing = rep.criteria?.missing.length
     ? `<p>Pass criteria missing: ${rep.criteria.missing.map((each) => escapeHtml(each)).join(", ")}</p>`
     : "";
-  const conformance = rep.gate5 ? gate5Details(rep.gate5) : "";
+  const conformance = rep.gate5
+    ? gate5Details(rep.gate5, gate5Mode(run.file))
+    : "";
   const attempts = rep.attempts
     .map((attempt) => {
       const gateList = Object.entries(attempt.gates)
@@ -616,15 +653,15 @@ ${conformance}
 </details>`;
 }
 
-// A rep's gate 5: its score, with how many criteria were undecided, and
-// each failing or uncounted verdict as a taste rule's finding reads (gate,
-// state, criterion, reason), or why it didn't run and each state left
-// unjudged.
-function gate5Details(gate5: RepGate5) {
+// A rep's gate 5: its score, with how many criteria were undecided and
+// whether gate 5 was hard in its run, and each failing or uncounted verdict
+// as a taste rule's finding reads (gate, state, criterion, reason), or why
+// it didn't run and each state left unjudged.
+function gate5Details(gate5: RepGate5, mode: Gate5Mode) {
   const undecided = gate5.score ? rubricCriteria.length - gate5.score.of : 0;
   const head =
     gate5.ran && gate5.score
-      ? `gate 5 · ${gate5.score.passed}/${gate5.score.of}${undecided ? ` · ${undecided} undecided` : ""} · soft · ${dollars(gate5.cost)}`
+      ? `gate 5 · ${gate5.score.passed}/${gate5.score.of}${undecided ? ` · ${undecided} undecided` : ""} · ${mode} · ${dollars(gate5.cost)}`
       : `gate 5 not run · ${gate5.notRun ?? ""}`;
   const lines = gate5.states.flatMap(findings);
   return `<p class="gate5">${escapeHtml(head)}</p>${
@@ -800,14 +837,14 @@ p.gate5 { margin: var(--ds-space-3xs) 0 0; }
   border-radius: var(--ds-radius-tag);
   background: var(--ds-color-bg-selected);
 }
-.brief-sets-differ {
+.brief-sets-differ, .gate5-soft {
   margin: var(--ds-space-lg) 0;
   padding: var(--ds-space-sm) var(--ds-density-padding-surface);
   border-radius: var(--ds-density-radius-surface);
   background: var(--ds-color-bg-overdue);
   color: var(--ds-color-text-overdue);
 }
-.brief-sets-differ p, .brief-sets-differ ul { margin: 0; }
+.brief-sets-differ p, .brief-sets-differ ul, .gate5-soft p, .gate5-soft ul { margin: 0; }
 .rep {
   margin: var(--ds-space-2xs) 0;
   padding: var(--ds-space-2xs) var(--ds-space-xs);

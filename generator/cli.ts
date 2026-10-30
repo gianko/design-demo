@@ -3,16 +3,18 @@
 // folders to `.generated/<timestamp>-<slug>/`, and checks the screen brief's
 // `requires.*` against the final UI spec. After the final attempt, gate 5
 // (brief conformance, ADR 0014) judges the final screen's shots and prints
-// its verdicts and score; it's soft, so nothing it says changes the outcome
-// or the exit code. It ends with a table of every attempt, the rep's cost and
-// its outcome with the end reason, and exits 0 only on `passed` with the
-// pass criteria met.
+// its verdicts and score. It's hard: a failed criterion fails the rep, and a
+// judge that gives no verdict puts it in error, though it sends no repair
+// turn. It ends with a table of every attempt, the rep's cost and its
+// outcome with the end reason, and exits 0 only on `passed` with the pass
+// criteria met.
 
 import { writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import {
   type Gate5,
   findings,
+  gate5Ending,
   judgeTrace,
   plural,
   rubricCriteria,
@@ -136,8 +138,9 @@ function gateResults(gates: Attempt["gates"]) {
 }
 
 // Gate 5 on the final screen, kept in the rep dir as conformance.json. A rep
-// that ended in error isn't judged, and anything that stops the judge leaves
-// gate 5 not run (judgeTrace): it never ends the rep.
+// that ended in error isn't judged. Gate 5 then ends the rep as gate5Ending
+// says, and the rep dir's rep.json says so too, so `pnpm keep` won't keep a
+// screen gate 5 failed.
 async function gate5(trace: RepTrace, brief: ScreenBrief, judge: Model) {
   if (trace.outcome === "error") {
     return "gate 5 not run · the rep ended in error";
@@ -147,6 +150,17 @@ async function gate5(trace: RepTrace, brief: ScreenBrief, judge: Model) {
     writeFileSync(
       join(trace.workDir, "conformance.json"),
       JSON.stringify(gate5, null, 2) + "\n"
+    );
+  }
+  const ending = gate5Ending(
+    { outcome: trace.outcome, endReason: trace.endReason },
+    gate5
+  );
+  if (ending.endReason !== trace.endReason) {
+    Object.assign(trace, ending);
+    writeFileSync(
+      join(trace.workDir, "rep.json"),
+      JSON.stringify(trace, null, 2) + "\n"
     );
   }
   return conformanceLines(gate5);
@@ -168,7 +182,7 @@ function conformanceLines({ states, score, cost, notRun }: Gate5) {
   });
   lines.push(
     score
-      ? `gate 5 score: ${score.passed}/${score.of} over ${plural(states.length, "state")} · soft · ${dollars(cost, 4)}`
+      ? `gate 5 score: ${score.passed}/${score.of} over ${plural(states.length, "state")} · ${dollars(cost, 4)}`
       : `gate 5 not run · ${notRun}`
   );
   return lines.join("\n");

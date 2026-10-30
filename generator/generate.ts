@@ -82,6 +82,9 @@ export type EndReason =
   | "passed"
   | "spec-attempts-exhausted"
   | "code-attempts-exhausted"
+  // Set after generate(), once gate 5 has judged the final screen
+  // (gate5Ending): every other gate passed, and it failed a criterion.
+  | "gate5-failed"
   | `error:${string}`;
 
 // What a rep was generated with (ADR 0008's version tuple, less the git SHA
