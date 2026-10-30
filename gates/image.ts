@@ -5,12 +5,19 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { repo } from "../repo.ts";
 
-// Chromium's flags in the image, for every pass that renders there. A tile
-// repainted after its first raster is otherwise rastered only where it
-// changed, and antialiased edges there (a Card's rounded corners) blend one
-// level off a full raster's. Which one a shot gets depends on timing, so
-// gate 6 flaked under load.
-export const chromiumArgs = ["--disable-partial-raster"];
+// Chromium's flags in the image, for every pass that renders there.
+//
+// --disable-partial-raster: a tile repainted after its first raster is
+// otherwise rastered only where it changed, and antialiased edges there (a
+// Card's rounded corners) blend one level off a full raster's. Which one a
+// shot gets depends on timing, so gate 6 flaked under load.
+//
+// --disable-lcd-text: text is otherwise antialiased per subpixel, which
+// leaves orange and blue fringes on every glyph. A person never sees those
+// in a screenshot, but gate 5's judge does: on the my-invoices screen with
+// its Sheet open, the scrim greyed the page and the judge read the fringes
+// as berry-tinted invoice numbers (#345).
+export const chromiumArgs = ["--disable-partial-raster", "--disable-lcd-text"];
 
 // The image is pinned to the installed @playwright/test, so bumping the
 // package bumps the renderer with it and the two can't drift.
