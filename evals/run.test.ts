@@ -1058,7 +1058,7 @@ requires:
       expect(requests).toHaveLength(1);
     });
 
-    it("ends a rep in error when the judge's call fails, or when it passed every other gate with no shots to judge", async () => {
+    it("ends a rep that passed every other gate in error when gate 5 doesn't run, and leaves a failed rep failed", async () => {
       const at = setup("alpha");
 
       await run(at, ["--k", "4"], {
@@ -1078,9 +1078,9 @@ requires:
         reps.map(({ outcome, endReason }) => [outcome, endReason])
       ).toEqual([
         ["error", "error:gate5"],
+        // A rep another gate failed keeps its fail: it couldn't pass anyway.
+        ["fail", "code-attempts-exhausted"],
         ["error", "error:gate5"],
-        ["error", "error:gate5"],
-        // A failed rep whose screen never rendered has nothing to judge.
         ["fail", "code-attempts-exhausted"],
       ]);
       expect(reps[0]!.gate5).toMatchObject({
@@ -1097,8 +1097,12 @@ requires:
         cost: 0,
       });
       // Errors are left out of the pass rates, so a broken judge lets no
-      // rep through.
-      expect(totals).toMatchObject({ error: 3, final: { passed: 0, of: 1 } });
+      // rep through, and the failed reps still count as failures.
+      expect(totals).toMatchObject({
+        error: 2,
+        fail: 2,
+        final: { passed: 0, of: 2 },
+      });
     });
   });
 

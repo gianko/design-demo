@@ -3,8 +3,8 @@
 // its own scratch folder under `evals/runs/<run-id>/`. A rep ends as pass,
 // fail, error or skipped; the brief's pass criteria are checked once, on the
 // final UI spec. Gate 5 then judges the final screen (ADR 0014): hard, so a
-// failed criterion fails the rep and a judge that gives no verdict puts it in
-// error, and its calls count toward the budget. The run writes one results
+// failed criterion fails the rep and a judge that gives no verdict puts a rep
+// that would pass in error, and its calls count toward the budget. The run writes one results
 // file,
 // `evals/results/<YYYY-MM-DD>-<label>.json`, with the version tuple, totals
 // and every rep's attempts. A failing rep is data, so the run exits 0 once

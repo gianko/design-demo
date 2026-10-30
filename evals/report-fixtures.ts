@@ -334,8 +334,8 @@ export const gate5NotRun: RepGate5 = {
 // failed judged as `judge` says, the others null, its cost in the rep's, and
 // the judge in the version tuple. Gate 5 is soft, as in runs from before
 // #347, unless `hard`: then a rep that passed and fails a verdict fails
-// with gate 5 as its end reason, and one that gate 5 couldn't judge ends in
-// error.
+// with gate 5 as its end reason, and one that passed and gate 5 couldn't
+// judge ends in error.
 export function judged(
   file: ResultsFile,
   judge: (rep: RepResult) => RepGate5,
@@ -350,7 +350,8 @@ export function judged(
       result?.states.some(
         (state) => state.judged && state.verdicts.some((v) => !v.pass)
       );
-    const unjudged = hard && result !== null && !result.ran;
+    const unjudged =
+      hard && each.outcome === "pass" && result !== null && !result.ran;
     return {
       ...each,
       ...(failed
