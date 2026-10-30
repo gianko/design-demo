@@ -12,6 +12,8 @@ import {
   findings,
   judgeScreen,
   judgeTrace,
+  rubric,
+  rubricCriteria,
   screenPasses,
 } from "./conformance.ts";
 import type { RepTrace } from "./generate.ts";
@@ -61,20 +63,15 @@ describe("judgeScreen", () => {
       // shares.
       const system = request.system as Anthropic.TextBlockParam[];
       const prefix = system.map((block) => block.text).join("\n");
+      for (const criterion of rubricCriteria) {
+        for (const words of rubric[criterion]) {
+          expect(prefix).toContain(words);
+        }
+      }
+      expect(prefix).toContain("Errors say what happened and what to do next.");
       expect(prefix).toContain(
-        "Hierarchy reads from size and weight: one clear title, then content."
+        'Say a thing once: a card doesn\'t repeat "Overdue" in its title, its tag and its text.'
       );
-      expect(prefix).toContain(
-        "Density fits the audience: dense for the admin, roomy for the contractor."
-      );
-      expect(prefix).toContain(
-        "The accent appears only on the primary action, selection and focus."
-      );
-      expect(prefix).toContain("A shadow means it floats, never just a box.");
-      expect(prefix).toContain(
-        "Copy is second person and specific; errors say what happened and what to do next."
-      );
-      expect(prefix).toContain("Nothing repeats itself");
       expect(prefix).toContain(designBrief);
       expect(system.at(-1)!.cache_control).toEqual({ type: "ephemeral" });
 
@@ -225,7 +222,114 @@ describe("judgeScreen", () => {
     expect(results.api.cost).toBeCloseTo(0.02546, 6);
   });
 
-  it("leaves gate 5 not run on verdicts that don't parse or don't quote the design brief", async () => {
+  it("counts a state's other verdicts when one reason quotes nothing in the design brief, keeping that reason", async () => {
+    const reply = JSON.parse((recorded.content[1] as Anthropic.TextBlock).text);
+    const misquote = {
+      reason:
+        'The heading reads "You have 3 invoices to chase", which is direct.',
+      pass: true,
+    };
+    const { model } = recording(() => ({
+      ...recorded,
+      content: [
+        {
+          type: "text",
+          citations: null,
+          text: JSON.stringify({ ...reply, copy: misquote }),
+        },
+      ],
+    }));
+
+    const result = await judgeScreen(
+      { brief, screenshots: shots.slice(0, 1), designBrief },
+      model
+    );
+
+    expect(result.ran).toBe(true);
+    const [state] = result.states;
+    if (!state!.judged) throw new Error("unjudged");
+    expect(state!.verdicts.map(({ criterion }) => criterion)).toEqual([
+      "hierarchy",
+      "density",
+      "accent",
+      "elevation",
+      "repetition",
+    ]);
+    expect(state!.passed).toBe(4);
+    expect(state!.unquoted).toEqual([{ criterion: "copy", ...misquote }]);
+    expect(screenPasses(result.states, "copy")).toBeNull();
+    // Repetition fails, as recorded; copy is undecided, so the score is out
+    // of the five criteria decided.
+    expect(result.score).toEqual({ passed: 4, of: 5 });
+  });
+
+  it("fails a screen's criterion on any state that fails it, even when another state's verdict on it quoted nothing", async () => {
+    const reply = JSON.parse((recorded.content[1] as Anthropic.TextBlock).text);
+    // The default state fails repetition, as recorded; the reminder-sent
+    // state's repetition reason quotes nothing in the brief.
+    const { model } = recording((params) => {
+      const [, text] = params.messages[0]!
+        .content as Anthropic.TextBlockParam[];
+      if (text!.text.includes('"default"')) return recorded;
+      return {
+        ...recorded,
+        content: [
+          {
+            type: "text",
+            citations: null,
+            text: JSON.stringify({
+              ...reply,
+              repetition: { reason: "Each card says it once.", pass: true },
+            }),
+          },
+        ],
+      };
+    });
+
+    const result = await judgeScreen(
+      { brief, screenshots: shots, designBrief },
+      model
+    );
+
+    expect(screenPasses(result.states, "repetition")).toBe(false);
+    expect(result.score).toEqual({ passed: 5, of: 6 });
+  });
+
+  it("counts a reason that quotes any of its criterion's rubric words, since they're the design brief's", async () => {
+    const reply = JSON.parse((recorded.content[1] as Anthropic.TextBlock).text);
+    const input = { brief, screenshots: shots.slice(0, 1), designBrief };
+
+    for (const criterion of rubricCriteria) {
+      expect(rubric[criterion].length).toBeGreaterThan(0);
+      for (const words of rubric[criterion]) {
+        const { model } = recording(() => ({
+          ...recorded,
+          content: [
+            {
+              type: "text",
+              citations: null,
+              text: JSON.stringify({
+                ...reply,
+                [criterion]: {
+                  reason: `The screenshot holds to the brief: “${words}”`,
+                  pass: true,
+                },
+              }),
+            },
+          ],
+        }));
+
+        const [state] = (await judgeScreen(input, model)).states;
+
+        expect(state, `${criterion}: ${words}`).toMatchObject({
+          judged: true,
+          unquoted: [],
+        });
+      }
+    }
+  });
+
+  it("leaves gate 5 not run on verdicts that don't parse", async () => {
     const replying = (text: string) =>
       recording(() => ({
         ...recorded,
@@ -239,6 +343,34 @@ describe("judgeScreen", () => {
       input,
       replying(JSON.stringify({ ...reply, copy: undefined }))
     );
+
+    expect(notJson.states[0]).toMatchObject({
+      judged: false,
+      error: "malformed: not JSON",
+    });
+    expect(missing.states[0]).toMatchObject({ judged: false });
+    expect((missing.states[0] as { error: string }).error).toMatch(
+      /^malformed: .*copy/
+    );
+    for (const result of [notJson, missing]) {
+      expect(result.ran).toBe(false);
+    }
+  });
+
+  it("counts only quotes of the design brief, not of a paraphrase or the screen brief", async () => {
+    const replying = (text: string) =>
+      recording(() => ({
+        ...recorded,
+        content: [{ type: "text", text, citations: null }],
+      })).model;
+    const reply = JSON.parse((recorded.content[1] as Anthropic.TextBlock).text);
+    const input = { brief, screenshots: shots.slice(0, 1), designBrief };
+    const unquoted = (result: Awaited<ReturnType<typeof judgeScreen>>) => {
+      const [state] = result.states;
+      if (!state!.judged) throw new Error("unjudged");
+      return state!.unquoted!.map(({ criterion }) => criterion);
+    };
+
     const paraphrased = await judgeScreen(
       input,
       replying(
@@ -252,17 +384,7 @@ describe("judgeScreen", () => {
         })
       )
     );
-
-    expect(notJson.states[0]).toMatchObject({
-      judged: false,
-      error: "malformed: not JSON",
-    });
-    expect(missing.states[0]).toMatchObject({ judged: false });
-    expect((missing.states[0] as { error: string }).error).toMatch(
-      /^malformed: .*copy/
-    );
-    // The judge sees the rubric and the screen brief in the same prompt, but
-    // only the design brief counts as a quote.
+    // The rubric's wording before #341, which paraphrased the brief.
     const rubricQuoted = await judgeScreen(
       input,
       replying(
@@ -290,27 +412,9 @@ describe("judgeScreen", () => {
       )
     );
 
-    expect(paraphrased.states[0]).toMatchObject({
-      judged: false,
-      error: "malformed: accent quotes nothing in the design brief",
-    });
-    expect(rubricQuoted.states[0]).toMatchObject({
-      judged: false,
-      error: "malformed: accent quotes nothing in the design brief",
-    });
-    expect(screenBriefQuoted.states[0]).toMatchObject({
-      judged: false,
-      error: "malformed: copy quotes nothing in the design brief",
-    });
-    for (const result of [
-      notJson,
-      missing,
-      paraphrased,
-      rubricQuoted,
-      screenBriefQuoted,
-    ]) {
-      expect(result.ran).toBe(false);
-    }
+    expect(unquoted(paraphrased)).toEqual(["accent"]);
+    expect(unquoted(rubricQuoted)).toEqual(["accent"]);
+    expect(unquoted(screenBriefQuoted)).toEqual(["copy"]);
   });
 
   it("doesn't run with no screenshots", async () => {
@@ -444,6 +548,33 @@ describe("findings", () => {
       [
         'gate 5 · reminder-sent · repetition · The card says "Overdue" in its title, its status tag and its text, where the tag alone would do, since "Every status tag carries its word."',
       ],
+    ]);
+  });
+
+  it("reads a verdict that wasn't counted with its reason, so a run shows why its quote missed", async () => {
+    const reply = JSON.parse((recorded.content[1] as Anthropic.TextBlock).text);
+    const { model } = recording(() => ({
+      ...recorded,
+      content: [
+        {
+          type: "text",
+          citations: null,
+          text: JSON.stringify({
+            ...reply,
+            copy: { reason: "The copy is direct and specific.", pass: true },
+          }),
+        },
+      ],
+    }));
+
+    const { states } = await judgeScreen(
+      { brief, screenshots: shots.slice(0, 1), designBrief },
+      model
+    );
+
+    expect(findings(states[0]!)).toEqual([
+      'gate 5 · default · repetition · The card says "Overdue" in its title, its status tag and its text, where the tag alone would do, since "Every status tag carries its word."',
+      "gate 5 · default · copy · unquoted · The copy is direct and specific.",
     ]);
   });
 });

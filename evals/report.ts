@@ -497,7 +497,8 @@ ${body.join("\n")}
 
 // Gate 5 (ADR 0014) beside the summary, never in it: per screen brief and
 // overall, the reps judged out of those that passed or failed, then per
-// criterion the judged reps whose every state passed it, the verdicts passed
+// criterion the judged reps whose every state passed it, of those it's
+// decided in, the verdicts passed, the undecided criteria left out of both,
 // and the judge's cost. A run without gate 5, or that judged none of these
 // reps, reads not run, never zero. In a comparison every cell reads run A →
 // run B, as the summary's do.
@@ -507,7 +508,14 @@ function gate5Table(
   overallLabel: string,
   mode: Mode
 ) {
-  const head = ["Screen brief", "Judged", ...rubricCriteria, "Score", "Cost"];
+  const head = [
+    "Screen brief",
+    "Judged",
+    ...rubricCriteria,
+    "Score",
+    "Undecided",
+    "Cost",
+  ];
   const notRun = "not run";
   const cells = (run: ReportRun, slugs: string[]): string[] => {
     const counts = tally(
@@ -521,6 +529,7 @@ function gate5Table(
         judged ? rate(counts.criteria[criterion]) : notRun
       ),
       judged ? rate(counts.score) : notRun,
+      judged ? String(counts.undecided) : notRun,
       dollars(counts.cost),
     ];
   };
@@ -607,13 +616,15 @@ ${conformance}
 </details>`;
 }
 
-// A rep's gate 5: its score and each failing verdict as a taste rule's
-// finding reads (gate, state, criterion, reason), or why it didn't run and
-// each state left unjudged.
+// A rep's gate 5: its score, with how many criteria were undecided, and
+// each failing or uncounted verdict as a taste rule's finding reads (gate,
+// state, criterion, reason), or why it didn't run and each state left
+// unjudged.
 function gate5Details(gate5: RepGate5) {
+  const undecided = gate5.score ? rubricCriteria.length - gate5.score.of : 0;
   const head =
     gate5.ran && gate5.score
-      ? `gate 5 · ${gate5.score.passed}/${gate5.score.of} · soft · ${dollars(gate5.cost)}`
+      ? `gate 5 · ${gate5.score.passed}/${gate5.score.of}${undecided ? ` · ${undecided} undecided` : ""} · soft · ${dollars(gate5.cost)}`
       : `gate 5 not run · ${gate5.notRun ?? ""}`;
   const lines = gate5.states.flatMap(findings);
   return `<p class="gate5">${escapeHtml(head)}</p>${

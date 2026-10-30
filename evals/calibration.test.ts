@@ -27,12 +27,15 @@ import type { Model } from "../generator/model.ts";
 import { repo } from "../repo.ts";
 
 // A judge reply as the Messages API returns one (generator/fixtures), every
-// reason quoting the design brief, with its verdicts set: `fails` fail and
-// the rest pass.
+// reason quoting the design brief but those `unquoted`, with its verdicts
+// set: `fails` fail and the rest pass.
 const recorded: Anthropic.Message = JSON.parse(
   readFileSync(join(repo, "generator/fixtures/judge-reply.json"), "utf8")
 );
-function reply(fails: Criterion[]): Anthropic.Message {
+function reply(
+  fails: Criterion[],
+  unquoted: Criterion[] = []
+): Anthropic.Message {
   const block = recorded.content.find((each) => each.type === "text")!;
   const verdicts = JSON.parse(block.text) as Record<
     Criterion,
@@ -40,6 +43,8 @@ function reply(fails: Criterion[]): Anthropic.Message {
   >;
   for (const [criterion, verdict] of Object.entries(verdicts)) {
     verdict.pass = !fails.includes(criterion as Criterion);
+    if (unquoted.includes(criterion as Criterion))
+      verdict.reason = `The screen meets ${criterion}.`;
   }
   return {
     ...recorded,
@@ -58,7 +63,11 @@ const shotOf = (id: string, state: string) => Buffer.from(`${id}|${state}`);
 // run counted from how often that state was judged before; and a render
 // pass that renders every state of a screen. Both keep what they were sent.
 function recording(
-  verdict: (id: string, state: string, run: number) => Criterion[] | "throw"
+  verdict: (
+    id: string,
+    state: string,
+    run: number
+  ) => Criterion[] | "throw" | { unquoted: Criterion[] }
 ) {
   const seen = new Map<string, number>();
   const calls: string[] = [];
@@ -74,7 +83,10 @@ function recording(
     const [id, state] = key.split("|") as [string, string];
     const fails = verdict(id, state, run);
     if (fails === "throw") throw new Error("overloaded");
-    return { message: reply(fails), requestId: "req_recorded" };
+    const message = Array.isArray(fails)
+      ? reply(fails)
+      : reply([], fails.unquoted);
+    return { message, requestId: "req_recorded" };
   };
   const render = async (screen: SetScreen) => {
     calls.push(`render ${screen.id}`);
@@ -240,7 +252,7 @@ describe("pnpm evals:calibrate", () => {
   });
 
   // A screen state the judge couldn't answer leaves that run's verdicts
-  // not run where no other state failed them, and out of the rates.
+  // undecided where no other state failed them, and out of the rates.
   it("leaves a verdict out of the rates when the judge couldn't answer for it", async () => {
     const run = deps((id, state, n) =>
       id === "payment-status" && state === "empty" && n === 1
@@ -252,12 +264,39 @@ describe("pnpm evals:calibrate", () => {
 
     const report = readFileSync(run.out, "utf8");
     expect(report).toMatch(
-      /## payment-status\n[\s\S]*?\| hierarchy +\| pass +\| not run +\| pass +\| pass +\|/
+      /## payment-status\n[\s\S]*?\| hierarchy +\| pass +\| undecided +\| pass +\| pass +\|/
     );
     expect(report).toMatch(
       /\| \*\*All\*\* +\| 136\/138 \(99%\) +\| 2\/48 \(4%\) +\|/
     );
-    expect(report).toContain("6 verdicts not run");
+    expect(report).toContain("6 verdicts undecided");
+  });
+
+  // A reason that quotes nothing in the brief costs only its criterion's
+  // verdict, and the report says why.
+  it("leaves only the misquoted criterion undecided, with its reason", async () => {
+    const run = deps((id, state, n) =>
+      id === "payment-status" && state === "empty" && n === 1
+        ? { unquoted: ["copy"] }
+        : scripted(id, state, n)
+    );
+
+    await main(["--out", run.out], run.deps);
+
+    const report = readFileSync(run.out, "utf8");
+    expect(report).toMatch(
+      /## payment-status\n[\s\S]*?\| hierarchy +\| pass +\| pass +\| pass +\| pass +\|/
+    );
+    expect(report).toMatch(
+      /## payment-status\n[\s\S]*?\| copy +\| pass +\| undecided +\| pass +\| pass +\|/
+    );
+    expect(report).toContain(
+      "- copy · run 1 · undecided · empty: unquoted: The screen meets copy."
+    );
+    expect(report).toMatch(
+      /\| \*\*All\*\* +\| 141\/143 \(99%\) +\| 2\/48 \(4%\) +\|/
+    );
+    expect(report).toContain("1 verdict undecided");
   });
 });
 

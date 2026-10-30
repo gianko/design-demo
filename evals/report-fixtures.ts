@@ -271,36 +271,51 @@ function results(
 }
 
 // Gate 5 on one rep, at $0.05 a state: per screen state, the criteria its
-// verdicts fail; every other verdict passes.
-export function gate5(states: Record<string, Criterion[]>): RepGate5 {
-  const judgements = Object.entries(states).map(([state, failing]) => ({
-    state,
-    call: {
-      usage: { input: 1650, output: 900, cacheRead: 4300, cacheWrite: 0 },
-      cost: 0.05,
-      stopReason: "end_turn" as const,
-      requestId: `req_judge_${state}`,
-      wallMs: 9000,
-    },
-    judged: true as const,
-    verdicts: rubricCriteria.map((criterion) => ({
+// verdicts fail; every other verdict passes. `unquoted` gives, per state,
+// the passing verdicts whose reason quoted nothing in the brief, so they
+// weren't counted.
+export function gate5(
+  states: Record<string, Criterion[]>,
+  unquoted: Record<string, Criterion[]> = {}
+): RepGate5 {
+  const judgements = Object.entries(states).map(([state, failing]) => {
+    const missed = unquoted[state] ?? [];
+    const verdicts = rubricCriteria.map((criterion) => ({
       criterion,
       pass: !failing.includes(criterion),
-      reason: `The ${state} state ${failing.includes(criterion) ? "breaks" : "meets"} ${criterion}, as "Every status tag carries its word."`,
-    })),
-    passed: rubricCriteria.length - failing.length,
-  }));
+      reason: missed.includes(criterion)
+        ? `The ${state} state meets ${criterion}.`
+        : `The ${state} state ${failing.includes(criterion) ? "breaks" : "meets"} ${criterion}, as "Every status tag carries its word."`,
+    }));
+    const counted = verdicts.filter((v) => !missed.includes(v.criterion));
+    return {
+      state,
+      call: {
+        usage: { input: 1650, output: 900, cacheRead: 4300, cacheWrite: 0 },
+        cost: 0.05,
+        stopReason: "end_turn" as const,
+        requestId: `req_judge_${state}`,
+        wallMs: 9000,
+      },
+      judged: true as const,
+      verdicts: counted,
+      passed: counted.filter((v) => v.pass).length,
+      unquoted: verdicts.filter((v) => missed.includes(v.criterion)),
+    };
+  });
+  const fails = (criterion: Criterion) =>
+    Object.values(states).some((failing) => failing.includes(criterion));
+  const undecided = (criterion: Criterion) =>
+    !fails(criterion) &&
+    Object.values(unquoted).some((missed) => missed.includes(criterion));
   return {
     ran: true,
     notRun: null,
     states: judgements,
-    // The criteria no state fails, out of six.
+    // The criteria no state fails, out of those decided.
     score: {
-      passed: rubricCriteria.filter(
-        (criterion) =>
-          !Object.values(states).some((failing) => failing.includes(criterion))
-      ).length,
-      of: rubricCriteria.length,
+      passed: rubricCriteria.filter((c) => !fails(c) && !undecided(c)).length,
+      of: rubricCriteria.filter((c) => !undecided(c)).length,
     },
     cost: judgements.length * 0.05,
   };
