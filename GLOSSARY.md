@@ -134,6 +134,10 @@ _Avoid_: Detector, heuristic
 The gate that judges how a generated screen looks against the design brief, one pass/fail criterion at a time, each with a reason; it reports without failing a rep until its verdicts are shown to be trusted.
 _Avoid_: Vision gate, AI judge, design review
 
+**Undecided**:
+A brief-conformance criterion a screen gets no verdict on: no state fails it, and some state's verdict on it couldn't be counted, such as one whose reason quotes nothing in the design brief.
+_Avoid_: Not run (that's brief conformance on a whole screen), skipped
+
 **Calibration set**:
 Copies of kept screens, each broken by hand against one brief-conformance criterion, judged beside the kept screens as they are to show whether brief conformance's verdicts are right and repeatable.
 _Avoid_: Golden set, test set
