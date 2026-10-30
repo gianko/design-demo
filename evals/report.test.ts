@@ -383,21 +383,24 @@ describe("pnpm evals:report", () => {
     // invoice-queue: all six pass on both states in rep 1; rep 2 repeats
     // itself on payment-scheduled; rep 3, which failed, overuses the accent
     // on default. payment-status: rep 2's judge call failed.
-    const judgedA = (at: At) =>
-      judged(runA(at), (rep) =>
-        rep.slug === "invoice-queue"
-          ? gate5(
-              (
-                [
-                  { default: [], "payment-scheduled": [] },
-                  { default: [], "payment-scheduled": ["repetition"] },
-                  { default: ["accent"], "payment-scheduled": [] },
-                ] satisfies Record<string, Criterion[]>[]
-              )[rep.rep - 1]!
-            )
-          : rep.rep === 2
-            ? gate5NotRun
-            : gate5({ default: [] })
+    const judgedA = (at: At, options?: { hard: boolean }) =>
+      judged(
+        runA(at),
+        (rep) =>
+          rep.slug === "invoice-queue"
+            ? gate5(
+                (
+                  [
+                    { default: [], "payment-scheduled": [] },
+                    { default: [], "payment-scheduled": ["repetition"] },
+                    { default: ["accent"], "payment-scheduled": [] },
+                  ] satisfies Record<string, Criterion[]>[]
+                )[rep.rep - 1]!
+              )
+            : rep.rep === 2
+              ? gate5NotRun
+              : gate5({ default: [] }),
+        options
       );
     const allPass = () => gate5({ default: [], "payment-scheduled": [] });
 
@@ -586,6 +589,74 @@ describe("pnpm evals:report", () => {
       expect(text).toContain(
         "gate 5 · default · repetition · unquoted · The default state meets repetition."
       );
+    });
+
+    it("counts gate 5 in a hard run's passes, and shows a rep it failed with gate 5 as the reason", async () => {
+      const at = setup();
+      const a = write(at, "2026-10-31-p3.json", judgedA(at, { hard: true }));
+
+      await report(at, [a]);
+
+      const { doc } = written(at);
+      // invoice-queue rep 2 passed its other gates and repeated itself.
+      expect(rows(doc, "invoice-queue")).toEqual([
+        expect.objectContaining({
+          "Passed (first attempt → final)": "1/3 → 1/3",
+        }),
+      ]);
+      const rep2 = [...doc.querySelectorAll("details.rep")].find((each) =>
+        each.querySelector("summary")?.textContent?.startsWith("rep 2 · fail")
+      );
+      expect(rep2?.querySelector("summary")?.textContent).toMatch(
+        /^rep 2 · fail · gate5-failed · /
+      );
+      expect(rep2?.textContent).toContain("gate 5 · 5/6 · hard");
+      expect(legendRow(doc, "Gate 5")).toEqual(["hard"]);
+      expect(doc.querySelector(".gate5-soft")).toBeNull();
+    });
+
+    it("says when a run had gate 5 soft or didn't have it, so its passes aren't read as counting it", async () => {
+      const at = setup();
+      const plain = write(at, "2026-10-28-p1.json", runA(at));
+      const soft = write(at, "2026-10-29-p2.json", judgedA(at));
+      const hard = write(
+        at,
+        "2026-10-31-p3.json",
+        judged(runB(at), allPass, { hard: true })
+      );
+
+      await report(at, [soft, hard]);
+      const softVsHard = written(at).doc;
+      rmSync(at.reportsDir, { recursive: true });
+      await report(at, [plain, soft]);
+      const plainVsSoft = written(at).doc;
+      rmSync(at.reportsDir, { recursive: true });
+      await report(at, [soft]);
+      const softAlone = written(at).doc;
+      rmSync(at.reportsDir, { recursive: true });
+      await report(at, [plain]);
+      const plainAlone = written(at).doc;
+
+      expect(legendRow(softVsHard, "Gate 5")).toEqual(["soft", "hard"]);
+      expect(legendRow(plainVsSoft, "Gate 5")).toEqual(["not run", "soft"]);
+      const note = (doc: Document) =>
+        doc.querySelector(".gate5-soft")?.textContent?.replace(/\s+/g, " ");
+      expect(note(softVsHard)).toContain(
+        "Run A had gate 5 soft, so its passes don't count brief conformance."
+      );
+      expect(note(softVsHard)).not.toContain("Run B");
+      expect(note(plainVsSoft)).toContain(
+        "Run A ran without gate 5, so its passes don't count brief conformance."
+      );
+      expect(note(plainVsSoft)).toContain(
+        "Run B had gate 5 soft, so its passes don't count brief conformance."
+      );
+      expect(note(softAlone)).toContain(
+        "This run had gate 5 soft, so its passes don't count brief conformance."
+      );
+      // A run that never had gate 5 needs no note: nothing in it judges.
+      expect(plainAlone.querySelector(".gate5-soft")).toBeNull();
+      expect(softAlone.body.textContent).toContain("gate 5 · 5/6 · soft");
     });
 
     it("still loads and renders every committed results file, with gate 5 not run in those from before it", async () => {

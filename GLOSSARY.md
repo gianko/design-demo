@@ -131,7 +131,7 @@ One named, deterministic check in the taste lint, run on source code or on a ren
 _Avoid_: Detector, heuristic
 
 **Brief conformance**:
-The gate that judges how a generated screen looks against the design brief, one pass/fail criterion at a time, each with a reason; it reports without failing a rep until its verdicts are shown to be trusted.
+The gate that judges how a generated screen looks against the design brief, one pass/fail criterion at a time, each with a reason; a criterion it fails fails the rep, though it never asks for a repair.
 _Avoid_: Vision gate, AI judge, design review
 
 **Undecided**:

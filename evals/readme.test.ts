@@ -122,6 +122,45 @@ describe("pnpm evals:readme", () => {
     );
   });
 
+  it("says when the run or its baseline had gate 5 soft, or its baseline had none, so their passes aren't read as counting it", async () => {
+    const at = setup();
+    const allPass = () => gate5({ default: [] });
+    write(at, "2026-10-28-p1.json", runA(at));
+    write(at, "2026-10-29-p2.json", {
+      ...judged(runA(at), allPass),
+      startedAt: "2026-10-29T08:00:00.000Z",
+      baseline: "2026-10-28-p1",
+    });
+    const path = readme(at);
+
+    expect((await run(at, path)).code).toBe(0);
+    const soft = readFileSync(path, "utf8");
+    write(at, "2026-10-31-p3.json", {
+      ...judged(runB(at), allPass, { hard: true }),
+      startedAt: "2026-10-31T08:00:00.000Z",
+      baseline: "2026-10-29-p2",
+    });
+    expect((await run(at, path)).code).toBe(0);
+    const hard = readFileSync(path, "utf8");
+    write(at, "2026-11-01-p4.json", {
+      ...judged(runB(at), allPass, { hard: true }),
+      startedAt: "2026-11-01T08:00:00.000Z",
+      baseline: "2026-10-31-p3",
+    });
+    expect((await run(at, path)).code).toBe(0);
+    const hardOnHard = readFileSync(path, "utf8");
+
+    expect(soft).toContain(
+      "The [report](https://gianko.github.io/design-demo/evals/) compares it against [2026-10-28-p1](results/2026-10-28-p1.json). Gate 5 was soft in this run, and 2026-10-28-p1 ran without it, so neither's passes count brief conformance.\n\n"
+    );
+    expect(hard).toContain(
+      "compares it against [2026-10-29-p2](results/2026-10-29-p2.json). Gate 5 was soft in 2026-10-29-p2, so its passes don't count brief conformance.\n\n"
+    );
+    expect(hardOnHard).toContain(
+      "compares it against [2026-10-31-p3](results/2026-10-31-p3.json).\n\n"
+    );
+  });
+
   it("fails without touching the README when its markers are missing", async () => {
     const at = setup();
     write(at, "2026-10-27-after.json", runB(at));

@@ -5,12 +5,13 @@
 // screen state at the audience's density, the design brief and the screen
 // brief. Never the code or the UI spec.
 //
-// It's soft: nothing it says reaches a repair turn or a rep's outcome, and
-// its failures aren't a GateName, so they can't. A call that errors, is
-// refused, runs out of tokens or replies with verdicts that don't parse
-// leaves its state unjudged, and the screen's gate 5 not run. A verdict whose
-// reason quotes nothing in the brief isn't counted, and the state's other
-// verdicts stand. It runs in `pnpm generate` and eval runs, never in
+// It's hard (#347): a decided criterion that any state fails fails the rep
+// (gate5Ending). It still sends no repair turn, and its failures aren't a
+// GateName, so they can't. A call that errors, is refused, runs out of
+// tokens or replies with verdicts that don't parse leaves its state
+// unjudged, the screen's gate 5 not run, and the rep in error. A verdict
+// whose reason quotes nothing in the brief isn't counted, and the state's
+// other verdicts stand. It runs in `pnpm generate` and eval runs, never in
 // `pnpm gate`.
 
 import { createHash } from "node:crypto";
@@ -178,6 +179,38 @@ export type Gate5 = Omit<Conformance, "promptHash"> & {
   promptHash: string | null;
 };
 
+// Why gate 5 didn't run on a final screen that has nothing to judge: its
+// code attempt never rendered.
+export const noScreenshots = "no screenshots";
+
+// How gate 5 ends a rep: failed on a criterion, or in error because it
+// couldn't judge.
+export type Gate5EndReason = "gate5-failed" | "error:gate5";
+
+// A rep's ending once gate 5 has judged its final screen, for a rep that
+// passed or failed the other gates (ADR 0014). A decided criterion that any
+// state fails fails a rep that would otherwise pass, with gate 5 as the end
+// reason; a rep that already failed keeps its own. Gate 5 not run is a tool
+// failure, so it puts the rep in error, and a broken judge can't let a rep
+// through: except on a failed rep whose screen never rendered, which has
+// nothing to judge. An undecided criterion fails nothing.
+export function gate5Ending<Reason extends string>(
+  ending: { outcome: "pass" | "fail"; endReason: Reason },
+  gate5: Pick<Gate5, "ran" | "notRun" | "states">
+): { outcome: "pass" | "fail" | "error"; endReason: Reason | Gate5EndReason } {
+  if (!gate5.ran) {
+    return ending.outcome === "fail" && gate5.notRun === noScreenshots
+      ? ending
+      : { outcome: "error", endReason: "error:gate5" };
+  }
+  const failed = rubricCriteria.some(
+    (criterion) => screenPasses(gate5.states, criterion) === false
+  );
+  return ending.outcome === "pass" && failed
+    ? { outcome: "fail", endReason: "gate5-failed" }
+    : ending;
+}
+
 // Gate 5 on a rep's final screen, as `pnpm generate` and eval runs judge it:
 // the light shot of each state its final attempt rendered. A screen with no
 // shots, or shots that can't be read, isn't judged, and anything else that
@@ -201,9 +234,9 @@ export async function judgeTrace(
     screenshots = screenshotsOf(trace);
   } catch (error) {
     console.error(error);
-    return notRun(`no screenshots: ${message(error)}`);
+    return notRun(`${noScreenshots}: ${message(error)}`);
   }
-  if (screenshots.length === 0) return notRun("no screenshots");
+  if (screenshots.length === 0) return notRun(noScreenshots);
   try {
     const conformance = await judgeScreen(
       { brief, screenshots, designBrief },
@@ -266,14 +299,21 @@ export function screenshotsOf(
     }));
 }
 
-// The judge's half of a results file's version tuple (ADR 0008): its config
-// and the hash of the rubric's and the design brief's words, as every
-// Conformance it gives records it.
+// The judge's half of a results file's version tuple (ADR 0008): its config,
+// the hash of the rubric's and the design brief's words, as every
+// Conformance it gives records it, and that gate 5 was hard.
 export function judgeVersions(designBrief = readDesignBrief()) {
-  return { ...judgeConfig, promptHash: judgePrompt(designBrief).hash };
+  return {
+    ...judgeConfig,
+    promptHash: judgePrompt(designBrief).hash,
+    hard: true as const,
+  };
 }
 
-export type JudgeVersions = ReturnType<typeof judgeVersions>;
+// Absent `hard` is a results file from before #347, when gate 5 was soft.
+export type JudgeVersions = Omit<ReturnType<typeof judgeVersions>, "hard"> & {
+  hard?: true;
+};
 
 export function readDesignBrief() {
   return readFileSync(resolve(repo, "docs/design-brief.md"), "utf8");

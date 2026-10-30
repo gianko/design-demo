@@ -2,9 +2,10 @@
 // runs K times through generate(), in-process, three reps at a time, each in
 // its own scratch folder under `evals/runs/<run-id>/`. A rep ends as pass,
 // fail, error or skipped; the brief's pass criteria are checked once, on the
-// final UI spec. Gate 5 then judges the final screen (ADR 0014): soft, so its
-// calls count toward the budget but its verdicts never touch the rep's
-// outcome. The run writes one results file,
+// final UI spec. Gate 5 then judges the final screen (ADR 0014): hard, so a
+// failed criterion fails the rep and a judge that gives no verdict puts it in
+// error, and its calls count toward the budget. The run writes one results
+// file,
 // `evals/results/<YYYY-MM-DD>-<label>.json`, with the version tuple, totals
 // and every rep's attempts. A failing rep is data, so the run exits 0 once
 // that file is written.
@@ -13,6 +14,7 @@ import { existsSync, globSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import {
+  gate5Ending,
   judgeTrace,
   judgeVersions,
   nominalJudgeCall,
@@ -233,10 +235,17 @@ async function runRep(
     console.error(error);
     ending = { outcome: "error", endReason: "error:crash", criteria: null };
   }
-  const gate5 =
-    trace && ending.outcome !== "error"
-      ? await judge(deps.judge, brief, trace, spend)
-      : null;
+  let gate5: RepGate5 | null = null;
+  if (trace && (ending.outcome === "pass" || ending.outcome === "fail")) {
+    gate5 = await judge(deps.judge, brief, trace, spend);
+    ending = {
+      ...gate5Ending(
+        { outcome: ending.outcome, endReason: ending.endReason },
+        gate5
+      ),
+      criteria: ending.criteria,
+    };
+  }
   return repResult(brief, rep, ending, {
     wallMs: performance.now() - started,
     workDir: relative(repo, workDir),
@@ -246,8 +255,8 @@ async function runRep(
 }
 
 // Gate 5 on the rep's final screen (ADR 0014). Anything that stops the judge
-// leaves it not run (judgeTrace); it never ends the rep, and never changes
-// how it ended. Its calls spend toward the budget.
+// leaves it not run (judgeTrace), and gate5Ending says how that ends the rep.
+// Its calls spend toward the budget.
 async function judge(
   model: Model,
   brief: ScreenBrief,

@@ -3,13 +3,15 @@
 // Run it after committing an eval run; a test fails while the README's table
 // differs from what this writes, so the table can't drift from the evidence.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { readScreenBrief } from "../generator/screen-brief.ts";
 import {
+  type Gate5Mode,
   type Rate,
   type ResultsFile,
   type Tally,
+  gate5Mode,
   latestResults,
 } from "./results.ts";
 import { dollars } from "../format.ts";
@@ -126,9 +128,22 @@ function evalTable(path: string, file: ResultsFile, paths: ReadmePaths) {
   const results = `[results file](${link(path)})`;
   const report = `[report](${reportUrl})`;
   const where = `${count(file.briefSlugs.length, "screen brief")}, K = ${file.k}, ${models}, on ${tree} at \`${versions.gitSha.slice(0, 7)}\``;
+  const baselinePath = file.baseline
+    ? join(dirname(path), `${file.baseline}.json`)
+    : null;
   const intro = file.baseline
-    ? `${where} (${results}). The ${report} compares it against [${file.baseline}](${link(join(dirname(path), `${file.baseline}.json`))}).`
+    ? `${where} (${results}). The ${report} compares it against [${file.baseline}](${link(baselinePath!)}).`
     : `${where} (${results}, ${report}).`;
+  const baseline =
+    file.baseline && existsSync(baselinePath!)
+      ? {
+          name: file.baseline,
+          mode: gate5Mode(
+            JSON.parse(readFileSync(baselinePath!, "utf8")) as ResultsFile
+          ),
+        }
+      : null;
+  const soft = gate5Soft(gate5Mode(file), baseline);
 
   const rows = file.briefSlugs.map((slug) => {
     const brief = join(paths.briefsDir, `${slug}.md`);
@@ -154,5 +169,29 @@ function evalTable(path: string, file: ResultsFile, paths: ReadmePaths) {
   const leftOut = left.length
     ? `\n\n${left.join(" and ")}; the pass rates leave them out.`
     : "";
-  return `${intro}\n\n${table}${leftOut}`;
+  return `${intro}${soft ? ` ${soft}` : ""}\n\n${table}${leftOut}`;
+}
+
+// Gate 5 counts in a run's passes only where it was hard (since #347), so
+// the table says when this run, or the baseline it's compared against, had
+// it soft or not at all: their passes don't count it. A run without gate 5
+// says nothing, as its table doesn't either.
+function gate5Soft(
+  mode: Gate5Mode,
+  baseline: { name: string; mode: Gate5Mode } | null
+) {
+  const counts = " count brief conformance.";
+  if (mode === "none") return "";
+  if (mode === "soft") {
+    if (baseline?.mode === "soft")
+      return `Gate 5 was soft in this run and in ${baseline.name}, so neither's passes${counts}`;
+    if (baseline?.mode === "none")
+      return `Gate 5 was soft in this run, and ${baseline.name} ran without it, so neither's passes${counts}`;
+    return `Gate 5 was soft in this run, so its passes don't${counts}`;
+  }
+  if (baseline?.mode === "soft")
+    return `Gate 5 was soft in ${baseline.name}, so its passes don't${counts}`;
+  if (baseline?.mode === "none")
+    return `${baseline.name} ran without gate 5, so its passes don't${counts}`;
+  return "";
 }

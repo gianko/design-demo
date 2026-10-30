@@ -332,15 +332,36 @@ export const gate5NotRun: RepGate5 = {
 
 // A results file as a run with gate 5 writes it: each rep that passed or
 // failed judged as `judge` says, the others null, its cost in the rep's, and
-// the judge in the version tuple.
+// the judge in the version tuple. Gate 5 is soft, as in runs from before
+// #347, unless `hard`: then a rep that passed and fails a verdict fails
+// with gate 5 as its end reason, and one that gate 5 couldn't judge ends in
+// error.
 export function judged(
   file: ResultsFile,
-  judge: (rep: RepResult) => RepGate5
+  judge: (rep: RepResult) => RepGate5,
+  { hard = false } = {}
 ): ResultsFile {
-  const reps = file.reps.map((each) => {
+  const reps = file.reps.map((each): RepResult => {
     const result =
       each.outcome === "pass" || each.outcome === "fail" ? judge(each) : null;
-    return { ...each, gate5: result, cost: each.cost + (result?.cost ?? 0) };
+    const failed =
+      hard &&
+      each.outcome === "pass" &&
+      result?.states.some(
+        (state) => state.judged && state.verdicts.some((v) => !v.pass)
+      );
+    const unjudged = hard && result !== null && !result.ran;
+    return {
+      ...each,
+      ...(failed
+        ? { outcome: "fail", endReason: "gate5-failed", firstAttempt: false }
+        : {}),
+      ...(unjudged
+        ? { outcome: "error", endReason: "error:gate5", firstAttempt: false }
+        : {}),
+      gate5: result,
+      cost: each.cost + (result?.cost ?? 0),
+    };
   });
   return {
     ...file,
@@ -351,6 +372,7 @@ export function judged(
         effort: "high",
         maxTokens: 16000,
         promptHash: "j".repeat(64),
+        ...(hard ? { hard: true as const } : {}),
       },
     },
     totals: tally(reps),
