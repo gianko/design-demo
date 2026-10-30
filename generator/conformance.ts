@@ -10,10 +10,9 @@
 // GateName, so they can't. A call that errors, is refused, runs out of
 // tokens or replies with verdicts that don't parse leaves its state
 // unjudged, the screen's gate 5 not run, and a rep that would pass in
-// error. A verdict
-// whose reason quotes nothing in the brief isn't counted, and the state's
-// other verdicts stand. It runs in `pnpm generate` and eval runs, never in
-// `pnpm gate`.
+// error. A verdict whose reason quotes nothing in the brief isn't counted,
+// and the state's other verdicts stand. It runs in `pnpm generate` and eval
+// runs, never in `pnpm gate`.
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
