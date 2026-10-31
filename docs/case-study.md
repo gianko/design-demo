@@ -113,4 +113,3 @@ These are my calls, the ones the design brief names as [the first I'd hand to a 
 
 - **Generative UI in the product.** Out of scope on purpose here; the registry and gates are what would keep runtime screens on the system.
 - **Forms.** Input and Select were cut in P1 ([After P1](spec.md#after-p1)).
-- **Promoting gate 5 to hard,** once the calibration numbers back it ([ADR 0014](adr/0014-brief-conformance-is-a-soft-vision-judge-proved-by-a-calibration-set.md)).
