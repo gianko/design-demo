@@ -388,22 +388,29 @@ describe("pnpm generate", () => {
     expect(code).toBe(0);
   }, 120_000);
 
-  it("keeps a failed rep's own end reason, whatever gate 5 says", async () => {
+  it("keeps a failed rep's own end reason, whatever gate 5 says, and when its judge fails", async () => {
     const { path } = brief(smokeBrief);
     const failing = tsxFor(path)
       .replace("<Text", "<div><Text")
       .replace("/>", "/></div>");
 
     const judged = await Promise.all(
-      [allPass, recorded].map((reply) =>
+      [
+        () => allPass,
+        () => recorded,
+        () => Promise.reject(new Error("overloaded")),
+      ].map((reply) =>
         run(path, stub(uiSpec, failing, failing, failing), {
-          judge: judging(() => reply).judge,
+          judge: judging(reply).judge,
         })
       )
     );
 
     expect(judged[0]!.output).toMatch(/^gate 5 score: 6\/6 over 1 state/m);
     expect(judged[1]!.output).toMatch(/^gate 5 score: 5\/6 over 1 state/m);
+    expect(judged[2]!.output).toMatch(
+      /^gate 5 not run · 1 of 1 state unjudged$/m
+    );
     for (const { output, code } of judged) {
       expect(output).toMatch(
         /^outcome: fail · end reason code-attempts-exhausted$/m

@@ -4,8 +4,8 @@
 // `requires.*` against the final UI spec. After the final attempt, gate 5
 // (brief conformance, ADR 0014) judges the final screen's shots and prints
 // its verdicts and score. It's hard: a failed criterion fails the rep, and a
-// judge that gives no verdict puts it in error, though it sends no repair
-// turn. It ends with a table of every attempt, the rep's cost and its
+// judge that gives no verdict puts a rep that would pass in error, though it
+// sends no repair turn. It ends with a table of every attempt, the rep's cost and its
 // outcome with the end reason, and exits 0 only on `passed` with the pass
 // criteria met.
 
