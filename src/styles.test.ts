@@ -7,8 +7,9 @@
 // it names if any, and in the media it sits in; a typed selector outranks an
 // untyped one, a named one an unnamed one, and a later rule an earlier one.
 // A rule on `:only-child` applies to an image that is alone in its pair: an
-// element in the new view only (entering) or the old view only (leaving);
-// one on `:not(:only-child)` to an image with a partner.
+// element in the new view only (entering) or the old view only (leaving).
+// Chromium parses `:not(:only-child)` after these pseudo-elements but never
+// matches it (#375), so the model has no such form: a rule on it throws.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -20,7 +21,7 @@ type Media = { reducedMotion: boolean };
 
 // A name may carry view-transition classes, `card-result.closing`.
 const selector =
-  /^(?::root:active-view-transition-type\(([\w-]+)\))?::view-transition-(group|new|old)\((\*|[\w-]+(?:\.[\w-]+)*)\)(:only-child|:not\(:only-child\))?$/;
+  /^(?::root:active-view-transition-type\(([\w-]+)\))?::view-transition-(group|new|old)\((\*|[\w-]+(?:\.[\w-]+)*)\)(:only-child)?$/;
 
 function sheet() {
   const style = document.createElement("style");
@@ -64,7 +65,7 @@ function computed(
       const [ownName, ...ownClasses] = name.split(".");
       if (ruleName !== "*" && ruleName !== ownName) continue;
       if (!ruleClasses.every((each) => ownClasses.includes(each))) continue;
-      if (onlyChild && (onlyChild === ":only-child") !== alone) continue;
+      if (onlyChild && !alone) continue;
       // Specificity, then order: the type and `:only-child` each a
       // pseudo-class, as is each class, a name a type selector, `*`
       // nothing.
@@ -206,10 +207,12 @@ describe("toast transitions", () => {
     }
   );
 
+  // The old image is hidden unless it is alone, so a leaving toast shows
+  // it again, at opacity's initial 1, to slide it out.
   it.each(types)("show a leaving toast as it slides out, under %s", (type) => {
-    expect(
-      computed("old", type, motion, "toast", true).opacity
-    ).toBeUndefined();
+    expect(computed("old", type, motion, "toast", true).opacity).toBe(
+      "initial"
+    );
   });
 
   // The toast sits the page padding in from the window's edge, so its own
@@ -439,6 +442,20 @@ describe("view transitions in one place", () => {
       .filter((file) => /view-transition/.test(readFileSync(file, "utf8")))
       .map((file) => relative(src, file));
     expect(touching).toEqual([]);
+  });
+
+  // Chromium parses `:not(:only-child)` after a view-transition
+  // pseudo-element but never matches it (#375), so a rule on it is dead.
+  it("puts no :not(:only-child) after a view-transition pseudo-element", () => {
+    const using = files(src)
+      .filter((file) => file.endsWith(".css"))
+      .filter((file) =>
+        /::view-transition-[\w-]+\([^)]*\)\s*:not\(\s*:only-child\s*\)/.test(
+          readFileSync(file, "utf8")
+        )
+      )
+      .map((file) => relative(src, file));
+    expect(using).toEqual([]);
   });
 
   it("has no Toast or Sheet stylesheet, and nothing imports one", () => {

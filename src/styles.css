@@ -112,14 +112,16 @@
      moves nor resizes. It sits the page padding in from the window's edge,
      so it slides a step further than its own width: `2xl`, wider than
      either density's page padding, which the root these pseudo-elements
-     hang off doesn't know. */
+     hang off doesn't know. (Chromium parses `:not(:only-child)` after these
+     pseudo-elements but never matches it, so the old image is hidden by
+     default and shown again on `:only-child`, as it slides out.) */
   ::view-transition-group(toast),
   ::view-transition-new(toast),
   ::view-transition-old(toast) {
     animation-name: none;
   }
 
-  ::view-transition-old(toast):not(:only-child) {
+  ::view-transition-old(toast) {
     opacity: 0;
   }
 
@@ -131,6 +133,7 @@
 
   ::view-transition-old(toast):only-child {
     --slide-past: var(--ds-space-2xl);
+    opacity: initial;
     animation-name: slide-out;
     animation-duration: var(--ds-motion-duration-slow-exit);
   }
