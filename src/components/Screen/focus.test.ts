@@ -53,6 +53,7 @@ it("lands on the Notice when the element carrying the name can't take focus", ()
 
 it("lands on the Notice outside a Screen", () => {
   const card = document.createElement("div");
+  card.dataset.component = "Card";
   card.innerHTML = "<button>Send reminder</button>";
   document.body.append(card);
   card.querySelector("button")!.focus();
@@ -62,6 +63,54 @@ it("lands on the Notice outside a Screen", () => {
   })();
 
   expect(document.activeElement).toBe(card.firstElementChild);
+});
+
+// The Notice is the result of the action in the Card that held focus, so
+// focus never jumps to another Card's Notice, in a Screen or outside one.
+it.each([
+  ["in a Screen", (html: string) => screenWith(html)],
+  [
+    "outside a Screen",
+    (html: string) => {
+      const root = document.createElement("div");
+      root.innerHTML = html;
+      document.body.append(root);
+      return root;
+    },
+  ],
+])("lands on the Notice in the Card that held focus %s", (_, mount) => {
+  const notice = (copy: string) =>
+    `<div data-component="Notice" tabindex="-1">${copy}</div>`;
+  const root = mount(
+    `<div data-component="Card">${notice("Paid")}</div>` +
+      '<div data-component="Card"><button>Send reminder</button></div>'
+  );
+  const [, acted] = root.querySelectorAll('[data-component="Card"]');
+  acted!.querySelector("button")!.focus();
+
+  keepingFocus(() => {
+    acted!.innerHTML = notice("Sent");
+  })();
+
+  expect(document.activeElement).toBe(acted!.firstElementChild);
+});
+
+// Outside a Screen, focus only moves within the Card it was in: a Notice
+// elsewhere in the document isn't this action's result.
+it("leaves focus alone outside a Screen when the Card that held it shows no Notice", () => {
+  const root = document.createElement("div");
+  root.innerHTML =
+    '<div data-component="Card"><div data-component="Notice" tabindex="-1">Paid</div></div>' +
+    '<div data-component="Card"><button>Send reminder</button></div>';
+  document.body.append(root);
+  const [other, acted] = root.querySelectorAll('[data-component="Card"]');
+  acted!.querySelector("button")!.focus();
+
+  keepingFocus(() => {
+    acted!.innerHTML = "Sending";
+  })();
+
+  expect(document.activeElement).not.toBe(other!.firstElementChild);
 });
 
 it("lands on the element carrying the name when it takes focus", () => {
