@@ -682,6 +682,30 @@ describe("a re-run", () => {
     expect(dryRun!.updated).toEqual([]);
   });
 
+  it("reads a paint bound to a translucent colour back as unchanged, its alpha in the opacity", async () => {
+    const file = await tokenFile();
+    await sync(file);
+    const { variant } = components(file);
+    const slot = child(child(variant("result=none", "Card"), "content"), "body")
+      .children![0]!;
+    // Figma moves surface-hover's alpha into the paint's opacity.
+    expect((slot.fills![0] as { opacity?: number }).opacity).toBeLessThan(1);
+
+    const [dryRun] = await sync(file, { dryRun: true });
+
+    expect(dryRun!.updated).toEqual([]);
+  });
+
+  it("keeps a top-only rule: the first per-side write doesn't zero the top", async () => {
+    const file = await tokenFile();
+    await sync(file);
+    const { variant } = components(file);
+
+    expect(
+      child(variant("result=success", "Card"), "result").strokeWeights
+    ).toEqual([1, 0, 0, 0]);
+  });
+
   it("puts a hand-edited variant back in place and says what it changed", async () => {
     const file = await tokenFile();
     await sync(file);

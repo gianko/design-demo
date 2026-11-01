@@ -193,16 +193,22 @@ async function componentsPass(RUN, PAYLOAD) {
   report.orphans = orphans.map(({ kind, name, id }) => ({ kind, name, id }));
 
   // ── Layers ──
-  const paintsMatch = (current, wanted) =>
-    Array.isArray(current) &&
-    current.length === wanted.length &&
-    wanted.every(
+  // A bound paint's opacity is its variable's alpha: Figma moves a colour's
+  // alpha there when it binds one (surface-hover's 6%), so compare against
+  // the paint Figma itself makes, not against 1.
+  const paintsMatch = (current, wanted) => {
+    if (!Array.isArray(current) || current.length !== wanted.length) {
+      return false;
+    }
+    const made = paints(wanted);
+    return wanted.every(
       (want, i) =>
         current[i].type === "SOLID" &&
         current[i].visible !== false &&
-        same(current[i].opacity ?? 1, 1) &&
+        same(current[i].opacity ?? 1, made[i].opacity ?? 1) &&
         current[i].boundVariables?.color?.id === want.id
     );
+  };
   const paints = (wanted) =>
     wanted.map((want) =>
       figma.variables.setBoundVariableForPaint(
@@ -326,9 +332,17 @@ async function componentsPass(RUN, PAYLOAD) {
     set("layoutAlign", plan.layoutAlign);
     set("clipsContent", plan.clipsContent);
     if (plan.strokeWeights) {
-      STROKE_SIDES.forEach((side, i) =>
-        set(`stroke${side}Weight`, plan.strokeWeights[i])
+      // While a frame's sides share one weight, Figma's first per-side write
+      // sets all four, so writing only the sides that differ zeroes the top
+      // of a [1, 0, 0, 0] rule. Any stale side rewrites all four, in order.
+      const fields = STROKE_SIDES.map((side) => `stroke${side}Weight`);
+      const stale = fields.filter(
+        (field, i) => !same(node[field], plan.strokeWeights[i])
       );
+      changes.push(...stale.map((field) => path + field));
+      if (write && stale.length) {
+        fields.forEach((field, i) => (node[field] = plan.strokeWeights[i]));
+      }
     } else {
       // figma.mixed while the sides differ, which no number matches.
       set("strokeWeight", plan.strokeWeight);

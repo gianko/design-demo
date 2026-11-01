@@ -159,10 +159,39 @@ export function fakeScene(deps: SceneDeps) {
     primaryAxisSizingMode = "AUTO";
     counterAxisSizingMode = "AUTO";
     clipsContent = true;
-    strokeTopWeight = 1;
-    strokeRightWeight = 1;
-    strokeBottomWeight = 1;
-    strokeLeftWeight = 1;
+    // Top, right, bottom, left. While they're one uniform weight, Figma's
+    // first per-side write sets all four; after it, each side is its own.
+    private sides = [1, 1, 1, 1];
+    private perSide = false;
+    private side(i: number, weight: number) {
+      if (this.perSide) this.sides[i] = weight;
+      else this.sides = [weight, weight, weight, weight];
+      this.perSide = true;
+    }
+    get strokeTopWeight() {
+      return this.sides[0]!;
+    }
+    set strokeTopWeight(weight: number) {
+      this.side(0, weight);
+    }
+    get strokeRightWeight() {
+      return this.sides[1]!;
+    }
+    set strokeRightWeight(weight: number) {
+      this.side(1, weight);
+    }
+    get strokeBottomWeight() {
+      return this.sides[2]!;
+    }
+    set strokeBottomWeight(weight: number) {
+      this.side(2, weight);
+    }
+    get strokeLeftWeight() {
+      return this.sides[3]!;
+    }
+    set strokeLeftWeight(weight: number) {
+      this.side(3, weight);
+    }
     // Figma hands a description back trimmed, with ' " & < > as HTML
     // entities: set "it's", read "it&#39;s".
     private _description = "";
@@ -197,10 +226,8 @@ export function fakeScene(deps: SceneDeps) {
       return rest.every((weight) => weight === top) ? top! : deps.mixed;
     }
     set strokeWeight(weight: number) {
-      this.strokeTopWeight = weight;
-      this.strokeRightWeight = weight;
-      this.strokeBottomWeight = weight;
-      this.strokeLeftWeight = weight;
+      this.sides = [weight, weight, weight, weight];
+      this.perSide = false;
     }
     get boundVariables() {
       return structuredClone(this.bound);
