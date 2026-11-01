@@ -202,7 +202,9 @@ export function VariantB() {
                   </div>
                 )}
               </Collapse>
-              <Collapse open={canSend}>{button}</Collapse>
+              <Collapse open={canSend}>
+                <div className="flex flex-col">{button}</div>
+              </Collapse>
             </div>
           }
         >
@@ -229,7 +231,7 @@ export function VariantC() {
             <Body />
           </div>
           <Collapse open={canSend}>
-            <div className="pt-md">{button}</div>
+            <div className="flex flex-col pt-md">{button}</div>
           </Collapse>
         </div>
         <Collapse open={result !== null} settle={result === "sent"}>
@@ -257,11 +259,15 @@ export function VariantD() {
           header={<Header />}
           footer={
             <div className="flex flex-col">
-              <Collapse open={state === "default"}>{button}</Collapse>
+              <Collapse open={state === "default"}>
+                <div className="flex flex-col">{button}</div>
+              </Collapse>
               <Collapse open={result !== null} settle={result === "sent"}>
                 {result && (
                   <Notice result={result}>
-                    {result === "failed" && <div>{button}</div>}
+                    {result === "failed" && (
+                      <div className="flex flex-col">{button}</div>
+                    )}
                   </Notice>
                 )}
               </Collapse>
