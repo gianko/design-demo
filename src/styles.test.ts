@@ -18,8 +18,9 @@ type Pseudo = "group" | "new" | "old";
 type Type = "confirm" | "fail" | "sheet-open" | "sheet-close" | undefined;
 type Media = { reducedMotion: boolean };
 
+// A name may carry view-transition classes, `card-result.closing`.
 const selector =
-  /^(?::root:active-view-transition-type\(([\w-]+)\))?::view-transition-(group|new|old)\((\*|[\w-]+)\)(:only-child|:not\(:only-child\))?$/;
+  /^(?::root:active-view-transition-type\(([\w-]+)\))?::view-transition-(group|new|old)\((\*|[\w-]+(?:\.[\w-]+)*)\)(:only-child|:not\(:only-child\))?$/;
 
 function sheet() {
   const style = document.createElement("style");
@@ -57,14 +58,21 @@ function computed(
       if (!match) throw new Error(`An unexpected selector: ${one}`);
       const [, typed, target, group, onlyChild] = match;
       if (target !== pseudo || (typed && typed !== type)) continue;
-      if (group !== "*" && group !== name) continue;
+      // A rule's classes must all be on the element's; `name` is the
+      // element's name and its classes, `card-result.closing`.
+      const [ruleName, ...ruleClasses] = group!.split(".");
+      const [ownName, ...ownClasses] = name.split(".");
+      if (ruleName !== "*" && ruleName !== ownName) continue;
+      if (!ruleClasses.every((each) => ownClasses.includes(each))) continue;
       if (onlyChild && (onlyChild === ":only-child") !== alone) continue;
       // Specificity, then order: the type and `:only-child` each a
-      // pseudo-class, a name a type selector, `*` nothing.
+      // pseudo-class, as is each class, a name a type selector, `*`
+      // nothing.
       const rank =
         (typed ? 2_000_000 : 0) +
         (onlyChild ? 1_000_000 : 0) +
-        (group === "*" ? 0 : 100_000) +
+        ruleClasses.length * 1_000_000 +
+        (ruleName === "*" ? 0 : 100_000) +
         order;
       for (const property of Array.from(rule.style)) {
         const known = winners.get(property);
@@ -92,10 +100,15 @@ function computed(
   const value = (property: string) => winners.get(property)?.value;
   return {
     name: value("animation-name"),
+    direction: value("animation-direction"),
     duration: value("animation-duration"),
     easing: value("animation-timing-function"),
     slidePast: value("--slide-past")?.trim(),
     opacity: value("opacity"),
+    overflow: value("overflow"),
+    top: value("inset-block-start"),
+    height: value("block-size"),
+    width: value("inline-size"),
   };
 }
 
@@ -265,6 +278,122 @@ describe("sheet transitions", () => {
   });
 });
 
+// A Card's result (ADR 0016): the Card is the group `card-result` on both
+// sides of the change that brings its Notice in or takes it out. The group
+// animates the Card's height: in at `base`, settling under `confirm` and
+// `standard` under `fail`; out, the Card's new view carrying the `closing`
+// class, at `base-exit` with `exit` under every type. Its images stay
+// pinned to the top at their natural size and the group clips them, so the
+// strip is uncovered as the Card grows and covered as it shrinks; they
+// crossfade as every view does, so a tone that changes in place swaps.
+describe("card result transitions", () => {
+  it("grow the Card at base, settling under confirm only", () => {
+    expect(computed("group", "confirm", motion, "card-result")).toMatchObject({
+      duration: token("duration-base"),
+      easing: token("ease-settle"),
+    });
+    for (const type of [undefined, "fail"] as const) {
+      expect(computed("group", type, motion, "card-result")).toMatchObject({
+        duration: token("duration-base"),
+        easing: token("ease-standard"),
+      });
+    }
+  });
+
+  it.each(types)(
+    "shrink a closing Card at base-exit with exit easing, under %s",
+    (type) => {
+      expect(
+        computed("group", type, motion, "card-result.closing")
+      ).toMatchObject({
+        duration: token("duration-base-exit"),
+        easing: token("ease-exit"),
+      });
+    }
+  );
+
+  it.each(["card-result", "card-result.closing"])(
+    "clip %s's images, pinned to the top at their natural size",
+    (name) => {
+      expect(computed("group", "confirm", motion, name).overflow).toBe("clip");
+      for (const pseudo of ["new", "old"] as const) {
+        for (const alone of [false, true]) {
+          expect(
+            computed(pseudo, "confirm", motion, name, alone)
+          ).toMatchObject({ top: "0px", height: "auto", width: "auto" });
+        }
+      }
+    }
+  );
+
+  // Not the page's plus-lighter crossfade, whose two views, timed apart,
+  // wash what they share toward white mid-way: the old image stays opaque
+  // underneath, and the new one fades in over it, so what both show stays
+  // as it is and only what changed crossfades. In at the Card's timing,
+  // out at the exit timing.
+  it.each(types)(
+    "fade the new image in over the old one held still, under %s",
+    (type) => {
+      expect(computed("old", type, motion, "card-result")).toMatchObject({
+        name: "none",
+        opacity: undefined,
+      });
+      expect(computed("new", type, motion, "card-result")).toMatchObject({
+        name: "status-fade",
+        duration: token("duration-base"),
+        easing: token(type === "confirm" ? "ease-settle" : "ease-standard"),
+      });
+      expect(
+        computed("new", type, motion, "card-result.closing")
+      ).toMatchObject({
+        name: "status-fade",
+        duration: token("duration-base-exit"),
+        easing: token("ease-exit"),
+      });
+    }
+  );
+
+  it.each(types)(
+    "fade a Card that arrives or leaves alone at the page's timing, under %s",
+    (type) => {
+      const timing = (pseudo: Pseudo, name: string) => {
+        const { duration, easing } = computed(pseudo, type, motion, name, true);
+        return { duration, easing };
+      };
+      for (const pseudo of ["new", "old"] as const) {
+        expect(timing(pseudo, "card-result")).toEqual(timing(pseudo, "root"));
+      }
+      expect(computed("new", type, motion, "card-result", true)).toMatchObject({
+        name: "status-fade",
+        direction: undefined,
+        opacity: undefined,
+      });
+      expect(computed("old", type, motion, "card-result", true)).toMatchObject({
+        name: "status-fade",
+        direction: "reverse",
+        opacity: undefined,
+      });
+    }
+  );
+
+  it("neither resizes nor clips the Card under reduced motion", () => {
+    for (const name of ["card-result", "card-result.closing"]) {
+      for (const type of types) {
+        const group = computed("group", type, reduced, name);
+        expect(group.name).toBe("none");
+        expect(group.overflow).toBeUndefined();
+      }
+    }
+  });
+
+  it("defines closing-transition as a utility setting the closing class", () => {
+    const text = readFileSync(join(import.meta.dirname, "styles.css"), "utf8");
+    expect(text).toMatch(
+      /@utility\s+closing-transition\s*\{\s*view-transition-class:\s*closing;\s*\}/
+    );
+  });
+});
+
 // Under reduced motion, nothing moves: a sheet or a toast entering or
 // leaving alone crossfades at `fast` like everything else.
 describe("named transitions under reduced motion", () => {
@@ -274,6 +403,9 @@ describe("named transitions under reduced motion", () => {
     ["toast", undefined],
     ["row-detail", "sheet-open"],
     ["row-detail", "sheet-close"],
+    ["card-result", "confirm"],
+    ["card-result", "fail"],
+    ["card-result.closing", undefined],
   ] as const)("crossfade %s at fast, under %s", (name, type) => {
     expect(computed("group", type, reduced, name).name).toBe("none");
     for (const alone of [false, true]) {
@@ -329,6 +461,7 @@ describe("view transitions in one place", () => {
   it.each([
     ["vt-toast", "toast"],
     ["vt-row-detail", "row-detail"],
+    ["vt-card-result", "card-result"],
   ])("defines %s as a utility setting %s", (utility, name) => {
     const text = readFileSync(join(src, "styles.css"), "utf8");
     const block = new RegExp(

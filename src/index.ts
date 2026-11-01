@@ -24,6 +24,7 @@ export {
   PageHeader,
   type PageHeaderProps,
 } from "./components/PageHeader/PageHeader.tsx";
+export { Notice, type NoticeProps } from "./components/Notice/Notice.tsx";
 export { Screen, type ScreenProps } from "./components/Screen/Screen.tsx";
 export {
   ScreenHost,

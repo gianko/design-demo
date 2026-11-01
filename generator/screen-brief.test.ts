@@ -577,9 +577,13 @@ describe("the coverage rule", () => {
   const all = briefFiles.map(brief);
   // Every public component but the layout primitive Stack; the internal
   // entries (Checkbox, IconButton) are left out with the spec step's view.
+  // Notice is left out until #362 lists it in the briefs that show a Card's
+  // result (ADR 0016); that ticket removes it from here.
+  const awaitingBriefs = ["Notice"];
   const counted = async () =>
     (await loadRegistry()).entries
       .filter((entry) => !entry.internal && entry.name !== "Stack")
+      .filter((entry) => !awaitingBriefs.includes(entry.name))
       .map((entry) => entry.name);
 
   it("counts every public component but Stack", async () => {

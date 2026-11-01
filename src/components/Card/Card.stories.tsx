@@ -3,6 +3,7 @@ import { expect } from "storybook/test";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button } from "../Button/Button.tsx";
 import { Heading } from "../Heading/Heading.tsx";
+import { Notice } from "../Notice/Notice.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
@@ -15,10 +16,20 @@ const card = (canvas: HTMLElement) =>
 const ceiling = 560;
 
 // Style expectations (ADR 0012) every story holds: the density's surface
-// padding on each side, and a width no wider than the ceiling, which the
-// wide viewport would otherwise stretch it to.
+// padding on each side of the content, which sits inside the frame's
+// hairline, and a width no wider than the ceiling, which the wide viewport
+// would otherwise stretch it to. A Card with no result and nothing pending
+// carries no view transition name, so it changes with the page (ADR 0016).
 async function holdsPaddingAndCeiling(canvas: HTMLElement, density: string) {
-  const style = getComputedStyle(card(canvas));
+  const frame = card(canvas).getBoundingClientRect();
+  const content = card(canvas).firstElementChild!;
+  const box = content.getBoundingClientRect();
+  await expect([box.left, box.right, box.top]).toEqual([
+    frame.left + 1,
+    frame.right - 1,
+    frame.top + 1,
+  ]);
+  const style = getComputedStyle(content);
   const padding = density === "contractor" ? "24px" : "20px";
   await expect([
     style.paddingTop,
@@ -26,10 +37,17 @@ async function holdsPaddingAndCeiling(canvas: HTMLElement, density: string) {
     style.paddingBottom,
     style.paddingLeft,
   ]).toEqual([padding, padding, padding, padding]);
-  await expect(card(canvas).getBoundingClientRect().width).toBeLessThanOrEqual(
-    ceiling
-  );
+  await expect(frame.width).toBeLessThanOrEqual(ceiling);
+  if (!find(canvas, "Notice")) {
+    await expect(box.bottom).toBe(frame.bottom - 1);
+    await expect(getComputedStyle(card(canvas)).viewTransitionName).toBe(
+      "none"
+    );
+  }
 }
+
+const find = (canvas: HTMLElement, component: string) =>
+  canvas.querySelector<HTMLElement>(`[data-component="${component}"]`);
 
 // Card has no variants or states, so each story shows which slots it fills,
 // with the content of the screen briefs that use it.
@@ -156,6 +174,40 @@ export const FooterNote: Story = {
         text="You'll get an email when Northwind approves it."
       />
     ),
+  },
+};
+
+// An action's result in the `result` slot (ADR 0016): the strip along the
+// bottom edge, outside the padding, under a hairline, its corners the
+// Card's. The footer's Stack keeps the Button at the content's width.
+export const Result: Story = {
+  args: {
+    ...Full.args,
+    footer: (
+      <Stack direction="column" gap="xs">
+        <Button intent="primary" text="Send reminder" />
+      </Stack>
+    ),
+    result: (
+      <Notice
+        tone="failure"
+        text="We couldn't send your reminder. Check your connection and try again."
+      />
+    ),
+  },
+  play: async ({ canvasElement, globals }) => {
+    await holdsPaddingAndCeiling(canvasElement, globals.density);
+    const frame = card(canvasElement).getBoundingClientRect();
+    const notice = find(canvasElement, "Notice")!.getBoundingClientRect();
+    await expect([notice.left, notice.right, notice.bottom]).toEqual([
+      frame.left + 1,
+      frame.right - 1,
+      frame.bottom - 1,
+    ]);
+    const padding = globals.density === "contractor" ? 24 : 20;
+    await expect(
+      find(canvasElement, "Button")!.getBoundingClientRect().width
+    ).toBe(frame.width - 2 - 2 * padding);
   },
 };
 

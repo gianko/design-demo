@@ -6,12 +6,14 @@ A flat surface that groups the facts about one thing, such as an invoice or a pa
 
 ## Anatomy
 
-Four `tv()` slots, all `<div>`s. The root carries `data-component="Card"`:
+Six `tv()` slots, all `<div>`s. The root carries `data-component="Card"`:
 
-- `root`: the surface. It is a flex column, so its three parts sit apart by one gap.
+- `root`: the surface, its frame: hairline, radius, fill and width ceiling.
+- `content`: the padding, a flex column, so the three parts below sit apart by one gap. Always rendered, so the `result` strip can sit outside the padding ([ADR 0016](../../../docs/adr/0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md)) and a Card that gains or loses a result keeps its parts' elements.
 - `header`: the `header` registry slot, a `ReactNode` prop. Rendered only when given.
 - `body`: the `body` registry slot, which is `children`. Always rendered. Wrapped in a div so that several children read as one part rather than taking the gap between each of them.
 - `footer`: the `footer` registry slot, a `ReactNode` prop. Rendered only when given.
+- `result`: the `result` registry slot, a `ReactNode` prop, allow-listed to Notice: an action's result, full width along the bottom edge under a `border-t border-line` hairline. Rendered only when given. While the Card holds a Notice it carries the `card-result` view transition name (src/components/Notice/PLAN.md, Motion).
 
 No Radix primitive: a Card isn't interactive, and it is neither a dialog nor a disclosure.
 
@@ -22,8 +24,9 @@ Registry slots and their allow-lists (ADR 0004: "an allow-list where nonsense is
 | `header` | Heading, Text, StatusTag, Stack | A title, maybe beside its status in a row. Money and actions don't go in a title. |
 | `body` | any | The card's content. Gate 1's `nested-cards` fails a Card anywhere beneath another Card, through any slot. |
 | `footer` | Button, Text, Stack | The card's action, or a short note under it. |
+| `result` | Notice | The result of the footer's action, in the state the action enters (ADR 0016). |
 
-Props: none besides the slots. Spec § Component pieces 8 asks for a surface and three named slots, and nothing else.
+Props: none besides its four named slots, `header`, `body`, `footer` and `result`. Spec § Component pieces 8 asks for a surface and the first three, and nothing else; [ADR 0016](../../../docs/adr/0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md) adds `result`.
 
 ## Variants, sizes, states
 
@@ -55,7 +58,7 @@ The border and the fill are on the one slot, and there's no shadow, so `edge-tre
 
 ## Motion
 
-None. "Banned: hover lift on cards or rows" and "fade-and-slide-up entrances". A card that appears or changes with a screen state is animated by the screen-state View Transition (ADR 0011), not by the Card. Reduced motion: nothing to reduce.
+None of its own. "Banned: hover lift on cards or rows" and "fade-and-slide-up entrances". A card that appears or changes with a screen state is animated by the screen-state View Transition (ADR 0011), not by the Card. Around a Notice in `result`, the Card is that transition's group `card-result`, whose height animates while its images stay pinned and clipped (ADR 0016; src/styles.css). Reduced motion: the `fast` crossfade, with no height motion.
 
 ## Against defaults
 
