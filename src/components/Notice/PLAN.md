@@ -66,11 +66,11 @@ The library owns it (ADR 0011, ADR 0016), in src/styles.css; the Notice itself a
 
 | What happens | Transition | Motion |
 |---|---|---|
-| Sends, and it's confirmed or fails: the Card gains a Notice | `confirm` / `fail` | The Card is the group `card-result` in both views: named by its pending Button in the old one and by its Notice in the new one. The group animates its height at `base`, `ease-settle` under `confirm` and `standard` under `fail`. Both images stay pinned to the top at their natural size and the group clips them, so the strip is uncovered as the Card grows and a Button the new state drops is covered with the old image. |
-| A retry succeeds | `confirm` | Same size on both sides: the strip's colours and glyph crossfade in place. |
+| Sends, and it's confirmed or fails: the Card gains a Notice | `confirm` / `fail` | The Card is the group `card-result` in both views: named by its pending Button in the old one and by its Notice in the new one. The group animates its height at `base`, `ease-settle` under `confirm` and `standard` under `fail`. Both images stay pinned to the top at their natural size and the group clips them, so the strip is uncovered as the Card grows. The old image holds still underneath and the new one fades in over it (`status-fade`, normal blending), so the header and body don't move or fade and a Button the new state drops is covered by the strip. Not the page's plus-lighter crossfade: its two views are timed apart (`base-exit` out, `base` in), which washes what both show toward white mid-way. |
+| A retry succeeds | `confirm` | The strip's colours and glyph fade to the new tone in place, as Send reminder is covered. |
 | A retry fails again | `fail` | The same image on both sides: nothing moves. |
-| A state change drops the Notice and the Card stays | its own | The Card keeps the name for that render, with the `closing` class: the group shrinks at `base-exit` with `exit`, covering the strip. |
-| The Card leaves, or arrives already holding one | its own | Its image is alone: it fades with the page. |
+| A state change drops the Notice and the Card stays | its own | The Card keeps the name for that state, with the `closing` class: the group shrinks, and the new image fades in, at `base-exit` with `exit`, covering the strip. |
+| The Card leaves, or arrives already holding one | its own | Its image is alone: it fades out or in at the page's timing. |
 
 Under reduced motion none of this applies: the group neither moves nor resizes, and the change is the `fast` crossfade every change is.
 

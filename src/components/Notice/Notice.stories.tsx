@@ -236,14 +236,17 @@ export const SuccessPhone: Story = {
 
 // Focus as the library leaves it when a confirmed result removes the
 // focused Send reminder (ADR 0016): on the Notice, showing the ring, which
-// sits outside the Card's frame and isn't clipped.
+// sits outside the Card's frame and isn't clipped. Inset from the story's
+// edge, so the shot holds the whole ring.
 export const FocusedAfterSend: Story = {
   args: success,
   parameters: Success.parameters,
   render: () => (
-    <FocusedOn component="Notice">
-      <PaymentStatusCard />
-    </FocusedOn>
+    <div className="p-2xs">
+      <FocusedOn component="Notice">
+        <PaymentStatusCard />
+      </FocusedOn>
+    </div>
   ),
   play: async ({ canvasElement, globals }) => {
     await holds(canvasElement, globals.density);

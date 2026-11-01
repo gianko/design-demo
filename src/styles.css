@@ -159,11 +159,17 @@
   /* A Card's result (ADR 0016). The group animates the Card's height, at
      the rules' above `base`, settling only under `confirm`, while its
      images stay pinned to the top at their natural size and it clips them:
-     neither is stretched, so the strip is uncovered as the Card grows, and
-     a Button the new view drops is covered with the old image. They
-     crossfade as every view does, so a tone that changes in place swaps.
-     A Card that lost its Notice carries `closing` in the new view: it
-     shrinks at `base-exit` with `exit`, covering the strip. */
+     neither is stretched, so the strip is uncovered as the Card grows and
+     covered as it shrinks. Not the page's plus-lighter crossfade, whose two
+     views, timed apart, wash what they share toward white mid-way: the old
+     image stays opaque underneath and the new one fades in over it, so the
+     header and body stay still, and only what changed (a Button dropped, a
+     tone changed in place) crossfades. A Card that lost its Notice carries
+     `closing` in the new view: it shrinks, and its new image fades in, at
+     `base-exit` with `exit`. A Card alone in a view, arriving or leaving,
+     fades in or out at the page's timing. (Chromium parses
+     `:not(:only-child)` after these pseudo-elements but never matches it,
+     so the paired images are the default and `:only-child` the exception.) */
   ::view-transition-group(card-result) {
     overflow: clip;
   }
@@ -175,8 +181,25 @@
     block-size: auto;
   }
 
+  ::view-transition-old(card-result) {
+    animation-name: none;
+  }
+
+  ::view-transition-new(card-result) {
+    animation-name: status-fade;
+  }
+
+  ::view-transition-old(card-result):only-child {
+    animation-name: status-fade;
+    animation-direction: reverse;
+  }
+
   ::view-transition-group(card-result.closing),
   :root:active-view-transition-type(confirm)::view-transition-group(
+      card-result.closing
+    ),
+  ::view-transition-new(card-result.closing),
+  :root:active-view-transition-type(confirm)::view-transition-new(
       card-result.closing
     ) {
     animation-duration: var(--ds-motion-duration-base-exit);

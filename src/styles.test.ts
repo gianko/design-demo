@@ -100,6 +100,7 @@ function computed(
   const value = (property: string) => winners.get(property)?.value;
   return {
     name: value("animation-name"),
+    direction: value("animation-direction"),
     duration: value("animation-duration"),
     easing: value("animation-timing-function"),
     slidePast: value("--slide-past")?.trim(),
@@ -316,28 +317,64 @@ describe("card result transitions", () => {
     (name) => {
       expect(computed("group", "confirm", motion, name).overflow).toBe("clip");
       for (const pseudo of ["new", "old"] as const) {
-        expect(computed(pseudo, "confirm", motion, name)).toMatchObject({
-          name: undefined,
-          top: "0px",
-          height: "auto",
-          width: "auto",
-        });
+        for (const alone of [false, true]) {
+          expect(
+            computed(pseudo, "confirm", motion, name, alone)
+          ).toMatchObject({ top: "0px", height: "auto", width: "auto" });
+        }
       }
     }
   );
 
-  it("crossfade the Card's images as every view does", () => {
-    expect(computed("old", "confirm", motion, "card-result")).toMatchObject({
-      duration: token("duration-base-exit"),
-      easing: token("ease-exit"),
-      opacity: undefined,
-    });
-    expect(computed("new", "fail", motion, "card-result")).toMatchObject({
-      duration: token("duration-base"),
-      easing: token("ease-standard"),
-      opacity: undefined,
-    });
-  });
+  // Not the page's plus-lighter crossfade, whose two views, timed apart,
+  // wash what they share toward white mid-way: the old image stays opaque
+  // underneath, and the new one fades in over it, so what both show stays
+  // as it is and only what changed crossfades. In at the Card's timing,
+  // out at the exit timing.
+  it.each(types)(
+    "fade the new image in over the old one held still, under %s",
+    (type) => {
+      expect(computed("old", type, motion, "card-result")).toMatchObject({
+        name: "none",
+        opacity: undefined,
+      });
+      expect(computed("new", type, motion, "card-result")).toMatchObject({
+        name: "status-fade",
+        duration: token("duration-base"),
+        easing: token(type === "confirm" ? "ease-settle" : "ease-standard"),
+      });
+      expect(
+        computed("new", type, motion, "card-result.closing")
+      ).toMatchObject({
+        name: "status-fade",
+        duration: token("duration-base-exit"),
+        easing: token("ease-exit"),
+      });
+    }
+  );
+
+  it.each(types)(
+    "fade a Card that arrives or leaves alone at the page's timing, under %s",
+    (type) => {
+      const timing = (pseudo: Pseudo, name: string) => {
+        const { duration, easing } = computed(pseudo, type, motion, name, true);
+        return { duration, easing };
+      };
+      for (const pseudo of ["new", "old"] as const) {
+        expect(timing(pseudo, "card-result")).toEqual(timing(pseudo, "root"));
+      }
+      expect(computed("new", type, motion, "card-result", true)).toMatchObject({
+        name: "status-fade",
+        direction: undefined,
+        opacity: undefined,
+      });
+      expect(computed("old", type, motion, "card-result", true)).toMatchObject({
+        name: "status-fade",
+        direction: "reverse",
+        opacity: undefined,
+      });
+    }
+  );
 
   it("neither resizes nor clips the Card under reduced motion", () => {
     for (const name of ["card-result", "card-result.closing"]) {

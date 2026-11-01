@@ -60,12 +60,12 @@ export function keepingFocus(update: () => void): () => void {
     // Card they acted on (ADR 0016), or else the Screen.
     heir?.focus({ preventScroll: true });
     if (heir && document.activeElement === heir) return;
-    if (!screen?.isConnected) return;
-    const notice = screen.querySelector<HTMLElement>(
+    const within = screen?.isConnected ? screen : document;
+    const notice = within.querySelector<HTMLElement>(
       '[data-component="Notice"]'
     );
     notice?.focus({ preventScroll: true });
     if (notice && document.activeElement === notice) return;
-    screen.focus({ preventScroll: true });
+    if (screen?.isConnected) screen.focus({ preventScroll: true });
   };
 }
