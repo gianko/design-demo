@@ -1,0 +1,58 @@
+/* eslint-disable */
+/* PROTOTYPE, throwaway: the inline result Notice and its MUI-style collapse.
+   Lives only on the prototype/inline-notice branch. */
+
+/* Collapse: a one-cell grid whose row goes 0fr ↔ 1fr, so height: auto
+   animates. The child clips while it's shorter than its content. */
+.proto-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition-property: grid-template-rows;
+  transition-duration: var(--ds-motion-duration-base-exit);
+  transition-timing-function: var(--ds-motion-ease-exit);
+}
+.proto-collapse > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.proto-collapse[data-open="true"] {
+  grid-template-rows: 1fr;
+  transition-duration: var(--ds-motion-duration-base);
+  transition-timing-function: var(--ds-motion-ease-standard);
+}
+/* A confirmed result settles: one ~4% overshoot. */
+.proto-collapse[data-open="true"][data-ease="settle"] {
+  transition-timing-function: var(--ds-motion-ease-settle);
+}
+
+/* The notice's tone change in place (failed → sent). */
+.proto-tone {
+  transition-property: background-color, color;
+  transition-duration: var(--ds-motion-duration-base);
+  transition-timing-function: var(--ds-motion-ease-standard);
+}
+
+/* Centres the icon on the first line of copy. */
+.proto-icon-line {
+  display: flex;
+  align-items: center;
+  height: 1lh;
+  flex-shrink: 0;
+}
+
+/* Variant C's strip spans the card's whole width under a hairline. */
+.proto-strip {
+  border-block-start: 1px solid var(--ds-color-border-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-collapse,
+  .proto-collapse[data-open="true"] {
+    transition-property: opacity;
+    transition-duration: var(--ds-motion-duration-fast);
+    opacity: 0;
+  }
+  .proto-collapse[data-open="true"] {
+    opacity: 1;
+  }
+}
