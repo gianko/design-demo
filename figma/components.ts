@@ -38,6 +38,9 @@ import { iconButtonEntry } from "../src/components/IconButton/IconButton.registr
 import { iconNames } from "../src/components/IconButton/icons.tsx";
 import { toast } from "../src/components/Toast/toast.ts";
 import { toastEntry } from "../src/components/Toast/Toast.registry.ts";
+import { Notice } from "../src/components/Notice/Notice.tsx";
+import { notice } from "../src/components/Notice/notice.ts";
+import { noticeEntry } from "../src/components/Notice/Notice.registry.ts";
 import type { Anatomy, Copy, FrameSource, Props, Styles } from "./frames.ts";
 
 /** Each component's text and slot placeholders, by the anatomy's names. */
@@ -52,6 +55,13 @@ export const sampleCopy: Record<string, Copy> = {
       tone === "success"
         ? "3 invoices scheduled for the Oct 24 run."
         : "Payment not scheduled: the funding account is too low. Add funds, then approve and pay again.",
+  }),
+  // The payment-status Card's results, as Notice's stories give them.
+  Notice: ({ tone }: Props) => ({
+    text:
+      tone === "success"
+        ? "Reminder sent to Northwind. We'll tell you when they pay."
+        : "We couldn't send your reminder. Check your connection and try again.",
   }),
   Text: { copy: "Reminders go to the billing contact Northwind gave you." },
   Heading: ({ level }: Props) => ({
@@ -98,6 +108,8 @@ export const sampleCopy: Record<string, Copy> = {
 const block = "flex flex-col";
 const tableRow = "flex items-center";
 const tableCell = "flex";
+// And a block-level box is as wide as what holds it.
+const fills = "w-full";
 
 // DataTable's columns and rows: a few, so the frame reads as a list.
 const columns = [1, 2, 3];
@@ -121,6 +133,14 @@ const selectColumn: Anatomy = {
       ],
     },
   ],
+};
+
+// Notice's set, which Card's result variants also draw.
+const noticeSource: FrameSource = {
+  entry: noticeEntry,
+  styles: notice as unknown as Styles,
+  anatomy: noticeAnatomy,
+  copy: sampleCopy.Notice,
 };
 
 export const frameSources: FrameSource[] = [
@@ -169,6 +189,7 @@ export const frameSources: FrameSource[] = [
     },
     copy: sampleCopy.Toast,
   },
+  noticeSource,
   {
     entry: textEntry,
     styles: text as unknown as Styles,
@@ -258,10 +279,19 @@ export const frameSources: FrameSource[] = [
   {
     entry: cardEntry,
     styles: card as unknown as Styles,
+    // Not a tv() variant: whether the result slot holds a Notice, and in
+    // which tone, a look a designer comments on (ADR 0016).
+    axes: ["result"],
+    options: { result: ["none", "success", "failure"] },
     // The header and footer render only when given; the set shows both,
-    // inside the padded content box (ADR 0016).
-    anatomy: () => ({
+    // inside the padded content box. A result is Notice's own frames along
+    // the bottom edge, outside the padding: the slot allows Notice alone.
+    // The Card, its result and the Notice are block-level boxes, each as
+    // wide as what holds it, so the Card is drawn at its ceiling and the
+    // strip runs edge to edge, its copy wrapping inside.
+    anatomy: ({ result }) => ({
       slot: "root",
+      display: fills,
       children: [
         {
           slot: "content",
@@ -271,12 +301,20 @@ export const frameSources: FrameSource[] = [
             children: [{ placeholder: `${slot} slot` }],
           })),
         },
+        result !== "none" && {
+          slot: "result",
+          display: `${block} ${fills}`,
+          children: [
+            {
+              placeholder: "Notice",
+              source: noticeSource,
+              props: { tone: result! },
+              display: fills,
+            },
+          ],
+        },
       ],
     }),
-    notDrawn: {
-      result:
-        "the strip a Notice draws along the bottom edge, shown only with a result; its frames come with Notice's (#363)",
-    },
     copy: sampleCopy.Card,
   },
   {
@@ -400,6 +438,42 @@ export const frameSources: FrameSource[] = [
     note: "Its focus rings, scroll padding and status flips live in DataTable.css, not its tv() config, so this set shows only what tv() gives. The table's full look is in Storybook.",
   },
 ];
+
+/**
+ * Notice's elements: its tone's glyph in a box one line of copy tall, then
+ * the copy.
+ */
+function noticeAnatomy({ tone }: Props): Anatomy {
+  return {
+    slot: "root",
+    children: [
+      {
+        slot: "icon",
+        children: [
+          {
+            slot: "glyph",
+            children: [
+              {
+                vector: "glyph",
+                // The Phosphor glyph Notice draws for the tone.
+                svg: svgOf(
+                  createElement(Notice, {
+                    text: "",
+                    tone: tone as "success" | "failure",
+                  })
+                ),
+              },
+            ],
+          },
+        ],
+      },
+      // A flex item shrinks to the room the glyph leaves, wrapping its copy;
+      // Figma never shrinks a child, so it grows into that room instead,
+      // which frames.ts drops while the Notice hugs its copy.
+      { slot: "text", display: `${block} grow`, children: [{ text: "text" }] },
+    ],
+  };
+}
 
 /**
  * The one SVG `element` renders, as markup Figma draws: without its classes,

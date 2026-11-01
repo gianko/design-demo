@@ -141,6 +141,9 @@ export const layoutClasses: Record<string, Look> = {
   // Toast, Sheet and PageHeader: it takes the room its siblings leave along a
   // fixed length; frames.ts drops it in a parent that hugs, which leaves none.
   grow: { layoutGrow: 1 },
+  // Notice: one line of the copy it holds tall, 1lh, which frames.ts binds
+  // to the line height of the text style it inherits.
+  "h-lh": { lineTall: true },
 };
 
 /**
@@ -196,6 +199,12 @@ export const tokenFamilies: {
     prefix: "rounded-s-",
     theme: ["radius"],
     look: (v) => ({ "bind.topLeftRadius": v, "bind.bottomLeftRadius": v }),
+  },
+  // Notice: the corners along a Card's bottom edge, which it sits on.
+  {
+    prefix: "rounded-b-",
+    theme: ["radius"],
+    look: (v) => ({ "bind.bottomLeftRadius": v, "bind.bottomRightRadius": v }),
   },
   {
     prefix: "h-",

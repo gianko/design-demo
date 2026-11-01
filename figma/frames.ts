@@ -61,18 +61,24 @@ export type VectorElement = { vector: string; svg: string };
 /**
  * What stands where something other than the component's own markup goes. A
  * set holds no instance of another component (ADR 0015), so it's a frame of
- * that name, in one of two boxes:
+ * that name, in one of three boxes:
  *
  * - With `styles`, the component renders another library component there
  *   (Toast's and Sheet's close button, DataTable's Checkbox): that
  *   component's root box, from its own tv() called with `props`, and empty.
- * - Without, a UI spec puts components in that slot: a chip in class-map.ts's
- *   placeholder classes, holding its sample copy.
+ * - With `source`, a slot that takes one library component only, whose look
+ *   is the point of the variant (Card's result Notice): that component drawn
+ *   whole, as its own set draws it for `props`, in plain frames.
+ * - Without either, a UI spec puts components in that slot: a chip in
+ *   class-map.ts's placeholder classes, holding its sample copy.
  */
 export type Placeholder = {
   placeholder: string;
   styles?: Styles;
+  source?: FrameSource;
   props?: Props;
+  /** With `source`, the layout the slot gives the component's root (Anatomy's `display`). */
+  display?: string;
 };
 
 export type FrameSource = {
@@ -125,6 +131,8 @@ export type FramePlan = {
   layoutPositioning?: "AUTO" | "ABSOLUTE";
   /** 1 when it fills what's left along its parent's auto layout. */
   layoutGrow?: number;
+  /** STRETCH when it fills its parent's auto layout across, as a full share does. */
+  layoutAlign?: "INHERIT" | "STRETCH";
   clipsContent?: boolean;
   strokeWeight?: number;
   /** Top, right, bottom and left, when the sides differ; then `strokeWeight` is unused. */
@@ -197,6 +205,7 @@ const frameDefaults: ComponentsPayload["defaults"]["frame"] = {
   counterAxisSizingMode: "AUTO",
   layoutPositioning: "AUTO",
   layoutGrow: 0,
+  layoutAlign: "INHERIT",
   clipsContent: false,
   strokeWeight: 0,
   strokeWeights: null,
@@ -220,7 +229,10 @@ export function framesPayload(
   tokens: Tokens
 ): ComponentsPayload {
   const map = classMap(tokens);
-  const sets = sources.map((source) => setPlan(source, map));
+  const lineHeights = Object.fromEntries(
+    tokens.payload.textStyles.map(({ name, bind }) => [name, bind.lineHeight])
+  );
+  const sets = sources.map((source) => setPlan(source, map, lineHeights));
   return {
     page: componentsPage,
     setNames: sets.map(({ name }) => name),
@@ -273,7 +285,30 @@ function combinations(axes: Axis[]): Props[] {
   return rows.sort((a, b) => index(a) - index(b));
 }
 
-function setPlan(source: FrameSource, map: (raw: string) => Mapping): SetPlan {
+/** One variant of a component as its frames draw it: elements, slot classes and copy. */
+function rendering(source: FrameSource, variant: Props, where: string) {
+  const props = source.render?.(variant) ?? variant;
+  const rendered = source.styles(props);
+  const slots =
+    typeof rendered === "string" ? { root: () => rendered } : rendered;
+  const anatomy = source.anatomy(props);
+  if (anatomy.slot !== "root") {
+    throw new Error(
+      `${where}: the anatomy's top element must be the root slot`
+    );
+  }
+  const copy =
+    typeof source.copy === "function"
+      ? source.copy(props)
+      : (source.copy ?? {});
+  return { anatomy, slots, copy };
+}
+
+function setPlan(
+  source: FrameSource,
+  map: (raw: string) => Mapping,
+  lineHeights: Record<string, string | undefined>
+): SetPlan {
   const { entry, styles } = source;
   const axes = axesOf(source);
   const drawn = new Set<string>();
@@ -283,26 +318,15 @@ function setPlan(source: FrameSource, map: (raw: string) => Mapping): SetPlan {
     const name = axes.length
       ? axes.map((axis) => `${axis.name}=${variant[axis.name]}`).join(", ")
       : "variant=default";
-    const props = source.render?.(variant) ?? variant;
-    const rendered = styles(props);
-    const slots =
-      typeof rendered === "string" ? { root: () => rendered } : rendered;
     const where = `${entry.name} (${name})`;
-    const anatomy = source.anatomy(props);
+    const { anatomy, slots, copy } = rendering(source, variant, where);
     slotsOf(anatomy).forEach((slot) => drawn.add(slot));
-    if (anatomy.slot !== "root") {
-      throw new Error(
-        `${where}: the anatomy's top element must be the root slot`
-      );
-    }
     const root = framePlan(anatomy, {
       where,
       slots,
       map,
-      copy:
-        typeof source.copy === "function"
-          ? source.copy(props)
-          : (source.copy ?? {}),
+      lineHeights,
+      copy,
       text: {},
       parent: null,
     });
@@ -339,6 +363,8 @@ type Context = {
   where: string;
   slots: Record<string, (props?: Props) => string>;
   map: (raw: string) => Mapping;
+  /** Each text style's line-height variable. */
+  lineHeights: Record<string, string | undefined>;
   copy: Record<string, string>;
   /** Text fields inherited from the slots above, as CSS inherits them. */
   text: Look;
@@ -415,6 +441,15 @@ function framePlan(element: Element, context: Context): FramePlan {
     throw new Error(`${context.where}: the ${element.slot} slot ${message}`);
   };
   const { parent } = context;
+  // One line tall: the line height of the type it holds, its own or the
+  // one it inherits, as 1lh is.
+  if (field("lineTall")) {
+    const style = (look["text.textStyle"] ?? context.text.textStyle) as
+      string | undefined;
+    const lineHeight = style && context.lineHeights[style];
+    if (!lineHeight) fail("is one line tall, with no type class above it");
+    bind.height = lineHeight!;
+  }
   // A square takes its one bound length, or its one limit, on both axes.
   if (field("square")) {
     for (const [a, b] of [
@@ -460,19 +495,29 @@ function framePlan(element: Element, context: Context): FramePlan {
       ? "VERTICAL"
       : "NONE";
   const plan: FramePlan = { type: "FRAME", name: element.slot, layoutMode };
-  // An auto-layout frame hugs its children along an unbound length.
-  const hugs = {
-    x: layoutMode !== "NONE" && !bind.width,
-    y: layoutMode !== "NONE" && !bind.height,
-  };
   // Growing takes the room its siblings leave along its parent's auto
   // layout, which fixes that length; a parent that hugs leaves none.
   const along = parent?.layoutMode === "HORIZONTAL" ? "x" : "y";
-  const grows =
-    Boolean(field("layoutGrow")) &&
-    parent !== null &&
-    parent.layoutMode !== "NONE" &&
-    !parent.hugs[along];
+  const crosswise = along === "x" ? "y" : "x";
+  const inLayout = parent !== null && parent.layoutMode !== "NONE";
+  const grows = Boolean(field("layoutGrow")) && inLayout && !parent.hugs[along];
+  // A full share across its parent's auto layout stretches it to the
+  // parent's length there, which fixes its own; a parent that hugs takes
+  // its length from its children instead.
+  const stretches =
+    look[`${crosswise}.fraction`] === 1 &&
+    inLayout &&
+    field("layoutPositioning") !== "ABSOLUTE" &&
+    !parent.hugs[crosswise];
+  // An auto-layout frame hugs its children along an unbound length.
+  const hugs = {
+    x:
+      layoutMode !== "NONE" && !bind.width && !(stretches && crosswise === "x"),
+    y:
+      layoutMode !== "NONE" &&
+      !bind.height &&
+      !(stretches && crosswise === "y"),
+  };
   if (layoutMode !== "NONE") {
     // A bound length is fixed; an unbound one hugs.
     const [primary, counter] =
@@ -484,6 +529,13 @@ function framePlan(element: Element, context: Context): FramePlan {
         plan.primaryAxisSizingMode = "FIXED";
       } else {
         plan.counterAxisSizingMode = "FIXED";
+      }
+    }
+    if (stretches) {
+      if (parent!.layoutMode === layoutMode) {
+        plan.counterAxisSizingMode = "FIXED";
+      } else {
+        plan.primaryAxisSizingMode = "FIXED";
       }
     }
     plan.primaryAxisAlignItems = field("primaryAxisAlignItems") as string;
@@ -501,6 +553,7 @@ function framePlan(element: Element, context: Context): FramePlan {
   }
   plan.layoutPositioning = field("layoutPositioning") as "ABSOLUTE";
   plan.layoutGrow = grows ? 1 : 0;
+  plan.layoutAlign = stretches ? "STRETCH" : "INHERIT";
   plan.clipsContent = field("clipsContent") as boolean;
   const sides = ["Top", "Right", "Bottom", "Left"].map(
     (side) =>
@@ -531,11 +584,13 @@ function framePlan(element: Element, context: Context): FramePlan {
     // In auto layout a frame is never smaller than its content, as a flex
     // item or a table cell isn't, and a parent that hugs takes its length
     // from its children, so a zero or full share is the frame's own length.
-    // The root has no parent to place it in, and a sticky frame sits in the
-    // flow: its insets are where it sticks as its container scrolls, and a
-    // frame doesn't scroll.
+    // A full share across a fixed length stretches it (above). The root has
+    // no parent to place it in, and a sticky frame sits in the flow: its
+    // insets are where it sticks as its container scrolls, and a frame
+    // doesn't scroll.
     const placing = Object.keys(look).filter((name) => {
       if (!/^[xy]\./.test(name)) return false;
+      if (stretches && name === `${crosswise}.fraction`) return false;
       const share = name.endsWith(".fraction") ? look[name] : null;
       return !(share === 0 || (share === 1 && parent.hugs[name[0] as "x"]));
     });
@@ -599,7 +654,21 @@ function framePlan(element: Element, context: Context): FramePlan {
  * component's own, so it's drawn as an element with its own classes.
  */
 function placeholderPlan(child: Placeholder, context: Context): FramePlan {
-  const { placeholder: name, styles } = child;
+  const { placeholder: name, styles, source } = child;
+  const where = `${context.where}: the ${name} placeholder`;
+  if (source) {
+    const { anatomy, slots, copy } = rendering(
+      source,
+      child.props ?? {},
+      where
+    );
+    const root = {
+      ...anatomy,
+      display: `${anatomy.display ?? ""} ${child.display ?? ""}`,
+    };
+    const plan = framePlan(root, { ...context, where, slots, copy });
+    return { ...plan, name };
+  }
   let element: Element;
   if (styles) {
     const rendered = styles(child.props ?? {});
@@ -612,10 +681,7 @@ function placeholderPlan(child: Placeholder, context: Context): FramePlan {
       children: [{ text: name, layer: "label" } as TextChild],
     };
   }
-  const plan = framePlan(element, {
-    ...context,
-    where: `${context.where}: the ${name} placeholder`,
-  });
+  const plan = framePlan(element, { ...context, where });
   return { ...plan, name };
 }
 

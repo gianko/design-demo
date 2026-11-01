@@ -14,7 +14,7 @@ Decided in [Figma: component frames for the library](https://github.com/gianko/d
 - **Sample copy is a small hand-written table** ("Approve and pay"), because a component's text comes from its props and JS, not from `tv()`.
 - **Which components get sets:**
   - **Variant sets:** Button (intent × disabled × pending; pending is a code-only prop, but it's a look a designer comments on), StatusTag (status), Toast (tone), Text (size × tone; `live` isn't visual), Heading (level) and Amount (display).
-  - **One-variant sets with named auto-layout slot placeholders:** Card, EmptyState, PageHeader, Sheet and DataTable.
+  - **One-variant sets with named auto-layout slot placeholders:** Card, EmptyState, PageHeader, Sheet and DataTable. (Amended by [ADR 0016](0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md): Card now has a `result` axis, `none`, `success` and `failure`, the last two drawing Notice's frames in its `result` slot, so it is a variant set; Notice is one too, by `tone`.)
   - **Internal entries get sets too, marked internal in their descriptions:** Checkbox (checked × disabled) and IconButton. A designer looking at a table or a sheet sees them.
   - **No sets:** Screen and Stack. Stack is auto layout itself, and Screen only sets density.
 - **Density isn't an axis.** It's the Density collection's modes, so a designer flips the mode on a frame.

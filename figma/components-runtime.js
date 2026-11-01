@@ -310,6 +310,7 @@ async function componentsPass(RUN, PAYLOAD) {
     set("layoutMode", plan.layoutMode);
     set("layoutPositioning", plan.layoutPositioning);
     set("layoutGrow", plan.layoutGrow);
+    set("layoutAlign", plan.layoutAlign);
     set("clipsContent", plan.clipsContent);
     if (plan.strokeWeights) {
       STROKE_SIDES.forEach((side, i) =>
