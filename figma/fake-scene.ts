@@ -31,6 +31,14 @@ export type SceneDeps = {
   mixed: symbol;
 };
 
+const entities: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
 const numberFields = [
   "paddingLeft",
   "paddingRight",
@@ -155,7 +163,15 @@ export function fakeScene(deps: SceneDeps) {
     strokeRightWeight = 1;
     strokeBottomWeight = 1;
     strokeLeftWeight = 1;
-    description = "";
+    // Figma hands a description back trimmed, with ' " & < > as HTML
+    // entities: set "it's", read "it&#39;s".
+    private _description = "";
+    get description() {
+      return this._description;
+    }
+    set description(text: string) {
+      this._description = text.trim().replace(/[&<>"']/g, (c) => entities[c]!);
+    }
     effectStyleId = "";
     private _effects: unknown[] = [];
     private _fills: Paint[] = [white];

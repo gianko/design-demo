@@ -36,6 +36,19 @@ const NULL_UNBOUND = BIND_FIELDS.slice(11);
 // A stroke's sides, when they differ: DataTable's rows rule only their top.
 const STROKE_SIDES = ["Top", "Right", "Bottom", "Left"];
 
+// A description as Figma hands it back once written: trimmed, with ' " & < >
+// as HTML entities. Comparing the raw text instead sees every apostrophe as
+// a change, so the check after a write throws.
+const ENTITIES = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+const storedDescription = (text) =>
+  text.trim().replace(/[&<>"']/g, (c) => ENTITIES[c]);
+
 // Room around and between a set's variants on the canvas, in px. It isn't a
 // design token: nothing in the code spaces variants apart.
 const GRID = 24;
@@ -510,7 +523,7 @@ async function componentsPass(RUN, PAYLOAD) {
     // The set itself: its description, and its variants in a grid, one row
     // per combination of the other axes.
     const changes = [];
-    if (set.description !== plan.description) {
+    if (set.description !== storedDescription(plan.description)) {
       changes.push("description");
       if (write) set.description = plan.description;
     }

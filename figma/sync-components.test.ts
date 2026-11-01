@@ -670,6 +670,18 @@ describe("a re-run", () => {
     expect(file.state()).toEqual(before);
   });
 
+  it("reads Figma's escaped description back as unchanged", async () => {
+    const file = await tokenFile();
+    await sync(file);
+    const button = components(file).sets.find((s) => s.name === "Button")!;
+    // Figma hands back "Button's" as "Button&#39;s".
+    expect(button.description).toContain("from Button&#39;s tv() config");
+
+    const [dryRun] = await sync(file, { dryRun: true });
+
+    expect(dryRun!.updated).toEqual([]);
+  });
+
   it("puts a hand-edited variant back in place and says what it changed", async () => {
     const file = await tokenFile();
     await sync(file);
