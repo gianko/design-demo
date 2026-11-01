@@ -476,6 +476,22 @@ function motionChecks(
   return failures.list;
 }
 
+// The names of the actions whose `to` enters `state` on one of `outcomes`.
+function entering(
+  spec: UiSpec,
+  state: string,
+  outcomes: ("success" | "failure")[]
+): string[] {
+  return spec.actions
+    .filter(({ to }) => outcomes.some((outcome) => to[outcome] === state))
+    .map(({ name }) => name);
+}
+
+// Action names as a failure message offers them: "a" or "b".
+function eitherOf(names: string[]): string {
+  return names.map((name) => `"${name}"`).join(" or ");
+}
+
 // A result's tone is its outcome's (ADR 0016): success in a state an action
 // enters on success, failure in one it enters on failure. A state some action
 // enters on success and another on failure takes either. A tone that isn't
@@ -492,11 +508,11 @@ function toneChecks(
   const wrong = given === "success" ? "failure" : "success";
   for (const state of screen.visibleIn(result)) {
     if (state === defaultState) continue;
-    const entering = (outcome: typeof given) =>
-      spec.actions.filter(({ to }) => to[outcome] === state);
-    const against = entering(wrong);
-    if (entering(given).length > 0 || against.length === 0) continue;
-    const names = against.map(({ name }) => `"${name}"`).join(" or ");
+    const against = entering(spec, state, [wrong]);
+    if (entering(spec, state, [given]).length > 0 || against.length === 0) {
+      continue;
+    }
+    const names = eitherOf(against);
     return [
       fail(
         "result-tone",
@@ -534,12 +550,10 @@ function noticeCardChecks(
       .map((node) => node.action)
   );
   for (const state of screen.visibleIn(notice)) {
-    const entering = spec.actions
-      .filter(({ to }) => to.success === state || to.failure === state)
-      .map(({ name }) => name);
-    if (state === defaultState || entering.length === 0) continue;
-    if (entering.some((name) => runHere.has(name))) continue;
-    const names = entering.map((name) => `"${name}"`).join(" or ");
+    const enters = entering(spec, state, ["success", "failure"]);
+    if (state === defaultState || enters.length === 0) continue;
+    if (enters.some((name) => runHere.has(name))) continue;
+    const names = eitherOf(enters);
     return [
       fail(
         "notice-card",
