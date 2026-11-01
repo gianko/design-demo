@@ -10,6 +10,8 @@ Each entry is one place where the brief, the ADRs or the tokens didn't decide so
 
 **Alternative:** name every Card with a `result` slot given at all (`result={undefined}` in the default state), which a UI spec can't express; or let the library name the action's Card from `useAction`, which doesn't know which Card holds the Button.
 
+**Resolved:** accepted in #356's review; ADR 0016's motion bullet now says the name spans the pending and leaving views.
+
 ## Two Cards named at once skip the transition
 
 **Undecided:** the name is one fixed name, `card-result`, as Toast's and Sheet's are, so each must be unique in a snapshot. Gate 1 keeps one Notice per state, but a Card holding a Notice and another Card whose Button is pending (two Cards with an action each), or two pending Buttons, would both carry it.
@@ -17,6 +19,8 @@ Each entry is one place where the brief, the ADRs or the tokens didn't decide so
 **Call:** accept it. The browser skips that transition and the update still runs, so the screen lands in the right state without the motion.
 
 **Alternative:** `view-transition-name: match-element` with a `card-result` view-transition class, unique per element. It breaks the convention that a `vt-*` class names the name it sets, which Screen's focus rule reads (src/components/Screen/focus.ts, src/styles.test.ts).
+
+**Filed:** #372, accepted as a known limit until a brief puts actions on two Cards.
 
 ## The growing edge is cut flat during the motion
 
@@ -26,6 +30,8 @@ Each entry is one place where the brief, the ADRs or the tokens didn't decide so
 
 **Alternative:** a radius on the group from a root-level variable per density, or a clip at the larger of the two radii (12px), which would round an admin Card's moving edge more than its corners.
 
+**Filed:** #373; the square clip stands for now.
+
 ## The settle overshoot doesn't show on the Card's height
 
 **Undecided:** under `confirm` the group's height runs `ease-settle`, as the brief asks of a confirmed result. The images are pinned at their natural size, so for the overshoot the group is taller than the new image and the extra height shows only the page behind it.
@@ -34,6 +40,8 @@ Each entry is one place where the brief, the ADRs or the tokens didn't decide so
 
 **Alternative:** run the height at `standard` under both types and keep the settle for what moves visibly (a Toast, the statuses).
 
+**Resolved:** accepted in #356's review; ADR 0016's timing stands, so a confirmed result settles the same way on a Toast and a Notice.
+
 ## Notice's glyphs are outside the shared icon map
 
 **Undecided:** IconButton/icons.tsx says it is the library's one Phosphor icon map and that a component that needs another icon adds it there. Its names are also IconButton's `icon` options in the registry and the variants of IconButton's Figma set, so adding `success` and `failure` there would offer them to IconButton.
@@ -41,3 +49,5 @@ Each entry is one place where the brief, the ADRs or the tokens didn't decide so
 **Call:** Notice imports `CheckCircle` and `WarningCircle` itself, regular weight, sized by `size-icon` and in the copy's colour, as the map would draw them.
 
 **Alternative:** split the map into the icons any component draws and the ones IconButton offers.
+
+**Resolved:** accepted in #356's review; split the map when a second component needs an icon IconButton shouldn't offer.

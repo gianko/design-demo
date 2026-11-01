@@ -4,13 +4,14 @@ requires:
   components: [Screen, PageHeader, DataTable, StatusTag, Amount, Button, Toast]
   states: [empty, payment-scheduled, payment-failed]
   actions: [approve-and-pay]
+  transitions: [table-action-to-toast]
 ---
 
 # Invoice queue
 
 An admin works through the invoices contractors have sent in. On one `Screen`, under a PageHeader titled "Invoices", show them in a DataTable, one row per invoice: its number, the contractor, the amount as an `Amount`, the due date and its status as a `StatusTag`. An **Approve and pay** Button in the DataTable's `actions` slot, its footer, pays the invoices the admin ticks; give the table `selectionText` for its selected count: "No invoices selected", "1 invoice selected" and "{count} invoices selected".
 
-The rows are the fixtures' `invoices`: bind the DataTable's rows to it, and its cells to each row's `number`, `contractor`, `amount` and `currency`, `dueLabel` and `status`. The `approve-and-pay` action runs the `payInvoices` operation on the selected rows' ids; it enters `payment-scheduled` when the payment is scheduled and `payment-failed` when it isn't. A Toast confirms each.
+The rows are the fixtures' `invoices`: bind the DataTable's rows to it, and its cells to each row's `number`, `contractor`, `amount` and `currency`, `dueLabel` and `status`. The `approve-and-pay` action runs the `payInvoices` operation on the selected rows' ids; it enters `payment-scheduled` when the payment is scheduled and `payment-failed` when it isn't. A Toast confirms each, last in the Screen in the state its outcome enters (`table-action-to-toast`).
 
 | Screen state | Fixture | What shows |
 |---|---|---|
