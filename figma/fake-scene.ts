@@ -56,13 +56,23 @@ const limitFields = ["minWidth", "maxWidth", "minHeight", "maxHeight"] as const;
 const white: Paint = { type: "SOLID", color: { r: 1, g: 1, b: 1 } };
 const black: Paint = { type: "SOLID", color: { r: 0, g: 0, b: 0 } };
 
-function checkPaints(paints: Paint[]) {
+// The paints a node keeps. A paint bound to a colour variable with alpha
+// (color/bg/surface-hover, 6%) comes back with that alpha as its opacity:
+// Figma resolves the binding for the node when the paint is assigned, not in
+// setBoundVariableForPaint, which leaves opacity at 1.
+function checkPaints(paints: Paint[], resolve: SceneDeps["resolve"]) {
   for (const paint of paints) {
     if ("a" in paint.color) {
       throw new Error("in set_fills: Unrecognized key(s) in object: 'a'");
     }
   }
-  return structuredClone(paints);
+  return structuredClone(paints).map((paint) => {
+    const alias = paint.boundVariables?.color;
+    const value = alias && (resolve(alias) as { a?: number } | undefined);
+    return typeof value?.a === "number"
+      ? { ...paint, opacity: value.a }
+      : paint;
+  });
 }
 
 export function fakeScene(deps: SceneDeps) {
@@ -257,13 +267,13 @@ export function fakeScene(deps: SceneDeps) {
       return structuredClone(this._fills);
     }
     set fills(paints: Paint[]) {
-      this._fills = checkPaints(paints);
+      this._fills = checkPaints(paints, deps.resolve);
     }
     get strokes() {
       return structuredClone(this._strokes);
     }
     set strokes(paints: Paint[]) {
-      this._strokes = checkPaints(paints);
+      this._strokes = checkPaints(paints, deps.resolve);
     }
     get effects() {
       return structuredClone(this._effects);
@@ -444,7 +454,7 @@ export function fakeScene(deps: SceneDeps) {
       return structuredClone(this._fills);
     }
     set fills(paints: Paint[]) {
-      this._fills = checkPaints(paints);
+      this._fills = checkPaints(paints, deps.resolve);
     }
     get width(): number {
       const parent = this.parent;
@@ -472,13 +482,13 @@ export function fakeScene(deps: SceneDeps) {
       return structuredClone(this._fills);
     }
     set fills(paints: Paint[]) {
-      this._fills = checkPaints(paints);
+      this._fills = checkPaints(paints, deps.resolve);
     }
     get strokes() {
       return structuredClone(this._strokes);
     }
     set strokes(paints: Paint[]) {
-      this._strokes = checkPaints(paints);
+      this._strokes = checkPaints(paints, deps.resolve);
     }
     get width() {
       return this.size.width;

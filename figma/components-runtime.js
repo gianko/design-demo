@@ -193,21 +193,24 @@ async function componentsPass(RUN, PAYLOAD) {
   report.orphans = orphans.map(({ kind, name, id }) => ({ kind, name, id }));
 
   // ── Layers ──
-  // A bound paint's opacity is its variable's alpha: Figma moves a colour's
-  // alpha there when it binds one (surface-hover's 6%), so compare against
-  // the paint Figma itself makes, not against 1.
-  const paintsMatch = (current, wanted) => {
+  // A node's paints, bound to the wanted variables in order. A bound paint's
+  // opacity is its variable's alpha for that node: Figma moves a colour's
+  // alpha there when the paint is assigned (surface-hover's 6%), so compare
+  // against the alpha the variable resolves to there, not against 1.
+  const paintsMatch = (node, field, wanted) => {
+    const current = node[field];
     if (!Array.isArray(current) || current.length !== wanted.length) {
       return false;
     }
-    const made = paints(wanted);
-    return wanted.every(
-      (want, i) =>
+    return wanted.every((want, i) => {
+      const alpha = want.resolveForConsumer(node).value?.a ?? 1;
+      return (
         current[i].type === "SOLID" &&
         current[i].visible !== false &&
-        same(current[i].opacity ?? 1, made[i].opacity ?? 1) &&
+        same(current[i].opacity ?? 1, alpha) &&
         current[i].boundVariables?.color?.id === want.id
-    );
+      );
+    });
   };
   const paints = (wanted) =>
     wanted.map((want) =>
@@ -249,7 +252,7 @@ async function componentsPass(RUN, PAYLOAD) {
     if (fill && node.layoutSizingHorizontal !== fill) {
       stale.push("layoutSizingHorizontal");
     }
-    if (!paintsMatch(node.fills, fills)) stale.push("fills");
+    if (!paintsMatch(node, "fills", fills)) stale.push("fills");
     if (write && stale.length) {
       await loadFonts(node, style);
       await node.setTextStyleIdAsync(style.id);
@@ -306,7 +309,7 @@ async function componentsPass(RUN, PAYLOAD) {
     for (const field of ["fills", "strokes"]) {
       if (!plan[field]) continue;
       const wanted = plan[field].map(variable);
-      if (paintsMatch(vector[field], wanted)) continue;
+      if (paintsMatch(vector, field, wanted)) continue;
       if (!fresh) changes.push(`${path}${plan.name}.${field}`);
       if (write) vector[field] = paints(wanted);
     }
@@ -380,7 +383,7 @@ async function componentsPass(RUN, PAYLOAD) {
 
     for (const field of ["fills", "strokes"]) {
       const wanted = plan[field].map(variable);
-      if (paintsMatch(node[field], wanted)) continue;
+      if (paintsMatch(node, field, wanted)) continue;
       changes.push(path + field);
       if (write) node[field] = paints(wanted);
     }

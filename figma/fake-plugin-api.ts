@@ -77,6 +77,13 @@ export function fakePluginApi(
     get valuesByMode() {
       return structuredClone(this.values);
     }
+    /** Its value for any node: the first mode's, as the fake resolves every binding. */
+    resolveForConsumer() {
+      return {
+        value: resolve({ type: "VARIABLE_ALIAS", id: this.id }),
+        resolvedType: this.resolvedType,
+      };
+    }
     get scopes() {
       return [...this._scopes];
     }
@@ -296,13 +303,8 @@ export function fakePluginApi(
         field: string,
         variable: Variable
       ) {
-        // Figma moves a colour variable's alpha into the paint's opacity.
-        const value = resolve(alias(variable)) as { a?: number } | undefined;
         return {
           ...structuredClone(paint),
-          ...(field === "color" && typeof value?.a === "number"
-            ? { opacity: value.a }
-            : {}),
           boundVariables: { [field]: alias(variable) },
         };
       },
