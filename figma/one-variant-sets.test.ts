@@ -309,11 +309,6 @@ describe("a first apply of the one-variant sets", () => {
     expect(card.layoutMode).toBe("VERTICAL");
     expect(bound(card)).toEqual({
       maxWidth: "size/max-width/card",
-      itemSpacing: "space/md",
-      paddingTop: "density/padding/surface",
-      paddingRight: "density/padding/surface",
-      paddingBottom: "density/padding/surface",
-      paddingLeft: "density/padding/surface",
       topLeftRadius: "density/radius/surface",
       topRightRadius: "density/radius/surface",
       bottomLeftRadius: "density/radius/surface",
@@ -322,12 +317,24 @@ describe("a first apply of the one-variant sets", () => {
     expect(paints(card.fills)).toEqual(["color/bg/surface"]);
     expect(paints(card.strokes)).toEqual(["color/border/line"]);
     expect(card.strokeWeight).toBe(1);
-    expect(card.children!.map((c) => c.name)).toEqual([
+    // The padding and the gap are the content's, inside the frame, so a
+    // result can sit outside them (ADR 0016).
+    expect(card.children!.map((c) => c.name)).toEqual(["content"]);
+    const content = at(card, "content");
+    expect(content.layoutMode).toBe("VERTICAL");
+    expect(bound(content)).toEqual({
+      itemSpacing: "space/md",
+      paddingTop: "density/padding/surface",
+      paddingRight: "density/padding/surface",
+      paddingBottom: "density/padding/surface",
+      paddingLeft: "density/padding/surface",
+    });
+    expect(content.children!.map((c) => c.name)).toEqual([
       "header",
       "body",
       "footer",
     ]);
-    const header = at(card, "header");
+    const header = at(content, "header");
     expect(header.layoutMode).toBe("VERTICAL");
     expect(at(header, "header slot", "label").characters).toBe("Header slot");
   });

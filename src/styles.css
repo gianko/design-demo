@@ -68,13 +68,33 @@
      leaves.
    - `vt-row-detail`: a Sheet, and nothing else: the row it opened from
      has no name, so the sheet slides in from the end edge and back out past
-     it on its own. */
+     it on its own.
+   - `vt-card-result`: a Card around its Notice (ADR 0016): while it holds
+     one, in the old view of the change that brings one (its footer's
+     Button pending), and in the state it lost one in, where
+     `closing-transition` adds the `closing` class. Gate 1 keeps one Notice
+     per screen state. */
 @utility vt-toast {
   view-transition-name: toast;
 }
 
 @utility vt-row-detail {
   view-transition-name: row-detail;
+}
+
+@utility vt-card-result {
+  view-transition-name: card-result;
+}
+
+@utility closing-transition {
+  view-transition-class: closing;
+}
+
+/* Opening or closing a sheet is no change to a Card: a Card named as its
+   own group would draw over the sheet's scrim until the sheet is open. */
+:root:active-view-transition-type(sheet-open, sheet-close)
+  [data-component="Card"] {
+  view-transition-name: none;
 }
 
 /* Per-name timing. Every easing not set here is the rules' above, so
@@ -133,6 +153,33 @@
     ) {
     animation-name: slide-out;
     animation-duration: var(--ds-motion-duration-slow-exit);
+    animation-timing-function: var(--ds-motion-ease-exit);
+  }
+
+  /* A Card's result (ADR 0016). The group animates the Card's height, at
+     the rules' above `base`, settling only under `confirm`, while its
+     images stay pinned to the top at their natural size and it clips them:
+     neither is stretched, so the strip is uncovered as the Card grows, and
+     a Button the new view drops is covered with the old image. They
+     crossfade as every view does, so a tone that changes in place swaps.
+     A Card that lost its Notice carries `closing` in the new view: it
+     shrinks at `base-exit` with `exit`, covering the strip. */
+  ::view-transition-group(card-result) {
+    overflow: clip;
+  }
+
+  ::view-transition-old(card-result),
+  ::view-transition-new(card-result) {
+    inset-block-start: 0;
+    inline-size: auto;
+    block-size: auto;
+  }
+
+  ::view-transition-group(card-result.closing),
+  :root:active-view-transition-type(confirm)::view-transition-group(
+      card-result.closing
+    ) {
+    animation-duration: var(--ds-motion-duration-base-exit);
     animation-timing-function: var(--ds-motion-ease-exit);
   }
 }

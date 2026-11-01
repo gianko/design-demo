@@ -258,15 +258,25 @@ export const frameSources: FrameSource[] = [
   {
     entry: cardEntry,
     styles: card as unknown as Styles,
-    // The header and footer render only when given; the set shows both.
+    // The header and footer render only when given; the set shows both,
+    // inside the padded content box (ADR 0016).
     anatomy: () => ({
       slot: "root",
-      children: ["header", "body", "footer"].map((slot) => ({
-        slot,
-        display: block,
-        children: [{ placeholder: `${slot} slot` }],
-      })),
+      children: [
+        {
+          slot: "content",
+          children: ["header", "body", "footer"].map((slot) => ({
+            slot,
+            display: block,
+            children: [{ placeholder: `${slot} slot` }],
+          })),
+        },
+      ],
     }),
+    notDrawn: {
+      result:
+        "the strip a Notice draws along the bottom edge, shown only with a result; its frames come with Notice's (#363)",
+    },
     copy: sampleCopy.Card,
   },
   {

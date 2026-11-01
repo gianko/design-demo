@@ -12,5 +12,7 @@ export const cardEntry = defineEntry({
     header: { allow: ["Heading", "Text", "StatusTag", "Stack"] },
     body: {},
     footer: { allow: ["Button", "Text", "Stack"] },
+    // An action's result on this Card, along its bottom edge (ADR 0016).
+    result: { allow: ["Notice"] },
   },
 });

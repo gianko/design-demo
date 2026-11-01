@@ -7,6 +7,7 @@ import { expect, it } from "vitest";
 import * as library from "./index.ts";
 
 it.each([
+  "Notice",
   "useScreenState",
   "useAction",
   "useFixtureData",

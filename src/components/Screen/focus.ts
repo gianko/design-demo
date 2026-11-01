@@ -3,7 +3,8 @@
 // that the state a confirmed result enters leaves out, and focus would fall
 // to the document. So after the change's update, if what had focus is gone,
 // focus moves to the element that took over its name, the one the old
-// element turned into, if it takes focus, or else to the Screen it was in.
+// element turned into, if it takes focus; or else to the Notice the new
+// state shows (ADR 0016); or else to the Screen it was in.
 // Both are focusable from script only (`tabIndex={-1}`). A footer Button
 // that a confirmed result disables isn't removed: DataTable moves its focus
 // to the table (ADR 0013).
@@ -54,9 +55,17 @@ export function keepingFocus(update: () => void): () => void {
           ].find((each) => nameOf(each) === name);
     // The heir takes focus only if it can: the name may have passed to an
     // element that is no control and has no tabIndex (a bar's root, a row
-    // the Sheet closed into), so where focus didn't land, the Screen takes it.
+    // the Sheet closed into, the Card holding a Notice). Where focus didn't
+    // land, the state's Notice takes it, so a keyboard user stays on the
+    // Card they acted on (ADR 0016), or else the Screen.
     heir?.focus({ preventScroll: true });
     if (heir && document.activeElement === heir) return;
-    if (screen?.isConnected) screen.focus({ preventScroll: true });
+    if (!screen?.isConnected) return;
+    const notice = screen.querySelector<HTMLElement>(
+      '[data-component="Notice"]'
+    );
+    notice?.focus({ preventScroll: true });
+    if (notice && document.activeElement === notice) return;
+    screen.focus({ preventScroll: true });
   };
 }
