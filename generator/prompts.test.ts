@@ -327,3 +327,47 @@ describe("Toast's entry", () => {
     expect(toast.use).toMatch(/success Toast dismisses itself/);
   });
 });
+
+// ADR 0016: an action's result is a Notice on the Card that runs it, or a
+// Toast, never a live Text; the spec step reads that in Text's, Card's and
+// Toast's use lines.
+describe("a result's use lines", () => {
+  async function useOf(name: string) {
+    const { system } = specPrompt(
+      "# Design brief",
+      await loadRegistry(),
+      "{}",
+      fixtures
+    );
+    const json = system[2]!.text.replace(/^<registry>\n|\n<\/registry>$/g, "");
+    return (JSON.parse(json) as { name: string; use: string }[]).find(
+      (entry) => entry.name === name
+    )!.use;
+  }
+
+  it("never sends an action's result to a live Text", async () => {
+    const text = await useOf("Text");
+
+    expect(text).not.toMatch(/live/);
+    expect(text).toMatch(
+      /An action's result is a Notice or a Toast, never a Text/
+    );
+  });
+
+  it("names Card's result slot, which holds a Notice", async () => {
+    expect(await useOf("Card")).toMatch(
+      /the result of the action in its footer, a Notice, in result/
+    );
+  });
+
+  it("sends a table's result, or one whose Card has left, to a Toast", async () => {
+    const toast = await useOf("Toast");
+
+    expect(toast).toMatch(
+      /a table's result, or a result whose Card has left in the state the action enters/
+    );
+    expect(toast).toMatch(
+      /a Card's result while the Card is shown is a Notice/
+    );
+  });
+});
