@@ -51,22 +51,26 @@ export type CardProps = PropsOf<typeof cardEntry> & {
 
 export function Card({ header, children, footer, result }: CardProps) {
   const slots = card();
-  const holds = Boolean(result);
-  // The state entry in which it last lost its Notice.
+  const hasResult = Boolean(result);
   const entry = useStateEntry();
-  const [held, setHeld] = useState(holds);
-  const [lostAt, setLostAt] = useState<number | null>(null);
-  if (held !== holds) {
-    setHeld(holds);
-    setLostAt(holds ? null : entry);
+  // Whether it had a result last render, and the state entry in which it
+  // last lost one.
+  const [hadResult, setHadResult] = useState(hasResult);
+  const [resultLostIn, setResultLostIn] = useState<number | null>(null);
+  if (hadResult !== hasResult) {
+    setHadResult(hasResult);
+    setResultLostIn(hasResult ? null : entry);
   }
-  const part = holds
+  const transitionClass = hasResult
     ? transition.holding
-    : lostAt === entry
+    : resultLostIn === entry
       ? transition.closing
       : transition.rest;
   return (
-    <div data-component="Card" className={slots.root({ class: part })}>
+    <div
+      data-component="Card"
+      className={slots.root({ class: transitionClass })}
+    >
       <div className={slots.content()}>
         {header && <div className={slots.header()}>{header}</div>}
         <div className={slots.body()}>{children}</div>

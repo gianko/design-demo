@@ -248,6 +248,37 @@ function withNotice() {
   return spec;
 }
 
+// A second action, nudge, entering `to`, run by a Button beside remind's,
+// or at `parent`'s `slot` when given; `states` are added to the spec's.
+function withNudge(
+  spec: ReturnType<typeof clean>,
+  to: { success: string; failure: string },
+  states: string[] = [],
+  at?: { parent: string; slot: string }
+) {
+  const remind = nodeOf(spec, "remind-button");
+  for (const name of states) spec.states.push({ name, fixture: "brief/sent" });
+  spec.actions.push({
+    name: "nudge",
+    operation: "sendReminder",
+    pending: "nudge-button",
+    to,
+  });
+  spec.nodes.push(
+    runs(
+      node(
+        "nudge-button",
+        "Button",
+        at?.parent ?? remind.parent,
+        at?.slot ?? remind.slot,
+        { label: "Nudge" }
+      ),
+      "nudge"
+    )
+  );
+  return spec;
+}
+
 const context = { entries, audience: "contractor", slug: "brief", fixtures };
 
 function check(spec: unknown) {
@@ -825,6 +856,31 @@ describe("gate 1", () => {
 
       expect(check(spec)).toEqual([["notice-card", "sent-notice"]]);
     });
+
+    // The Notice shows in sent, which remind enters, and in resent, which
+    // nudge enters.
+    describe("shown in two states", () => {
+      const twoStates = (at?: { parent: string; slot: string }) => {
+        const spec = withNudge(
+          withNotice(),
+          { success: "resent", failure: "default" },
+          ["resent"],
+          at
+        );
+        nodeOf(spec, "sent-notice").when = ["sent", "resent"];
+        return spec;
+      };
+
+      it("passes when the Card's footer runs both actions", () => {
+        expect(check(twoStates())).toEqual([]);
+      });
+
+      it("fails when the Card's footer runs only the first state's action, naming it", () => {
+        const spec = twoStates({ parent: "card", slot: "body" });
+
+        expect(check(spec)).toEqual([["notice-card", "sent-notice"]]);
+      });
+    });
   });
 
   // A result's tone is its outcome's, for Notice and Toast alike (ADR 0016):
@@ -893,6 +949,72 @@ describe("gate 1", () => {
         expect(check(withFailed(result, "success"))).toEqual([
           ["result-tone", "failed-result"],
         ]);
+      }
+    );
+
+    // The success result shows in sent and in a second state, where its tone
+    // is right too or isn't.
+    it.each(results)(
+      "passes a success $component in two states that actions enter on success",
+      (result) => {
+        const spec = withNudge(
+          result.spec(),
+          { success: "resent", failure: "default" },
+          ["resent"]
+        );
+        nodeOf(spec, result.sent).when = ["sent", "resent"];
+
+        expect(check(spec)).toEqual([]);
+      }
+    );
+
+    it.each(results)(
+      "fails a success $component in to.success's state and then to.failure's, naming it",
+      (result) => {
+        const spec = result.spec();
+        spec.states.push({ name: "failed", fixture: "brief/sent" });
+        spec.actions[0]!.to.failure = "failed";
+        nodeOf(spec, result.sent).when = ["sent", "failed"];
+
+        expect(check(spec)).toEqual([["result-tone", result.sent]]);
+      }
+    );
+
+    // sent is remind's to.success; nudge enters it on failure, so its result
+    // may take either tone.
+    it.each(
+      results.flatMap((result) =>
+        ["success", "failure"].map((tone) => ({ ...result, tone }))
+      )
+    )(
+      "passes a $tone $component in a state one action enters on success and another on failure",
+      (result) => {
+        const spec = withNudge(result.spec(), {
+          success: "default",
+          failure: "sent",
+        });
+        setProp(nodeOf(spec, result.sent), "tone", result.tone);
+
+        expect(check(spec)).toEqual([]);
+      }
+    );
+
+    it.each(results)(
+      "fails a failure $component in a state two actions enter on success, naming both",
+      (result) => {
+        const spec = withNudge(result.spec(), {
+          success: "sent",
+          failure: "default",
+        });
+        setProp(nodeOf(spec, result.sent), "tone", "failure");
+
+        const failures = gate1(spec, context);
+        expect(failures.map(({ rule, location }) => [rule, location])).toEqual([
+          ["result-tone", result.sent],
+        ]);
+        expect(failures[0]!.message).toContain(
+          '"sent", the state "remind" or "nudge" enters on success'
+        );
       }
     );
   });

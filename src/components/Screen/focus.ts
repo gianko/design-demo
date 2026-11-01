@@ -4,7 +4,8 @@
 // to the document. So after the change's update, if what had focus is gone,
 // focus moves to the element that took over its name, the one the old
 // element turned into, if it takes focus; or else to the Notice the new
-// state shows (ADR 0016); or else to the Screen it was in.
+// state shows in the Card it was in, or else in the Screen it was in (ADR
+// 0016), never one elsewhere in the document; or else to that Screen.
 // Both are focusable from script only (`tabIndex={-1}`). A footer Button
 // that a confirmed result disables isn't removed: DataTable moves its focus
 // to the table (ADR 0013).
@@ -44,6 +45,7 @@ export function keepingFocus(update: () => void): () => void {
         ? focused
         : null;
     const name = had && carriedName(had);
+    const card = had?.closest<HTMLElement>('[data-component="Card"]');
     const screen = had?.closest<HTMLElement>('[data-component="Screen"]');
     update();
     if (!had || had.isConnected) return;
@@ -57,13 +59,16 @@ export function keepingFocus(update: () => void): () => void {
     // element that is no control and has no tabIndex (a bar's root, a row
     // the Sheet closed into, the Card holding a Notice). Where focus didn't
     // land, the state's Notice takes it, so a keyboard user stays on the
-    // Card they acted on (ADR 0016), or else the Screen.
+    // Card they acted on (ADR 0016): the one in that Card, or else in the
+    // Screen. Then the Screen.
     heir?.focus({ preventScroll: true });
     if (heir && document.activeElement === heir) return;
-    const within = screen?.isConnected ? screen : document;
-    const notice = within.querySelector<HTMLElement>(
-      '[data-component="Notice"]'
-    );
+    const notice = [card, screen]
+      .filter((scope): scope is HTMLElement => Boolean(scope?.isConnected))
+      .map((scope) =>
+        scope.querySelector<HTMLElement>('[data-component="Notice"]')
+      )
+      .find((each) => each !== null);
     notice?.focus({ preventScroll: true });
     if (notice && document.activeElement === notice) return;
     if (screen?.isConnected) screen.focus({ preventScroll: true });

@@ -26,7 +26,7 @@ Registry slots and their allow-lists (ADR 0004: "an allow-list where nonsense is
 | `footer` | Button, Text, Stack | The card's action, or a short note under it. |
 | `result` | Notice | The result of the footer's action, in the state the action enters (ADR 0016). |
 
-Props: none besides the slots. Spec § Component pieces 8 asks for a surface and three named slots, and nothing else.
+Props: none besides its four named slots, `header`, `body`, `footer` and `result`. Spec § Component pieces 8 asks for a surface and the first three, and nothing else; [ADR 0016](../../../docs/adr/0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md) adds `result`.
 
 ## Variants, sizes, states
 
