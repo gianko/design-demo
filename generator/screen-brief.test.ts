@@ -486,10 +486,7 @@ describe.each([
   ],
   [
     "invoice-queue",
-    {
-      "payment-scheduled": "success Toast",
-      "payment-failed": "failure Toast",
-    },
+    { "payment-scheduled": "success Toast", "payment-failed": "failure Toast" },
   ],
 ] as const)("the %s screen brief's results", (slug, results) => {
   it("shows each action's result where ADR 0016 puts it", () => {
