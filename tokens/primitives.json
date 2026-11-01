@@ -116,6 +116,9 @@
       "320": {
         "$value": { "colorSpace": "oklch", "components": [0.32, 0.07, 25] }
       },
+      "380": {
+        "$value": { "colorSpace": "oklch", "components": [0.38, 0.09, 25] }
+      },
       "480": {
         "$value": { "colorSpace": "oklch", "components": [0.48, 0.16, 25] }
       },
@@ -127,6 +130,9 @@
       },
       "820": {
         "$value": { "colorSpace": "oklch", "components": [0.82, 0.1, 25] }
+      },
+      "880": {
+        "$value": { "colorSpace": "oklch", "components": [0.88, 0.06, 25] }
       },
       "940": {
         "$value": { "colorSpace": "oklch", "components": [0.94, 0.03, 25] }
