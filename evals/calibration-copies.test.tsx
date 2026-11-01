@@ -109,7 +109,7 @@ describe("the broken copies", () => {
 
   it("payment-run--repetition says Overdue a third time on the Overdue card", () => {
     // The Overdue card's text, from its title down.
-    const overdueCard = (Default: ComponentType) => {
+    const overdueCardText = (Default: ComponentType) => {
       const { unmount } = render(<Default />);
       const text = screen
         .getByRole("heading", { level: 2, name: "Overdue" })
@@ -119,8 +119,10 @@ describe("the broken copies", () => {
     };
     const times = (text: string) => text.match(/overdue/gi)!.length;
 
-    const kept = overdueCard(composeStories(paymentRun, preview).Default);
-    const copy = overdueCard(copyStories(paymentRun, PaymentRunRepetition)[0]!);
+    const kept = overdueCardText(composeStories(paymentRun, preview).Default);
+    const copy = overdueCardText(
+      copyStories(paymentRun, PaymentRunRepetition)[0]!
+    );
 
     // The title and its tag; then the count says it too.
     expect(times(kept)).toBe(2);
