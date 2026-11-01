@@ -106,15 +106,17 @@ describe("the overlay surface", () => {
 
 // A failure Notice sits edge to edge in a Card, under a status tag (#359).
 // Its surface is quieter than the failure Toast's, nearer the Card's own
-// surface, and clearly apart from every status background, so a failed action
-// never reads as one more status. 0.06 in OKLab: a candidate 0.045 from
-// light's overdue tag read as the tag in a render; 0.067 read apart.
-describe("the inline error surface", () => {
+// surface. Both error pairs, the Toast's and the Notice's, stay clearly apart
+// from every status pair, background and text, so a failed action never reads
+// as one more status (the design brief's colour roles). 0.06 in OKLab: a
+// candidate 0.045 from light's overdue tag read as the tag in a render; 0.067
+// read apart.
+describe("the error pairs", () => {
   const distance = differenceEuclidean("oklab");
-  const colour = (theme: string, role: string) => {
+  const colour = (theme: string, name: string) => {
     const [l, c, h] = blockOf(built.css, `[data-theme="${theme}"]`)
       .match(
-        new RegExp(`--ds-color-bg-${role}: [^;]*; /\\* oklch\\(([^)]*)\\) \\*/`)
+        new RegExp(`--ds-color-${name}: [^;]*; /\\* oklch\\(([^)]*)\\) \\*/`)
       )![1]!
       .split(" ")
       .map(Number);
@@ -122,19 +124,25 @@ describe("the inline error surface", () => {
   };
 
   it.each(["light", "dark"])(
-    "is nearer the Card's surface than the Toast's error surface in %s",
+    "puts the inline error surface nearer the Card's surface than the Toast's error surface in %s",
     (theme) => {
-      const surface = colour(theme, "surface");
+      const surface = colour(theme, "bg-surface");
 
-      expect(distance(colour(theme, "error-inline"), surface)).toBeLessThan(
-        distance(colour(theme, "error"), surface)
+      expect(distance(colour(theme, "bg-error-inline"), surface)).toBeLessThan(
+        distance(colour(theme, "bg-error"), surface)
       );
     }
   );
 
-  it.each(["light", "dark"])(
-    "stays at least 0.06 in OKLab from every status background in %s",
-    (theme) => {
+  it.each(
+    ["light", "dark"].flatMap((theme) =>
+      ["bg", "text"].flatMap((kind) =>
+        ["error", "error-inline"].map((pair) => [theme, kind, pair])
+      )
+    )
+  )(
+    "keeps %s's %s-%s at least 0.06 in OKLab from every status pair's",
+    (theme, kind, pair) => {
       for (const status of [
         "awaiting",
         "overdue",
@@ -143,7 +151,10 @@ describe("the inline error surface", () => {
         "failed",
       ]) {
         expect(
-          distance(colour(theme, "error-inline"), colour(theme, status)),
+          distance(
+            colour(theme, `${kind}-${pair}`),
+            colour(theme, `${kind}-${status}`)
+          ),
           status
         ).toBeGreaterThanOrEqual(0.06);
       }
