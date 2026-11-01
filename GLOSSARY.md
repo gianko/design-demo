@@ -92,6 +92,10 @@ _Avoid_: ActionBar, bulk-action bar, toolbar
 The words at the start of the actions footer saying how many rows are ticked, written by the UI spec in three forms (none, one, more) with the number filled in by the library.
 _Avoid_: Selection label, counter
 
+**Notice**:
+The result of an action on a card, shown along the bottom edge of that card while the card stays on screen; a table's result, or one whose card has left, is a toast instead.
+_Avoid_: Alert, banner, callout, inline toast, live text (as a result)
+
 **Signature transition**:
 One of the design brief's two named transitions, the pay confirmation (pending → stagger → toast) and row → sheet. A generated screen shows one by including the components and screen states that carry it, never by describing the motion.
 _Avoid_: Animation, effect, hero motion

@@ -30,6 +30,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Text n
 
 **Alternative:** an `error` text role (and maybe `success`) in the colour tokens, AA-checked on page and surface, and a matching `tone`. Or a P1 Toast with a failure tone takes the job, as ADR 0011 already plans.
 
+**Decided ([ADR 0016](../../../docs/adr/0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md), #356):** neither. A result is no longer a Text: on a Card it is a Notice, with its own success and failure tones, and otherwise a Toast. Text keeps its two tones (`.out-of-scope/text-error-tone.md`).
+
 ## Copy arrives as a `text` prop, not children
 
 **Undecided:** ADR 0004 says every user-facing string is a literal prop, but doesn't name the prop a typography component takes its copy through. The UI spec's nodes reach a component's children only through slots, which hold nodes, not strings.
@@ -47,6 +49,8 @@ Each entry is one place the brief, ADRs or tokens didn't decide something Text n
 **Alternative:** the library keeps one persistent, empty status region (on Screen, or owned by `useScreenState`), and a live Text writes its copy into it when its state is entered. Worth deciding before Action wiring.
 
 **Decided:** the alternative, in [#98](https://github.com/gianko/design-demo/issues/98). Screen always renders one visually hidden, empty, polite `role="status"` region and provides `announce(text)` through context (`src/components/Screen/announce.ts`). A live Text is an ordinary paragraph that calls `announce` with its copy when it mounts. Outside a Screen, as in Text's own stories, nothing is announced. P1's Toast reuses `announce` (ADR 0011).
+
+**Superseded ([ADR 0016](../../../docs/adr/0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md), #356):** Text loses `live`, since no result is a Text any more. A Notice or a Toast announces its copy through the same `announce`.
 
 ## Money inside a sentence has nowhere to go
 
