@@ -354,10 +354,12 @@ describe("a result's use lines", () => {
     );
   });
 
-  it("names Card's result slot, which holds a Notice", async () => {
-    expect(await useOf("Card")).toMatch(
-      /the result of the action in its footer, a Notice, in result/
-    );
+  it("names Card's result slot, which holds the footer action's Notice", async () => {
+    const card = await useOf("Card");
+
+    expect(card).toMatch(/its action's Button in footer/);
+    expect(card).toMatch(/that action's result, a Notice, in result/);
+    expect(card).not.toMatch(/result of the action in its footer/);
   });
 
   it("sends a table's result, or one whose Card has left, to a Toast", async () => {
