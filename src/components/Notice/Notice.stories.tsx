@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect } from "storybook/test";
+import { useLayoutEffect, useRef } from "react";
+import { expect, waitFor } from "storybook/test";
 import { colour } from "../../../.storybook/canvas-colour.ts";
 import { FocusedOn } from "../../../.storybook/focused-on.tsx";
 import type { VariantName } from "../../fixtures/fixtures.ts";
@@ -108,9 +109,32 @@ async function holdsFullWidthButton(canvas: HTMLElement, density: string) {
   );
 }
 
+// The focus ring sits outside the Notice's and the footer Button's boxes,
+// at the strip's and the footer's edge, so at rest nothing between each of
+// them and the Card, the Card included, clips its overflow or paint. (Only
+// a running transition's group clips, src/styles.css.)
+async function leavesRingsUnclipped(canvas: HTMLElement) {
+  const card = find(canvas, "Card")!;
+  for (const ringed of [find(canvas, "Notice"), find(canvas, "Button")]) {
+    if (!ringed) continue;
+    for (let at = ringed.parentElement; at; at = at.parentElement) {
+      const style = getComputedStyle(at);
+      const clips = [style.overflowX, style.overflowY].filter(
+        (overflow) => overflow !== "visible"
+      );
+      await expect(clips, ringed.dataset.component).toEqual([]);
+      await expect(style.contain, ringed.dataset.component).not.toMatch(
+        /paint|strict|content/
+      );
+      if (at === card) break;
+    }
+  }
+}
+
 const holds = async (canvas: HTMLElement, density: string) => {
   await holdsEdge(canvas, density);
   await holdsFullWidthButton(canvas, density);
+  await leavesRingsUnclipped(canvas);
 };
 
 // payment-status as ADR 0016 wires it: the overdue invoice's Card, Send
@@ -212,12 +236,52 @@ export const ReadyToFail: Story = {
   parameters: startIn("default", "payment-status/reminder-failed"),
 };
 
+// A person retrying Send reminder after it failed: a real click on the
+// Button, dispatched in the first commit, so the story shows the Card's own
+// retry path, its View Transition included, without its play function
+// touching the page (ADR 0012).
+function RetriesSend() {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    ref
+      .current!.querySelector<HTMLButtonElement>('[data-component="Button"]')!
+      .click();
+  }, []);
+  return (
+    <div ref={ref}>
+      <PaymentStatusCard />
+    </div>
+  );
+}
+
 // A retry after a failure, which succeeds: the failure Notice stays as it
 // is while Send reminder is pending, then changes tone in place, colours
-// and glyph, as the Button leaves.
+// and glyph, as the Button leaves. The rest shot is the Card once the retry
+// has settled: the success tone, after a failure.
 export const RetrySucceeds: Story = {
   args: success,
   parameters: startIn("reminder-failed", "default"),
+  render: () => <RetriesSend />,
+  play: async ({ canvasElement, globals }) => {
+    const notice = find(canvasElement, "Notice")!;
+    await expect(notice.dataset.tone).toBe("failure");
+    await expect(find(canvasElement, "Button")!.ariaBusy).toBe("true");
+    await waitFor(
+      () => {
+        if (find(canvasElement, "Button")) {
+          throw new Error("Send reminder hasn't settled yet.");
+        }
+        if (document.documentElement.matches(":active-view-transition")) {
+          throw new Error("The retry's View Transition is still running.");
+        }
+      },
+      { timeout: 5000 }
+    );
+    // The same element, now the success tone.
+    await expect(find(canvasElement, "Notice")).toBe(notice);
+    await expect(notice.dataset.tone).toBe("success");
+    await holds(canvasElement, globals.density);
+  },
 };
 
 // On a phone, a contractor's usual device: the copy wraps inside the strip
