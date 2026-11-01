@@ -12,6 +12,7 @@ import * as bulkPay from "../src/screens/bulk-pay/BulkPay.stories.tsx";
 import * as myInvoices from "../src/screens/my-invoices/MyInvoices.stories.tsx";
 import * as paymentRun from "../src/screens/payment-run/PaymentRun.stories.tsx";
 import * as paymentStatus from "../src/screens/payment-status/PaymentStatus.stories.tsx";
+import { PaymentStatus } from "../src/screens/payment-status/PaymentStatus.tsx";
 import { BulkPay as BulkPayCopy } from "./calibration/screens/bulk-pay--copy/BulkPay.tsx";
 import { BulkPay as BulkPayDensity } from "./calibration/screens/bulk-pay--density/BulkPay.tsx";
 import { MyInvoices as MyInvoicesHierarchy } from "./calibration/screens/my-invoices--hierarchy/MyInvoices.tsx";
@@ -70,6 +71,45 @@ describe("the broken copies", () => {
     expect(send).toContain("bg-accent");
     expect(download).toBe(send);
   });
+
+  // ADR 0016: Send reminder's result is a Notice along the Card's bottom
+  // edge, in the kept screen and in both of its copies, so each copy still
+  // breaks only its one thing.
+  it.each([
+    ["payment-status", PaymentStatus],
+    ["payment-status--accent", PaymentStatusAccent],
+    ["payment-status--elevation", PaymentStatusElevation],
+  ] as const)(
+    "%s shows each reminder's result in a Notice on the Card's bottom edge",
+    (_, component) => {
+      const stories = composeStories(
+        { ...paymentStatus, default: { ...paymentStatus.default, component } },
+        preview
+      );
+      for (const [Story, tone, buttonShown] of [
+        [stories.ReminderSent, "success", false],
+        [stories.ReminderFailed, "failure", true],
+      ] as const) {
+        const { unmount } = render(<Story />);
+
+        const card = document.querySelector('[data-component="Card"]')!;
+        const notice = card.lastElementChild!.firstElementChild!;
+        expect(notice.getAttribute("data-component"), tone).toBe("Notice");
+        expect(notice.getAttribute("data-tone"), tone).toBe(tone);
+        expect(
+          [...card.querySelectorAll('[data-component="Text"]')].map(
+            (text) => text.textContent
+          ),
+          tone
+        ).not.toContain(notice.textContent);
+        expect(
+          screen.queryByRole("button", { name: "Send reminder" }) !== null,
+          tone
+        ).toBe(buttonShown);
+        unmount();
+      }
+    }
+  );
 
   it("payment-status--elevation puts the card on a shadow", () => {
     const Default = copyStories(paymentStatus, PaymentStatusElevation)[0]!;

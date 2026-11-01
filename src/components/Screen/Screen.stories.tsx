@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { FocusedOn } from "../../../.storybook/focused-on.tsx";
 import { Text } from "../Text/Text.tsx";
+import { Toast } from "../Toast/Toast.tsx";
 import { Screen } from "./Screen.tsx";
 import {
   useAction,
@@ -74,6 +75,8 @@ export const Contractor: Story = {
 // generated screen wires payment-status's send-reminder action: the screen
 // holds no state, `useAction` runs `sendReminder` and enters `reminder-sent`
 // or `reminder-failed` when it settles, and Screen shows the state it's in.
+// Each result is a Toast, which announces itself: there is no Card on screen
+// to hold a Notice (ADR 0016).
 // The invoice it reminds about is the fixture variant's. A plain button
 // stands in for Button, which ignores clicks while pending, so a second click
 // reaches `useAction`; like Button, it is at least the density's minimum
@@ -89,15 +92,17 @@ function Reminder() {
     <Screen audience="contractor">
       <Text text="Northwind Logistics & Freight Holdings Ltd. hasn't paid INV-0142 yet. It was due Oct 8." />
       {state === "reminder-sent" && (
-        <Text
-          live
+        <Toast
+          tone="success"
           text="Reminder sent to Northwind. We'll tell you when they pay."
+          closeLabel="Close reminder result"
         />
       )}
       {state === "reminder-failed" && (
-        <Text
-          live
+        <Toast
+          tone="failure"
           text="The reminder didn't send. Check your connection and send it again."
+          closeLabel="Close reminder result"
         />
       )}
       {overdueInvoice && state !== "reminder-sent" && (

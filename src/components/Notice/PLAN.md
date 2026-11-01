@@ -2,7 +2,7 @@
 
 ## Use
 
-The result of an action on the Card that holds the action's Button ([ADR 0016](../../../docs/adr/0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md)). Put it in that Card's `result` slot, in the state the action enters, with the tone matching the outcome: `success` in the action's `to.success` state, `failure` in `to.failure`. It announces itself, so the state needs no live Text. A table's result, or one whose Card has left in the state the action enters, is a Toast.
+The result of an action on the Card that holds the action's Button ([ADR 0016](../../../docs/adr/0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md)). Put it in that Card's `result` slot, in the state the action enters, with the tone matching the outcome: `success` in the action's `to.success` state, `failure` in `to.failure`. It announces itself. A table's result, or one whose Card has left in the state the action enters, is a Toast.
 
 ## Anatomy
 

@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Heading,
+  Notice,
   Screen,
   Stack,
   StatusTag,
@@ -48,20 +49,8 @@ export function PaymentStatus() {
               </Stack>
             }
             footer={
-              <Stack direction="column" gap="xs">
-                {state === "reminder-sent" && (
-                  <Text
-                    text="Reminder sent to Northwind. We'll tell you when they pay."
-                    live={true}
-                  />
-                )}
-                {state === "reminder-failed" && (
-                  <Text
-                    text="We couldn't send your reminder. Check your connection and try again."
-                    live={true}
-                  />
-                )}
-                {(state === "default" || state === "reminder-failed") && (
+              (state === "default" || state === "reminder-failed") && (
+                <Stack direction="column" gap="xs">
                   <Stack direction="row" gap="xs">
                     <Button
                       text="Send reminder"
@@ -71,8 +60,21 @@ export function PaymentStatus() {
                     />
                     <Button text="Download invoice" intent="primary" />
                   </Stack>
-                )}
-              </Stack>
+                </Stack>
+              )
+            }
+            result={
+              state === "reminder-sent" ? (
+                <Notice
+                  text="Reminder sent to Northwind. We'll tell you when they pay."
+                  tone="success"
+                />
+              ) : state === "reminder-failed" ? (
+                <Notice
+                  text="We couldn't send your reminder. Check your connection and try again."
+                  tone="failure"
+                />
+              ) : undefined
             }
           >
             <Stack direction="column" gap="xs">

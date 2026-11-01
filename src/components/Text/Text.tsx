@@ -1,16 +1,11 @@
-import { useEffect } from "react";
 import { tv } from "tailwind-variants/lite";
 import type { PropsOf } from "../../registry/entry.ts";
-import { useAnnounce } from "../Screen/announce.ts";
-import { useStateEntry } from "../Screen/screen-state.tsx";
 import type { textEntry } from "./Text.registry.ts";
 
-// A run of plain copy. `live` is behaviour, not a look: the paragraph stays an
-// ordinary one, and each time its screen state is entered (it mounts, or a
-// retry re-enters the state it shows in) it hands its copy to the Screen's
-// status region, which already exists, so the copy is announced as a change
-// to that region. It adds no class. Body copy keeps a measure, a ceiling of
-// about 65 characters a line, so a long paragraph on a wide screen still reads.
+// A run of plain copy, never an action's result: that is a Notice or a Toast,
+// which announce themselves (ADR 0016). Body copy keeps a measure, a ceiling
+// of about 65 characters a line, so a long paragraph on a wide screen still
+// reads.
 export const text = tv({
   slots: { root: "" },
   variants: {
@@ -25,13 +20,8 @@ export const text = tv({
 
 export type TextProps = PropsOf<typeof textEntry>;
 
-export function Text({ text: copy, size, tone, live }: TextProps) {
+export function Text({ text: copy, size, tone }: TextProps) {
   const { root } = text({ size, tone });
-  const announce = useAnnounce();
-  const entry = useStateEntry();
-  useEffect(() => {
-    if (live) announce(copy);
-  }, [live, copy, announce, entry]);
   return (
     <p data-component="Text" className={root()}>
       {copy}
