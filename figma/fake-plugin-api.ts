@@ -77,6 +77,13 @@ export function fakePluginApi(
     get valuesByMode() {
       return structuredClone(this.values);
     }
+    /** Its value for any node: the first mode's, as the fake resolves every binding. */
+    resolveForConsumer() {
+      return {
+        value: resolve({ type: "VARIABLE_ALIAS", id: this.id }),
+        resolvedType: this.resolvedType,
+      };
+    }
     get scopes() {
       return [...this._scopes];
     }
@@ -237,20 +244,23 @@ export function fakePluginApi(
     return node;
   }
 
+  // A bound variable's value in its collection's first mode, aliases followed.
+  function resolve(bound: Alias) {
+    let value: unknown = bound;
+    while ((value as Alias)?.type === "VARIABLE_ALIAS") {
+      const variable = variables.find((v) => v.id === (value as Alias).id)!;
+      const collection = collections.find(
+        (c) => c.id === variable.variableCollectionId
+      )!;
+      value = variable.valuesByMode[collection.modes[0]!.modeId];
+    }
+    return value;
+  }
+
   const scene = fakeScene({
     id,
     alias: (variable) => ({ type: "VARIABLE_ALIAS", id: variable.id }),
-    resolve(bound) {
-      let value: unknown = bound;
-      while ((value as Alias)?.type === "VARIABLE_ALIAS") {
-        const variable = variables.find((v) => v.id === (value as Alias).id)!;
-        const collection = collections.find(
-          (c) => c.id === variable.variableCollectionId
-        )!;
-        value = variable.valuesByMode[collection.modes[0]!.modeId];
-      }
-      return value;
-    },
+    resolve,
     fontLoaded: (font) => loaded.has(fontKey(font)),
     textStyle: (styleId) => textStyles.find((style) => style.id === styleId),
     effectStyle: (styleId) =>

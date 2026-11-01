@@ -31,6 +31,14 @@ export type SceneDeps = {
   mixed: symbol;
 };
 
+const entities: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
 const numberFields = [
   "paddingLeft",
   "paddingRight",
@@ -48,13 +56,23 @@ const limitFields = ["minWidth", "maxWidth", "minHeight", "maxHeight"] as const;
 const white: Paint = { type: "SOLID", color: { r: 1, g: 1, b: 1 } };
 const black: Paint = { type: "SOLID", color: { r: 0, g: 0, b: 0 } };
 
-function checkPaints(paints: Paint[]) {
+// The paints a node keeps. A paint bound to a colour variable with alpha
+// (color/bg/surface-hover, 6%) comes back with that alpha as its opacity:
+// Figma resolves the binding for the node when the paint is assigned, not in
+// setBoundVariableForPaint, which leaves opacity at 1.
+function checkPaints(paints: Paint[], resolve: SceneDeps["resolve"]) {
   for (const paint of paints) {
     if ("a" in paint.color) {
       throw new Error("in set_fills: Unrecognized key(s) in object: 'a'");
     }
   }
-  return structuredClone(paints);
+  return structuredClone(paints).map((paint) => {
+    const alias = paint.boundVariables?.color;
+    const value = alias && (resolve(alias) as { a?: number } | undefined);
+    return typeof value?.a === "number"
+      ? { ...paint, opacity: value.a }
+      : paint;
+  });
 }
 
 export function fakeScene(deps: SceneDeps) {
@@ -151,11 +169,48 @@ export function fakeScene(deps: SceneDeps) {
     primaryAxisSizingMode = "AUTO";
     counterAxisSizingMode = "AUTO";
     clipsContent = true;
-    strokeTopWeight = 1;
-    strokeRightWeight = 1;
-    strokeBottomWeight = 1;
-    strokeLeftWeight = 1;
-    description = "";
+    // Top, right, bottom, left. While they're one uniform weight, Figma's
+    // first per-side write sets all four; after it, each side is its own.
+    private sides = [1, 1, 1, 1];
+    private perSide = false;
+    private side(i: number, weight: number) {
+      if (this.perSide) this.sides[i] = weight;
+      else this.sides = [weight, weight, weight, weight];
+      this.perSide = true;
+    }
+    get strokeTopWeight() {
+      return this.sides[0]!;
+    }
+    set strokeTopWeight(weight: number) {
+      this.side(0, weight);
+    }
+    get strokeRightWeight() {
+      return this.sides[1]!;
+    }
+    set strokeRightWeight(weight: number) {
+      this.side(1, weight);
+    }
+    get strokeBottomWeight() {
+      return this.sides[2]!;
+    }
+    set strokeBottomWeight(weight: number) {
+      this.side(2, weight);
+    }
+    get strokeLeftWeight() {
+      return this.sides[3]!;
+    }
+    set strokeLeftWeight(weight: number) {
+      this.side(3, weight);
+    }
+    // Figma hands a description back trimmed, with ' " & < > as HTML
+    // entities: set "it's", read "it&#39;s".
+    private _description = "";
+    get description() {
+      return this._description;
+    }
+    set description(text: string) {
+      this._description = text.trim().replace(/[&<>"']/g, (c) => entities[c]!);
+    }
     effectStyleId = "";
     private _effects: unknown[] = [];
     private _fills: Paint[] = [white];
@@ -181,10 +236,8 @@ export function fakeScene(deps: SceneDeps) {
       return rest.every((weight) => weight === top) ? top! : deps.mixed;
     }
     set strokeWeight(weight: number) {
-      this.strokeTopWeight = weight;
-      this.strokeRightWeight = weight;
-      this.strokeBottomWeight = weight;
-      this.strokeLeftWeight = weight;
+      this.sides = [weight, weight, weight, weight];
+      this.perSide = false;
     }
     get boundVariables() {
       return structuredClone(this.bound);
@@ -214,13 +267,13 @@ export function fakeScene(deps: SceneDeps) {
       return structuredClone(this._fills);
     }
     set fills(paints: Paint[]) {
-      this._fills = checkPaints(paints);
+      this._fills = checkPaints(paints, deps.resolve);
     }
     get strokes() {
       return structuredClone(this._strokes);
     }
     set strokes(paints: Paint[]) {
-      this._strokes = checkPaints(paints);
+      this._strokes = checkPaints(paints, deps.resolve);
     }
     get effects() {
       return structuredClone(this._effects);
@@ -401,7 +454,7 @@ export function fakeScene(deps: SceneDeps) {
       return structuredClone(this._fills);
     }
     set fills(paints: Paint[]) {
-      this._fills = checkPaints(paints);
+      this._fills = checkPaints(paints, deps.resolve);
     }
     get width(): number {
       const parent = this.parent;
@@ -429,13 +482,13 @@ export function fakeScene(deps: SceneDeps) {
       return structuredClone(this._fills);
     }
     set fills(paints: Paint[]) {
-      this._fills = checkPaints(paints);
+      this._fills = checkPaints(paints, deps.resolve);
     }
     get strokes() {
       return structuredClone(this._strokes);
     }
     set strokes(paints: Paint[]) {
-      this._strokes = checkPaints(paints);
+      this._strokes = checkPaints(paints, deps.resolve);
     }
     get width() {
       return this.size.width;

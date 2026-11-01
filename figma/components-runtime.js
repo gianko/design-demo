@@ -36,6 +36,19 @@ const NULL_UNBOUND = BIND_FIELDS.slice(11);
 // A stroke's sides, when they differ: DataTable's rows rule only their top.
 const STROKE_SIDES = ["Top", "Right", "Bottom", "Left"];
 
+// A description as Figma hands it back once written: trimmed, with ' " & < >
+// as HTML entities. Comparing the raw text instead sees every apostrophe as
+// a change, so the check after a write throws.
+const ENTITIES = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+const storedDescription = (text) =>
+  text.trim().replace(/[&<>"']/g, (c) => ENTITIES[c]);
+
 // Room around and between a set's variants on the canvas, in px. It isn't a
 // design token: nothing in the code spaces variants apart.
 const GRID = 24;
@@ -180,16 +193,25 @@ async function componentsPass(RUN, PAYLOAD) {
   report.orphans = orphans.map(({ kind, name, id }) => ({ kind, name, id }));
 
   // ── Layers ──
-  const paintsMatch = (current, wanted) =>
-    Array.isArray(current) &&
-    current.length === wanted.length &&
-    wanted.every(
-      (want, i) =>
+  // A node's paints, bound to the wanted variables in order. A bound paint's
+  // opacity is its variable's alpha for that node: Figma moves a colour's
+  // alpha there when the paint is assigned (surface-hover's 6%), so compare
+  // against the alpha the variable resolves to there, not against 1.
+  const paintsMatch = (node, field, wanted) => {
+    const current = node[field];
+    if (!Array.isArray(current) || current.length !== wanted.length) {
+      return false;
+    }
+    return wanted.every((want, i) => {
+      const alpha = want.resolveForConsumer(node).value?.a ?? 1;
+      return (
         current[i].type === "SOLID" &&
         current[i].visible !== false &&
-        same(current[i].opacity ?? 1, 1) &&
+        same(current[i].opacity ?? 1, alpha) &&
         current[i].boundVariables?.color?.id === want.id
-    );
+      );
+    });
+  };
   const paints = (wanted) =>
     wanted.map((want) =>
       figma.variables.setBoundVariableForPaint(
@@ -230,7 +252,7 @@ async function componentsPass(RUN, PAYLOAD) {
     if (fill && node.layoutSizingHorizontal !== fill) {
       stale.push("layoutSizingHorizontal");
     }
-    if (!paintsMatch(node.fills, fills)) stale.push("fills");
+    if (!paintsMatch(node, "fills", fills)) stale.push("fills");
     if (write && stale.length) {
       await loadFonts(node, style);
       await node.setTextStyleIdAsync(style.id);
@@ -287,7 +309,7 @@ async function componentsPass(RUN, PAYLOAD) {
     for (const field of ["fills", "strokes"]) {
       if (!plan[field]) continue;
       const wanted = plan[field].map(variable);
-      if (paintsMatch(vector[field], wanted)) continue;
+      if (paintsMatch(vector, field, wanted)) continue;
       if (!fresh) changes.push(`${path}${plan.name}.${field}`);
       if (write) vector[field] = paints(wanted);
     }
@@ -313,9 +335,17 @@ async function componentsPass(RUN, PAYLOAD) {
     set("layoutAlign", plan.layoutAlign);
     set("clipsContent", plan.clipsContent);
     if (plan.strokeWeights) {
-      STROKE_SIDES.forEach((side, i) =>
-        set(`stroke${side}Weight`, plan.strokeWeights[i])
+      // While a frame's sides share one weight, Figma's first per-side write
+      // sets all four, so writing only the sides that differ zeroes the top
+      // of a [1, 0, 0, 0] rule. Any stale side rewrites all four, in order.
+      const fields = STROKE_SIDES.map((side) => `stroke${side}Weight`);
+      const stale = fields.filter(
+        (field, i) => !same(node[field], plan.strokeWeights[i])
       );
+      changes.push(...stale.map((field) => path + field));
+      if (write && stale.length) {
+        fields.forEach((field, i) => (node[field] = plan.strokeWeights[i]));
+      }
     } else {
       // figma.mixed while the sides differ, which no number matches.
       set("strokeWeight", plan.strokeWeight);
@@ -353,7 +383,7 @@ async function componentsPass(RUN, PAYLOAD) {
 
     for (const field of ["fills", "strokes"]) {
       const wanted = plan[field].map(variable);
-      if (paintsMatch(node[field], wanted)) continue;
+      if (paintsMatch(node, field, wanted)) continue;
       changes.push(path + field);
       if (write) node[field] = paints(wanted);
     }
@@ -510,7 +540,7 @@ async function componentsPass(RUN, PAYLOAD) {
     // The set itself: its description, and its variants in a grid, one row
     // per combination of the other axes.
     const changes = [];
-    if (set.description !== plan.description) {
+    if (set.description !== storedDescription(plan.description)) {
       changes.push("description");
       if (write) set.description = plan.description;
     }
