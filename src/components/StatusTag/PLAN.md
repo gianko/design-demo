@@ -39,7 +39,7 @@ Each pair is AA-checked in both themes by the token build (ADR 0005). No border 
 
 ## A11y contract
 
-- **Role**: none; a `<span>` of text. The word is the content and is what is read: "Overdue". Not `role="status"`: that is a live region, and a tag rendered in every row would announce itself; results are announced by a live Text (spec § Component pieces 3).
+- **Role**: none; a `<span>` of text. The word is the content and is what is read: "Overdue". Not `role="status"`: that is a live region, and a tag rendered in every row would announce itself; results are announced by a Notice or a Toast (ADR 0016).
 - **Accessible name**: none needed; the word is the text.
 - **Keyboard and focus**: not focusable.
 - **Disabled, busy**: not applicable.

@@ -17,11 +17,5 @@ export const textEntry = defineEntry({
       .describe(
         "default (the default) for copy the reader needs; muted for secondary detail."
       ),
-    live: z
-      .boolean()
-      .optional()
-      .describe(
-        "Announces the copy politely to screen readers. Leave it unset: an action's result is a Notice or a Toast, which announce themselves."
-      ),
   }),
 });

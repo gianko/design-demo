@@ -58,13 +58,14 @@ function stateTable(text: string) {
     });
 }
 
-// Spec § The P0 five, its pass-criteria table.
+// Spec § The P0 five, its pass-criteria table, with ADR 0016's results: a
+// Notice on a Card still shown, a Toast for a table's result.
 const p0Five = [
   {
     slug: "payment-status",
     audience: "contractor",
     requires: {
-      components: ["Screen", "Card", "StatusTag", "Amount", "Button"],
+      components: ["Screen", "Card", "StatusTag", "Amount", "Button", "Notice"],
       states: ["empty", "reminder-sent", "reminder-failed"],
       actions: ["send-reminder"],
     },
@@ -89,6 +90,7 @@ const p0Five = [
         "StatusTag",
         "Amount",
         "Button",
+        "Toast",
       ],
       states: ["empty", "payment-scheduled", "payment-failed"],
       actions: ["approve-and-pay"],
@@ -105,6 +107,7 @@ const p0Five = [
         "Amount",
         "StatusTag",
         "Button",
+        "Notice",
       ],
       states: ["payment-scheduled", "payment-failed"],
       actions: ["approve-and-pay"],
@@ -121,7 +124,8 @@ const p0Five = [
   },
 ];
 
-// Spec § The P1 set, its pass-criteria table, in its order.
+// Spec § The P1 set, its pass-criteria table, in its order, with ADR 0016's
+// results.
 const p1Briefs = [
   {
     slug: "bulk-pay",
@@ -264,7 +268,7 @@ const p1Briefs = [
         "Amount",
         "StatusTag",
         "Button",
-        "Toast",
+        "Notice",
       ],
       states: ["retry-requested", "retry-failed"],
       actions: ["request-retry"],
@@ -283,6 +287,7 @@ const p1Briefs = [
         "StatusTag",
         "Text",
         "Button",
+        "Notice",
         "Toast",
       ],
       states: ["invoice-withdrawn", "withdraw-failed"],
@@ -415,7 +420,7 @@ describe("the payment-status screen brief", () => {
     ]);
   });
 
-  it("says what shows in each state as the spec does", () => {
+  it("says what shows in each state as the spec does, its results in Notices (ADR 0016)", () => {
     expect(
       Object.fromEntries(
         stateTable(brief("payment-status.md").text).map(({ state, shows }) => [
@@ -427,27 +432,80 @@ describe("the payment-status screen brief", () => {
       default: "the card, the Button enabled",
       empty: '"No invoices yet" and what happens when one is sent',
       "reminder-sent":
-        'the card, and a live Text: "Reminder sent to Northwind. We\'ll tell you when they pay."',
+        'the card, and a success Notice in its result slot: "Reminder sent to Northwind. We\'ll tell you when they pay."',
       "reminder-failed":
-        "the card, a live Text saying what happened and what to do next, the Button still there",
+        "the card, a failure Notice in its result slot saying what happened and what to do next, the Button still there",
     });
   });
 });
 
-// Spec #201 § The brief set: an action's result shows in a Toast and a
-// list's empty state in an EmptyState, not in a live Text as the P0 five's do.
+// Spec #201 § The brief set: a list's empty state shows in an EmptyState.
+describe.each(["payments-received", "annual-summary"])(
+  "the %s screen brief",
+  (slug) => {
+    it("shows its empty state in an EmptyState", () => {
+      const rows = stateTable(brief(`${slug}.md`).text).slice(1);
+      for (const { state, shows } of rows) {
+        expect(shows, state).toMatch(/EmptyState/);
+      }
+    });
+  }
+);
+
+// ADR 0016: an action's result on a Card still shown in the state the action
+// enters is a Notice in that Card's result slot; a table's result, or one
+// whose Card has left, is a Toast. Each with the outcome's tone.
 describe.each([
-  "payments-received",
-  "payment-failed",
-  "withdraw-invoice",
-  "annual-summary",
-])("the %s screen brief", (slug) => {
-  it("shows each state's result in a Toast or an EmptyState, never a live Text", () => {
-    const rows = stateTable(brief(`${slug}.md`).text).slice(1);
-    for (const { state, shows } of rows) {
-      expect(shows, state).toMatch(state === "empty" ? /EmptyState/ : /Toast/);
-      expect(shows, state).not.toMatch(/live Text/);
+  [
+    "payment-status",
+    {
+      "reminder-sent": "success Notice in its result slot",
+      "reminder-failed": "failure Notice in its result slot",
+    },
+  ],
+  [
+    "invoice-review",
+    {
+      "payment-scheduled": "success Notice in its result slot",
+      "payment-failed": "failure Notice in its result slot",
+    },
+  ],
+  [
+    "payment-failed",
+    {
+      "retry-requested": "success Notice in its result slot",
+      "retry-failed": "failure Notice in its result slot",
+    },
+  ],
+  [
+    "withdraw-invoice",
+    {
+      "invoice-withdrawn": "no card, and a success Toast",
+      "withdraw-failed": "failure Notice in its result slot",
+    },
+  ],
+  [
+    "invoice-queue",
+    { "payment-scheduled": "success Toast", "payment-failed": "failure Toast" },
+  ],
+] as const)("the %s screen brief's results", (slug, results) => {
+  it("shows each action's result where ADR 0016 puts it", () => {
+    const shown = Object.fromEntries(
+      stateTable(brief(`${slug}.md`).text).map(({ state, shows }) => [
+        state,
+        shows,
+      ])
+    );
+    for (const [state, result] of Object.entries(results)) {
+      expect(shown[state], state).toContain(result);
     }
+  });
+});
+
+// ADR 0016: no result is a live Text any more, in any brief.
+describe.each(briefFiles)("the screen brief %s", (file) => {
+  it("shows no result in a live Text", () => {
+    expect(body(brief(file).text)).not.toMatch(/live Text/);
   });
 });
 
@@ -577,13 +635,9 @@ describe("the coverage rule", () => {
   const all = briefFiles.map(brief);
   // Every public component but the layout primitive Stack; the internal
   // entries (Checkbox, IconButton) are left out with the spec step's view.
-  // Notice is left out until #362 lists it in the briefs that show a Card's
-  // result (ADR 0016); that ticket removes it from here.
-  const awaitingBriefs = ["Notice"];
   const counted = async () =>
     (await loadRegistry()).entries
       .filter((entry) => !entry.internal && entry.name !== "Stack")
-      .filter((entry) => !awaitingBriefs.includes(entry.name))
       .map((entry) => entry.name);
 
   it("counts every public component but Stack", async () => {
@@ -594,6 +648,7 @@ describe("the coverage rule", () => {
       "DataTable",
       "EmptyState",
       "Heading",
+      "Notice",
       "PageHeader",
       "Screen",
       "Sheet",

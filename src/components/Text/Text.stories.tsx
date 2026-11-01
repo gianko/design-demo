@@ -68,10 +68,3 @@ export const Muted: Story = {
 export const Caption: Story = {
   args: { size: "caption", tone: "muted", text: "Last reminder sent Oct 12" },
 };
-
-export const Live: Story = {
-  args: {
-    live: true,
-    text: "Reminder sent to Northwind. We'll tell you when they pay.",
-  },
-};
