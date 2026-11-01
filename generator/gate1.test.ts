@@ -62,7 +62,18 @@ const entries = [
   defineEntry({
     name: "Toast",
     use: "The live result of an action.",
-    props: z.object({ text: z.string() }),
+    props: z.object({
+      text: z.string(),
+      tone: z.enum(["success", "failure"]),
+    }),
+  }),
+  defineEntry({
+    name: "Notice",
+    use: "The result of an action on its Card.",
+    props: z.object({
+      text: z.string(),
+      tone: z.enum(["success", "failure"]),
+    }),
   }),
   defineEntry({
     name: "Sheet",
@@ -79,6 +90,7 @@ const entries = [
       header: { allow: ["Heading", "Tag", "Stack"] },
       body: {},
       footer: { allow: ["Button", "Stack"] },
+      result: { allow: ["Notice"] },
     },
   }),
   defineEntry({
@@ -184,7 +196,10 @@ function clean() {
         "empty"
       ),
       shownIn(
-        node("sent-toast", "Toast", "screen", "body", { text: "Sent" }),
+        node("sent-toast", "Toast", "screen", "body", {
+          text: "Sent",
+          tone: "success",
+        }),
         "sent"
       ),
     ],
@@ -672,7 +687,10 @@ describe("gate 1", () => {
       // Inside the panel, which shows in sent too.
       spec.nodes.push(
         shownIn(
-          node("panel-toast", "Toast", "panel", "body", { text: "Done" }),
+          node("panel-toast", "Toast", "panel", "body", {
+            text: "Done",
+            tone: "success",
+          }),
           "sent"
         )
       );
@@ -698,6 +716,56 @@ describe("gate 1", () => {
       spec.nodes.push(node("stray-sheet", "Sheet", parent, slot));
 
       expect(check(spec)).toEqual([["sheet-in-detail", "stray-sheet"]]);
+    });
+  });
+
+  // ADR 0016: the result of an action on a Card still shown in the state
+  // the action enters is a Notice in that Card's result slot.
+  describe("Notice", () => {
+    // clean() with remind's Button moved into a Card's footer, and its
+    // result in sent a Notice on that Card instead of a Toast.
+    function withNotice() {
+      const spec = clean();
+      spec.nodes = spec.nodes.filter(
+        (n) => n.id !== "sent-toast" && n.id !== "remind-button"
+      );
+      spec.nodes.push(
+        node("card", "Card", "screen", "body"),
+        node("card-title", "Heading", "card", "header", {
+          text: "Invoice",
+          level: 2,
+        }),
+        runs(
+          node("remind-button", "Button", "card", "footer", {
+            label: "Send reminder",
+          }),
+          "remind"
+        ),
+        shownIn(
+          node("sent-notice", "Notice", "card", "result", {
+            text: "Reminder sent",
+            tone: "success",
+          }),
+          "sent"
+        )
+      );
+      return spec;
+    }
+
+    it("passes a Notice in the result slot of the Card that runs the action", () => {
+      expect(check(withNotice())).toEqual([]);
+    });
+
+    it.each([
+      ["outside a Card", "panel", "body"],
+      ["in a Card's body", "card", "body"],
+    ])("fails a Notice %s, naming it", (_, parent, slot) => {
+      const spec = withNotice();
+      const notice = nodeOf(spec, "sent-notice");
+      notice.parent = parent;
+      notice.slot = slot;
+
+      expect(check(spec)).toEqual([["notice-in-result", "sent-notice"]]);
     });
   });
 
