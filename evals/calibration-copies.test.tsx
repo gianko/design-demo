@@ -10,10 +10,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import preview from "../.storybook/preview.tsx";
 import * as bulkPay from "../src/screens/bulk-pay/BulkPay.stories.tsx";
 import * as myInvoices from "../src/screens/my-invoices/MyInvoices.stories.tsx";
+import * as paymentRun from "../src/screens/payment-run/PaymentRun.stories.tsx";
 import * as paymentStatus from "../src/screens/payment-status/PaymentStatus.stories.tsx";
 import { BulkPay as BulkPayCopy } from "./calibration/screens/bulk-pay--copy/BulkPay.tsx";
 import { BulkPay as BulkPayDensity } from "./calibration/screens/bulk-pay--density/BulkPay.tsx";
 import { MyInvoices as MyInvoicesHierarchy } from "./calibration/screens/my-invoices--hierarchy/MyInvoices.tsx";
+import { PaymentRun as PaymentRunRepetition } from "./calibration/screens/payment-run--repetition/PaymentRun.tsx";
 import { PaymentStatus as PaymentStatusAccent } from "./calibration/screens/payment-status--accent/PaymentStatus.tsx";
 import { PaymentStatus as PaymentStatusElevation } from "./calibration/screens/payment-status--elevation/PaymentStatus.tsx";
 
@@ -41,6 +43,7 @@ describe("the broken copies", () => {
       [bulkPay, BulkPayCopy],
       [bulkPay, BulkPayDensity],
       [myInvoices, MyInvoicesHierarchy],
+      [paymentRun, PaymentRunRepetition],
     ] as const) {
       const composed = copyStories(stories, copy);
       expect(composed).toHaveLength(
@@ -102,5 +105,26 @@ describe("the broken copies", () => {
 
     expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
     expect(screen.getByText("My invoices")).toBeDefined();
+  });
+
+  it("payment-run--repetition says Overdue a third time on the Overdue card", () => {
+    // The Overdue card's text, from its title down.
+    const overdueCard = (Default: ComponentType) => {
+      const { unmount } = render(<Default />);
+      const text = screen
+        .getByRole("heading", { level: 2, name: "Overdue" })
+        .closest('[data-component="Card"]')!.textContent!;
+      unmount();
+      return text;
+    };
+    const times = (text: string) => text.match(/overdue/gi)!.length;
+
+    const kept = overdueCard(composeStories(paymentRun, preview).Default);
+    const copy = overdueCard(copyStories(paymentRun, PaymentRunRepetition)[0]!);
+
+    // The title and its tag; then the count says it too.
+    expect(times(kept)).toBe(2);
+    expect(times(copy)).toBe(3);
+    expect(copy).toContain("2 overdue invoices");
   });
 });
