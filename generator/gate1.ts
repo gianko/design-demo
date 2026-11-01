@@ -383,10 +383,15 @@ function headingChecks(screen: ScreenModel): Failure[] {
   return failures.list;
 }
 
-// The structure the signature transitions ride on (ADR 0011, ADR 0013): a
-// Toast is an action's result, so each state shows at most one, and only in
-// states an action enters, never the default state; and a Sheet is a
-// DataTable row's detail.
+// An action's result: a Notice on the Card that runs it, or a Toast (ADR
+// 0013, ADR 0016).
+const results: readonly string[] = ["Notice", "Toast"];
+
+// The structure the signature transitions ride on (ADR 0011, ADR 0013, ADR
+// 0016): a Notice or a Toast is an action's result, so each state shows at
+// most one of either, and only in states an action enters, never the default
+// state; a Notice sits in a Card's result slot; and a Sheet is a DataTable
+// row's detail.
 function motionChecks(
   spec: UiSpec,
   byId: Map<string, UiNode>,
@@ -397,14 +402,16 @@ function motionChecks(
     // In list order, so the one named is the one written later.
     const shown = spec.nodes.filter(
       (node) =>
-        node.component === "Toast" && screen.visibleIn(node).includes(state)
+        results.includes(node.component) &&
+        screen.visibleIn(node).includes(state)
     );
     for (const extra of shown.slice(1)) {
+      const first = shown[0]!;
       failures.add(
         fail(
-          "one-toast",
+          "one-result",
           extra.id,
-          `A second Toast in state "${state}", after "${shown[0]!.id}"; a state shows at most one.`
+          `A second result in state "${state}", after the ${first.component} "${first.id}"; a state shows at most one, a Notice or a Toast.`
         )
       );
     }
@@ -414,18 +421,43 @@ function motionChecks(
     spec.actions.flatMap(({ to }) => [to.success, to.failure])
   );
   for (const node of spec.nodes) {
-    if (node.component === "Toast") {
+    if (results.includes(node.component)) {
       const stray = screen
         .visibleIn(node)
         .filter((state) => state === defaultState || !entered.has(state));
       if (stray.length > 0) {
         failures.add(
           fail(
-            "toast-state",
+            "result-state",
             node.id,
-            `It shows in ${stray.map((state) => `"${state}"`).join(", ")}; a Toast shows only in a state an action's to enters, never the default state.`
+            `It shows in ${stray.map((state) => `"${state}"`).join(", ")}; a ${node.component} shows only in a state an action's to enters, never the default state.`
           )
         );
+      }
+      for (const failure of toneChecks(node, spec, screen)) {
+        failures.add(failure);
+      }
+    }
+    if (node.component === "Notice") {
+      const parent = parentOf(node, byId);
+      if (parent?.component !== "Card" || node.slot !== "result") {
+        failures.add(
+          fail(
+            "notice-in-result",
+            node.id,
+            "A Notice sits only in a Card's result slot, on the Card whose footer holds its action's Button; a table's result, or one whose Card has left, is a Toast."
+          )
+        );
+      } else {
+        for (const failure of noticeCardChecks(
+          node,
+          parent,
+          spec,
+          byId,
+          screen
+        )) {
+          failures.add(failure);
+        }
       }
     }
     if (node.component === "Sheet") {
@@ -442,6 +474,95 @@ function motionChecks(
     }
   }
   return failures.list;
+}
+
+// The names of the actions whose `to` enters `state` on one of `outcomes`.
+function entering(
+  spec: UiSpec,
+  state: string,
+  outcomes: ("success" | "failure")[]
+): string[] {
+  return spec.actions
+    .filter(({ to }) => outcomes.some((outcome) => to[outcome] === state))
+    .map(({ name }) => name);
+}
+
+// Action names as a failure message offers them: "a" or "b".
+function eitherOf(names: string[]): string {
+  return names.map((name) => `"${name}"`).join(" or ");
+}
+
+// A result's tone is its outcome's (ADR 0016): success in a state an action
+// enters on success, failure in one it enters on failure. A state some action
+// enters on success and another on failure takes either. A tone that isn't
+// one of the two is props-parse's to report, and a state no action enters
+// result-state's.
+function toneChecks(
+  result: UiNode,
+  spec: UiSpec,
+  screen: ScreenModel
+): Failure[] {
+  const tone = propValue(result, "tone");
+  const given = tone?.ok ? tone.value : undefined;
+  if (given !== "success" && given !== "failure") return [];
+  const wrong = given === "success" ? "failure" : "success";
+  for (const state of screen.visibleIn(result)) {
+    if (state === defaultState) continue;
+    const against = entering(spec, state, [wrong]);
+    if (entering(spec, state, [given]).length > 0 || against.length === 0) {
+      continue;
+    }
+    const names = eitherOf(against);
+    return [
+      fail(
+        "result-tone",
+        result.id,
+        `Its tone is "${given}" in "${state}", the state ${names} enters on ${wrong}; give it tone ${wrong}: a result's tone is success in an action's to.success state and failure in its to.failure.`
+      ),
+    ];
+  }
+  return [];
+}
+
+// The Card holding a Notice is the one whose footer, through any Stacks,
+// holds a Button running an action that enters each state the Notice shows
+// in (ADR 0016), even where that Button is hidden in the state: Send
+// reminder leaves the footer once sent. A state no action enters is
+// result-state's to report.
+function noticeCardChecks(
+  notice: UiNode,
+  card: UiNode,
+  spec: UiSpec,
+  byId: Map<string, UiNode>,
+  screen: ScreenModel
+): Failure[] {
+  const inFooter = (button: UiNode) => {
+    const chain = [button, ...ancestors(button, byId)];
+    const at = chain.indexOf(card);
+    return at > 0 && chain[at - 1]!.slot === "footer";
+  };
+  const runHere = new Set(
+    spec.nodes
+      .filter(
+        (node) =>
+          node.component === "Button" && node.action !== null && inFooter(node)
+      )
+      .map((node) => node.action)
+  );
+  for (const state of screen.visibleIn(notice)) {
+    const enters = entering(spec, state, ["success", "failure"]);
+    if (state === defaultState || enters.length === 0) continue;
+    if (enters.some((name) => runHere.has(name))) continue;
+    const names = eitherOf(enters);
+    return [
+      fail(
+        "notice-card",
+        notice.id,
+        `It sits on the Card "${card.id}", whose footer holds no Button running ${names}, the action that enters "${state}"; put the Notice in the result slot of the Card whose footer runs it, or, if that Card has left in "${state}", make the result a Toast.`
+      ),
+    ];
+  }
+  return [];
 }
 
 // A DataTable's actions footer (ADR 0013): each Button in it runs an action,

@@ -62,7 +62,12 @@ const entries = [
   defineEntry({
     name: "Toast",
     use: "The live result of an action.",
-    props: z.object({ text: z.string() }),
+    props: z.object({ text: z.string(), tone: z.enum(["success", "failure"]) }),
+  }),
+  defineEntry({
+    name: "Notice",
+    use: "The result of an action on its Card.",
+    props: z.object({ text: z.string(), tone: z.enum(["success", "failure"]) }),
   }),
   defineEntry({
     name: "Sheet",
@@ -79,6 +84,7 @@ const entries = [
       header: { allow: ["Heading", "Tag", "Stack"] },
       body: {},
       footer: { allow: ["Button", "Stack"] },
+      result: { allow: ["Notice"] },
     },
   }),
   defineEntry({
@@ -184,7 +190,10 @@ function clean() {
         "empty"
       ),
       shownIn(
-        node("sent-toast", "Toast", "screen", "body", { text: "Sent" }),
+        node("sent-toast", "Toast", "screen", "body", {
+          text: "Sent",
+          tone: "success",
+        }),
         "sent"
       ),
     ],
@@ -207,6 +216,67 @@ function clean() {
 function runs(n: Node, action: string) {
   n.action = action;
   return n;
+}
+
+// clean() with remind's Button moved into a Card's footer, and its result in
+// sent a Notice on that Card instead of a Toast (ADR 0016).
+function withNotice() {
+  const spec = clean();
+  spec.nodes = spec.nodes.filter(
+    (n) => n.id !== "sent-toast" && n.id !== "remind-button"
+  );
+  spec.nodes.push(
+    node("card", "Card", "screen", "body"),
+    node("card-title", "Heading", "card", "header", {
+      text: "Invoice",
+      level: 2,
+    }),
+    runs(
+      node("remind-button", "Button", "card", "footer", {
+        label: "Send reminder",
+      }),
+      "remind"
+    ),
+    shownIn(
+      node("sent-notice", "Notice", "card", "result", {
+        text: "Reminder sent",
+        tone: "success",
+      }),
+      "sent"
+    )
+  );
+  return spec;
+}
+
+// A second action, nudge, entering `to`, run by a Button beside remind's,
+// or at `parent`'s `slot` when given; `states` are added to the spec's.
+function withNudge(
+  spec: ReturnType<typeof clean>,
+  to: { success: string; failure: string },
+  states: string[] = [],
+  at?: { parent: string; slot: string }
+) {
+  const remind = nodeOf(spec, "remind-button");
+  for (const name of states) spec.states.push({ name, fixture: "brief/sent" });
+  spec.actions.push({
+    name: "nudge",
+    operation: "sendReminder",
+    pending: "nudge-button",
+    to,
+  });
+  spec.nodes.push(
+    runs(
+      node(
+        "nudge-button",
+        "Button",
+        at?.parent ?? remind.parent,
+        at?.slot ?? remind.slot,
+        { label: "Nudge" }
+      ),
+      "nudge"
+    )
+  );
+  return spec;
 }
 
 const context = { entries, audience: "contractor", slug: "brief", fixtures };
@@ -672,12 +742,15 @@ describe("gate 1", () => {
       // Inside the panel, which shows in sent too.
       spec.nodes.push(
         shownIn(
-          node("panel-toast", "Toast", "panel", "body", { text: "Done" }),
+          node("panel-toast", "Toast", "panel", "body", {
+            text: "Done",
+            tone: "success",
+          }),
           "sent"
         )
       );
 
-      expect(check(spec)).toEqual([["one-toast", "panel-toast"]]);
+      expect(check(spec)).toEqual([["one-result", "panel-toast"]]);
     });
 
     it.each([
@@ -687,7 +760,7 @@ describe("gate 1", () => {
       const spec = clean();
       nodeOf(spec, "sent-toast").when = when;
 
-      expect(check(spec)).toEqual([["toast-state", "sent-toast"]]);
+      expect(check(spec)).toEqual([["result-state", "sent-toast"]]);
     });
 
     it.each([
@@ -699,6 +772,251 @@ describe("gate 1", () => {
 
       expect(check(spec)).toEqual([["sheet-in-detail", "stray-sheet"]]);
     });
+  });
+
+  // ADR 0016: the result of an action on a Card still shown in the state
+  // the action enters is a Notice in that Card's result slot.
+  describe("Notice", () => {
+    it("passes a Notice in the result slot of the Card that runs the action", () => {
+      expect(check(withNotice())).toEqual([]);
+    });
+
+    it.each([
+      ["outside a Card", "panel", "body"],
+      ["in a Card's body", "card", "body"],
+    ])("fails a Notice %s, naming it", (_, parent, slot) => {
+      const spec = withNotice();
+      const notice = nodeOf(spec, "sent-notice");
+      notice.parent = parent;
+      notice.slot = slot;
+
+      expect(check(spec)).toEqual([["notice-in-result", "sent-notice"]]);
+    });
+
+    it.each([
+      ["a Toast", "Toast", "screen", "body"],
+      ["a second Notice", "Notice", "card", "result"],
+    ])(
+      "fails %s beside the Notice in the same state, naming it",
+      (_, component, parent, slot) => {
+        const spec = withNotice();
+        spec.nodes.push(
+          shownIn(
+            node("also", component, parent, slot, {
+              text: "Sent",
+              tone: "success",
+            }),
+            "sent"
+          )
+        );
+
+        expect(check(spec)).toEqual([["one-result", "also"]]);
+      }
+    );
+
+    it.each([
+      ["the default state", ["default", "sent"]],
+      ["a state no action enters", ["sent", "empty"]],
+    ])("fails a Notice shown in %s, naming it", (_, when) => {
+      const spec = withNotice();
+      nodeOf(spec, "sent-notice").when = when;
+
+      expect(check(spec)).toEqual([["result-state", "sent-notice"]]);
+    });
+
+    // Send reminder, once sent, leaves the Card's footer (ADR 0016).
+    it("passes when the action's Button is hidden in the Notice's state", () => {
+      const spec = withNotice();
+      nodeOf(spec, "remind-button").when = ["default"];
+
+      expect(check(spec)).toEqual([]);
+    });
+
+    it("passes the action's Button in a Stack in the Card's footer", () => {
+      const spec = withNotice();
+      spec.nodes.push(node("card-actions", "Stack", "card", "footer"));
+      const button = nodeOf(spec, "remind-button");
+      button.parent = "card-actions";
+      button.slot = "body";
+
+      expect(check(spec)).toEqual([]);
+    });
+
+    it("fails a Notice on a Card that doesn't run the action, naming it", () => {
+      const spec = withNotice();
+      spec.nodes.push(node("other-card", "Card", "screen", "body"));
+      nodeOf(spec, "sent-notice").parent = "other-card";
+
+      expect(check(spec)).toEqual([["notice-card", "sent-notice"]]);
+    });
+
+    it("fails a Notice whose Card runs the action from its body, not its footer", () => {
+      const spec = withNotice();
+      nodeOf(spec, "remind-button").slot = "body";
+
+      expect(check(spec)).toEqual([["notice-card", "sent-notice"]]);
+    });
+
+    // The Notice shows in sent, which remind enters, and in resent, which
+    // nudge enters.
+    describe("shown in two states", () => {
+      const twoStates = (at?: { parent: string; slot: string }) => {
+        const spec = withNudge(
+          withNotice(),
+          { success: "resent", failure: "default" },
+          ["resent"],
+          at
+        );
+        nodeOf(spec, "sent-notice").when = ["sent", "resent"];
+        return spec;
+      };
+
+      it("passes when the Card's footer runs both actions", () => {
+        expect(check(twoStates())).toEqual([]);
+      });
+
+      it("fails when the Card's footer runs only the first state's action, naming it", () => {
+        const spec = twoStates({ parent: "card", slot: "body" });
+
+        expect(check(spec)).toEqual([["notice-card", "sent-notice"]]);
+      });
+    });
+  });
+
+  // A result's tone is its outcome's, for Notice and Toast alike (ADR 0016):
+  // success in an action's to.success state, failure in its to.failure.
+  describe("a result's tone", () => {
+    const results = [
+      // clean()'s sent Toast, and a failure Toast beside it.
+      {
+        component: "Toast",
+        spec: clean,
+        sent: "sent-toast",
+        parent: "screen",
+        slot: "body",
+      },
+      // withNotice()'s sent Notice, and a failure Notice on the same Card.
+      {
+        component: "Notice",
+        spec: withNotice,
+        sent: "sent-notice",
+        parent: "card",
+        slot: "result",
+      },
+    ];
+
+    // remind's failure enters a state of its own, failed, which shows a
+    // result of the given tone.
+    function withFailed(
+      { component, spec, parent, slot }: (typeof results)[number],
+      tone: string
+    ) {
+      const built = spec();
+      built.states.push({ name: "failed", fixture: "brief/sent" });
+      built.actions[0]!.to.failure = "failed";
+      built.nodes.push(
+        shownIn(
+          node("failed-result", component, parent, slot, {
+            text: "The reminder didn't send. Try again.",
+            tone,
+          }),
+          "failed"
+        )
+      );
+      return built;
+    }
+
+    it.each(results)(
+      "passes a failure $component in the state the action's failure enters",
+      (result) => {
+        expect(check(withFailed(result, "failure"))).toEqual([]);
+      }
+    );
+
+    it.each(results)(
+      "fails a failure $component in the action's to.success state, naming it",
+      (result) => {
+        const spec = result.spec();
+        setProp(nodeOf(spec, result.sent), "tone", "failure");
+
+        expect(check(spec)).toEqual([["result-tone", result.sent]]);
+      }
+    );
+
+    it.each(results)(
+      "fails a success $component in the action's to.failure state, naming it",
+      (result) => {
+        expect(check(withFailed(result, "success"))).toEqual([
+          ["result-tone", "failed-result"],
+        ]);
+      }
+    );
+
+    // The success result shows in sent and in a second state, where its tone
+    // is right too or isn't.
+    it.each(results)(
+      "passes a success $component in two states that actions enter on success",
+      (result) => {
+        const spec = withNudge(
+          result.spec(),
+          { success: "resent", failure: "default" },
+          ["resent"]
+        );
+        nodeOf(spec, result.sent).when = ["sent", "resent"];
+
+        expect(check(spec)).toEqual([]);
+      }
+    );
+
+    it.each(results)(
+      "fails a success $component in to.success's state and then to.failure's, naming it",
+      (result) => {
+        const spec = result.spec();
+        spec.states.push({ name: "failed", fixture: "brief/sent" });
+        spec.actions[0]!.to.failure = "failed";
+        nodeOf(spec, result.sent).when = ["sent", "failed"];
+
+        expect(check(spec)).toEqual([["result-tone", result.sent]]);
+      }
+    );
+
+    // sent is remind's to.success; nudge enters it on failure, so its result
+    // may take either tone.
+    it.each(
+      results.flatMap((result) =>
+        ["success", "failure"].map((tone) => ({ ...result, tone }))
+      )
+    )(
+      "passes a $tone $component in a state one action enters on success and another on failure",
+      (result) => {
+        const spec = withNudge(result.spec(), {
+          success: "default",
+          failure: "sent",
+        });
+        setProp(nodeOf(spec, result.sent), "tone", result.tone);
+
+        expect(check(spec)).toEqual([]);
+      }
+    );
+
+    it.each(results)(
+      "fails a failure $component in a state two actions enter on success, naming both",
+      (result) => {
+        const spec = withNudge(result.spec(), {
+          success: "sent",
+          failure: "default",
+        });
+        setProp(nodeOf(spec, result.sent), "tone", "failure");
+
+        const failures = gate1(spec, context);
+        expect(failures.map(({ rule, location }) => [rule, location])).toEqual([
+          ["result-tone", result.sent],
+        ]);
+        expect(failures[0]!.message).toContain(
+          '"sent", the state "remind" or "nudge" enters on success'
+        );
+      }
+    );
   });
 
   describe("nested cards", () => {
@@ -1193,7 +1511,7 @@ describe("gate 1 against the library's registry", () => {
         )
       );
 
-      expect(await checkQueue(spec)).toEqual([["one-toast", "also"]]);
+      expect(await checkQueue(spec)).toEqual([["one-result", "also"]]);
     });
 
     // Ticking rows enters no state (ADR 0013), so the default state is
@@ -1202,7 +1520,7 @@ describe("gate 1 against the library's registry", () => {
       const spec = payConfirmation();
       nodeOf(spec, "scheduled").when = ["default", "payment-scheduled"];
 
-      expect(await checkQueue(spec)).toEqual([["toast-state", "scheduled"]]);
+      expect(await checkQueue(spec)).toEqual([["result-state", "scheduled"]]);
     });
 
     it("fails an ActionBar placed in a UI spec as unregistered", async () => {
@@ -1210,6 +1528,128 @@ describe("gate 1 against the library's registry", () => {
       spec.nodes.push(node("bar", "ActionBar", "column", "body"));
 
       expect(await checkQueue(spec)).toEqual([["registered-component", "bar"]]);
+    });
+  });
+
+  // ADR 0016's payment-status with the library's own Card and Notice: Send
+  // reminder in the Card's footer, gone once sent, and its result in each
+  // state it enters a Notice in the Card's result slot.
+  describe("a Card's result", () => {
+    function paymentStatus() {
+      return {
+        audience: "contractor",
+        nodes: [
+          node("screen", "Screen", null, null, { audience: "contractor" }),
+          node("column", "Stack", "screen", "body"),
+          node("title", "Heading", "column", "body", {
+            text: "Payment status",
+            level: 1,
+          }),
+          node("card", "Card", "column", "body"),
+          node("number", "Heading", "card", "header", {
+            text: bind("overdueInvoice.number"),
+            level: 2,
+          }),
+          node("amount", "Amount", "card", "body", {
+            value: bind("overdueInvoice.amount"),
+            currency: bind("overdueInvoice.currency"),
+            display: "card",
+          }),
+          shownIn(
+            runs(
+              node("remind", "Button", "card", "footer", {
+                text: "Send reminder",
+                intent: "primary",
+              }),
+              "send-reminder"
+            ),
+            "default",
+            "reminder-failed"
+          ),
+          shownIn(
+            node("sent", "Notice", "card", "result", {
+              text: "Reminder sent to Northwind. We'll tell you when they pay.",
+              tone: "success",
+            }),
+            "reminder-sent"
+          ),
+          shownIn(
+            node("failed", "Notice", "card", "result", {
+              text: "We couldn't send your reminder. Check your connection and try again.",
+              tone: "failure",
+            }),
+            "reminder-failed"
+          ),
+        ],
+        states: [
+          { name: "reminder-sent", fixture: "payment-status/reminder-sent" },
+          {
+            name: "reminder-failed",
+            fixture: "payment-status/reminder-failed",
+          },
+        ],
+        actions: [
+          {
+            name: "send-reminder",
+            operation: "sendReminder",
+            pending: "remind",
+            to: { success: "reminder-sent", failure: "reminder-failed" },
+          },
+        ],
+      };
+    }
+
+    async function checkStatus(spec: ReturnType<typeof paymentStatus>) {
+      const { entries } = await loadRegistry();
+      const fixtures = {
+        variants: Object.fromEntries(
+          variantNames.map((name) => [name, fixtureVariant(name).data])
+        ),
+        operations: operationNames,
+      };
+      return gate1(spec, {
+        audience: "contractor",
+        slug: "payment-status",
+        entries,
+        fixtures,
+      }).map(({ rule, location }) => [rule, location]);
+    }
+
+    it("passes, and meets a brief that requires Notice", async () => {
+      const spec = paymentStatus();
+
+      expect(await checkStatus(spec)).toEqual([]);
+      expect(
+        checkPassCriteria(
+          {
+            components: ["Card", "Notice", "Button"],
+            states: ["reminder-sent", "reminder-failed"],
+            actions: ["send-reminder"],
+            transitions: [],
+          },
+          wireSchema().parse(spec)
+        )
+      ).toEqual({ met: true, missing: [] });
+    });
+
+    // An action's result is never a Text any more (ADR 0016).
+    it("fails a Text in the Card's result slot, naming it", async () => {
+      const spec = paymentStatus();
+      const sent = nodeOf(spec, "sent");
+      sent.component = "Text";
+      sent.props = sent.props.filter(({ name }) => name === "text");
+
+      expect(await checkStatus(spec)).toEqual([["slot-allow", "sent"]]);
+    });
+
+    it("fails a Notice in the Card's footer, naming it", async () => {
+      const spec = paymentStatus();
+      nodeOf(spec, "failed").slot = "footer";
+
+      expect(await checkStatus(spec)).toEqual([
+        ["slot-allow", "failed"],
+        ["notice-in-result", "failed"],
+      ]);
     });
   });
 

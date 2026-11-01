@@ -4,7 +4,7 @@ import { text } from "./Text.tsx";
 
 export const textEntry = defineEntry({
   name: "Text",
-  use: "A sentence or short paragraph of plain copy, or a caption-sized note under something; set live on the Text that confirms an action's result in the state the action enters. For a title use Heading, for money Amount, for a status StatusTag.",
+  use: "A sentence or short paragraph of plain copy, or a caption-sized note under something. For a title use Heading, for money Amount, for a status StatusTag. An action's result is a Notice or a Toast, never a Text.",
   props: z.object({
     text: z.string().describe("The copy, in sentence case."),
     size: variantEnum(text, "size")
@@ -21,7 +21,7 @@ export const textEntry = defineEntry({
       .boolean()
       .optional()
       .describe(
-        "Announces the copy politely to screen readers; only on the Text that confirms an action's result."
+        "Announces the copy politely to screen readers. Leave it unset: an action's result is a Notice or a Toast, which announce themselves."
       ),
   }),
 });
