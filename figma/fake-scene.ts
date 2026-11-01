@@ -67,6 +67,7 @@ export function fakeScene(deps: SceneDeps) {
     x = 0;
     y = 0;
     layoutPositioning_ = "AUTO";
+    layoutAlign_ = "INHERIT";
     layoutGrow = 0;
     private _constraints = { horizontal: "MIN", vertical: "MIN" };
     private data: Record<string, string> = {};
@@ -88,6 +89,18 @@ export function fakeScene(deps: SceneDeps) {
         );
       }
       this.layoutPositioning_ = value;
+    }
+    get layoutAlign() {
+      return this.layoutAlign_;
+    }
+    set layoutAlign(value: string) {
+      const parent = this.parent as Frame | null;
+      if (value === "STRETCH" && (parent?.layoutMode ?? "NONE") === "NONE") {
+        throw new Error(
+          "in set_layoutAlign: node must be a child of an auto-layout frame"
+        );
+      }
+      this.layoutAlign_ = value;
     }
     get constraints() {
       return { ...this._constraints };
@@ -243,6 +256,12 @@ export function fakeScene(deps: SceneDeps) {
       if (this.layoutGrow === 1 && parent instanceof Frame) {
         const along = parent.layoutMode === "HORIZONTAL" ? "width" : "height";
         const filled = along === field ? parent.fillFor(this, field) : null;
+        if (filled !== null) return filled;
+      }
+      // Stretched, it takes its parent's inner length across its layout.
+      if (this.layoutAlign === "STRETCH" && parent instanceof Frame) {
+        const across = parent.layoutMode === "HORIZONTAL" ? "height" : "width";
+        const filled = across === field ? parent.fillFor(this, field) : null;
         if (filled !== null) return filled;
       }
       if (this.layoutMode !== "NONE") {
@@ -530,6 +549,7 @@ export function fakeScene(deps: SceneDeps) {
       constraints: node.constraints,
       generator: node.getSharedPluginData("dill", "generator"),
       layoutGrow: node.layoutGrow,
+      layoutAlign: node.layoutAlign,
     };
     if (node instanceof Vector) {
       return {

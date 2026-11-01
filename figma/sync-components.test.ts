@@ -40,12 +40,14 @@ type Report = {
 };
 
 // ADR 0015's sets, and how many variants they hold between them: Button's
-// 12, StatusTag's 5, Toast's 2, Text's 4, Heading's 3, Amount's 2,
-// Checkbox's 6 and IconButton's 2, then the five one-variant sets.
+// 12, StatusTag's 5, Toast's 2, Notice's 2, Text's 4, Heading's 3, Amount's
+// 2, Checkbox's 6 and IconButton's 2, then Card's 3, one per result, and
+// the four one-variant sets.
 const setNames = [
   "Button",
   "StatusTag",
   "Toast",
+  "Notice",
   "Text",
   "Heading",
   "Amount",
@@ -57,7 +59,7 @@ const setNames = [
   "Sheet",
   "DataTable",
 ];
-const variantCount = 41;
+const variantCount = 45;
 
 const run = (code: string, file: FakePluginApi) =>
   runScript(code, file) as Promise<Report>;
@@ -103,6 +105,7 @@ type Layer = {
   alignment?: string[];
   clipsContent?: boolean;
   strokeWeight?: number;
+  strokeWeights?: number[];
   boundVariables?: Record<string, { id: string }>;
   fills?: { boundVariables?: { color?: { id: string } } }[];
   strokes?: { boundVariables?: { color?: { id: string } } }[];
@@ -543,6 +546,105 @@ describe("the rest of the library", () => {
       width: "density/height/control",
       height: "density/height/control",
     });
+  });
+
+  it("draws Notice's two tones as Card's bottom-edge strip: its glyph centred on the first line of copy, in the copy's colour", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints, textStyle } = components(file);
+    expect(
+      sets.find((s) => s.name === "Notice")!.children!.map((c) => c.name)
+    ).toEqual(["tone=success", "tone=failure"]);
+    const failure = variant("tone=failure", "Notice");
+    expect(failure.layoutMode).toBe("HORIZONTAL");
+    expect(failure.alignment).toEqual(["MIN", "MIN"]);
+    expect(paints(failure.fills)).toEqual(["color/bg/error-inline"]);
+    // Only its bottom corners round: its top is the Card's hairline.
+    expect(bound(failure)).toEqual({
+      paddingLeft: "density/padding/surface",
+      paddingRight: "density/padding/surface",
+      paddingTop: "space/sm",
+      paddingBottom: "space/sm",
+      itemSpacing: "space/xs",
+      bottomLeftRadius: "density/radius/surface",
+      bottomRightRadius: "density/radius/surface",
+    });
+    expect(failure.children!.map((c) => c.name)).toEqual(["icon", "text"]);
+    // The glyph's box is one line of body copy tall, its glyph centred in it.
+    const icon = child(failure, "icon");
+    expect(bound(icon)).toEqual({ height: "density/text/body/line-height" });
+    expect(icon.alignment).toEqual(["MIN", "CENTER"]);
+    const glyph = child(child(icon, "glyph"), "glyph");
+    expect(glyph.type).toBe("VECTOR");
+    expect(bound(child(icon, "glyph"))).toEqual({
+      width: "density/size/icon",
+      height: "density/size/icon",
+    });
+    expect(paints(glyph.fills)).toEqual(["color/text/error-inline"]);
+    const copy = child(child(failure, "text"), "text");
+    expect(copy.characters).toMatch(/^We couldn't send your reminder/);
+    expect(textStyle(copy.textStyleId)).toBe("body");
+    expect(paints(copy.fills)).toEqual(["color/text/error-inline"]);
+
+    const success = variant("tone=success", "Notice");
+    expect(paints(success.fills)).toEqual(["color/bg/surface-raised"]);
+    const tick = child(child(child(success, "icon"), "glyph"), "glyph");
+    expect(paints(tick.fills)).toEqual(["color/text/ink"]);
+    // Each tone its own Phosphor glyph: CheckCircle and WarningCircle.
+    expect(tick.vectorPaths).not.toEqual(glyph.vectorPaths);
+    expect(child(child(success, "text"), "text").characters).toMatch(
+      /^Reminder sent to Northwind/
+    );
+  });
+
+  it("gives Card a variant per result, a success or a failure Notice drawn across its bottom edge under a hairline", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, variant, bound, paints } = components(file);
+    expect(
+      sets.find((s) => s.name === "Card")!.children!.map((c) => c.name)
+    ).toEqual(["result=none", "result=success", "result=failure"]);
+    expect(variant("result=none", "Card").children!.map((c) => c.name)).toEqual(
+      ["content"]
+    );
+    const card = variant("result=failure", "Card");
+    // Outside the padded content, so the strip runs edge to edge.
+    expect(card.children!.map((c) => c.name)).toEqual(["content", "result"]);
+    const result = child(card, "result");
+    expect(paints(result.strokes)).toEqual(["color/border/line"]);
+    expect(result.strokeWeights).toEqual([1, 0, 0, 0]);
+    // Notice's own frames, not an instance (ADR 0015), in its failure look.
+    const strip = child(result, "Notice");
+    expect(strip.type).toBe("FRAME");
+    expect(paints(strip.fills)).toEqual(["color/bg/error-inline"]);
+    expect(strip.children!.map((c) => c.name)).toEqual(["icon", "text"]);
+    expect(child(child(strip, "text"), "text").characters).toMatch(
+      /^We couldn't send your reminder/
+    );
+    // Its bottom corners follow the Card's.
+    expect(bound(strip)).toMatchObject({
+      bottomLeftRadius: bound(card).bottomLeftRadius,
+      bottomRightRadius: bound(card).bottomRightRadius,
+    });
+    // Edge to edge on a Card at its ceiling, its copy wrapping inside.
+    expect(bound(card)).toMatchObject({ width: "size/max-width/card" });
+    expect(result.width).toBe(card.width);
+    expect(strip.width).toBe(card.width);
+    const text = child(strip, "text");
+    expect(text.width).toBe(
+      // Admin density: 20px padding either side, a 16px glyph, a 12px gap.
+      card.width - 20 - 20 - 16 - 12
+    );
+    expect(child(text, "text").layoutSizingHorizontal).toBe("FILL");
+    expect(
+      paints(
+        child(variant("result=success", "Card"), "result").children![0]!.fills
+      )
+    ).toEqual(["color/bg/surface-raised"]);
   });
 });
 

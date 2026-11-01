@@ -60,6 +60,21 @@ describe("generating the frames", () => {
     });
   });
 
+  it("draws a box one line tall at its type's line height, and fails with no type above it", () => {
+    const [set] = framesPayload(
+      [probe("h-lh", "inline-flex bg-surface text-caption")],
+      tokens
+    ).sets;
+
+    const mark = set!.variants[1]!.children![0]!;
+    expect(mark.type === "FRAME" && mark.bind).toEqual({
+      height: "type/caption/line-height",
+    });
+    expect(() => framesPayload([probe("h-lh")], tokens)).toThrow(
+      "Probe (tone=loud): the mark slot is one line tall, with no type class above it"
+    );
+  });
+
   it("takes a motion-reduce: class over the one it overrides, since a frame is still", () => {
     const [set] = framesPayload(
       [probe("w-0 motion-reduce:w-1/3 motion-reduce:animate-none")],

@@ -1,8 +1,9 @@
 // @vitest-environment node
 
-// The one-variant sets of ADR 0015 (#322): Card, EmptyState, PageHeader,
-// Sheet and DataTable, each a single variant whose slots are named
-// auto-layout placeholder frames, run against the fake Plugin API.
+// The one-variant sets of ADR 0015 (#322): EmptyState, PageHeader, Sheet
+// and DataTable, each a single variant whose slots are named auto-layout
+// placeholder frames, run against the fake Plugin API. Card's slots are
+// placeholders too, though it now has a variant per result (ADR 0016).
 
 import { readFile } from "node:fs/promises";
 import { tv } from "tailwind-variants/lite";
@@ -27,13 +28,7 @@ import {
 import { syncComponentScripts, type SyncOptions } from "./sync-components.ts";
 import { syncScripts as tokenScripts } from "./sync-tokens.ts";
 
-const oneVariantSets = [
-  "Card",
-  "EmptyState",
-  "PageHeader",
-  "Sheet",
-  "DataTable",
-];
+const oneVariantSets = ["EmptyState", "PageHeader", "Sheet", "DataTable"];
 
 let tokens: FigmaPayload;
 let payload: ComponentsPayload;
@@ -147,7 +142,7 @@ function walkPlan(plan: NodePlan): NodePlan[] {
 }
 
 describe("the one-variant sets", () => {
-  it("are generated for Card, EmptyState, PageHeader, Sheet and DataTable, and none for Screen or Stack", () => {
+  it("are generated for EmptyState, PageHeader, Sheet and DataTable, and none for Screen or Stack", () => {
     for (const name of oneVariantSets) {
       const set = payload.sets.find((s) => s.name === name);
       expect(set, name).toBeDefined();
@@ -292,6 +287,19 @@ describe("generating a one-variant set", () => {
     );
   });
 
+  it("stretches a full share across a fixed parent, fixing that length", async () => {
+    const root = await probeRoot("flex flex-col w-sheet", "flex w-full");
+
+    expect(root.children![0]).toMatchObject({
+      layoutAlign: "STRETCH",
+      primaryAxisSizingMode: "FIXED",
+    });
+    // Along its parent's layout, a full share is still unplaced.
+    await expect(probeRoot("flex w-sheet", "flex w-full")).rejects.toThrow(
+      "the box slot is in auto layout, where figma:sync-components can't place it by x.fraction yet"
+    );
+  });
+
   it("fails on a wrap along a fixed length", async () => {
     await expect(probeRoot("flex", "flex flex-wrap w-sheet")).rejects.toThrow(
       "the box slot wraps along a fixed length"
@@ -300,15 +308,16 @@ describe("generating a one-variant set", () => {
 });
 
 describe("a first apply of the one-variant sets", () => {
-  it("binds Card's surface: auto layout down, padding, gap, radius, its hairline and its width's ceiling", async () => {
+  it("binds Card's surface: auto layout down, padding, gap, radius, its hairline, and its width at its ceiling", async () => {
     const file = await tokenFile();
     await sync(file, { dryRun: false });
 
-    const { variant, bound, paints } = read(file);
-    const card = variant("Card");
+    const { set, bound, paints } = read(file);
+    const card = set("Card").children!.find((c) => c.name === "result=none")!;
     expect(card.layoutMode).toBe("VERTICAL");
+    // A block-level box, as wide as what holds it: drawn alone, its ceiling.
     expect(bound(card)).toEqual({
-      maxWidth: "size/max-width/card",
+      width: "size/max-width/card",
       topLeftRadius: "density/radius/surface",
       topRightRadius: "density/radius/surface",
       bottomLeftRadius: "density/radius/surface",
