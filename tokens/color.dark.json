@@ -55,6 +55,10 @@
       "error": {
         "$description": "A failure Toast's surface: a calm red, apart from the status pairs, so status tags keep their colours to themselves.",
         "$value": "{primitive.red.480}"
+      },
+      "error-inline": {
+        "$description": "A failure Notice's surface, edge to edge in a Card: a darker red than a failure Toast's, so it doesn't outshout the Card, and apart from the status pairs, so a failed action never reads as one more status.",
+        "$value": "{primitive.red.380}"
       }
     },
     "text": {
@@ -168,6 +172,15 @@
         "$extensions": {
           "design-demo": {
             "contrast": { "min": 4.5, "against": ["{color.bg.error}"] }
+          }
+        }
+      },
+      "error-inline": {
+        "$description": "A failure Notice's ink, for its copy and its icon.",
+        "$value": "{primitive.red.940}",
+        "$extensions": {
+          "design-demo": {
+            "contrast": { "min": 4.5, "against": ["{color.bg.error-inline}"] }
           }
         }
       }

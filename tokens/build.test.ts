@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { differenceEuclidean } from "culori";
 import { compile } from "tailwindcss";
 import { beforeAll, describe, expect, it } from "vitest";
 import { build, readSources, type Built, type FigmaPayload } from "./build.ts";
@@ -99,6 +100,53 @@ describe("the overlay surface", () => {
       walk(files[file], []);
 
       expect(missing).toEqual([]);
+    }
+  );
+});
+
+// A failure Notice sits edge to edge in a Card, under a status tag (#359).
+// Its surface is quieter than the failure Toast's, nearer the Card's own
+// surface, and clearly apart from every status background, so a failed action
+// never reads as one more status. 0.06 in OKLab: a candidate 0.045 from
+// light's overdue tag read as the tag in a render; 0.067 read apart.
+describe("the inline error surface", () => {
+  const distance = differenceEuclidean("oklab");
+  const colour = (theme: string, role: string) => {
+    const [l, c, h] = blockOf(built.css, `[data-theme="${theme}"]`)
+      .match(
+        new RegExp(`--ds-color-bg-${role}: [^;]*; /\\* oklch\\(([^)]*)\\) \\*/`)
+      )![1]!
+      .split(" ")
+      .map(Number);
+    return { mode: "oklch" as const, l: l!, c: c!, h: h! };
+  };
+
+  it.each(["light", "dark"])(
+    "is nearer the Card's surface than the Toast's error surface in %s",
+    (theme) => {
+      const surface = colour(theme, "surface");
+
+      expect(distance(colour(theme, "error-inline"), surface)).toBeLessThan(
+        distance(colour(theme, "error"), surface)
+      );
+    }
+  );
+
+  it.each(["light", "dark"])(
+    "stays at least 0.06 in OKLab from every status background in %s",
+    (theme) => {
+      for (const status of [
+        "awaiting",
+        "overdue",
+        "paid",
+        "scheduled",
+        "failed",
+      ]) {
+        expect(
+          distance(colour(theme, "error-inline"), colour(theme, status)),
+          status
+        ).toBeGreaterThanOrEqual(0.06);
+      }
     }
   );
 });
@@ -230,6 +278,16 @@ describe("the naming chain", () => {
     );
   });
 
+  // A failure Notice's pair (#359).
+  it("compiles the inline error pair's background and text classes", () => {
+    expect(utilities("bg-error-inline")).toContain(
+      "background-color: var(--ds-color-bg-error-inline)"
+    );
+    expect(utilities("text-error-inline")).toContain(
+      "color: var(--ds-color-text-error-inline)"
+    );
+  });
+
   // How long a success Toast stays is a timer, not an animation's length,
   // so it has no class, and its value is the one tokens.ts carries, for
   // the Toast's timer (ADR 0005).
@@ -319,7 +377,7 @@ describe("the Figma payload", () => {
     expect(
       variables.filter((v) => !v.css && declared.has(derived(v.name)))
     ).toEqual([]);
-    expect(variables.filter((v) => v.css)).toHaveLength(98);
+    expect(variables.filter((v) => v.css)).toHaveLength(100);
   });
 
   // ADR 0001 lists container padding among what density changes.
@@ -397,8 +455,34 @@ describe("the Figma payload", () => {
     }
   });
 
+  // A failure Notice's pair (#359): edge to edge in a Card, the Toast's
+  // `error` surface is the loudest thing on screen, so the Notice has a
+  // quieter red of its own, a lighter tint in light and a darker one in dark.
+  it("gives a failure Notice its own inline error pair in each theme", () => {
+    expect(variable("Color", "color/bg/error-inline")).toEqual({
+      name: "color/bg/error-inline",
+      type: "COLOR",
+      scopes: ["FRAME_FILL", "SHAPE_FILL"],
+      css: true,
+      valuesByMode: {
+        Light: { alias: "primitive/red/880" },
+        Dark: { alias: "primitive/red/380" },
+      },
+    });
+    expect(variable("Color", "color/text/error-inline")).toEqual({
+      name: "color/text/error-inline",
+      type: "COLOR",
+      scopes: ["TEXT_FILL"],
+      css: true,
+      valuesByMode: {
+        Light: { alias: "primitive/red/320" },
+        Dark: { alias: "primitive/red/940" },
+      },
+    });
+  });
+
   // The token validation checks a pair's text only where an annotation asks
-  // it to, so each status pair's and the error pair's text names its own
+  // it to, so each status pair's and both error pairs' text names its own
   // background at 4.5:1, in each theme.
   it.each(["color.light", "color.dark"])(
     "annotates each status and error pair's text at 4.5:1 on its background in %s",
@@ -421,7 +505,7 @@ describe("the Figma payload", () => {
         }
       ).color.text;
       const pairs = ["awaiting", "overdue", "paid", "scheduled", "failed"];
-      for (const role of [...pairs, "error"]) {
+      for (const role of [...pairs, "error", "error-inline"]) {
         const contrast = text[role]?.$extensions?.["design-demo"]?.contrast;
         expect(contrast?.min, role).toBeGreaterThanOrEqual(4.5);
         expect(contrast?.against, role).toContain(`{color.bg.${role}}`);

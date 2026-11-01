@@ -463,6 +463,19 @@
           }
         },
         {
+          "name": "primitive/red/380",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.415686,
+              "g": 0.172549,
+              "b": 0.160784,
+              "a": 1
+            }
+          }
+        },
+        {
           "name": "primitive/red/480",
           "type": "COLOR",
           "scopes": [],
@@ -510,6 +523,19 @@
               "r": 1,
               "g": 0.670588,
               "b": 0.639216,
+              "a": 1
+            }
+          }
+        },
+        {
+          "name": "primitive/red/880",
+          "type": "COLOR",
+          "scopes": [],
+          "valuesByMode": {
+            "Value": {
+              "r": 0.992157,
+              "g": 0.788235,
+              "b": 0.768627,
               "a": 1
             }
           }
@@ -983,6 +1009,23 @@
           }
         },
         {
+          "name": "color/bg/error-inline",
+          "type": "COLOR",
+          "scopes": [
+            "FRAME_FILL",
+            "SHAPE_FILL"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Light": {
+              "alias": "primitive/red/880"
+            },
+            "Dark": {
+              "alias": "primitive/red/380"
+            }
+          }
+        },
+        {
           "name": "color/text/ink",
           "type": "COLOR",
           "scopes": [
@@ -1144,6 +1187,22 @@
         },
         {
           "name": "color/text/error",
+          "type": "COLOR",
+          "scopes": [
+            "TEXT_FILL"
+          ],
+          "css": true,
+          "valuesByMode": {
+            "Light": {
+              "alias": "primitive/red/320"
+            },
+            "Dark": {
+              "alias": "primitive/red/940"
+            }
+          }
+        },
+        {
+          "name": "color/text/error-inline",
           "type": "COLOR",
           "scopes": [
             "TEXT_FILL"
