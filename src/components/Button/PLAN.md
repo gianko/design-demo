@@ -70,7 +70,7 @@ Only secondary has a border, and it keeps it, in `disabled`, when disabled, so i
 - **Accessible name**: the label; it is never replaced, pending included.
 - **Keyboard**: Enter and Space, native. Focus ring on `:focus-visible` only.
 - **Disabled**: native `disabled`, so it leaves the tab order and is announced unavailable.
-- **Pending**: `aria-busy="true"` and `aria-disabled="true"`, never native `disabled`, so focus stays on it mid-operation; clicks do nothing. The result is announced by whatever confirms it (a live Text), not the Button.
+- **Pending**: `aria-busy="true"` and `aria-disabled="true"`, never native `disabled`, so focus stays on it mid-operation; clicks do nothing. The result is announced by whatever confirms it (a Notice or a Toast), not the Button.
 - **Target size**: `h-control` is 32px admin (above the 24px floor) and 44px contractor (the 44px minimum); the label and side padding keep the width above both.
 
 ## Motion

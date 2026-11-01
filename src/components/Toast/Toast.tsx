@@ -31,7 +31,7 @@ import { toast } from "./toast.ts";
 // same each run.
 //
 // It is no live region itself: each time its state is entered it hands its
-// copy to Screen's status region, as a live Text does.
+// copy to Screen's status region, as a Notice does.
 // Its tv() config is toast.ts's, which the registry entry reads.
 
 export type ToastProps = PropsOf<typeof toastEntry>;

@@ -115,7 +115,7 @@ it("enters reminder-failed through a fail View Transition once sendReminder fail
 });
 
 // Sending again from reminder-failed, and failing again, re-enters the state
-// the screen is in; its live Text must say so again (#98).
+// the screen is in; its result must say so again (#98).
 it("announces the failure again when a retry fails again", async () => {
   render(<ReminderFails />);
   const added: string[] = [];

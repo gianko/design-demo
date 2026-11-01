@@ -1068,6 +1068,24 @@ describe("gate 1 against the library's registry", () => {
     ]);
   });
 
+  // ADR 0016: no result is a Text, so Text takes no `live`.
+  it("fails a Text set live", async () => {
+    const spec = {
+      audience: "admin",
+      nodes: [
+        node("screen", "Screen", null, null, { audience: "admin" }),
+        node("note", "Text", "screen", "body", {
+          text: "Reminder sent to Northwind.",
+          live: true,
+        }),
+      ],
+      states: [],
+      actions: [],
+    };
+
+    expect(await checkLibrary(spec)).toEqual([["props-parse", "note"]]);
+  });
+
   // A DataTable's actions footer (ADR 0013): a table is selectable exactly
   // when it has actions, which take only Buttons, each running an action, and
   // such a table gives its selected count's three forms, `other` holding the
@@ -1079,11 +1097,20 @@ describe("gate 1 against the library's registry", () => {
       other: "{count} invoices selected",
     };
     // invoice-queue as its brief asks for it, Approve and pay in the
-    // table's footer.
+    // table's footer and its results in Toasts, a table's result (ADR 0016).
     function invoiceQueue() {
-      const live = (id: string, state: string, text: string) =>
+      const toast = (
+        id: string,
+        state: string,
+        tone: "success" | "failure",
+        text: string
+      ) =>
         shownIn(
-          node(id, "Text", "column", "body", { text, live: true }),
+          node(id, "Toast", "column", "body", {
+            text,
+            tone,
+            closeLabel: "Close payment result",
+          }),
           state
         );
       return {
@@ -1132,14 +1159,16 @@ describe("gate 1 against the library's registry", () => {
             }),
             "empty"
           ),
-          live(
+          toast(
             "scheduled",
             "payment-scheduled",
+            "success",
             "3 invoices scheduled for the Oct 24 run."
           ),
-          live(
+          toast(
             "failed",
             "payment-failed",
+            "failure",
             "The payment didn't go through. Nothing was paid; try again."
           ),
         ],
@@ -1235,16 +1264,10 @@ describe("gate 1 against the library's registry", () => {
     // component most likely to be put in it.
     it("fails anything but a Button in the actions slot", async () => {
       const spec = invoiceQueue();
-      spec.nodes.push(
-        shownIn(
-          node("failed-here", "Toast", "table", "actions", {
-            text: "The payment didn't go through.",
-            tone: "failure",
-            closeLabel: "Close payment result",
-          }),
-          "payment-failed"
-        )
-      );
+      // The failure Toast moved into the footer.
+      const failed = nodeOf(spec as ReturnType<typeof clean>, "failed");
+      failed.parent = "table";
+      failed.slot = "actions";
 
       expect(
         (await checkQueue(spec)).map(({ rule, location, message }) => [
@@ -1255,7 +1278,7 @@ describe("gate 1 against the library's registry", () => {
       ).toEqual([
         [
           "slot-allow",
-          "failed-here",
+          "failed",
           "DataTable's actions slot takes only Button, not Toast.",
         ],
       ]);

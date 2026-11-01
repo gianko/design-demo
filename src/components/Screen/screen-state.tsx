@@ -209,7 +209,7 @@ export function useCurrentScreenState() {
 }
 
 // Changes each time a screen state is entered, the same one again included,
-// so a live Text announces each entry. Outside a host nothing is entered.
+// so a Notice or a Toast announces each entry. Outside a host nothing is entered.
 export function useStateEntry() {
   return useContext(HostContext)?.entries ?? 0;
 }

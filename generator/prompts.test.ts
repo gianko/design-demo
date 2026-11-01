@@ -354,6 +354,14 @@ describe("a result's use lines", () => {
     );
   });
 
+  // Text has no `live` any more, so no use line names a live Text.
+  it.each(["Notice", "Toast", "Card", "Text"])(
+    "names no live Text in %s's use line",
+    async (name) => {
+      expect(await useOf(name)).not.toMatch(/live Text/);
+    }
+  );
+
   it("names Card's result slot, which holds a Notice", async () => {
     expect(await useOf("Card")).toMatch(
       /the result of the action in its footer, a Notice, in result/
