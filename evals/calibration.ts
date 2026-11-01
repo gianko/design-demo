@@ -74,6 +74,11 @@ export const brokenCopies: { kept: string; breaks: Criterion; how: string }[] =
       breaks: "hierarchy",
       how: "The title is muted body Text, not a level-1 Heading.",
     },
+    {
+      kept: "payment-run",
+      breaks: "repetition",
+      how: "The Overdue card's count says 2 overdue invoices, a third Overdue beside its title and its tag.",
+    },
   ];
 
 export type SetScreen = {

@@ -155,24 +155,26 @@ describe("pnpm evals:calibrate", () => {
 
     expect(code).toBe(0);
     const report = readFileSync(run.out, "utf8");
-    // Overall and per criterion: 8 screens × 3 runs per criterion, and 8
+    // Overall and per criterion: 10 screens × 3 runs per criterion, and 10
     // screens' verdicts that can flip.
     expect(report).toMatch(
-      /\| hierarchy +\| 24\/24 \(100%\) +\| 0\/8 \(0%\) +\|/
+      /\| hierarchy +\| 30\/30 \(100%\) +\| 0\/10 \(0%\) +\|/
     );
     expect(report).toMatch(
-      /\| density +\| 23\/24 \(96%\) +\| 1\/8 \(13%\) +\|/
-    );
-    expect(report).toMatch(/\| accent +\| 24\/24 \(100%\) +\| 0\/8 \(0%\) +\|/);
-    expect(report).toMatch(
-      /\| elevation +\| 24\/24 \(100%\) +\| 0\/8 \(0%\) +\|/
-    );
-    expect(report).toMatch(/\| copy +\| 23\/24 \(96%\) +\| 1\/8 \(13%\) +\|/);
-    expect(report).toMatch(
-      /\| repetition +\| 24\/24 \(100%\) +\| 0\/8 \(0%\) +\|/
+      /\| density +\| 29\/30 \(97%\) +\| 1\/10 \(10%\) +\|/
     );
     expect(report).toMatch(
-      /\| \*\*All\*\* +\| 142\/144 \(99%\) +\| 2\/48 \(4%\) +\|/
+      /\| accent +\| 30\/30 \(100%\) +\| 0\/10 \(0%\) +\|/
+    );
+    expect(report).toMatch(
+      /\| elevation +\| 30\/30 \(100%\) +\| 0\/10 \(0%\) +\|/
+    );
+    expect(report).toMatch(/\| copy +\| 29\/30 \(97%\) +\| 1\/10 \(10%\) +\|/);
+    expect(report).toMatch(
+      /\| repetition +\| 30\/30 \(100%\) +\| 0\/10 \(0%\) +\|/
+    );
+    expect(report).toMatch(
+      /\| \*\*All\*\* +\| 178\/180 \(99%\) +\| 2\/60 \(3%\) +\|/
     );
     // Each screen and criterion: the expected verdict, then each run's.
     expect(report).toContain("## bulk-pay--copy");
@@ -190,14 +192,14 @@ describe("pnpm evals:calibrate", () => {
     expect(report).toContain(
       '- density · run 1 · pass · default: Text, padding and the 44px button give the contractor the room the brief asks for: "Contractor screens have room."'
     );
-    // What ran: 33 screen states, each judged three times.
+    // What ran: 37 screen states, each judged three times.
     expect(run.calls.filter((call) => call.startsWith("judge"))).toHaveLength(
-      99
+      111
     );
     expect(report).toContain("abc1234");
     expect(report).toContain("claude-opus-5-5");
     expect(run.lines.at(-2)).toBe(
-      "right verdicts: 142/144 (99%) · flipped: 2/48 (4%) · cost $2.52"
+      "right verdicts: 178/180 (99%) · flipped: 2/60 (3%) · cost $2.83"
     );
     expect(run.lines.at(-1)).toBe(`wrote ${run.out}`);
   });
@@ -215,9 +217,9 @@ describe("pnpm evals:calibrate", () => {
     );
     expect(estimate).toBeGreaterThanOrEqual(0);
     expect(estimate).toBeLessThan(first);
-    // Eval runs' nominal judge call: 33 × 3 × $0.069 = $6.83.
+    // Eval runs' nominal judge call: 37 × 3 × $0.069 = $7.66.
     expect(run.calls[estimate]).toBe(
-      "log estimate: $6.83 (8 screens, 33 screen states × 3 runs × $0.069 a nominal judge call), budget $10.00"
+      "log estimate: $7.66 (10 screens, 37 screen states × 3 runs × $0.069 a nominal judge call), budget $10.00"
     );
   });
 
@@ -246,7 +248,7 @@ describe("pnpm evals:calibrate", () => {
 
     expect(code).toBe(0);
     expect(run.calls).toEqual([
-      "log estimate: $6.83 (8 screens, 33 screen states × 3 runs × $0.069 a nominal judge call), budget $0.50",
+      "log estimate: $7.66 (10 screens, 37 screen states × 3 runs × $0.069 a nominal judge call), budget $0.50",
     ]);
     expect(existsSync(run.out)).toBe(false);
   });
@@ -267,7 +269,7 @@ describe("pnpm evals:calibrate", () => {
       /## payment-status\n[\s\S]*?\| hierarchy +\| pass +\| undecided +\| pass +\| pass +\|/
     );
     expect(report).toMatch(
-      /\| \*\*All\*\* +\| 136\/138 \(99%\) +\| 2\/48 \(4%\) +\|/
+      /\| \*\*All\*\* +\| 172\/174 \(99%\) +\| 2\/60 \(3%\) +\|/
     );
     expect(report).toContain("6 verdicts undecided");
   });
@@ -294,7 +296,7 @@ describe("pnpm evals:calibrate", () => {
       "- copy · run 1 · undecided · empty: unquoted · The screen meets copy."
     );
     expect(report).toMatch(
-      /\| \*\*All\*\* +\| 141\/143 \(99%\) +\| 2\/48 \(4%\) +\|/
+      /\| \*\*All\*\* +\| 177\/179 \(99%\) +\| 2\/60 \(3%\) +\|/
     );
     expect(report).toContain("1 verdict undecided");
   });
@@ -307,12 +309,14 @@ describe("calibrationSet", () => {
     expect(set.map(({ id, kept, breaks }) => [id, kept, breaks])).toEqual([
       ["bulk-pay", "bulk-pay", null],
       ["my-invoices", "my-invoices", null],
+      ["payment-run", "payment-run", null],
       ["payment-status", "payment-status", null],
       ["payment-status--accent", "payment-status", "accent"],
       ["payment-status--elevation", "payment-status", "elevation"],
       ["bulk-pay--copy", "bulk-pay", "copy"],
       ["bulk-pay--density", "bulk-pay", "density"],
       ["my-invoices--hierarchy", "my-invoices", "hierarchy"],
+      ["payment-run--repetition", "payment-run", "repetition"],
     ]);
     for (const screen of set.filter(({ breaks }) => breaks === null)) {
       expect(screen.source).toBe(
@@ -354,7 +358,12 @@ describe("calibrationSet", () => {
   it("takes only kept screens with a committed screen brief", () => {
     const screens = mkdtempSync(join(tmpdir(), "calibration-screens-"));
     dirs.push(screens);
-    for (const slug of ["bulk-pay", "my-invoices", "payment-status"]) {
+    for (const slug of [
+      "bulk-pay",
+      "my-invoices",
+      "payment-run",
+      "payment-status",
+    ]) {
       cpSync(join(repo, "src/screens", slug), join(screens, slug), {
         recursive: true,
       });

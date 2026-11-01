@@ -324,7 +324,7 @@ ${rubricCriteria.map((criterion) => `- ${criterion}:\n${rubric[criterion].map((w
 
 Each criterion is in the design brief's own words, copied from its lines. For each criterion, write the reason first: one sentence saying what in the screenshot meets or breaks the criterion, which quotes the words of the design brief it rests on in double quotes, copied exactly from one line of the brief, such as one of the criterion's own lines above. Then pass: true when the screenshot meets the criterion, false when it doesn't. A criterion the screenshot gives nothing to judge, such as elevation on a screen with no shadow or error copy on a screen with no error, passes.
 
-Judge only what the screenshot shows. The screen brief says what the screen is for and who it's for; where it gives exact copy, that copy is the brief's to answer for, not the screen's.`;
+Judge only what the screenshot shows. The screen brief says what the screen is for and who it's for; where it gives exact copy, or asks for a status tag, whose word is fixed per status, that copy is the brief's to answer for, not the screen's: judge only the words the screen adds.`;
 
 const user =
   'This is the screen state "{state}" of the screen below, for the {audience}, at the {audience}\'s density.\n\n<screen_brief>\n{brief}\n</screen_brief>\n\nJudge the screenshot against the six criteria.';

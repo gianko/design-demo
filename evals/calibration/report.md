@@ -1,6 +1,6 @@
 # Brief conformance calibration
 
-Written by `pnpm evals:calibrate` (ADR 0014) on 2026-10-31, at `e184fe3`. The judge is claude-opus-5-5 at effort high, prompt `a196ad07bd4a`. The calibration set's 8 screens, 3 kept screens as they are and 5 broken copies, have 33 screen states, and each was judged 3 times. It cost $2.50.
+Written by `pnpm evals:calibrate` (ADR 0014) on 2026-11-01, at `3c80285`. The judge is claude-opus-5-5 at effort high, prompt `29caa10bec15`. The calibration set's 10 screens, 4 kept screens as they are and 6 broken copies, have 37 screen states, and each was judged 3 times. It cost $2.84.
 
 ## Right verdicts and flips
 
@@ -8,13 +8,13 @@ A screen's verdict on a criterion in one run fails when any of its states fails 
 
 | Criterion | Right | Flipped |
 | --- | --- | --- |
-| hierarchy | 24/24 (100%) | 0/8 (0%) |
-| density | 24/24 (100%) | 0/8 (0%) |
-| accent | 24/24 (100%) | 0/8 (0%) |
-| elevation | 24/24 (100%) | 0/8 (0%) |
-| copy | 24/24 (100%) | 0/8 (0%) |
-| repetition | 24/24 (100%) | 0/8 (0%) |
-| **All** | 144/144 (100%) | 0/48 (0%) |
+| hierarchy | 30/30 (100%) | 0/10 (0%) |
+| density | 30/30 (100%) | 0/10 (0%) |
+| accent | 30/30 (100%) | 0/10 (0%) |
+| elevation | 30/30 (100%) | 0/10 (0%) |
+| copy | 30/30 (100%) | 0/10 (0%) |
+| repetition | 30/30 (100%) | 0/10 (0%) |
+| **All** | 180/180 (100%) | 0/60 (0%) |
 
 ## bulk-pay
 
@@ -31,24 +31,24 @@ States: default · empty · payment-scheduled · payment-failed · default, rows
 | copy | pass | pass | pass | pass |
 | repetition | pass | pass | pass | pass |
 
-- hierarchy · run 1 · pass · default: The "Pay invoices" title is set larger and heavier than the body, and the table headers differ only by weight and muted colour, all in one sans family, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · pass · default: One sans family carries everything, with the 600-weight "Pay invoices" title larger than the 600-weight muted headers and 400-weight body, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · pass · default: The "Pay invoices" title stands apart through larger size and heavier weight, and the column headers use weight and muted colour in the same sans family, so "hierarchy comes from size and weight, not from a second face."
-- density · run 1 · pass · default: Rows sit about 46px apart with roughly 28px of page padding and compact 14px text, matching "Admin screens are dense."
-- density · run 2 · pass · default: Rows sit at about 46px with 14px text and roughly 28px page padding, matching "Admin screens are dense."
-- density · run 3 · pass · default: Rows are about 46px tall with compact 14px text and roughly 28px page padding, which fits "Admin screens are dense."
-- accent · run 1 · pass · default: No heather appears anywhere: the disabled "Pay selected" button is a flat neutral and no rows are selected, so nothing breaks "a dusty berry for primary actions, selection and focus only."
-- accent · run 2 · pass · default: No heather appears decoratively: the unchecked checkboxes are neutral and the disabled Pay selected button is a flat neutral, consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · pass · default: No berry appears on this state: the only action, the disabled Pay selected button, is a quiet neutral and no row is selected, so nothing breaks "a dusty berry for primary actions, selection and focus only."
-- elevation · run 1 · pass · default: The table frame is separated from the page by a hairline with no visible shadow, consistent with "A shadow means "this floats", never "this is a box"."
-- elevation · run 2 · pass · default: The table frame is separated from the page by a hairline with no shadow, respecting "A shadow means "this floats", never "this is a box"."
-- elevation · run 3 · pass · default: The table frame is flat, separated by a hairline border with no shadow, which honours "A shadow means "this floats", never "this is a box"."
-- copy · run 1 · pass · default: The visible copy, "Pay selected" and "No invoices selected", is plain and specific with no error on screen, meeting "Copy is second person, active and specific".
-- copy · run 2 · pass · default: The visible copy, "No invoices selected" and "Pay selected", is the brief's own, and there is no error state to judge against "Errors say what happened and what to do next."
-- copy · run 3 · pass · default: The visible copy ("Pay selected", "No invoices selected") is plain and specific, there is no error to judge, and nothing contradicts "Copy is second person, active and specific".
-- repetition · run 1 · pass · default: Each row states its status once in the "Awaiting" tag, with no duplicate wording in other cells, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 2 · pass · default: Each row states its status once in an Awaiting tag, with no duplicate status text elsewhere, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 3 · pass · default: Each row states its status once in the Awaiting tag, without repeating it elsewhere in the row, in line with "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- hierarchy · run 1 · pass · default: The "Pay invoices" title stands apart through a larger semibold size in the same sans as the body, and the table headers use weight and muted colour at body size, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: The 24px semibold "Pay invoices" title, the 600-weight muted column headers and the regular-weight rows all appear in one sans family, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The 'Pay invoices' title is set larger and semibold in the same sans as the table, and headers differ only by weight and muted colour, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: Rows sit about 46px apart with roughly 28px page padding and compact 14px text, matching "Admin screens are dense."
+- density · run 2 · pass · default: Rows are about 46px tall, with compact 14px text and tight page padding, matching "Admin screens are dense."
+- density · run 3 · pass · default: Rows are compact at about 46px, with small body text and tight page padding, fitting "Admin screens are dense."
+- accent · run 1 · pass · default: No berry appears anywhere: the disabled "Pay selected" button is a flat neutral, the status tags use amber and nothing is selected, which is consistent with "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: No heather appears anywhere: the Pay selected button is a disabled neutral, the checkboxes are unticked and the Awaiting tags are amber, consistent with "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: No heather appears anywhere; the disabled Pay selected button is a flat neutral and nothing decorative borrows the accent, consistent with "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The table frame is separated from the page by a hairline border with no visible shadow, which respects "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The table frame is a flat surface edged by a hairline with no visible shadow, so it respects "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The table frame is flat with a hairline border and no shadow, respecting "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: The screen adds only plain column headers (Invoice, Contractor, Amount, Due, Status) and shows no error; the footer and button copy are the brief's own, so nothing breaks "Copy is second person, active and specific".
+- copy · run 2 · pass · default: The only copy the screen adds is plain column headers (Invoice, Contractor, Amount, Due, Status), the rest comes from the brief, and there is no error to judge, so nothing breaks "Copy is second person, active and specific".
+- copy · run 3 · pass · default: The screen adds only plain column headers (Invoice, Contractor, Amount, Due, Status) and no errors appear, so nothing breaks "Copy is second person, active and specific".
+- repetition · run 1 · pass · default: Each row states its status once, in the "Awaiting" tag, with no repeated wording in other cells, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · pass · default: Each row states its status once, in its Awaiting tag, and nowhere else, in line with "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: Each row states its status once, in the 'Awaiting' tag, with no echo elsewhere, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
 
 ## my-invoices
 
@@ -65,24 +65,58 @@ States: default · empty · default, sheet open.
 | copy | pass | pass | pass | pass |
 | repetition | pass | pass | pass | pass |
 
-- hierarchy · run 1 · pass · default: The "My invoices" title stands apart from the table through larger size and 600 weight in the same sans family, with headers set apart by weight and muted colour, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · pass · default: The "My invoices" title and the muted header row stand apart from the body rows through larger size and 600 weight in the same sans family, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · pass · default: The "My invoices" title stands apart from the table by larger size and 600 weight, and headers differ by weight and muted colour in the same sans face, so "hierarchy comes from size and weight, not from a second face".
-- density · run 1 · pass · default: Rows sit at about 60px with roughly 16px text and 36px page padding, giving the contractor the roomy layout the brief asks for in "Contractor screens have room."
-- density · run 2 · pass · default: This is a contractor screen with rows about 60px tall, roomy page padding and comfortable text, so "Contractor screens have room."
-- density · run 3 · pass · default: Rows measure about 60px and the page padding is about 36px, so this contractor table has the roomy spacing the brief asks for in "Contractor screens have room."
-- accent · run 1 · pass · default: No heather appears anywhere, and the status tags use their own red and blue, consistent with "a dusty berry for primary actions, selection and focus only" on a read-only screen with nothing selected or focused.
-- accent · run 2 · pass · default: No heather appears on this read-only screen, and the status tags use their own red and blue, consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · pass · default: No heather appears anywhere on this read-only table, and status tags use their own red and blue, so nothing misuses "a dusty berry for primary actions, selection and focus only."
-- elevation · run 1 · pass · default: The table frame is separated from the page by a hairline border with no drop shadow, honouring "A shadow means "this floats", never "this is a box"."
-- elevation · run 2 · pass · default: The table frame is set off by a hairline border with no shadow, which honours "A shadow means "this floats", never "this is a box"."
-- elevation · run 3 · pass · default: The table frame sits flat on the page with a hairline edge and no shadow, which honours "A shadow means "this floats", never "this is a box"."
-- copy · run 1 · pass · default: The only copy is the brief-given title "My invoices" and plain column headers, and no error appears, so nothing breaks "Copy is second person, active and specific".
-- copy · run 2 · pass · default: The only copy is the brief-given title "My invoices" and plain column labels; there is no error to judge, so nothing breaks "Copy is second person, active and specific".
-- copy · run 3 · pass · default: The only copy is the brief-given title "My invoices", plain column headers and the status words, with no error on screen, so nothing breaks "Copy is second person, active and specific".
-- repetition · run 1 · pass · default: Each status appears once, as its tag only, with no title or text echoing "Overdue", in line with "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 2 · pass · default: Each row states its status once, in a single tag such as "Overdue" or "Scheduled", which satisfies "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 3 · pass · default: Each status, such as Overdue, appears once in its row's tag and nowhere else in that row, meeting "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- hierarchy · run 1 · pass · default: A single sans family is used throughout, with the "My invoices" title set larger and bolder and the table headers set apart by weight and muted colour, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: The "My invoices" title stands apart from the table through a larger, heavier weight of the same sans family, and the headers differ by weight and muted colour, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The "My invoices" title is set larger and heavier than the body rows, and the column headers differ by weight and muted colour in the same family, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: Rows are about 60px tall, page padding is about 36px and the body text reads near 16px, matching the brief's line "Contractor screens have room."
+- density · run 2 · pass · default: The rows are about 60px tall, the page padding is about 36px and the body text is roomy, matching "Contractor screens have room."
+- density · run 3 · pass · default: Rows are roughly 60px tall with about 36px of page padding and larger body text, matching "Contractor screens have room."
+- accent · run 1 · pass · default: No heather appears on this read-only screen, and the status tags use their own red and blue, consistent with "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: No berry accent is spent on decoration; the only colour is the red and blue status tags, consistent with "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: No heather appears anywhere; the only colour is in the status tags, consistent with an accent reserved for "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The table frame is separated by a hairline border rather than a shadow, honouring "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The table sits flat with a hairline border and no shadow, so nothing breaks "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The table frame is separated from the page by a hairline border with no visible shadow, respecting "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: The screen adds only plain column headers (Invoice, Amount, Due, Status) and shows no error, so nothing contradicts "Copy is second person, active and specific".
+- copy · run 2 · pass · default: The only added copy is the short column headers "Invoice", "Amount", "Due" and "Status", which are plain and specific, and no error shows, so nothing breaks "Copy is second person, active and specific".
+- copy · run 3 · pass · default: The only words the screen adds are plain column headers (Invoice, Amount, Due, Status), with no errors shown, so nothing breaks "Copy is second person, active and specific".
+- repetition · run 1 · pass · default: Each row states its status only once, in its tag, meeting "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · pass · default: Each row states its status once, in its tag, with no echo elsewhere, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: Each status word appears only once, in its tag, with no echo in other cells, in line with "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+
+## payment-run
+
+Kept, as it is.
+
+States: default · empty.
+
+| Criterion | Expected | Run 1 | Run 2 | Run 3 |
+| --- | --- | --- | --- | --- |
+| hierarchy | pass | pass | pass | pass |
+| density | pass | pass | pass | pass |
+| accent | pass | pass | pass | pass |
+| elevation | pass | pass | pass | pass |
+| copy | pass | pass | pass | pass |
+| repetition | pass | pass | pass | pass |
+
+- hierarchy · run 1 · pass · default: The title, card headings, large amounts and muted counts all appear in one sans family, separated only by size and weight, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: The title, card headings, large amounts and muted counts are set apart by size and weight within one sans family, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The title, card headings and large amounts appear to share one sans family, with hierarchy set by size and 600 weight, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: For the admin, the screen uses tight page padding, compact cards and small body text, which fits "Admin screens are dense."
+- density · run 2 · pass · default: The admin screen uses tight page padding, compact cards and small body text, matching "Admin screens are dense."
+- density · run 3 · pass · default: This admin screen uses tight page padding, compact cards and small body text, consistent with "Admin screens are dense."
+- accent · run 1 · pass · default: No heather appears anywhere on this read-only screen, and the tags use status colours, so nothing contradicts "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: No heather appears anywhere, and the tags use their own blue, red and amber status colours, so nothing misuses "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: The screen is read-only, with no primary action, selection or focus, and no heather appears anywhere, so nothing breaks "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The cards sit flat on the page with hairline borders and no shadow, consistent with "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The cards sit flat on the page, separated by hairline borders with no shadows, which respects "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The cards sit flat on the page, separated by hairline borders with no shadow, which respects "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: The only words the screen adds beyond the brief's fixed titles, date and fixture count labels are none, and no errors appear, so nothing breaks "Copy is second person, active and specific".
+- copy · run 2 · pass · default: The only words the screen adds are the fixture-bound "Oct 24" and "2 invoices" counts, which are specific, and there is no error to judge against "Errors say what happened and what to do next."
+- copy · run 3 · pass · default: The only words the screen adds are the fixture-bound date and counts such as "2 invoices", which are plain and specific, so nothing breaks "Copy is second person, active and specific", and there is no error to judge.
+- repetition · run 1 · pass · default: The Overdue card shows "Overdue" in both its title and its tag, but the screen brief fixes both the card title and the status tag's word, and the body text "2 invoices" doesn't repeat it, so the screen adds nothing that breaks "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · pass · default: The Overdue card's title and its "Overdue" tag both come from the screen brief's fixed card name and fixed tag word, and the card adds no repeating text of its own, so it doesn't break "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: The Overdue card shows "Overdue" in both its title and its tag, but the screen brief fixes both the card title and the status tag word, and the count line adds no repeat, so the screen's own words don't break "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
 
 ## payment-status
 
@@ -99,24 +133,24 @@ States: default · empty · reminder-sent · reminder-failed.
 | copy | pass | pass | pass | pass |
 | repetition | pass | pass | pass | pass |
 
-- hierarchy · run 1 · pass · default: The page title, the large "$4,800.00" figure and the invoice number are set apart by size and weight within one sans family, matching "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · pass · default: The title, invoice number and large $4,800.00 figure are set apart by size and weight within one sans family, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · pass · default: The page title, the invoice number and the large "$4,800.00" figure are set apart by size and weight in one sans family, matching "hierarchy comes from size and weight, not from a second face."
-- density · run 1 · pass · default: This contractor card has roomy padding around the page and inside the card, readable body text and a full-height Send reminder button, consistent with "Contractor screens have room."
-- density · run 2 · pass · default: The contractor card has generous padding, a roughly 44px full-width button and about 36px page padding, matching "Contractor screens have room."
-- density · run 3 · pass · default: The contractor view has generous page padding, roughly 16px body text and a 44px-tall full-width button, so "Contractor screens have room."
-- accent · run 1 · pass · default: The berry fill appears only on the primary Send reminder button, while the Overdue tag uses its own red, matching "a dusty berry for primary actions, selection and focus only."
-- accent · run 2 · pass · default: The dusty berry appears only on the primary Send reminder button, while the Overdue tag uses its own red, consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · pass · default: Heather appears only on the primary "Send reminder" button, and the Overdue tag uses its own red, which keeps the accent to "a dusty berry for primary actions, selection and focus only."
-- elevation · run 1 · pass · default: The card sits flat on the page with a hairline border and no shadow, in line with "A shadow means "this floats", never "this is a box"."
-- elevation · run 2 · pass · default: The card sits flat on the page, separated by a hairline border with no shadow, honouring "A shadow means "this floats", never "this is a box"."
-- elevation · run 3 · pass · default: The card sits flat on the page, separated by a hairline border with no shadow, consistent with "A shadow means "this floats", never "this is a box"."
-- copy · run 1 · pass · default: The visible copy ("Send reminder", "Due Oct 8") is active and specific, and no error appears, so "Copy is second person, active and specific" is met.
-- copy · run 2 · pass · default: The visible copy ("Send reminder", "Due Oct 8") is active and specific, and there is no error state shown, so "Copy is second person, active and specific" is met as far as the screen shows.
-- copy · run 3 · pass · default: The visible copy ("Send reminder", "Due Oct 8") is active and specific, and no error is shown here, so "Copy is second person, active and specific" is met.
-- repetition · run 1 · pass · default: "Overdue" appears only in the status tag, not in the title or the body text, meeting "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 2 · pass · default: "Overdue" appears only in the status tag, not in the title or body text, following "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 3 · pass · default: "Overdue" appears only in the status tag, not in the title or the body text, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- hierarchy · run 1 · pass · default: The page title, the invoice number and the large $4,800.00 figure appear to share one sans family and are set apart only by size and weight, as in "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: One sans family carries everything, with the "Payment status" title and the $4,800.00 figure set apart by larger size and heavier weight rather than a different typeface, matching "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The title, invoice number and large amount appear to share one sans family, with the title and "$4,800.00" set apart by larger size and heavier weight, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: This contractor screen has a 36px page inset, roomy card padding, body text at about 16px and a full-height button about 44px tall, matching "Contractor screens have room."
+- density · run 2 · pass · default: This is a contractor screen and it has room, as "Contractor screens have room." asks: about 36px page padding, a full-height 44px button, roughly 16px body text and generous spacing inside the card.
+- density · run 3 · pass · default: The contractor screen has generous page padding of about 36px, a roughly 44px-tall full-width button and 16px body text, matching "Contractor screens have room."
+- accent · run 1 · pass · default: The heather berry fill appears only on the primary Send reminder button, while the Overdue tag uses its own red, which fits "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: Heather appears only on the primary "Send reminder" button, while the Overdue tag uses its own red status colour, keeping the accent to "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: Heather appears only as the fill of the primary "Send reminder" button, and the Overdue tag uses its own red, consistent with "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The card sits flat on the page, separated by a hairline border with no shadow, consistent with "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The card sits flat on the page, separated by a hairline border with no visible shadow, consistent with "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The card sits flat with a hairline border and no shadow, honouring "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: The visible copy (the title, "Due " before the date and "Send reminder") is supplied by the screen brief, the screen adds no words of its own, and no error is shown, so nothing breaks "Copy is second person, active and specific".
+- copy · run 2 · pass · default: The only words the screen adds are the "Payment status" title and its structural labels, and there is no error state to judge, so nothing breaks "Copy is second person, active and specific".
+- copy · run 3 · pass · default: Every word on the screen (title, "Due", "Send reminder") is copy the screen brief supplies, and no error is shown, so nothing breaks "Copy is second person, active and specific".
+- repetition · run 1 · pass · default: "Overdue" appears only in the status tag, not in the title (the invoice number) or the body text, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · pass · default: "Overdue" appears once, in the status tag, and not in the title or the text, as the brief asks with "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: "Overdue" appears only in the status tag, not in the title or body text, so the card follows "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
 
 ## payment-status--accent
 
@@ -133,27 +167,27 @@ States: default · empty · reminder-sent · reminder-failed.
 | copy | pass | pass | pass | pass |
 | repetition | pass | pass | pass | pass |
 
-- hierarchy · run 1 · pass · default: The title, invoice number, large amount and body lines all appear in one sans family and are set apart only by size and weight, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · pass · default: One sans family carries everything, and the 600-weight "Payment status" title and large $4,800.00 figure stand apart from the 400 body lines, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · pass · default: One sans family is used throughout, and the title, the large $4,800.00 figure and the body lines are set apart by size and weight, so "hierarchy comes from size and weight, not from a second face."
-- density · run 1 · pass · default: For the contractor, the card has generous padding, roughly 44px buttons and 16px body text, matching "Contractor screens have room."
-- density · run 2 · pass · default: The contractor card has generous padding, 16px body text and roughly 44px buttons, matching "Contractor screens have room."
-- density · run 3 · pass · default: The contractor view has about 36px page padding, 44px-tall buttons, 16px body text and generous card spacing, matching "Contractor screens have room."
-- accent · run 1 · fail · default: Both "Send reminder" and the secondary "Download invoice" are filled in heather, so the accent marks a non-primary action and breaks "a dusty berry for primary actions, selection and focus only."
-- accent · run 1 · fail · reminder-failed: Both "Send reminder" and the secondary "Download invoice" are filled in heather, so the accent is no longer reserved for "a dusty berry for primary actions, selection and focus only."
-- accent · run 2 · fail · default: Both "Send reminder" and the secondary "Download invoice" are filled heather, so the accent no longer marks the one primary action, against "a dusty berry for primary actions, selection and focus only."
-- accent · run 2 · fail · reminder-failed: Both "Send reminder" and the secondary "Download invoice" are filled with heather, so the accent marks a non-primary action too, against "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · fail · default: Both "Send reminder" and the secondary "Download invoice" are filled in heather, so the accent is no longer reserved for the one primary action, breaking "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · fail · reminder-failed: Both "Send reminder" and the secondary "Download invoice" are filled heather, so the accent no longer marks just the one primary action, against "a dusty berry for primary actions, selection and focus only."
-- elevation · run 1 · pass · default: The card sits flat on the page with a hairline border and no shadow, consistent with "A shadow means "this floats", never "this is a box"."
-- elevation · run 2 · pass · default: The card sits flat on the page with a hairline border and no shadow, consistent with "A shadow means "this floats", never "this is a box"."
-- elevation · run 3 · pass · default: The card is flat on the page with only a hairline border and no shadow, consistent with "A shadow means "this floats", never "this is a box"."
-- copy · run 1 · pass · default: The visible copy, "Send reminder", "Download invoice" and "Due Oct 8", is active and specific, there is no error copy to judge, and it meets "Copy is second person, active and specific".
-- copy · run 2 · pass · default: The copy is short and specific ("Send reminder", "Due Oct 8") with no error on screen, meeting "Copy is second person, active and specific".
-- copy · run 3 · pass · default: The visible copy ("Send reminder", "Download invoice", "Due Oct 8") is active and specific, and no error is shown, meeting "Copy is second person, active and specific".
-- repetition · run 1 · pass · default: "Overdue" appears only in the status tag, not in the title or the text, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 2 · pass · default: "Overdue" appears only in the status tag, not in the title or the body text, so the card follows "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 3 · pass · default: "Overdue" appears only in the status tag, not in the title or the body text, following "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- hierarchy · run 1 · pass · default: One sans family is used throughout, and the 600-weight "Payment status" title and the large $4,800.00 figure stand out from the regular-weight details by size and weight alone, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: One sans family carries everything, with the title and the "$4,800.00" figure set apart only by larger size and heavier weight, matching "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The screen uses one sans family throughout, with the 600-weight "$4,800.00" figure and the "Payment status" title set apart from the 400-weight body by size and weight alone, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: The contractor card has roomy spacing: about 36px page padding, 44px-tall buttons and 16px body lines, which fits "Contractor screens have room."
+- density · run 2 · pass · default: For this contractor screen the buttons are about 44px tall, the page padding is generous and the card's lines are well spaced, so "Contractor screens have room."
+- density · run 3 · pass · default: The contractor view has room: page padding is about 36px, the buttons are about 44px tall and the body text is about 16px, which fits "Contractor screens have room."
+- accent · run 1 · fail · default: Both "Send reminder" and the added "Download invoice" are filled heather buttons, so a secondary action takes the accent meant as "a dusty berry for primary actions, selection and focus only" and leaves no single obvious primary action.
+- accent · run 1 · fail · reminder-failed: Both "Send reminder" and the secondary "Download invoice" are filled in heather, so the accent no longer marks only "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · fail · default: Both "Send reminder" and the added "Download invoice" are filled heather, so a secondary action takes the accent meant as "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · fail · reminder-failed: Both "Send reminder" and the screen-added "Download invoice" are filled heather buttons, so the accent also lands on a secondary action and two buttons compete as primary, breaking "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · fail · default: Both "Send reminder" and the screen-added "Download invoice" are filled with the same heather, so a secondary action takes the accent that is meant as "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · fail · reminder-failed: Both "Send reminder" and the added "Download invoice" are filled heather buttons, so the accent is spread over a secondary action and the screen no longer shows one primary, against "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The card sits flat on the page, set apart by a hairline border with no box shadow, which respects "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The card is flat, separated by a hairline with no shadow, consistent with "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The card sits flat on the page, edged by a hairline with no shadow, which respects "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: The only copy the screen adds is the active, specific button label "Download invoice", which keeps to "Copy is second person, active and specific"; there is no error to judge.
+- copy · run 2 · pass · default: The screen's own words, "Payment status" and "Download invoice", are plain and specific, and with no error shown it meets "Copy is second person, active and specific" as far as it goes.
+- copy · run 3 · pass · default: The words the screen adds, "Send reminder" and "Download invoice", are active and specific, and there is no error to judge, so the screen meets "Copy is second person, active and specific".
+- repetition · run 1 · pass · default: "Overdue" appears only in the status tag, not in the title or the body text, so the card follows "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · pass · default: "Overdue" appears only in the status tag, not in the card's title or text, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: "Overdue" appears only in the status tag, not in the title or the body text, which follows "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
 
 ## payment-status--elevation
 
@@ -170,25 +204,27 @@ States: default · empty · reminder-sent · reminder-failed.
 | copy | pass | pass | pass | pass |
 | repetition | pass | pass | pass | pass |
 
-- hierarchy · run 1 · pass · default: One sans family carries everything, with the title and "$4,800.00" set apart by larger size and heavier weight, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · pass · default: One sans family carries everything; the 600-weight "Payment status" title and large "$4,800.00" figure stand out from the 400-weight due date and client line by size and weight alone, honouring "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · pass · default: The title, the large $4,800.00 figure and the muted client line differ only in size and weight within one sans family, so "hierarchy comes from size and weight, not from a second face."
-- density · run 1 · pass · default: The contractor screen has generous page padding, a tall full-width button of about 44px, roomy card padding and comfortable body text, matching "Contractor screens have room."
-- density · run 2 · pass · default: This contractor view has roomy spacing: about 36px page padding, a full-height 44px Send reminder button, 16px body text and generous card padding, matching "Contractor screens have room."
-- density · run 3 · pass · default: This contractor screen has generous page padding, roomy card spacing and a full-height 44px button, matching "Contractor screens have room."
-- accent · run 1 · pass · default: Heather appears only on the primary "Send reminder" button, while the tag uses status red, matching "a dusty berry for primary actions, selection and focus only."
-- accent · run 2 · pass · default: The heather fill appears only on the primary Send reminder button, and the Overdue tag uses its own red, consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · pass · default: The heather fill appears only on the primary Send reminder button, and the Overdue tag uses red, consistent with "a dusty berry for primary actions, selection and focus only."
-- elevation · run 1 · fail · default: The card sits flat on the page in the default state but shows a soft drop shadow along its lower edge on top of its hairline border, which breaks "A shadow means "this floats", never "this is a box"."
-- elevation · run 1 · fail · reminder-sent: The invoice card sits flat on the page yet shows a soft drop shadow beneath its hairline border, using a shadow to mark a box against "A shadow means "this floats", never "this is a box"."
-- elevation · run 2 · fail · reminder-sent: The invoice card sits flat in the page with its hairline border, yet it also carries a soft drop shadow, which breaks "A shadow means "this floats", never "this is a box"."
-- elevation · run 3 · fail · default: The static invoice card sits flat on the page yet carries a soft drop shadow under its hairline border, which breaks "A shadow means "this floats", never "this is a box"."
-- copy · run 1 · pass · default: The visible copy ("Send reminder", "Due Oct 8") is active and specific, and no error is shown, so "Copy is second person, active and specific" holds.
-- copy · run 2 · pass · default: The visible copy ("Send reminder", "Due Oct 8") is active and specific with no vague timing, and no error is shown in this default state, meeting "Copy is second person, active and specific".
-- copy · run 3 · pass · default: The visible copy ("Send reminder", "Due Oct 8") is active and specific, and with no error on screen nothing breaks "Copy is second person, active and specific".
-- repetition · run 1 · pass · default: "Overdue" appears only in the status tag, while the title is the invoice number and the text gives the due date, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 2 · pass · default: "Overdue" appears only in the status tag, not in the title or body text, following "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 3 · pass · default: "Overdue" appears only in the status tag, with no echo in the title or the due line, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- hierarchy · run 1 · pass · default: The screen uses one sans family throughout, setting the title, the amount and the invoice number apart by size and weight alone, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: The title, invoice number, large amount and body lines all use one sans family, set apart by size and weight, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The title, invoice number, large amount and muted client line are set apart by size, weight and colour within one sans family, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: For the contractor, the screen has generous page padding, 16px-scale body text and a tall full-width button, so it meets "Contractor screens have room."
+- density · run 2 · pass · default: This contractor screen has generous page padding, a tall full-width button and roomy card spacing, matching "Contractor screens have room."
+- density · run 3 · pass · default: The contractor card has generous padding, roughly 16px body text and a tall, full-width button, matching "Contractor screens have room."
+- accent · run 1 · pass · default: Heather appears only on the primary Send reminder button, while the Overdue tag uses its own red status colour, matching "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: The heather fill appears only on the primary Send reminder button, while the Overdue tag uses its own red, consistent with "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: Heather appears only on the primary Send reminder button, while the Overdue tag uses red, fitting "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · fail · reminder-sent: The invoice card is a flat, in-page surface, yet it carries a soft drop shadow under its hairline border, using a shadow to mark a box when "A shadow means "this floats", never "this is a box"."
+- elevation · run 1 · fail · reminder-failed: The static card already has a hairline border but also seems to carry a soft drop shadow along its lower edge, which uses elevation to box content and breaks "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · fail · default: The static invoice card, which sits flat on the page, seems to carry a soft drop shadow on top of its hairline border, using a shadow to mark a box against "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · fail · reminder-sent: The flat in-page card appears to carry a soft drop shadow on top of its hairline border, which uses shadow to mark a box and contradicts "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · fail · reminder-failed: The static, flat invoice card appears to carry a soft drop shadow along with its hairline border, which breaks "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · fail · default: The flat invoice card appears to carry a soft drop shadow beneath its hairline border, using a shadow to frame a box, against "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: All visible copy is the brief's own (title, "Due " plus bound fields, and Send reminder), and no error state is shown, so nothing the screen adds breaks "Copy is second person, active and specific".
+- copy · run 2 · pass · default: The only copy the screen adds is the active, specific "Send reminder" button, and no error is shown, so nothing breaks "Copy is second person, active and specific".
+- copy · run 3 · pass · default: The screen adds no copy beyond the brief's bound fields, its literal "Due " and its action label, and shows no error, so nothing breaks "Copy is second person, active and specific".
+- repetition · run 1 · pass · default: "Overdue" appears only once, in the status tag, and not in the title or body text, which honours "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · pass · default: "Overdue" appears only in the status tag, while the title is the invoice number and the text gives the due date, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: "Overdue" appears only in the status tag, while the title is the invoice number and the text gives the due date, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
 
 ## bulk-pay--copy
 
@@ -205,36 +241,36 @@ States: default · empty · payment-scheduled · payment-failed · default, rows
 | copy | fail | fail | fail | fail |
 | repetition | pass | pass | pass | pass |
 
-- hierarchy · run 1 · pass · default: One sans family carries everything, and the title stands apart only by its larger semibold size while the table headers use weight and muted colour, so "hierarchy comes from size and weight, not from a second face".
-- hierarchy · run 2 · pass · default: The title "Streamline your payroll" stands apart from the table by larger size and 600 weight in the same sans, and the headers use weight and muted colour, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · pass · default: The 24px-scale title "Streamline your payroll" and the muted 600-weight table headers stand apart from the 400-weight body rows in one sans family, so "hierarchy comes from size and weight, not from a second face."
-- density · run 1 · pass · default: Rows are about 46px with 14px body text and a compact footer button on this admin table, matching "Admin screens are dense."
-- density · run 2 · pass · default: Rows sit at about 46px with 14px text and tight padding, which fits "Admin screens are dense."
-- density · run 3 · pass · default: Rows are about 46px tall, the body text is 14px and the page padding is about 28px, which fits the brief's line that "Admin screens are dense."
-- accent · run 1 · pass · default: No berry is spent on decoration: the disabled Pay selected button is a flat neutral and the status tags use amber, consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 2 · pass · default: No berry appears in the status tags, headers or text, and the disabled Pay selected button uses a flat neutral, consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · pass · default: No heather shows anywhere: the Pay selected button is in a quiet disabled grey, the checkboxes are unticked and the status tags use amber, which is consistent with "a dusty berry for primary actions, selection and focus only."
-- elevation · run 1 · pass · default: The table sits flat on the page, separated by a hairline border with no shadow, so nothing breaks "A shadow means "this floats", never "this is a box"."
-- elevation · run 2 · pass · default: The table frame is flat and separated by a hairline with no shadow, so nothing breaks "A shadow means "this floats", never "this is a box"."
-- elevation · run 3 · pass · default: The table frame is flat on the page and separated by a hairline with no shadow, matching "A shadow means "this floats", never "this is a box"."
-- copy · run 1 · fail · default: The page title reads "Streamline your payroll", which is vague marketing language rather than a plain, specific label for the task of paying invoices, falling short of "Copy is second person, active and specific".
-- copy · run 1 · fail · empty: The header reads "Streamline your payroll", a vague marketing line in place of the brief's specific "Pay invoices" title, which breaks "Copy is second person, active and specific" even though the empty-state lines are plain.
-- copy · run 1 · fail · payment-scheduled: The page title reads "Streamline your payroll", a vague marketing line in place of the brief's "Pay invoices" title, which breaks "Copy is second person, active and specific" because it names no specific task.
-- copy · run 1 · fail · payment-failed: The toast is good, but the page header reads as the vague marketing line "Streamline your payroll" instead of naming the task, which breaks "Copy is second person, active and specific".
-- copy · run 1 · fail · default, rows ticked: The page title reads "Streamline your payroll", a vague marketing slogan instead of the brief's "Pay invoices", which breaks "Copy is second person, active and specific".
-- copy · run 2 · fail · default: The page title reads "Streamline your payroll", a vague marketing line instead of the brief's "Pay invoices", which breaks "Copy is second person, active and specific".
-- copy · run 2 · fail · empty: The page title reads "Streamline your payroll", a vague marketing line in place of the specific "Pay invoices" that the screen brief asks for, which breaks "Copy is second person, active and specific".
-- copy · run 2 · fail · payment-scheduled: The screen replaces the brief's "Pay invoices" title with the vague slogan "Streamline your payroll", which says nothing about the task and breaks "Copy is second person, active and specific".
-- copy · run 2 · fail · payment-failed: The failure toast follows "Errors say what happened and what to do next." with "Check your funding account, then try again", but the page title "Streamline your payroll" is a vague marketing slogan in place of the brief's "Pay invoices", which breaks "Copy is second person, active and specific".
-- copy · run 2 · fail · default, rows ticked: The header reads "Streamline your payroll", vague marketing copy in place of the brief's "Pay invoices", which breaks "Copy is second person, active and specific".
-- copy · run 3 · fail · default: The page title reads "Streamline your payroll", a vague marketing line in place of the task-specific "Pay invoices", which breaks "Copy is second person, active and specific".
-- copy · run 3 · fail · empty: The page title reads "Streamline your payroll", a vague marketing line in place of the brief's "Pay invoices", which breaks "Copy is second person, active and specific".
-- copy · run 3 · fail · payment-scheduled: The page title reads "Streamline your payroll", which is vague marketing copy rather than the task the screen does, failing "Copy is second person, active and specific".
-- copy · run 3 · fail · payment-failed: The error toast is good, but the page title reads "Streamline your payroll", a vague marketing slogan in place of a task title, which breaks "Copy is second person, active and specific".
-- copy · run 3 · fail · default, rows ticked: The page title reads "Streamline your payroll", a vague marketing line in place of the brief's "Pay invoices" title, which breaks "Copy is second person, active and specific".
-- repetition · run 1 · pass · default: Each row states its status once, in its "Awaiting" tag, and repeats it nowhere else, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 2 · pass · default: Each row shows its status only once, in its "Awaiting" tag, so the screen honours "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 3 · pass · default: Each row states "Awaiting" only once, in its status tag, and the title and footer don't echo it, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- hierarchy · run 1 · pass · default: The title is set larger and heavier than the body, and the table headers use the same face in a muted 600 weight, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: The page title stands apart from the table only by larger size and 600 weight, and the headers use weight and muted ink in the same single sans, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The title "Streamline your payroll" stands apart from the body through larger 600-weight type in the same sans, and the table headers use weight and muted colour, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: The admin table uses compact rows of about 46px, 14px text and roughly 28px page padding, matching "Admin screens are dense."
+- density · run 2 · pass · default: This admin table uses compact rows of about 46px, 14px text and tight page padding, matching "Admin screens are dense."
+- density · run 3 · pass · default: The admin table uses compact rows around 46px with 14px text and tight page padding, matching "Admin screens are dense."
+- accent · run 1 · pass · default: No heather appears on decoration: the disabled "Pay selected" button is a flat neutral and the status tags use amber, consistent with "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: No heather appears on any decoration: the disabled "Pay selected" button uses a flat neutral and the status tags use amber, so the accent is kept for "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: No heather appears on decoration: the disabled Pay selected button is a flat neutral and the checkboxes are unticked, consistent with "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The table card is flat, separated by a hairline with no shadow, which honours "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The table frame is flat with a hairline border and casts no shadow, which respects "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The table frame is flat with a hairline border and no shadow, so nothing breaks "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · fail · default: The screen replaces the brief's title "Pay invoices" with the vague marketing line "Streamline your payroll", which breaks "Copy is second person, active and specific" because it names no concrete task.
+- copy · run 1 · fail · empty: The screen replaces the brief's "Pay invoices" title with the added marketing line "Streamline your payroll", which is vague rather than meeting "Copy is second person, active and specific".
+- copy · run 1 · fail · payment-scheduled: The screen replaces the brief's title "Pay invoices" with the vague marketing line "Streamline your payroll", which says nothing specific about this task and breaks "Copy is second person, active and specific".
+- copy · run 1 · fail · payment-failed: The error toast is good, but the screen replaces the title "Pay invoices" with the vague marketing line "Streamline your payroll", which is not "Copy is second person, active and specific".
+- copy · run 1 · fail · default, rows ticked: The page title reads "Streamline your payroll", a vague marketing line in place of the brief's "Pay invoices" and short of "Copy is second person, active and specific".
+- copy · run 2 · fail · default: The screen replaces the brief's title "Pay invoices" with the marketing slogan "Streamline your payroll", which is vague rather than "Copy is second person, active and specific".
+- copy · run 2 · fail · empty: The screen replaces the brief's "Pay invoices" title with the vague marketing line "Streamline your payroll", which breaks "Copy is second person, active and specific".
+- copy · run 2 · fail · payment-scheduled: The screen replaces the brief's title "Pay invoices" with the marketing slogan "Streamline your payroll", which breaks "Copy is second person, active and specific" because it names no task on this screen.
+- copy · run 2 · fail · payment-failed: The toast is good, but the screen swaps the page title for the vague marketing line "Streamline your payroll", which breaks "Copy is second person, active and specific" because it doesn't name the task of paying these invoices.
+- copy · run 2 · fail · default, rows ticked: The screen replaces the brief's "Pay invoices" title with the vague marketing line "Streamline your payroll", which says nothing concrete about this screen's task, breaking "Copy is second person, active and specific".
+- copy · run 3 · fail · default: The screen replaces the brief's "Pay invoices" title with the vague marketing line "Streamline your payroll", which fails "Copy is second person, active and specific".
+- copy · run 3 · fail · empty: The screen replaces the brief's "Pay invoices" title with the marketing line "Streamline your payroll", which is vague rather than "second person, active and specific".
+- copy · run 3 · fail · payment-scheduled: The screen replaces the brief's "Pay invoices" title with the slogan "Streamline your payroll", which is marketing filler rather than what the brief demands: "Copy is second person, active and specific".
+- copy · run 3 · fail · payment-failed: The error toast is good, but the screen swaps the brief's "Pay invoices" title for the vague marketing line "Streamline your payroll", which breaks "Copy is second person, active and specific".
+- copy · run 3 · fail · default, rows ticked: The screen swaps the brief's title for its own marketing line "Streamline your payroll", which is vague rather than "second person, active and specific" about paying these invoices.
+- repetition · run 1 · pass · default: Each row states its status only once, in its "Awaiting" tag, with no echo in other cells, so it meets "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · pass · default: Each row states its status once, in its "Awaiting" tag, and the footer states the selection once, so the screen honours "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: Each row states its status once, in its Awaiting tag, with no echo in other cells, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
 
 ## bulk-pay--density
 
@@ -251,34 +287,36 @@ States: default · empty · payment-scheduled · payment-failed · default, rows
 | copy | pass | pass | pass | pass |
 | repetition | pass | pass | pass | pass |
 
-- hierarchy · run 1 · pass · default: The screen uses one sans family, with the "Pay invoices" title set apart by larger size and 600 weight and the headers by weight and muted colour, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · pass · default: The screen uses one sans family throughout, with the "Pay invoices" title set larger and heavier and the headers set apart by weight and muted colour, so "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · pass · default: The "Pay invoices" title stands apart through larger size and 600 weight in the same sans as the table, and the headers use weight and muted colour rather than a second face, so "hierarchy comes from size and weight, not from a second face."
-- density · run 1 · fail · default: On this admin screen, rows, the header and the footer are about 60px tall, the Pay selected button is about 44px and the page padding is about 36px, which is the contractor's full-room sizing, so it breaks "Admin screens are dense."
-- density · run 1 · fail · payment-scheduled: This is an admin screen, but rows and the header measure about 60px, page padding is about 36px and body text reads near 16px, which is the contractor's full room rather than working density, breaking "Admin screens are dense."
-- density · run 1 · fail · payment-failed: This is an admin screen, yet it uses contractor sizing: rows about 60px tall, a 44px-high "Pay selected" button, roughly 16px body text and 36px page padding, which breaks "Admin screens are dense."
-- density · run 1 · fail · default, rows ticked: This admin screen uses contractor spacing, with rows about 60px tall, a 44px-tall "Pay selected" button, about 36px page padding and roughly 16px body text, so it misses "Admin screens are dense."
-- density · run 2 · fail · default: This admin table uses contractor sizing, with roughly 60px rows and header, about 36px page padding and body text near 16px, which breaks "Admin screens are dense."
-- density · run 2 · fail · payment-scheduled: On this admin screen the rows and header are about 60px tall, page padding is about 36px and the Pay selected button is about 44px high, which is contractor sizing and breaks "Admin screens are dense."
-- density · run 2 · fail · payment-failed: This admin screen has about 60px rows and header, roughly 16px body text and about 36px page padding, which is contractor room rather than working density, against "Admin screens are dense."
-- density · run 2 · fail · default, rows ticked: This is an admin screen, yet the rows measure about 60px, the Pay selected button is about 44px tall and the page padding is about 36px, which is the contractor's full room, breaking "Admin screens are dense."
-- density · run 3 · fail · default: This admin screen uses rows about 60px tall, body text that looks about 16px, and roughly 36px page padding, which are contractor measurements, so it misses "Admin screens are dense."
-- density · run 3 · fail · empty: This admin empty state sits on a page inset of about 36px with body text near 16px and a softly rounded card, which matches the contractor column of the density table, not the 28px padding and 14px text the brief sets out under "Admin screens are dense."
-- density · run 3 · fail · payment-scheduled: This admin screen has roughly 60px rows, a 44px-tall button, 36px page padding and 16px-looking body text, which is the contractor's full room, breaking "Admin screens are dense."
-- density · run 3 · fail · payment-failed: This admin screen renders at contractor room: header and body rows are about 60px tall, the Pay selected button is about 44px high, page padding is about 36px and body text looks about 16px, so it breaks "Admin screens are dense."
-- density · run 3 · fail · default, rows ticked: This admin table runs at about 60px rows, a roughly 44px-tall "Pay selected" button, about 16px body text and 36px page padding, which are the contractor's measurements, so it breaks "Admin screens are dense."
-- accent · run 1 · pass · default: No berry appears anywhere: the disabled Pay selected button is a flat neutral and the unticked checkboxes are neutral, consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 2 · pass · default: No berry appears on the screen: the disabled Pay selected button has a flat neutral fill and the checkboxes are unticked, which is consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · pass · default: No berry appears anywhere on screen: the Pay selected button shows a quiet disabled neutral fill and the checkboxes are unticked, so nothing misuses "a dusty berry for primary actions, selection and focus only."
-- elevation · run 1 · pass · default: The table frame is separated from the page by a hairline with no shadow, and nothing on screen floats, which respects "A shadow means "this floats", never "this is a box"."
-- elevation · run 2 · pass · default: The table frame is separated from the page by a hairline with no visible shadow, so nothing contradicts "A shadow means "this floats", never "this is a box"."
-- elevation · run 3 · pass · default: The table sits flat on the page with a hairline border and no shadow, consistent with "A shadow means "this floats", never "this is a box"."
-- copy · run 1 · pass · default: The visible copy is the brief's own ("No invoices selected", "Pay selected") and there is no error on screen, so nothing breaks "Copy is second person, active and specific".
-- copy · run 2 · pass · default: The footer reads "No invoices selected" and the button reads "Pay selected", both plain and specific, and no error is shown, which meets "Copy is second person, active and specific".
-- copy · run 3 · pass · default: The visible copy ("Pay selected", "No invoices selected") comes from the screen brief, and no error is shown, so nothing breaks "Copy is second person, active and specific".
-- repetition · run 1 · pass · default: Each row states its status only once, in its "Awaiting" tag, with no echo in other cells, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 2 · pass · default: Each row states its status once, in its "Awaiting" tag, with no echo elsewhere in the row, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 3 · pass · default: Each row says its status once, in the "Awaiting" tag, and nothing else repeats it, meeting "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- hierarchy · run 1 · pass · default: The "Pay invoices" title stands apart through larger size and 600 weight, and the table headers use weight and muted colour in the same single family, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: The "Pay invoices" title stands out through larger size and weight, while the table headers use weight and muted colour in the same single face, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The "Pay invoices" title stands apart by larger size and 600 weight, and the table headers use weight and muted colour in the same face, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · fail · default: On this admin screen the rows and header measure about 60px, the Pay selected button is about 44px tall and the page padding is about 36px, which is contractor sizing and breaks "Admin screens are dense."
+- density · run 1 · fail · empty: This is an admin screen, but the page inset is about 36px and the empty-state text looks about 16px, the contractor's full-room values rather than the admin's 28px padding and 14px body, so it misses "Admin screens are dense."
+- density · run 1 · fail · payment-scheduled: This admin screen renders 60px header and body rows, roughly 16px body text and 36px page padding, which are the contractor values rather than the 46px rows, 14px text and 28px padding that "Admin screens are dense." calls for.
+- density · run 1 · fail · payment-failed: This admin screen uses contractor spacing: rows are about 60px apart, the button is about 44px tall and the page padding is about 36px, which breaks "Admin screens are dense."
+- density · run 1 · fail · default, rows ticked: This admin screen uses roughly 60px rows, a 44px Pay selected button, 36px page padding and about 16px body text, which are the contractor values, so it breaks "Admin screens are dense."
+- density · run 2 · fail · default: This admin screen uses roughly 60px rows, 36px page padding and a 44px-tall Pay selected button, which is contractor spacing, so it breaks "Admin screens are dense."
+- density · run 2 · fail · empty: This admin screen uses a 36px page inset and body text that looks about 16px, which are the contractor's 'full room' values rather than the admin's 28px and 14px, so it misses "Admin screens are dense."
+- density · run 2 · fail · payment-scheduled: On this admin screen the rows and header row are about 60px tall, the page padding is about 36px and the Pay selected button is about 44px tall, which is contractor sizing and breaks "Admin screens are dense."
+- density · run 2 · fail · payment-failed: This is an admin screen, but it uses contractor sizing: rows and the header are about 60px tall, the Pay selected button is about 44px, body text looks like 16px and page padding is about 36px, which breaks "Admin screens are dense."
+- density · run 2 · fail · default, rows ticked: On this admin screen the rows and header measure about 60px, the Pay selected button about 44px tall and the page padding about 36px, which are the contractor's full-room values, so it breaks "Admin screens are dense."
+- density · run 3 · fail · default: This is an admin screen, but the rows and header measure about 60px, the Pay selected button is about 44px tall, body text looks about 16px and page padding is about 36px, which is contractor sizing when the brief says "Admin screens are dense."
+- density · run 3 · fail · empty: On this admin screen the title and empty-state card sit 36px from the screen edges on both sides, which is the contractor's page padding rather than the admin's 28px, so it breaks "Admin screens are dense."
+- density · run 3 · fail · payment-scheduled: This admin screen uses roomy measurements: rows and the header row are about 60px tall, page padding is about 36px and body text looks about 16px, which is contractor sizing and breaks "Admin screens are dense."
+- density · run 3 · fail · payment-failed: This admin screen uses contractor-sized spacing: rows about 60px tall, page padding about 36px, a roughly 44px-tall Pay selected button and 16px-looking body text, where the brief says "Admin screens are dense."
+- density · run 3 · fail · default, rows ticked: This admin screen uses roughly 60px rows, about 16px body text, 36px page padding and a 44px-tall Pay selected button, which is contractor sizing, so it breaks "Admin screens are dense."
+- accent · run 1 · pass · default: No heather appears anywhere on the screen: the Pay selected button is disabled, no rows are selected, and the status tags use amber, which is consistent with "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: No heather appears on non-interactive elements; the only primary action, the disabled Pay selected button, uses a quiet neutral fill, which is consistent with "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: No heather shows anywhere: the disabled Pay selected button has a flat neutral fill, nothing is selected and the status tags use amber, which is consistent with "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The table frame sits flat on the page with a hairline border and no shadow, which respects "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The table frame sits flat, separated by a hairline with no shadow, which respects "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The table frame is flat and set apart by a hairline, with no shadow, so nothing breaks "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: The screen adds only plain column headers (Invoice, Contractor, Amount, Due, Status) beyond the brief-given copy, and it shows no error, so nothing breaks "Copy is second person, active and specific".
+- copy · run 2 · pass · default: The screen adds no copy beyond the brief-given title, button label and selection text, and shows no error, so nothing breaks "Copy is second person, active and specific".
+- copy · run 3 · pass · default: The only words the screen adds beyond the brief's fixed copy are plain column headers (Invoice, Contractor, Amount, Due, Status), and no error appears, so nothing conflicts with "Copy is second person, active and specific".
+- repetition · run 1 · pass · default: Each row states its status once, in the "Awaiting" tag, and repeats it nowhere else in the row, which honours "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · pass · default: Each row states its status once, in its "Awaiting" tag, and does not repeat it elsewhere in the row, in line with "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: Each row states its status once, in its "Awaiting" tag, and repeats it nowhere else in the row, which meets "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
 
 ## my-invoices--hierarchy
 
@@ -295,27 +333,61 @@ States: default · empty · default, sheet open.
 | copy | pass | pass | pass | pass |
 | repetition | pass | pass | pass | pass |
 
-- hierarchy · run 1 · fail · default: The "My invoices" heading renders small, regular-weight and muted, lighter than the 600-weight table headers beneath it, so the page title doesn't lead; this breaks "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 1 · fail · empty: The page heading "My invoices" renders small, regular weight and muted, weaker than the empty state's bold "No invoices yet", so the title doesn't lead even though "hierarchy comes from size and weight, not from a second face".
-- hierarchy · run 1 · fail · default, sheet open: In the sheet the number title and the large $4,800.00 figure use size and weight in one family, but the page heading "My invoices" behind the scrim renders at roughly body size in a light weight, quieter than the 600-weight table headers, so it doesn't follow "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · fail · default: The "My invoices" title renders as small, regular-weight muted text, no larger or bolder than the column headers below it, so the page title gets no prominence even though "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · fail · empty: The page title "My invoices" renders small, regular-weight and muted, lighter than the bold "No invoices yet" below it, so the screen's top heading doesn't lead when "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 2 · fail · default, sheet open: The page title "My invoices" renders at roughly body size in a light regular weight, so it reads like a muted label rather than a title, which breaks "hierarchy comes from size and weight, not from a second face"; inside the sheet, the 600-weight amount and number do rank correctly.
-- hierarchy · run 3 · fail · default: The "My invoices" heading renders small, regular-weight and muted, visually weaker than the 600-weight table headers, so the screen title gets none of the size and weight the brief relies on when "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · fail · empty: The page Heading "My invoices" renders small, regular weight and muted, visibly weaker than the bold "No invoices yet" inside the card, so the page title doesn't lead, breaking "hierarchy comes from size and weight, not from a second face."
-- hierarchy · run 3 · fail · default, sheet open: The sheet uses size and weight well (600 title, large 600 amount, 400 body), but the page title "My invoices" renders small, regular and muted, weaker than the 600 table headers, so the screen's top-level hierarchy breaks the rule that "hierarchy comes from size and weight, not from a second face."
-- density · run 1 · pass · default: Rows are about 60px tall with roughly 36px page padding and 16px body text, matching the contractor column, so "Contractor screens have room."
-- density · run 2 · pass · default: Rows are about 60px tall, with roughly 36px page padding and 16px body text, matching "Contractor screens have room."
-- density · run 3 · pass · default: Rows are about 60px tall, the page padding is about 36px and the body text is around 16px, matching "Contractor screens have room."
-- accent · run 1 · pass · default: No heather appears anywhere, and the status tags use their own red and blue, consistent with "a dusty berry for primary actions, selection and focus only."
-- accent · run 2 · pass · default: No heather appears anywhere; the only colour is in the status tags, consistent with an accent reserved for "a dusty berry for primary actions, selection and focus only."
-- accent · run 3 · pass · default: No heather appears anywhere; the read-only screen has no primary action or selection, consistent with "a dusty berry for primary actions, selection and focus only."
-- elevation · run 1 · pass · default: The table frame is separated by a hairline border with no shadow, respecting "A shadow means "this floats", never "this is a box"."
-- elevation · run 2 · pass · default: The table frame is separated by a hairline border with no shadow, respecting "A shadow means "this floats", never "this is a box"."
-- elevation · run 3 · pass · default: The table frame is flat on the page with a hairline border and no shadow, which respects "A shadow means "this floats", never "this is a box"."
-- copy · run 1 · pass · default: The only copy is the brief-given title and plain column headers, with no error to judge, so nothing breaks "Copy is second person, active and specific".
-- copy · run 2 · pass · default: The only copy is the brief-given title and plain column headers with no error states, so there is nothing that breaks "Copy is second person, active and specific".
-- copy · run 3 · pass · default: The only copy is the brief-given title, column headers and data, with no error to judge against "Copy is second person, active and specific".
-- repetition · run 1 · pass · default: Each row states its status once, in its tag, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- hierarchy · run 1 · fail · default: The "My invoices" heading renders small, regular-weight and muted, lighter than the 600-weight table headers, so it doesn't lead the page; this breaks "hierarchy comes from size and weight, not from a second face" and the brief's line that "Titles (24px and up) and a single large figure use 600".
+- hierarchy · run 1 · fail · empty: The page Heading "My invoices" renders small, light and muted, weaker than the bold "No invoices yet" card title beneath it, so the screen title doesn't read as the top level, despite "Titles (24px and up) and a single large figure use 600 with slightly tightened tracking".
+- hierarchy · run 1 · fail · default, sheet open: In the Sheet the number and the large $4,800.00 figure stand out by size and weight in the one family, but the page Heading "My invoices" renders small, regular and muted, quieter than the 600 table headers, so "hierarchy comes from size and weight" fails for the screen's title.
+- hierarchy · run 2 · fail · default: The "My invoices" title renders small, light and muted, smaller and quieter than the bold table headers below it, so the page title doesn't lead; this breaks "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · fail · empty: The "My invoices" page title renders as small, light, muted text, weaker than the bold "No invoices yet" below it, so the title doesn't lead as the brief requires: "hierarchy comes from size and weight, not from a second face".
+- hierarchy · run 2 · fail · default, sheet open: The sheet's title and the $4,800.00 figure read through size and weight in one face, but the screen Heading "My invoices" renders small and regular-weight, weaker than the semibold column headers, so it breaks the brief's rule that "Titles (24px and up) and a single large figure use 600".
+- hierarchy · run 3 · fail · default: The "My invoices" heading renders small, regular-weight and muted, lighter than the 600-weight table headers beneath it, so the page title doesn't lead even though "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · fail · empty: The page title "My invoices" renders small, regular-weight and muted, smaller and lighter than the bold "No invoices yet" inside the card, so the screen's top-level title loses the hierarchy that "hierarchy comes from size and weight, not from a second face" calls for.
+- hierarchy · run 3 · fail · default, sheet open: The page Heading "My invoices" renders small and regular-weight, no larger or heavier than the 600-weight table headers, so it reads as a label rather than a title, which goes against "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: Rows are about 60px tall, the page padding is about 36px and the body text is around 16px, which matches "Contractor screens have room."
+- density · run 2 · pass · default: The rows are about 60px tall, the text is about 16px and the page has about 36px of padding, which matches "Contractor screens have room."
+- density · run 3 · pass · default: The contractor table has roomy rows of about 60px, larger body text and generous page padding, matching "Contractor screens have room."
+- accent · run 1 · pass · default: The screen has no actions, selection or focus, and no heather appears anywhere, so nothing goes against "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: No heather appears anywhere; the read-only screen shows only status colours, which fits "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: No heather appears anywhere on this read-only screen, and the status tags use their own red and blue, consistent with "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The table sits flat on the page with a hairline border and no shadow, which is consistent with "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The table frame is flat and edged with a hairline, with no shadow, consistent with "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The table frame is flat with a hairline border and no shadow, in keeping with "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: The only words on screen are the brief's heading, the column headers and the fixture values, so the screen adds nothing that breaks "Copy is second person, active and specific", and it shows no error.
+- copy · run 2 · pass · default: The screen adds no copy beyond the brief's title, column headers and fixture values, and shows no error, so "Copy is second person, active and specific" has nothing to break.
+- copy · run 3 · pass · default: The only words are the brief's heading, the column headers and the fixture data, with no added copy to break "Copy is second person, active and specific", and there is no error to judge.
+- repetition · run 1 · pass · default: Each row states its status once, in its tag, with no echo elsewhere in the row, which honours "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
 - repetition · run 2 · pass · default: Each row states its status only once, in its tag, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
-- repetition · run 3 · pass · default: Each row states its status only once, in its tag, in line with "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · pass · default: Each row states its status once, in its tag, with no echo elsewhere, honouring "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+
+## payment-run--repetition
+
+Breaks repetition: The Overdue card's count says 2 overdue invoices, a third Overdue beside its title and its tag.
+
+States: default · empty.
+
+| Criterion | Expected | Run 1 | Run 2 | Run 3 |
+| --- | --- | --- | --- | --- |
+| hierarchy | pass | pass | pass | pass |
+| density | pass | pass | pass | pass |
+| accent | pass | pass | pass | pass |
+| elevation | pass | pass | pass | pass |
+| copy | pass | pass | pass | pass |
+| repetition | fail | fail | fail | fail |
+
+- hierarchy · run 1 · pass · default: The title, card headings, large amounts and muted counts all use one sans family, separated only by size and weight, so "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 2 · pass · default: The title, card headings, large amounts and muted counts all appear in one sans family and are set apart only by size and weight, consistent with "hierarchy comes from size and weight, not from a second face."
+- hierarchy · run 3 · pass · default: The title, card headings and large amounts use one sans family, set apart only by size and weight, so "hierarchy comes from size and weight, not from a second face."
+- density · run 1 · pass · default: The admin screen uses compact cards, tight padding and small body text, which fits "Admin screens are dense."
+- density · run 2 · pass · default: This admin screen uses tight page padding, compact cards and small body text, fitting "Admin screens are dense."
+- density · run 3 · pass · default: This admin screen uses tight page padding, compact cards and small body text, consistent with "Admin screens are dense."
+- accent · run 1 · pass · default: No heather appears; the only colour is in the status tags, which use their own palette, so nothing breaks "a dusty berry for primary actions, selection and focus only."
+- accent · run 2 · pass · default: No heather accent appears anywhere on this read-only screen, and the tags use their own status colours, so nothing breaks "a dusty berry for primary actions, selection and focus only."
+- accent · run 3 · pass · default: No heather appears; the screen is read-only with no actions, selection or focus, so nothing breaks "a dusty berry for primary actions, selection and focus only."
+- elevation · run 1 · pass · default: The cards sit flat, separated by a hairline border with no shadow, consistent with "A shadow means "this floats", never "this is a box"."
+- elevation · run 2 · pass · default: The cards sit flat on the page with a hairline border and no shadow, respecting "A shadow means "this floats", never "this is a box"."
+- elevation · run 3 · pass · default: The cards sit flat on the page with hairline borders and no shadow, matching "A shadow means "this floats", never "this is a box"."
+- copy · run 1 · pass · default: The only added copy is plain count text such as "2 invoices", and there is no error to judge, so nothing breaks "Copy is second person, active and specific".
+- copy · run 2 · pass · default: The added copy ("2 invoices", "3 invoices") is plain and specific, there is no error shown, and nothing contradicts "Copy is second person, active and specific".
+- copy · run 3 · pass · default: The screen adds only short, specific labels like "2 invoices" and shows no error, so nothing breaks "Copy is second person, active and specific".
+- repetition · run 1 · fail · default: The Overdue card says "Overdue" in its title and its tag, then again in "2 overdue invoices", where the other cards just say "2 invoices" and "3 invoices"; that is exactly what the brief forbids: "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 2 · fail · default: The Overdue card says "Overdue" in its title and its tag, and then again in its count "2 overdue invoices", while the other cards just say "2 invoices"; this breaks "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
+- repetition · run 3 · fail · default: The Overdue card says overdue three times, in its title "Overdue", its tag "Overdue" and its count "2 overdue invoices", breaking "Say a thing once: a card doesn't repeat "Overdue" in its title, its tag and its text."
