@@ -19,6 +19,7 @@ import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { toastEntry } from "./Toast.registry.ts";
 import { Toast } from "./Toast.tsx";
+import { phoneGlobals } from "../../../.storybook/phone.ts";
 
 // bulk-pay's results, in the brief's copy rules: the success says what was
 // done and when; the failure says what happened and what to do next.
@@ -140,6 +141,7 @@ const spansThePhone = async (canvas: HTMLElement, density: string) => {
 export const Phone: Story = {
   args: Failure.args,
   tags: ["phone"],
+  globals: phoneGlobals,
   play: ({ canvasElement, globals }) =>
     spansThePhone(canvasElement, globals.density),
 };
@@ -147,6 +149,7 @@ export const Phone: Story = {
 export const SuccessPhone: Story = {
   args: Success.args,
   tags: ["phone"],
+  globals: phoneGlobals,
   play: ({ canvasElement, globals }) =>
     spansThePhone(canvasElement, globals.density),
 };

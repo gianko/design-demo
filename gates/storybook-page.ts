@@ -33,7 +33,7 @@ export async function serveStorybook(context: BrowserContext, dir: string) {
 
 // The phone width a story tagged `phone` renders at, in place of the
 // config's 1280×800 (ADR 0012).
-export const phoneViewport = { width: 360, height: 800 };
+export { phoneViewport } from "../.storybook/phone.ts";
 
 // What a story's `play` function threw, as Storybook serialises it.
 export type PlayError = { name: string; message: string; stack?: string };

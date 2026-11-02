@@ -6,6 +6,7 @@ import { PageHeader } from "../PageHeader/PageHeader.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { emptyStateEntry } from "./EmptyState.registry.ts";
 import { EmptyState } from "./EmptyState.tsx";
+import { phoneGlobals } from "../../../.storybook/phone.ts";
 
 const emptyState = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="EmptyState"]')!;
@@ -93,6 +94,7 @@ export const InPlaceOfTable: Story = {
 export const Phone: Story = {
   args: FirstTime.args,
   tags: ["phone"],
+  globals: phoneGlobals,
   play: async ({ canvasElement, globals }) => {
     await holdsSurfaceAndType(canvasElement, globals.density);
     const box = emptyState(canvasElement).getBoundingClientRect();

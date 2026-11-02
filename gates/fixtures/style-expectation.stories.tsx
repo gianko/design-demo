@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, waitFor } from "storybook/test";
 import { useEffect, useState } from "react";
+import { phoneGlobals } from "../../.storybook/phone.ts";
 
 // A surface whose padding is set late: `p-surface` from the first paint, or
 // `p-page` once `late` has waited. Each story states one style expectation as
@@ -61,6 +62,7 @@ export const PassesAfterWait: Story = {
 // Rendered on a phone-width viewport.
 export const Phone: Story = {
   tags: ["phone"],
+  globals: phoneGlobals,
   play: async () => {
     await expect(window.innerWidth).toBe(360);
   },

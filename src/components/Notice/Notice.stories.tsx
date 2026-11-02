@@ -20,6 +20,7 @@ import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { noticeEntry } from "./Notice.registry.ts";
 import { Notice, type NoticeProps } from "./Notice.tsx";
+import { phoneGlobals } from "../../../.storybook/phone.ts";
 
 // payment-status's results, in the brief's copy rules: the success says
 // what was done and what happens next; the failure says what happened and
@@ -293,12 +294,14 @@ export const RetrySucceeds: Story = {
 export const Phone: Story = {
   args: failure,
   tags: ["phone"],
+  globals: phoneGlobals,
   parameters: Failure.parameters,
 };
 
 export const SuccessPhone: Story = {
   args: success,
   tags: ["phone"],
+  globals: phoneGlobals,
   parameters: Success.parameters,
 };
 

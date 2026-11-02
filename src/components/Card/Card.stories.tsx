@@ -10,6 +10,7 @@ import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { cardEntry } from "./Card.registry.ts";
 import { Card } from "./Card.tsx";
+import { phoneGlobals } from "../../../.storybook/phone.ts";
 
 const card = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Card"]')!;
@@ -220,6 +221,7 @@ export const Result: Story = {
 export const Phone: Story = {
   args: Full.args,
   tags: ["phone"],
+  globals: phoneGlobals,
   play: async ({ canvasElement, globals }) => {
     await holdsPaddingAndCeiling(canvasElement, globals.density);
     await expect(

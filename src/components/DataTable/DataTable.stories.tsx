@@ -13,6 +13,7 @@ import { StatusTag, statusWords } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { dataTableEntry } from "./DataTable.registry.ts";
 import { DataTable } from "./DataTable.tsx";
+import { phoneGlobals } from "../../../.storybook/phone.ts";
 
 // The selected count's three forms, as invoice-queue's UI spec writes them.
 const selectionText = {
@@ -744,6 +745,7 @@ export const ColumnsHoldWhenStatusesChange: Story = {
 export const ColumnsHoldWhenStatusesChangeOnPhone: Story = {
   ...ColumnsHoldWhenStatusesChange,
   tags: ["phone"],
+  globals: phoneGlobals,
 };
 
 // A table nothing acts on, with no actions: no checkboxes in the header or
@@ -782,6 +784,7 @@ async function scrollsSideways(canvas: HTMLElement) {
 export const Phone: Story = {
   render: () => <InvoiceQueue />,
   tags: ["phone"],
+  globals: phoneGlobals,
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     await scrollsSideways(canvasElement);
@@ -801,6 +804,7 @@ export const ActionsOnPhone: Story = {
   ),
   decorators: [awaitingTicked],
   tags: ["phone"],
+  globals: phoneGlobals,
   play: async ({ canvasElement, globals }) => {
     await holdsRowsAndHeaders(canvasElement, globals.density);
     await scrollsSideways(canvasElement);
@@ -832,6 +836,7 @@ export const ManyRows: Story = {
 export const ManyRowsOnPhone: Story = {
   ...ManyRows,
   tags: ["phone"],
+  globals: phoneGlobals,
   play: async ({ canvasElement, globals }) => {
     await scrollsUnderTheCap(canvasElement, globals.density);
     await scrollsSideways(canvasElement);
