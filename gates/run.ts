@@ -25,6 +25,10 @@ try {
 
 run("pnpm", ["lint"]);
 run("pnpm", ["typecheck"]);
+// The script sets NODE_ENV=production, so the build bundles React's
+// production build whatever the caller's NODE_ENV: gate.e2e.ts runs this
+// under vitest, where it's `test`, and React's development build logs
+// warnings, script-errors that no real render logs.
 run("pnpm", ["storybook:build", "--quiet"]);
 run(
   "docker",
