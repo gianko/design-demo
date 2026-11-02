@@ -1,6 +1,7 @@
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { expect, waitFor } from "storybook/test";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { fixtureVariant, type Invoice } from "../../fixtures/fixtures.ts";
 import { ScreenHost, useFixtureData } from "../Screen/screen-state.tsx";
 import { Amount } from "../Amount/Amount.tsx";
@@ -10,6 +11,7 @@ import { Sheet } from "../Sheet/Sheet.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag, statusWords } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
+import { dataTableEntry } from "./DataTable.registry.ts";
 import { DataTable } from "./DataTable.tsx";
 
 // The selected count's three forms, as invoice-queue's UI spec writes them.
@@ -564,6 +566,8 @@ const awaitingTicked: Decorator = (Story) => (
 
 const meta = {
   title: "Components/DataTable",
+  tags: ["autodocs"],
+  ...registryDocs(dataTableEntry),
   // Room for the focus ring, which sits outside the header's box; a story
   // with a Sheet open fills the window as well.
   decorators: [

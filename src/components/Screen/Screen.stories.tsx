@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { FocusedOn } from "../../../.storybook/focused-on.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Text } from "../Text/Text.tsx";
 import { Toast } from "../Toast/Toast.tsx";
+import { screenEntry } from "./Screen.registry.ts";
 import { Screen } from "./Screen.tsx";
 import {
   useAction,
@@ -33,6 +35,8 @@ async function holdsHeightAndFocusability(canvas: HTMLElement) {
 // and Text exist.
 const meta = {
   title: "Components/Screen",
+  tags: ["autodocs"],
+  ...registryDocs(screenEntry),
   component: Screen,
   play: ({ canvasElement }) => holdsHeightAndFocusability(canvasElement),
 } satisfies Meta<typeof Screen>;

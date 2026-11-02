@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { textEntry } from "./Text.registry.ts";
 import { Text } from "./Text.tsx";
 
 const paragraph = (canvas: HTMLElement) =>
@@ -34,6 +36,8 @@ function charactersPerLine(element: HTMLElement) {
 
 const meta = {
   title: "Components/Text",
+  tags: ["autodocs"],
+  ...registryDocs(textEntry),
   component: Text,
   play: ({ canvasElement }) => wrapsPretty(canvasElement),
 } satisfies Meta<typeof Text>;

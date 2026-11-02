@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { colour } from "../../../.storybook/canvas-colour.ts";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import type { VariantName } from "../../fixtures/fixtures.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button } from "../Button/Button.tsx";
@@ -16,6 +17,7 @@ import {
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
+import { toastEntry } from "./Toast.registry.ts";
 import { Toast } from "./Toast.tsx";
 
 // bulk-pay's results, in the brief's copy rules: the success says what was
@@ -90,6 +92,12 @@ async function holdsCorner(canvas: HTMLElement, density: string) {
 
 const meta = {
   title: "Components/Toast",
+  tags: ["autodocs"],
+  // On the Docs page the toast gets an iframe of its own, so it's fixed to
+  // that frame's corner rather than the page's.
+  ...registryDocs(toastEntry, {
+    docs: { story: { inline: false, height: "160px" } },
+  }),
   component: Toast,
   args: { closeLabel },
   // The window's height, so the corner the toast is fixed to lies inside

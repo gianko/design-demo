@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { PageHeader } from "../PageHeader/PageHeader.tsx";
 import { Stack } from "../Stack/Stack.tsx";
+import { emptyStateEntry } from "./EmptyState.registry.ts";
 import { EmptyState } from "./EmptyState.tsx";
 
 const emptyState = (canvas: HTMLElement) =>
@@ -42,6 +44,8 @@ async function holdsSurfaceAndType(canvas: HTMLElement, density: string) {
 // briefs leave empty, in the brief's copy rules.
 const meta = {
   title: "Components/EmptyState",
+  tags: ["autodocs"],
+  ...registryDocs(emptyStateEntry),
   component: EmptyState,
   play: ({ canvasElement, globals }) =>
     holdsSurfaceAndType(canvasElement, globals.density),

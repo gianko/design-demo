@@ -1,11 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { Text } from "../Text/Text.tsx";
+import { amountEntry } from "./Amount.registry.ts";
 import { Amount } from "./Amount.tsx";
 
-const meta = { title: "Components/Amount", component: Amount } satisfies Meta<
-  typeof Amount
->;
+const meta = {
+  title: "Components/Amount",
+  tags: ["autodocs"],
+  ...registryDocs(amountEntry),
+  component: Amount,
+} satisfies Meta<typeof Amount>;
 
 export default meta;
 

@@ -4,11 +4,13 @@ import type { ReactNode } from "react";
 import { expect } from "storybook/test";
 import { colour } from "../../../.storybook/canvas-colour.ts";
 import { faintHovers } from "../../../.storybook/hover-step.ts";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Amount } from "../Amount/Amount.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
+import { sheetEntry } from "./Sheet.registry.ts";
 import { Sheet } from "./Sheet.tsx";
 
 const oklch = converter("oklch");
@@ -96,11 +98,16 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 
 const meta = {
   title: "Components/Sheet",
-  component: Sheet,
+  tags: ["autodocs"],
   // The sheet is a modal dialog over the whole window; the canvas fills the
   // window, with none of Storybook's padding, so the gate's shots of the
-  // story root hold all of it, end edge included.
-  parameters: { layout: "fullscreen" },
+  // story root hold all of it, end edge included. On the Docs page it gets
+  // an iframe of its own, so it covers that frame rather than the page.
+  ...registryDocs(sheetEntry, {
+    layout: "fullscreen",
+    docs: { story: { inline: false, height: "480px" } },
+  }),
+  component: Sheet,
   decorators: [
     (Story) => (
       <div className="min-h-dvh">

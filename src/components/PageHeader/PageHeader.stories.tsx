@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Button } from "../Button/Button.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Text } from "../Text/Text.tsx";
+import { pageHeaderEntry } from "./PageHeader.registry.ts";
 import { PageHeader } from "./PageHeader.tsx";
 
 const part = (canvas: HTMLElement, component: string) =>
@@ -25,6 +27,8 @@ async function actionsEndTheTitleRow(canvas: HTMLElement) {
 // fills, with the titles of the screen briefs that use it.
 const meta = {
   title: "Components/PageHeader",
+  tags: ["autodocs"],
+  ...registryDocs(pageHeaderEntry),
   component: PageHeader,
 } satisfies Meta<typeof PageHeader>;
 

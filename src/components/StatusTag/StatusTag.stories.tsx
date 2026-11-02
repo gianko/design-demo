@@ -1,11 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Amount } from "../Amount/Amount.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { Text } from "../Text/Text.tsx";
+import { statusTagEntry } from "./StatusTag.registry.ts";
 import { StatusTag } from "./StatusTag.tsx";
 
 const meta = {
   title: "Components/StatusTag",
+  tags: ["autodocs"],
+  ...registryDocs(statusTagEntry),
   component: StatusTag,
 } satisfies Meta<typeof StatusTag>;
 
