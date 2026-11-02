@@ -178,6 +178,8 @@ export type SetPlan = {
   description: string;
   /** Variants per row of the set's grid: the first axis's options. */
   columns: number;
+  /** The set's own background, so its variants read on any canvas. */
+  fills: string[];
   /** One root frame per variant, named `axis=value, …` as Figma names variants. */
   variants: FramePlan[];
 };
@@ -355,6 +357,9 @@ function setPlan(
       .filter(Boolean)
       .join("\n\n"),
     columns: axes[0]?.values.length ?? 1,
+    // The page colour, bound, so a set flipped to another Color mode keeps
+    // its copy on the background that copy was chosen for.
+    fills: ["color/bg/page"],
     variants,
   };
 }

@@ -132,6 +132,7 @@ async function componentsPass(RUN, PAYLOAD) {
     }
   };
   for (const set of PAYLOAD.sets) {
+    for (const name of set.fills) variable(name);
     for (const variant of set.variants) {
       check(variant, `${set.name}/${variant.name}`, null);
     }
@@ -537,12 +538,17 @@ async function componentsPass(RUN, PAYLOAD) {
       }
     }
 
-    // The set itself: its description, and its variants in a grid, one row
-    // per combination of the other axes.
+    // The set itself: its description, its background, and its variants in a
+    // grid, one row per combination of the other axes.
     const changes = [];
     if (set.description !== storedDescription(plan.description)) {
       changes.push("description");
       if (write) set.description = plan.description;
+    }
+    const background = plan.fills.map(variable);
+    if (!paintsMatch(set, "fills", background)) {
+      changes.push("fills");
+      if (write) set.fills = paints(background);
     }
     const variants = plan.variants.map(({ name }) =>
       set.children.find(

@@ -17,6 +17,7 @@ Decided in [Figma: component frames for the library](https://github.com/gianko/d
   - **One-variant sets with named auto-layout slot placeholders:** Card, EmptyState, PageHeader, Sheet and DataTable. (Amended by [ADR 0016](0016-an-actions-result-on-a-card-is-a-notice-on-its-bottom-edge.md): Card now has a `result` axis, `none`, `success` and `failure`, the last two drawing Notice's frames in its `result` slot, so it is a variant set; Notice is one too, by `tone`.)
   - **Internal entries get sets too, marked internal in their descriptions:** Checkbox (checked × disabled) and IconButton. A designer looking at a table or a sheet sees them.
   - **No sets:** Screen and Stack. Stack is auto layout itself, and Screen only sets density.
+- **Each set sits on the page colour.** Its fill is bound to `color/bg/page`, so copy-only sets like Text read on Figma's dark canvas, and a set flipped to Dark keeps its copy on the background chosen for it ([#380](https://github.com/gianko/design-demo/issues/380)).
 - **Density isn't an axis.** It's the Density collection's modes, so a designer flips the mode on a frame.
 - **No nested instances.** A slot is a placeholder, not a Checkbox or IconButton instance.
 - **`figma:sync-components` runs on `figma:sync-tokens`'s runtime and after it,** since it binds to the variables that command makes. It has the same checksum, dry run with a diff and orphans, apply that re-diffs inside the same call, 50,000-character limit, `--split` (one script per component set) and tests against the fake Plugin API.
