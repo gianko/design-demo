@@ -1,12 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Text } from "../Text/Text.tsx";
 import { Stack } from "./Stack.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { stackEntry } from "./Stack.registry.ts";
 
 // Stack paints nothing, so each story shows its layout through the Texts it
 // holds: the gap is the space between them, alignment where they sit.
-const meta = { title: "Components/Stack", component: Stack } satisfies Meta<
-  typeof Stack
->;
+const meta = {
+  title: "Components/Stack",
+  tags: ["autodocs"],
+  ...registryDocs(stackEntry),
+  component: Stack,
+} satisfies Meta<typeof Stack>;
 
 export default meta;
 

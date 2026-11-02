@@ -4,6 +4,8 @@ import { Button } from "../Button/Button.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Text } from "../Text/Text.tsx";
 import { PageHeader } from "./PageHeader.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { pageHeaderEntry } from "./PageHeader.registry.ts";
 
 const part = (canvas: HTMLElement, component: string) =>
   canvas.querySelector<HTMLElement>(`[data-component="${component}"]`)!;
@@ -25,6 +27,8 @@ async function actionsEndTheTitleRow(canvas: HTMLElement) {
 // fills, with the titles of the screen briefs that use it.
 const meta = {
   title: "Components/PageHeader",
+  tags: ["autodocs"],
+  ...registryDocs(pageHeaderEntry),
   component: PageHeader,
 } satisfies Meta<typeof PageHeader>;
 

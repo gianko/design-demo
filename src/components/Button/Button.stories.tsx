@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { faintHovers } from "../../../.storybook/hover-step.ts";
 import { Button } from "./Button.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { buttonEntry } from "./Button.registry.ts";
 
 const button = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Button"]')!;
@@ -16,6 +18,8 @@ function colour(value: string) {
 
 const meta = {
   title: "Components/Button",
+  tags: ["autodocs"],
+  ...registryDocs(buttonEntry),
   component: Button,
   // Room for the focus ring, which sits outside the button, so the focus
   // shot shows all of it.

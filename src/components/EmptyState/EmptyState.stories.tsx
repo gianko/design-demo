@@ -4,6 +4,8 @@ import { Heading } from "../Heading/Heading.tsx";
 import { PageHeader } from "../PageHeader/PageHeader.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { EmptyState } from "./EmptyState.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { emptyStateEntry } from "./EmptyState.registry.ts";
 
 const emptyState = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="EmptyState"]')!;
@@ -42,6 +44,8 @@ async function holdsSurfaceAndType(canvas: HTMLElement, density: string) {
 // briefs leave empty, in the brief's copy rules.
 const meta = {
   title: "Components/EmptyState",
+  tags: ["autodocs"],
+  ...registryDocs(emptyStateEntry),
   component: EmptyState,
   play: ({ canvasElement, globals }) =>
     holdsSurfaceAndType(canvasElement, globals.density),

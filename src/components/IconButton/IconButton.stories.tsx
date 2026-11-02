@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { IconButton } from "./IconButton.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { iconButtonEntry } from "./IconButton.registry.ts";
 
 const root = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="IconButton"]')!;
@@ -20,6 +22,8 @@ async function holdsTargetAndGlyph(canvas: HTMLElement, density: string) {
 // Each story is the close button of the invoice-detail sheet.
 const meta = {
   title: "Components/IconButton",
+  tags: ["autodocs"],
+  ...registryDocs(iconButtonEntry),
   component: IconButton,
   // Room for the focus ring, which sits outside the button.
   decorators: [

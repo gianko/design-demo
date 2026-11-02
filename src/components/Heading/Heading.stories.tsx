@@ -1,9 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { Heading } from "./Heading.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { headingEntry } from "./Heading.registry.ts";
 
 const meta = {
   title: "Components/Heading",
+  tags: ["autodocs"],
+  ...registryDocs(headingEntry),
   component: Heading,
   // A style expectation (ADR 0012): every level balances its lines.
   play: async ({ canvasElement }) => {

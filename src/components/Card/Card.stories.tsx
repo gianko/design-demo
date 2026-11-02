@@ -8,6 +8,8 @@ import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { Card } from "./Card.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { cardEntry } from "./Card.registry.ts";
 
 const card = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Card"]')!;
@@ -53,6 +55,8 @@ const find = (canvas: HTMLElement, component: string) =>
 // with the content of the screen briefs that use it.
 const meta = {
   title: "Components/Card",
+  tags: ["autodocs"],
+  ...registryDocs(cardEntry),
   component: Card,
   play: ({ canvasElement, globals }) =>
     holdsPaddingAndCeiling(canvasElement, globals.density),

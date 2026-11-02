@@ -11,6 +11,8 @@ import {
   type HostedState,
   type ScreenStateParameters,
 } from "./screen-state.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { screenEntry } from "./Screen.registry.ts";
 
 const root = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Screen"]')!;
@@ -33,6 +35,8 @@ async function holdsHeightAndFocusability(canvas: HTMLElement) {
 // and Text exist.
 const meta = {
   title: "Components/Screen",
+  tags: ["autodocs"],
+  ...registryDocs(screenEntry),
   component: Screen,
   play: ({ canvasElement }) => holdsHeightAndFocusability(canvasElement),
 } satisfies Meta<typeof Screen>;

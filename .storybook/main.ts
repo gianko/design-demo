@@ -13,6 +13,12 @@ const config: StorybookConfig = {
           : []),
       ],
   framework: "@storybook/react-vite",
+  // A library component's Docs page, from its registry entry
+  // (./registry-docs.tsx).
+  addons: ["@storybook/addon-docs"],
+  // The props table is the registry's, so docgen, which can't follow
+  // PropsOf to a component's props type anyway, would only reorder it.
+  typescript: { reactDocgen: false },
 };
 
 export default config;

@@ -3,6 +3,8 @@ import { expect } from "storybook/test";
 import { colour } from "../../../.storybook/canvas-colour.ts";
 import { faintHovers } from "../../../.storybook/hover-step.ts";
 import { Checkbox } from "./Checkbox.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { checkboxEntry } from "./Checkbox.registry.ts";
 
 const root = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Checkbox"]')!;
@@ -24,6 +26,8 @@ async function holdsTargetAndBox(canvas: HTMLElement, density: string) {
 // Each story is one row of invoice-queue's selection.
 const meta = {
   title: "Components/Checkbox",
+  tags: ["autodocs"],
+  ...registryDocs(checkboxEntry),
   component: Checkbox,
   // Room for the focus ring, which sits outside the box.
   decorators: [

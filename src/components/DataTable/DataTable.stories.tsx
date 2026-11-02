@@ -11,6 +11,8 @@ import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag, statusWords } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { DataTable } from "./DataTable.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
+import { dataTableEntry } from "./DataTable.registry.ts";
 
 // The selected count's three forms, as invoice-queue's UI spec writes them.
 const selectionText = {
@@ -564,6 +566,8 @@ const awaitingTicked: Decorator = (Story) => (
 
 const meta = {
   title: "Components/DataTable",
+  tags: ["autodocs"],
+  ...registryDocs(dataTableEntry),
   // Room for the focus ring, which sits outside the header's box; a story
   // with a Sheet open fills the window as well.
   decorators: [
