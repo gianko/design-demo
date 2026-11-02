@@ -4,14 +4,14 @@ import type { ReactNode } from "react";
 import { expect } from "storybook/test";
 import { colour } from "../../../.storybook/canvas-colour.ts";
 import { faintHovers } from "../../../.storybook/hover-step.ts";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Amount } from "../Amount/Amount.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
-import { Sheet } from "./Sheet.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { sheetEntry } from "./Sheet.registry.ts";
+import { Sheet } from "./Sheet.tsx";
 
 const oklch = converter("oklch");
 

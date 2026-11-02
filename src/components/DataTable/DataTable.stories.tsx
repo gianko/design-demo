@@ -1,6 +1,7 @@
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { expect, waitFor } from "storybook/test";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { fixtureVariant, type Invoice } from "../../fixtures/fixtures.ts";
 import { ScreenHost, useFixtureData } from "../Screen/screen-state.tsx";
 import { Amount } from "../Amount/Amount.tsx";
@@ -10,9 +11,8 @@ import { Sheet } from "../Sheet/Sheet.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag, statusWords } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
-import { DataTable } from "./DataTable.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { dataTableEntry } from "./DataTable.registry.ts";
+import { DataTable } from "./DataTable.tsx";
 
 // The selected count's three forms, as invoice-queue's UI spec writes them.
 const selectionText = {

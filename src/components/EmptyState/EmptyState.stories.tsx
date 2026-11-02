@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { PageHeader } from "../PageHeader/PageHeader.tsx";
 import { Stack } from "../Stack/Stack.tsx";
-import { EmptyState } from "./EmptyState.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { emptyStateEntry } from "./EmptyState.registry.ts";
+import { EmptyState } from "./EmptyState.tsx";
 
 const emptyState = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="EmptyState"]')!;

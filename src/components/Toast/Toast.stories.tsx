@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { colour } from "../../../.storybook/canvas-colour.ts";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import type { VariantName } from "../../fixtures/fixtures.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button } from "../Button/Button.tsx";
@@ -16,9 +17,8 @@ import {
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
-import { Toast } from "./Toast.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { toastEntry } from "./Toast.registry.ts";
+import { Toast } from "./Toast.tsx";
 
 // bulk-pay's results, in the brief's copy rules: the success says what was
 // done and when; the failure says what happened and what to do next.

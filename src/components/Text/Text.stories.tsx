@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
-import { Text } from "./Text.tsx";
 import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { textEntry } from "./Text.registry.ts";
+import { Text } from "./Text.tsx";
 
 const paragraph = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Text"]')!;

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button } from "../Button/Button.tsx";
 import { Heading } from "../Heading/Heading.tsx";
@@ -7,9 +8,8 @@ import { Notice } from "../Notice/Notice.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
-import { Card } from "./Card.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { cardEntry } from "./Card.registry.ts";
+import { Card } from "./Card.tsx";
 
 const card = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Card"]')!;

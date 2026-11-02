@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { faintHovers } from "../../../.storybook/hover-step.ts";
-import { Button } from "./Button.tsx";
 import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { buttonEntry } from "./Button.registry.ts";
+import { Button } from "./Button.tsx";
 
 const button = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Button"]')!;

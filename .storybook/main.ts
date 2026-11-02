@@ -13,7 +13,8 @@ const config: StorybookConfig = {
           : []),
       ],
   framework: "@storybook/react-vite",
-  // A library component's Docs page, from its registry entry
+  // Docs pages, so a reviewer browsing the library reads what each component
+  // is for and what its props mean, from its registry entry
   // (./registry-docs.tsx).
   addons: ["@storybook/addon-docs"],
   // The props table is the registry's, so docgen, which can't follow

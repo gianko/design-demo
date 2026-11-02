@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Button } from "../Button/Button.tsx";
 import { Heading } from "../Heading/Heading.tsx";
 import { Text } from "../Text/Text.tsx";
-import { PageHeader } from "./PageHeader.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { pageHeaderEntry } from "./PageHeader.registry.ts";
+import { PageHeader } from "./PageHeader.tsx";
 
 const part = (canvas: HTMLElement, component: string) =>
   canvas.querySelector<HTMLElement>(`[data-component="${component}"]`)!;

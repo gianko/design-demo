@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Stack } from "../Stack/Stack.tsx";
 import { Text } from "../Text/Text.tsx";
-import { Amount } from "./Amount.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { amountEntry } from "./Amount.registry.ts";
+import { Amount } from "./Amount.tsx";
 
 const meta = {
   title: "Components/Amount",

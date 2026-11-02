@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 import { expect, waitFor } from "storybook/test";
 import { colour } from "../../../.storybook/canvas-colour.ts";
 import { FocusedOn } from "../../../.storybook/focused-on.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import type { VariantName } from "../../fixtures/fixtures.ts";
 import { Amount } from "../Amount/Amount.tsx";
 import { Button } from "../Button/Button.tsx";
@@ -17,9 +18,8 @@ import {
 import { Stack } from "../Stack/Stack.tsx";
 import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
-import { Notice, type NoticeProps } from "./Notice.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { noticeEntry } from "./Notice.registry.ts";
+import { Notice, type NoticeProps } from "./Notice.tsx";
 
 // payment-status's results, in the brief's copy rules: the success says
 // what was done and what happens next; the failure says what happened and

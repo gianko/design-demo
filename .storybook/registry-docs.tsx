@@ -48,24 +48,25 @@ function propType(schema: JsonSchema): string {
   if (schema.const !== undefined) return JSON.stringify(schema.const);
   if (schema.anyOf) return schema.anyOf.map(propType).join(" | ");
   if (schema.type === "array" && schema.items) {
-    const items = propType(schema.items);
-    return items.includes(" | ") ? `(${items})[]` : `${items}[]`;
+    return `${propType(schema.items)}[]`;
   }
-  return schema.type === "integer" ? "number" : (schema.type ?? "unknown");
+  return schema.type ?? "unknown";
 }
 
 // The registry's text is plain prose, but the page renders descriptions as
 // Markdown, where DataTable's "row.* … row.*" would turn italic and lose its
 // asterisks. A backslash before each ASCII punctuation mark shows it as
 // written.
-function plain(text: string): string {
+function escapeMarkdown(text: string): string {
   return text.replace(/[!-/:-@[-`{-~]/g, "\\$&");
 }
 
 // The page shows only the primary story, never several in one document, so
-// no two Screens' announce regions or Toasts share it. Its play function
-// doesn't run there (Storybook's docs autoplay is off), and the theme and
-// density decorators wrap it as they wrap a story's own canvas.
+// no two Screens' announce regions or Toasts share it, and the theme and
+// density decorators wrap it as they wrap a story's own canvas. Shown inline
+// its play function doesn't run (docs autoplay is off); shown in an iframe
+// of its own, as Sheet's and Toast's are, it runs as on the story's canvas,
+// and only reads (ADR 0012).
 function Page() {
   return (
     <>
@@ -92,7 +93,7 @@ export function registryDocs(
     ([name, schema]): [string, InputType] => [
       name,
       {
-        description: plain(schema.description ?? ""),
+        description: escapeMarkdown(schema.description ?? ""),
         table: {
           category: codeOnly.has(name) ? category.codeOnly : category.prop,
           type: { summary: propType(json.properties?.[name] ?? {}) },
@@ -100,9 +101,11 @@ export function registryDocs(
       },
     ]
   );
+  // A slot's row is named for the prop that fills it: the body slot is
+  // children, every other slot a prop of its own name (Card's header).
   const slots = Object.entries(entry.slots ?? {}).map(
     ([name, slot]): [string, InputType] => [
-      name,
+      name === "body" ? "children" : name,
       {
         description: "",
         table: {
@@ -119,7 +122,7 @@ export function registryDocs(
       docs: {
         ...docs,
         page: Page,
-        description: { component: plain(entry.use) },
+        description: { component: escapeMarkdown(entry.use) },
         ...(entry.internal && { subtitle: internalNote }),
         // Only the registry's rows, so a story's args can't add one the
         // entry doesn't have.

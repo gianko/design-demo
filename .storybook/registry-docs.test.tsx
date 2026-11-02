@@ -132,8 +132,9 @@ describe.each(withStories)("$name's Docs page", (entry) => {
       },
     ]);
     // A slot's type is the components it takes.
+    // A slot's row is the prop that fills it, and the body slot is children.
     const slots = Object.entries(entry.slots ?? {}).map(([name, slot]) => [
-      name,
+      name === "body" ? "children" : name,
       {
         group: "slots",
         description: "",
@@ -171,4 +172,15 @@ it.each([
   ["Amount", "value", ["number"]],
 ])("shows %s's %s as %j", (name, prop, type) => {
   expect(table(name).get(prop)?.type).toEqual(type);
+});
+
+// The rows are the props the component takes: Card fills its body slot
+// from children.
+it("names Card's rows for its props", () => {
+  expect([...table("Card").keys()].sort()).toEqual([
+    "children",
+    "footer",
+    "header",
+    "result",
+  ]);
 });

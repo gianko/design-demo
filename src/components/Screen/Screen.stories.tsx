@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import { FocusedOn } from "../../../.storybook/focused-on.tsx";
+import { registryDocs } from "../../../.storybook/registry-docs.tsx";
 import { Text } from "../Text/Text.tsx";
 import { Toast } from "../Toast/Toast.tsx";
+import { screenEntry } from "./Screen.registry.ts";
 import { Screen } from "./Screen.tsx";
 import {
   useAction,
@@ -11,8 +13,6 @@ import {
   type HostedState,
   type ScreenStateParameters,
 } from "./screen-state.tsx";
-import { registryDocs } from "../../../.storybook/registry-docs.tsx";
-import { screenEntry } from "./Screen.registry.ts";
 
 const root = (canvas: HTMLElement) =>
   canvas.querySelector<HTMLElement>('[data-component="Screen"]')!;
