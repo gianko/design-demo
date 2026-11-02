@@ -117,6 +117,11 @@ export async function renderStories(input: StoriesInput): Promise<RenderGates> {
     ["exec", "storybook", "build", "--quiet", "--output-dir", storybook],
     {
       GATE_STORIES: `${relative(resolve(repo, ".storybook"), screens)}/*.stories.tsx`,
+      // React's production build, as `pnpm storybook:build` makes, whatever
+      // the caller's NODE_ENV: under vitest it's `test`, which bundles
+      // React's development build, whose warnings would be script-errors
+      // no real render logs.
+      NODE_ENV: "production",
     }
   );
   writeFileSync(join(render, "build.log"), build.output);
