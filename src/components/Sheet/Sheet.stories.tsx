@@ -12,6 +12,7 @@ import { StatusTag } from "../StatusTag/StatusTag.tsx";
 import { Text } from "../Text/Text.tsx";
 import { sheetEntry } from "./Sheet.registry.ts";
 import { Sheet } from "./Sheet.tsx";
+import { phoneGlobals } from "../../../.storybook/phone.ts";
 
 const oklch = converter("oklch");
 
@@ -211,4 +212,8 @@ export const LongTitle: Story = {
 };
 
 // The invoice on a contractor's phone: the sheet takes the whole width.
-export const Phone: Story = { args: invoice, tags: ["phone"] };
+export const Phone: Story = {
+  args: invoice,
+  tags: ["phone"],
+  globals: phoneGlobals,
+};

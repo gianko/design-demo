@@ -1,4 +1,5 @@
 import type { Preview } from "@storybook/react-vite";
+import { MINIMAL_VIEWPORTS } from "storybook/viewport";
 import {
   openDetailAttribute,
   tickRowsAttribute,
@@ -7,6 +8,7 @@ import { holdToastAttribute } from "../src/components/Toast/Toast.tsx";
 import { ScreenHost, type ScreenStateParameters } from "../src/index.ts";
 import "../src/styles.css";
 import { densities, themes, type Density, type Theme } from "./globals";
+import { phone, phoneViewportOption } from "./phone.ts";
 import {
   actionStart,
   type ScreenActionGlobals,
@@ -31,6 +33,13 @@ const preview: Preview = {
   initialGlobals: {
     theme: "light" satisfies Theme,
     density: "admin" satisfies Density,
+  },
+  // Storybook's own viewports, plus the gate's phone, which a story spread
+  // with `onPhone` is locked to (./phone.ts).
+  parameters: {
+    viewport: {
+      options: { ...MINIMAL_VIEWPORTS, [phone]: phoneViewportOption },
+    },
   },
   // The first decorator is the innermost.
   decorators: [

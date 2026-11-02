@@ -6,6 +6,7 @@ import { Heading } from "../Heading/Heading.tsx";
 import { Text } from "../Text/Text.tsx";
 import { pageHeaderEntry } from "./PageHeader.registry.ts";
 import { PageHeader } from "./PageHeader.tsx";
+import { phoneGlobals } from "../../../.storybook/phone.ts";
 
 const part = (canvas: HTMLElement, component: string) =>
   canvas.querySelector<HTMLElement>(`[data-component="${component}"]`)!;
@@ -86,6 +87,7 @@ export const Phone: Story = {
     actions: <Button intent="primary" text="Approve and pay" />,
   },
   tags: ["phone"],
+  globals: phoneGlobals,
   play: async ({ canvasElement }) => {
     await document.fonts.ready;
     const title = part(canvasElement, "Heading").getBoundingClientRect();
