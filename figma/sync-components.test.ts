@@ -266,6 +266,17 @@ describe("a first apply", () => {
     expect(fourth!.y).toBeGreaterThan(first!.y);
   });
 
+  it("puts every set on the page colour, so its copy reads on any canvas and in either mode", async () => {
+    const file = await tokenFile();
+
+    await sync(file);
+
+    const { sets, paints } = components(file);
+    expect(sets.map((set) => paints(set.fills))).toEqual(
+      setNames.map(() => ["color/bg/page"])
+    );
+  });
+
   it("throws on a write that didn't stick, so Figma keeps none of it", async () => {
     const file = await tokenFile({ ignoreNodeWrites: ["characters"] });
 
@@ -706,6 +717,23 @@ describe("a re-run", () => {
     ).toEqual([1, 0, 0, 0]);
   });
 
+  it("gives a set synced before sets had a background the page colour, and says so", async () => {
+    const file = await tokenFile();
+    await sync(file);
+    const id = components(file).sets.find((s) => s.name === "Button")!.id;
+    (await findNode(file, id)).fills = [];
+
+    const [dryRun] = await sync(file, { dryRun: true });
+    const [applied] = await sync(file);
+
+    expect(dryRun!.updated).toEqual(["Button (component set: fills)"]);
+    expect(applied!.updated).toEqual(dryRun!.updated);
+    const { sets, paints } = components(file);
+    expect(paints(sets.find((s) => s.name === "Button")!.fills)).toEqual([
+      "color/bg/page",
+    ]);
+  });
+
   it("puts a hand-edited variant back in place and says what it changed", async () => {
     const file = await tokenFile();
     await sync(file);
@@ -920,6 +948,7 @@ type SceneNode = {
   type: string;
   children: SceneNode[] & { characters?: string }[];
   paddingLeft: number;
+  fills: unknown[];
 };
 type Scene = {
   createPage(): SceneNode;

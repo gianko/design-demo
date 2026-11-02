@@ -583,6 +583,9 @@ export function fakeScene(deps: SceneDeps) {
         );
       }
       const set = new Frame("COMPONENT_SET");
+      // Unlike a new frame, a set Figma combines has no fill: the sets
+      // synced before #380 read back with none.
+      set.fills = [];
       parent.appendChild(set);
       for (const node of nodes) set.appendChild(node);
       return set;
