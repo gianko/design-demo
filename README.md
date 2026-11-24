@@ -6,6 +6,8 @@ I've spent 15 years making designers' work ship at award level. This repo encode
 
 **[Video, 90 seconds](https://youtu.be/v0i9vIdOAsk)** · **[Case study](docs/case-study.md)** · **[Storybook](https://gianko.github.io/design-demo/)** · **[Eval report](https://gianko.github.io/design-demo/evals/)** · **[Figma file](https://www.figma.com/design/qgCHZ55XTiozWpZvASRzJE/Dill-Demo)** · **[Design brief](docs/design-brief.md)** · **[Where it stands](#where-it-stands)**
 
+https://github.com/user-attachments/assets/566a476e-3278-4111-a59a-e6e1858660c9
+
 | A generated screen, kept and gated | A library component at admin density |
 |---|---|
 | ![payment-status after a reminder is sent, contractor density](gates/baselines/screens-payment-status--reminder-sent--light-contractor.png) | ![DataTable with three rows selected, admin density](gates/baselines/components-datatable--three-selected--light-admin.png) |
