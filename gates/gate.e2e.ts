@@ -23,9 +23,16 @@ import * as tabularNumerals from "../lint/taste/rules/tabular-numerals.ts";
 import * as targetSize from "../lint/taste/rules/target-size.ts";
 import * as textOverflow from "../lint/taste/rules/text-overflow.ts";
 import * as typeOnScale from "../lint/taste/rules/type-on-scale.ts";
+import { parseLeg, rendersStory, targetsOf } from "./e2e-legs.ts";
 import { renderRules } from "./render-rules.ts";
 import { renderTitle, renders, shotName, type Render } from "./stories.ts";
 import { repo } from "../repo.ts";
+
+// The leg of the Gate e2e workflow this run is, if any.
+const leg = parseLeg(process.env.GATE_E2E_LEG);
+
+// Everything but the fixture renders belongs to the `rest` leg.
+const describeRest = describe.skipIf(leg.kind === "share");
 
 const baselines = join(repo, "gates/out/e2e-baselines");
 const contactSheet = join(repo, "gates/out/contact-sheet");
@@ -106,6 +113,7 @@ function seed(args: string[]) {
   rmSync(baselines, { recursive: true, force: true });
   cpSync(join(repo, "gates/baselines"), baselines, { recursive: true });
   gate(args, { ci: false, seed: true });
+  if (!args.includes("OnePixel")) return;
   const before = rendersOf("gatefixtures-onepixel--before");
   for (const story of ["after", "faint"]) {
     rendersOf(`gatefixtures-onepixel--${story}`).forEach((render, i) =>
@@ -114,7 +122,7 @@ function seed(args: string[]) {
   }
 }
 
-describe("token lint", () => {
+describeRest("token lint", () => {
   // Planted in src/ for this test only, and removed after it.
   const story = join(repo, "src/gate-raw-value.stories.tsx");
 
@@ -140,7 +148,7 @@ export const RawValue = { render: () => <p className="bg-[#fff]">Raw</p> };
   });
 });
 
-describe("in CI", () => {
+describe.skipIf(leg.kind === "rest")("in CI", () => {
   // A story nobody approved.
   const [missing] = rendersOf("gatefixtures-onepixel--before");
   // Only the stories this suite checks, so it doesn't grow with the library.
@@ -154,89 +162,124 @@ describe("in CI", () => {
   ];
   let run: Run;
 
-  // Two gate runs over every fixture: ~4 min on a Mac, ~8 on CI's 2 workers.
+  // A check of one story, which runs in the leg that renders it.
+  const itOn = (story: string) =>
+    it.runIf(leg.kind === "rest" || rendersStory(leg, targets, story));
+
+  // Two gate runs over this leg's fixtures. Over all of them, as with no leg,
+  // that takes ~4 min on a Mac.
   beforeAll(() => {
-    seed(targets);
-    rmSync(baseline(missing!));
-    run = gate(targets, { ci: true });
+    const rendered = targetsOf(leg, targets);
+    seed(rendered);
+    if (rendersStory(leg, targets, missing!.id)) rmSync(baseline(missing!));
+    run = gate(rendered, { ci: true });
   }, 900_000);
 
   // A small, stable library component: the known-good check.
-  it("passes the Heading stories against their committed baselines", () => {
-    for (const level of [1, 2, 3]) {
-      for (const render of rendersOf(`components-heading--level-${level}`)) {
-        expect(run.outcome(render)?.status).toBe("passed");
+  itOn("components-heading--level-1")(
+    "passes the Heading stories against their committed baselines",
+    () => {
+      for (const level of [1, 2, 3]) {
+        for (const render of rendersOf(`components-heading--level-${level}`)) {
+          expect(run.outcome(render)?.status).toBe("passed");
+        }
       }
     }
-  });
+  );
 
-  it("fails a planted axe violation, naming the story, theme and density", () => {
-    expect(run.status).not.toBe(0);
-    for (const render of rendersOf("gatefixtures-axeviolation--violation")) {
-      expectFailed(run, render, /gate 4: axe[\s\S]*aria-required-attr/);
+  itOn("gatefixtures-axeviolation--violation")(
+    "fails a planted axe violation, naming the story, theme and density",
+    () => {
+      expect(run.status).not.toBe(0);
+      for (const render of rendersOf("gatefixtures-axeviolation--violation")) {
+        expectFailed(run, render, /gate 4: axe[\s\S]*aria-required-attr/);
+      }
     }
-  });
+  );
 
-  it("fails a one-pixel change, naming the story, theme and density", () => {
-    for (const render of rendersOf("gatefixtures-onepixel--after")) {
-      expectFailed(run, render, /gate 6: baseline[\s\S]*\b1 pixels\b/);
+  itOn("gatefixtures-onepixel--after")(
+    "fails a one-pixel change, naming the story, theme and density",
+    () => {
+      for (const render of rendersOf("gatefixtures-onepixel--after")) {
+        expectFailed(run, render, /gate 6: baseline[\s\S]*\b1 pixels\b/);
+      }
     }
-  });
+  );
 
-  it("fails a one-pixel change in the faintest colour", () => {
-    for (const render of rendersOf("gatefixtures-onepixel--faint")) {
-      expectFailed(run, render, /gate 6: baseline[\s\S]*\b1 pixels\b/);
+  itOn("gatefixtures-onepixel--faint")(
+    "fails a one-pixel change in the faintest colour",
+    () => {
+      for (const render of rendersOf("gatefixtures-onepixel--faint")) {
+        expectFailed(run, render, /gate 6: baseline[\s\S]*\b1 pixels\b/);
+      }
     }
-  });
+  );
 
-  it("fails a script error, naming the story, theme and density", () => {
-    for (const render of rendersOf("gatefixtures-scripterror--page-error")) {
-      expectFailed(run, render, /script-error[\s\S]*planted page error/);
+  itOn("gatefixtures-scripterror--page-error")(
+    "fails a script error, naming the story, theme and density",
+    () => {
+      for (const render of rendersOf("gatefixtures-scripterror--page-error")) {
+        expectFailed(run, render, /script-error[\s\S]*planted page error/);
+      }
+      for (const render of rendersOf(
+        "gatefixtures-scripterror--console-error"
+      )) {
+        expectFailed(run, render, /script-error[\s\S]*planted console error/);
+      }
     }
-    for (const render of rendersOf("gatefixtures-scripterror--console-error")) {
-      expectFailed(run, render, /script-error[\s\S]*planted console error/);
-    }
-  });
+  );
 
   // Style expectations (ADR 0012). Each fixture's `play` settles only after
   // an async wait.
-  it("fails a failing style expectation as gate 8 alone, naming the story, theme and density", () => {
-    for (const render of rendersOf("gatefixtures-styleexpectation--fails")) {
-      expectFailed(
-        run,
-        render,
-        /gate 8: style expectations[\s\S]*expected '\d+px' to be '13px'/
-      );
-      // Not script-error, and not a story that failed to render: the other
-      // gates ran, and passed.
-      expect(run.outcome(render)?.errors).toHaveLength(1);
+  itOn("gatefixtures-styleexpectation--fails")(
+    "fails a failing style expectation as gate 8 alone, naming the story, theme and density",
+    () => {
+      for (const render of rendersOf("gatefixtures-styleexpectation--fails")) {
+        expectFailed(
+          run,
+          render,
+          /gate 8: style expectations[\s\S]*expected '\d+px' to be '13px'/
+        );
+        // Not script-error, and not a story that failed to render: the other
+        // gates ran, and passed.
+        expect(run.outcome(render)?.errors).toHaveLength(1);
+      }
     }
-  });
+  );
 
-  it("waits for a style expectation that passes after an async wait", () => {
-    for (const render of rendersOf(
-      "gatefixtures-styleexpectation--passes-after-wait"
-    )) {
-      expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+  itOn("gatefixtures-styleexpectation--passes-after-wait")(
+    "waits for a style expectation that passes after an async wait",
+    () => {
+      for (const render of rendersOf(
+        "gatefixtures-styleexpectation--passes-after-wait"
+      )) {
+        expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+      }
     }
-  });
+  );
 
-  it("renders a story tagged phone 360px wide, with baselines named like any other's", () => {
-    // Its `play` expects a 360px-wide viewport.
-    for (const render of rendersOf("gatefixtures-styleexpectation--phone")) {
-      expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
-      expect(existsSync(baseline(render))).toBe(true);
+  itOn("gatefixtures-styleexpectation--phone")(
+    "renders a story tagged phone 360px wide, with baselines named like any other's",
+    () => {
+      // Its `play` expects a 360px-wide viewport.
+      for (const render of rendersOf("gatefixtures-styleexpectation--phone")) {
+        expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+        expect(existsSync(baseline(render))).toBe(true);
+      }
     }
-  });
+  );
 
-  it("shoots an idle animation midway without freezing the control's transitions", () => {
-    const instant = rendersOf("gatefixtures-idleanimation--instant");
-    rendersOf("gatefixtures-idleanimation--eased").forEach((eased, i) => {
-      const shot = run.shot(eased, "mid-animation");
-      expect(shot).toBeDefined();
-      expect(shot).toEqual(run.shot(instant[i]!, "mid-animation"));
-    });
-  });
+  itOn("gatefixtures-idleanimation--eased")(
+    "shoots an idle animation midway without freezing the control's transitions",
+    () => {
+      const instant = rendersOf("gatefixtures-idleanimation--instant");
+      rendersOf("gatefixtures-idleanimation--eased").forEach((eased, i) => {
+        const shot = run.shot(eased, "mid-animation");
+        expect(shot).toBeDefined();
+        expect(shot).toEqual(run.shot(instant[i]!, "mid-animation"));
+      });
+    }
+  );
 
   // The shipped render-time taste rules (lint/taste/RULES.md): each rule's
   // failing fixture story fails gate 7 under the rule's id, with the finding.
@@ -244,7 +287,7 @@ describe("in CI", () => {
   const fixture = (rule: string, story: string) =>
     `gatefixtures-${rule.replaceAll("-", "")}--${story}`;
 
-  it.each([
+  const findings: [rule: string, story: string, finding: RegExp][] = [
     [noPill.id, "fail", /"Paid" has a \d+px corner radius on a \d+px-high box/],
     [typeOnScale.id, "fail", /"Contractor" is set in weight 700/],
     [typeOnScale.id, "fail", /"yesterday" is set at \d+(\.\d+)?px/],
@@ -408,67 +451,84 @@ describe("in CI", () => {
       "row",
       /Opening a row's Sheet, a scripted animation moves translate/,
     ],
-  ])("fails gate 7's %s on its failing fixture %s", (rule, story, finding) => {
-    // The report prints each finding as a JSON string, quotes escaped.
-    const printed = finding.source.replaceAll('"', '\\\\?"');
-    for (const render of rendersOf(fixture(rule, story))) {
-      expectFailed(
-        run,
-        render,
-        new RegExp(`gate 7: ${rule}\\b[\\s\\S]*${printed}`)
-      );
-    }
-  });
-
-  // target-size holds only contractor scopes to 44px, so its failing
-  // fixture fails there and not in admin.
-  it("fails gate 7's target-size on its failing fixture in contractor only", () => {
-    for (const render of rendersOf(fixture(targetSize.id, "fail"))) {
-      const errors = run.outcome(render)?.errors.join("\n");
-      if (render.density === "admin") {
-        expect(errors).not.toMatch(/gate 7: target-size\b/);
-        continue;
-      }
-      for (const name of ["Remove", "Payment terms", "Remember this payee"]) {
+  ];
+  it.for(findings)(
+    "fails gate 7's %s on its failing fixture %s",
+    ([rule, story, finding], { skip }) => {
+      skip(!rendersStory(leg, targets, fixture(rule, story)), "another leg's");
+      // The report prints each finding as a JSON string, quotes escaped.
+      const printed = finding.source.replaceAll('"', '\\\\?"');
+      for (const render of rendersOf(fixture(rule, story))) {
         expectFailed(
           run,
           render,
-          new RegExp(
-            `gate 7: target-size\\b[\\s\\S]*\\\\?"${name}\\\\?" has a \\d+×\\d+px hit area`
-          )
+          new RegExp(`gate 7: ${rule}\\b[\\s\\S]*${printed}`)
         );
       }
     }
-  });
+  );
+
+  // target-size holds only contractor scopes to 44px, so its failing
+  // fixture fails there and not in admin.
+  itOn(fixture(targetSize.id, "fail"))(
+    "fails gate 7's target-size on its failing fixture in contractor only",
+    () => {
+      for (const render of rendersOf(fixture(targetSize.id, "fail"))) {
+        const errors = run.outcome(render)?.errors.join("\n");
+        if (render.density === "admin") {
+          expect(errors).not.toMatch(/gate 7: target-size\b/);
+          continue;
+        }
+        for (const name of ["Remove", "Payment terms", "Remember this payee"]) {
+          expectFailed(
+            run,
+            render,
+            new RegExp(
+              `gate 7: target-size\\b[\\s\\S]*\\\\?"${name}\\\\?" has a \\d+×\\d+px hit area`
+            )
+          );
+        }
+      }
+    }
+  );
 
   // A modal Sheet is drawn in the top layer, over the page, so one rendered
   // inside a Card's element isn't a surface inside the Card.
-  it("passes nested-cards' open Sheet rendered inside a Card", () => {
-    for (const render of rendersOf(fixture(nestedCards.id, "sheet-in-card"))) {
-      expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+  itOn(fixture(nestedCards.id, "sheet-in-card"))(
+    "passes nested-cards' open Sheet rendered inside a Card",
+    () => {
+      for (const render of rendersOf(
+        fixture(nestedCards.id, "sheet-in-card")
+      )) {
+        expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+      }
     }
-  });
+  );
 
   // An open popover is in the top layer too, so a surface in one rendered
   // inside a Card's element isn't inside the Card.
-  it("passes nested-cards' surface in an open popover rendered inside a Card", () => {
-    for (const render of rendersOf(
-      fixture(nestedCards.id, "popover-in-card")
-    )) {
-      expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+  itOn(fixture(nestedCards.id, "popover-in-card"))(
+    "passes nested-cards' surface in an open popover rendered inside a Card",
+    () => {
+      for (const render of rendersOf(
+        fixture(nestedCards.id, "popover-in-card")
+      )) {
+        expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
+      }
     }
-  });
+  );
 
-  it.each(renderRules.map((rule) => rule.name))(
+  it.for(renderRules.map((rule) => rule.name))(
     "passes the %s fixture that follows its taste rule",
-    (rule) => {
+    (rule, { skip }) => {
+      skip(!rendersStory(leg, targets, fixture(rule, "pass")), "another leg's");
       for (const render of rendersOf(fixture(rule, "pass"))) {
         expect(run.outcome(render)).toEqual({ status: "passed", errors: [] });
       }
     }
   );
 
-  it("fails a missing baseline instead of writing it", () => {
+  itOn(missing!.id)("fails a missing baseline instead of writing it", () => {
     expectFailed(
       run,
       missing!,
@@ -481,7 +541,7 @@ describe("in CI", () => {
 // The static taste rules and token lint run in the gate's ESLint step, which
 // stops the gate before the Playwright pass. `pnpm lint` ignores their
 // fixtures, so this plants copies where it looks, and removes them after.
-describe("static lint fixtures", () => {
+describeRest("static lint fixtures", () => {
   const planted = join(repo, "gates/planted-lint-fixtures");
   const tasteFixtures = join(repo, "lint/taste/fixtures");
   let output: string;
@@ -538,7 +598,7 @@ describe("static lint fixtures", () => {
   });
 });
 
-describe("locally", () => {
+describeRest("locally", () => {
   const [after] = rendersOf("gatefixtures-onepixel--after");
   const [before] = rendersOf("gatefixtures-onepixel--before");
 
