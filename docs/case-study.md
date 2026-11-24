@@ -12,7 +12,7 @@ The Senior Design Engineer posting at DILL (a codename), in Product Design, puts
 
 > Most teams use AI as a faster way for humans to build products. At [DILL], we want to go further: build the system that lets AI build the products, with humans defining the taste, the guardrails, and the standards it works within.
 
-I built this around contractor payroll and invoicing. DILL makes payroll and HR software for global teams, and I'm a contractor myself, so it's a domain I know firsthand.
+I built this around contractor payroll and invoicing. DILL makes payroll and HR software for global teams, and I was a contractor for five years, so it's a domain I know firsthand.
 
 <!-- tailored:end -->
 
