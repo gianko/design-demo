@@ -25,7 +25,7 @@ A pipeline where:
 5. An eval suite runs a fixed set of screen briefs across runs and reports pass rates.
 6. Tokens, component frames and generated screens are pushed **into** Figma through Figma's official MCP server (write to canvas + code to canvas). Code is the source of truth; Figma is a shared surface, not an input.
 
-Domain for the generated screens: **contractor payroll / invoicing** (I live it as a contractor; a domain I know beats one picked to flatter a company). Screens: invoice list, invoice detail, contractor onboarding checklist, payment-status card.
+Domain for the generated screens: **contractor payroll / invoicing** (I lived it as a contractor; a domain I know beats one picked to flatter a company). Screens: invoice list, invoice detail, contractor onboarding checklist, payment-status card.
 
 ## 3. Decided
 
