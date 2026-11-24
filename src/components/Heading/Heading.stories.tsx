@@ -30,7 +30,7 @@ export const Level1: Story = {
   },
 };
 
-export const Level2: Story = { args: { level: 2, text: "Payment details" } };
+export const Level2: Story = { args: { level: 2, text: "Payment detail" } };
 
 export const Level3: Story = {
   args: { level: 3, text: "Reminders you've sent" },
