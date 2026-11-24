@@ -14,14 +14,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The one gate job of ADR 0009. It runs the same commands as the Mac, on
-  # arm64 to match the pinned Playwright image; later steps join this job.
-  gate:
+  # ESLint, tsc, Vitest and the checks that need no render.
+  static:
     runs-on: ubuntu-24.04-arm
-    permissions:
-      contents: read
-      # To comment the contact sheet's link on the PR.
-      pull-requests: write
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -36,20 +31,101 @@ jobs:
       - run: test -z "$(git status --porcelain)" || { git status --short; exit 1; }
       - run: pnpm format:check
       - run: pnpm lint:md
+      - run: pnpm lint
+      - run: pnpm typecheck
       # Vitest needs no Docker: the tests that render in the pinned image are
       # `pnpm test:gate`'s, in the Gate e2e workflow.
       - run: pnpm test
-      # ESLint, tsc, the Storybook build and the Playwright pass in the pinned
-      # image. CI is set, so a missing baseline fails instead of being written.
-      - run: pnpm gate
-      # The Storybook build `pnpm gate` just gated, for the Pages deploy. With
-      # no status function in its `if`, a failed step above skips it.
+
+  # The one Storybook build that every shard renders and Pages deploys.
+  storybook:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm storybook:build --quiet
       - uses: actions/upload-artifact@v7
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         with:
           name: storybook-static
           path: storybook-static/
           if-no-files-found: error
+
+  # The Playwright pass, split over runners, each in the pinned image on arm64
+  # (ADR 0009). CI is set, so a missing baseline fails instead of being
+  # written. One failing shard leaves the others running, so the merged
+  # contact sheet holds every render.
+  render:
+    needs: storybook
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: storybook-static
+          path: storybook-static
+      - run: pnpm gate --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: gate-blob-${{ matrix.shard }}
+          path: gates/out/blob/
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # The one required check (ADR 0009): it passes only if every job it needs
+  # did, and merges the shards' reports either way. always() because GitHub
+  # would otherwise skip it after a failed job, and a skipped required check
+  # counts as passed.
+  gate:
+    needs: [static, storybook, render]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      # To comment the contact sheet's link on the PR.
+      pull-requests: write
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          test "$RESULTS" = "success success success"
+      # A failed shard's report is the one to read, so the rest runs anyway.
+      - uses: actions/checkout@v7
+        if: ${{ !cancelled() }}
+      - uses: pnpm/action-setup@v6
+        if: ${{ !cancelled() }}
+      - uses: actions/setup-node@v7
+        if: ${{ !cancelled() }}
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: ${{ !cancelled() }}
+      - uses: actions/download-artifact@v8
+        if: ${{ !cancelled() && needs.render.result != 'skipped' }}
+        with:
+          pattern: gate-blob-*
+          path: gates/out/blob
+          merge-multiple: true
+      - run: pnpm gate:merge
+        if: ${{ !cancelled() && needs.render.result != 'skipped' }}
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
@@ -77,7 +153,7 @@ jobs:
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none \
             --body "**Contact sheet** for $SHA: $URL"
 
-  # The second job of ADR 0009 (spec § Pages deploy): on a push to main, once
+  # The Pages job of ADR 0009 (spec § Pages deploy): on a push to main, once
   # the gate job passes, the gated Storybook at the Pages root and the newest
   # results file's report at /evals/, compared against the baseline it names
   # if it names one. `needs` skips it after a red gate job.

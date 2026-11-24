@@ -18,12 +18,16 @@ export default defineConfig({
   workers: process.env.CI ? 3 : undefined,
   forbidOnly: true,
   retries: 0,
-  reporter: [
-    ["list"],
-    ["html", { outputFolder: "out/report", open: "never" }],
-    ["./contact-sheet.ts", { outputFolder: "out/contact-sheet" }],
-    ["json", { outputFile: "out/results.json" }],
-  ],
+  // A shard sees only its share of the renders, so it writes a blob, and
+  // `pnpm gate:merge` runs the full reporters over every shard's.
+  reporter: process.env.GATE_SHARD
+    ? [["list"], ["blob", { outputDir: "out/blob" }]]
+    : [
+        ["list"],
+        ["html", { outputFolder: "out/report", open: "never" }],
+        ["./contact-sheet.ts", { outputFolder: "out/contact-sheet" }],
+        ["json", { outputFile: "out/results.json" }],
+      ],
   expect: {
     // One renderer makes every baseline, so no pixel may differ, by any
     // amount: Playwright's default per-pixel threshold lets a faint colour

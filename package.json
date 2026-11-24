@@ -13,6 +13,7 @@
     "figma:sync-components": "tsx --import ./figma/css-stub.js figma/sync-components.ts",
     "figma:walk-capture": "node figma/walk-capture.ts",
     "gate": "node gates/run.ts",
+    "gate:merge": "playwright merge-reports --config=gates/playwright.config.ts gates/out/blob",
     "gate:measure": "node gates/measure.ts",
     "build-component": "node build-loop/build-component.ts",
     "build-loop": "node build-loop/build-loop.ts",

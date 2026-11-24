@@ -3,6 +3,10 @@
 // build on the host, then the Playwright pass inside the pinned image, so
 // every baseline comes from one renderer. What it may do to baselines is
 // baselineMode's call.
+//
+// CI splits it over jobs: `--shard=<n>/<count>` runs one share of the
+// Playwright pass alone, over the Storybook another job built, and writes a
+// blob report. `pnpm gate:merge` makes one report of the shards' blobs.
 
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
@@ -13,7 +17,10 @@ import { repo } from "../repo.ts";
 
 const { positionals: targets, values } = parseArgs({
   allowPositionals: true,
-  options: { update: { type: "boolean", default: false } },
+  options: {
+    update: { type: "boolean", default: false },
+    shard: { type: "string" },
+  },
 });
 const ci = Boolean(process.env.CI);
 let mode: BaselineMode;
@@ -23,20 +30,24 @@ try {
   fail((error as Error).message);
 }
 
-run("pnpm", ["lint"]);
-run("pnpm", ["typecheck"]);
+const { shard } = values;
+if (!shard) {
+  run("pnpm", ["lint"]);
+  run("pnpm", ["typecheck"]);
+}
 // The script sets NODE_ENV=production, so the build bundles React's
 // production build whatever the caller's NODE_ENV: gate.e2e.ts runs this
 // under vitest, where it's `test`, and React's development build logs
 // warnings, script-errors that no real render logs.
-run("pnpm", ["storybook:build", "--quiet"]);
+if (!shard) run("pnpm", ["storybook:build", "--quiet"]);
 run(
   "docker",
   playwrightInImage(
     "gates/playwright.config.ts",
-    [`--update-snapshots=${mode}`],
+    [`--update-snapshots=${mode}`, ...(shard ? [`--shard=${shard}`] : [])],
     {
       CI: ci ? "1" : undefined,
+      GATE_SHARD: shard,
       GATE_TARGETS: targetsEnv.write(targets),
       GATE_BASELINES: process.env.GATE_BASELINES || undefined,
       GATE_SEED: process.env.GATE_SEED || undefined,

@@ -1,4 +1,4 @@
-// The Pages deploy (ADR 0009, spec § Pages deploy): the CI workflow's second
+// The Pages deploy (ADR 0009, spec § Pages deploy): the CI workflow's last
 // job, read from .github/workflows/ci.yml. Its report step runs here as the
 // workflow writes it, against hand-written results files; the rest of the job
 // only runs on a push to main, so its shape is checked instead.
@@ -29,7 +29,7 @@ type Job = {
 const workflow = parse(
   readFileSync(join(repo, ".github", "workflows", "ci.yml"), "utf8")
 ) as { jobs: Record<string, Job> };
-const { gate, pages } = workflow.jobs;
+const { storybook, render, gate, pages } = workflow.jobs;
 
 const uses = (job: Job | undefined, action: string) =>
   job?.steps.filter((step) => step.uses?.startsWith(`${action}@`)) ?? [];
@@ -103,10 +103,10 @@ describe("the Pages deploy job", () => {
     expect(pages!.concurrency?.["cancel-in-progress"]).toBe(false);
   });
 
-  it("publishes the gate job's own Storybook build at the Pages root", () => {
-    // The gate job uploads the storybook-static it gated, and only when every
-    // step before it passed: a status function would upload a red build.
-    const uploads = uses(gate, "actions/upload-artifact").filter(
+  it("publishes the Storybook build the gate rendered at the Pages root", () => {
+    // The storybook job uploads its build, and only when every step before it
+    // passed: a status function would upload a red build.
+    const uploads = uses(storybook, "actions/upload-artifact").filter(
       (step) =>
         posix.normalize(String(step.with?.path)).replace(/\/$/, "") ===
         "storybook-static"
@@ -114,6 +114,19 @@ describe("the Pages deploy job", () => {
     expect(uploads).toHaveLength(1);
     const [upload] = uploads;
     expect(upload!.if ?? "").not.toMatch(/always\(|failure\(|cancelled\(/);
+    // It is the only build of that name, so it is the one the shards render,
+    // over which the gate job passes or fails.
+    const named = Object.values(workflow.jobs).flatMap((job) =>
+      uses(job, "actions/upload-artifact").filter(
+        (step) => step.with?.name === upload!.with?.name
+      )
+    );
+    expect(named).toEqual([upload]);
+    expect([render?.needs].flat()).toContain("storybook");
+    expect(
+      uses(render, "actions/download-artifact").map((step) => step.with)
+    ).toEqual([{ name: upload!.with?.name, path: "storybook-static" }]);
+    expect([gate?.needs].flat()).toContain("render");
     // The deploy job downloads it to the root of what it hands to Pages.
     const downloads = uses(pages, "actions/download-artifact").filter(
       (step) => step.with?.name === upload!.with?.name
