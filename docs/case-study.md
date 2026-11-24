@@ -2,7 +2,7 @@
 
 I've spent 15 years making designers' work ship at award level. For this project, I wanted to see if I could bring that same craft to AI-generated interfaces. I wrote a one-page [design brief](design-brief.md), had Claude Code build a design system against it, and put gates and evals in place to check the results. The goal was production-ready screens that follow the design brief, not whatever the model thinks looks good.
 
-Everything here links back to the code, decisions or results.
+Everything here links back to the code, decisions or results. There is also a [90-second video](https://youtu.be/v0i9vIdOAsk).
 
 <!-- tailored:start · these lines change per application; nothing else on the page does -->
 
