@@ -133,7 +133,7 @@ Priority:
 
 ## 11. Links
 
-- Job posting: https://www.deel.com/careers/job/adaa0161-cd93-47d0-aaf3-bd6eabc61a6c/
+- Job posting: DILL (codename), Senior Design Engineer
 - Anthropic `frontend-design` skill: https://github.com/anthropics/skills
 - Impeccable detector rules (reference only, Apache 2.0): https://github.com/pbakaus/impeccable
 - Figma MCP — Write to canvas: https://developers.figma.com/docs/figma-mcp-server/write-to-canvas/
