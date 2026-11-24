@@ -38,10 +38,19 @@ jobs:
       - run: pnpm test
 
   # The one Storybook build that every shard renders and Pages deploys.
+  # On a PR it also decides whether the renders can be skipped: only when the
+  # PR touches nothing the pass reads, and the base builds the same Storybook
+  # byte for byte (gates/render-needed.ts). Anything but that explicit `false`
+  # renders, and a push to main always does.
   storybook:
     runs-on: ubuntu-24.04-arm
+    outputs:
+      render: ${{ steps.builds.outputs.needed != 'false' }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The PR's merge commit and its first parent, the base.
+          fetch-depth: 2
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
@@ -54,6 +63,23 @@ jobs:
           name: storybook-static
           path: storybook-static/
           if-no-files-found: error
+      # --no-renames lists a moved file's old path too.
+      - id: paths
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          git diff --name-only --no-renames HEAD^1 HEAD > "$RUNNER_TEMP/paths"
+          node gates/render-needed.ts paths "$RUNNER_TEMP/paths" >> "$GITHUB_OUTPUT"
+      # In the same checkout, so a path can't make the builds differ. No path
+      # that got here changes the dependencies.
+      - id: builds
+        if: ${{ steps.paths.outputs.needed == 'false' }}
+        run: |
+          mv storybook-static "$RUNNER_TEMP/head"
+          head=$(git rev-parse HEAD)
+          git checkout --quiet --detach HEAD^1
+          pnpm storybook:build --quiet
+          git checkout --quiet --detach "$head"
+          node gates/render-needed.ts builds storybook-static "$RUNNER_TEMP/head" >> "$GITHUB_OUTPUT"
 
   # The Playwright pass, split over runners, each in the pinned image on arm64
   # (ADR 0009). CI is set, so a missing baseline fails instead of being
@@ -61,6 +87,7 @@ jobs:
   # contact sheet holds every render.
   render:
     needs: storybook
+    if: ${{ needs.storybook.outputs.render == 'true' }}
     runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
@@ -88,7 +115,7 @@ jobs:
           retention-days: 1
 
   # The one required check (ADR 0009): it passes only if every job it needs
-  # did, and merges the shards' reports either way. always() because GitHub
+  # did, or the renders weren't needed, and merges the shards' reports either way. always() because GitHub
   # would otherwise skip it after a failed job, and a skipped required check
   # counts as passed.
   gate:
@@ -102,22 +129,31 @@ jobs:
     steps:
       - name: Every job passed
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          STATIC: ${{ needs.static.result }}
+          STORYBOOK: ${{ needs.storybook.result }}
+          RENDER: ${{ needs.render.result }}
+          RENDER_NEEDED: ${{ needs.storybook.outputs.render }}
         run: |
-          echo "$RESULTS"
-          test "$RESULTS" = "success success success"
+          echo "static $STATIC, storybook $STORYBOOK, render $RENDER (needed: $RENDER_NEEDED)"
+          test "$STATIC" = success
+          test "$STORYBOOK" = success
+          if [ "$RENDER_NEEDED" = false ]; then
+            test "$RENDER" = skipped
+          else
+            test "$RENDER" = success
+          fi
       # A failed shard's report is the one to read, so the rest runs anyway.
       - uses: actions/checkout@v7
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && needs.render.result != 'skipped' }}
       - uses: pnpm/action-setup@v6
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && needs.render.result != 'skipped' }}
       - uses: actions/setup-node@v7
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && needs.render.result != 'skipped' }}
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && needs.render.result != 'skipped' }}
       - uses: actions/download-artifact@v8
         if: ${{ !cancelled() && needs.render.result != 'skipped' }}
         with:
