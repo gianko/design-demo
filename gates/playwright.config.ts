@@ -13,6 +13,9 @@ export default defineConfig({
   snapshotPathTemplate: `${resolve(process.env.GATE_BASELINES || "gates/baselines")}/{arg}{ext}`,
   outputDir: "out/results",
   fullyParallel: true,
+  // CI's runner has 4 CPUs, of which Playwright's default takes half. Three
+  // workers render a quarter faster there, and a fourth adds little.
+  workers: process.env.CI ? 3 : undefined,
   forbidOnly: true,
   retries: 0,
   reporter: [
