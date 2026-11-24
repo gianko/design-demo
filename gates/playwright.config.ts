@@ -14,8 +14,9 @@ export default defineConfig({
   outputDir: "out/results",
   fullyParallel: true,
   // CI's runner has 4 CPUs, of which Playwright's default takes half. Three
-  // workers render a quarter faster there, and a fourth adds little.
-  workers: process.env.CI ? 3 : undefined,
+  // workers render a quarter faster there, and a fourth adds little. The gate's own tests
+  // also run it with CI unset, so run.ts sets this from the runner instead.
+  workers: Number(process.env.GATE_WORKERS) || undefined,
   forbidOnly: true,
   retries: 0,
   // A shard sees only its share of the renders, so it writes a blob, and

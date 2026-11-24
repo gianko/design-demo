@@ -48,6 +48,7 @@ run(
     {
       CI: ci ? "1" : undefined,
       GATE_SHARD: shard,
+      GATE_WORKERS: process.env.GITHUB_ACTIONS ? "3" : undefined,
       GATE_TARGETS: targetsEnv.write(targets),
       GATE_BASELINES: process.env.GATE_BASELINES || undefined,
       GATE_SEED: process.env.GATE_SEED || undefined,

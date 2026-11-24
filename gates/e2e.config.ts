@@ -6,6 +6,7 @@
 // Only one run at a time per checkout (run-lock.ts).
 
 import { defineConfig } from "vitest/config";
+import { parseLeg } from "./e2e-legs.ts";
 import { repo } from "../repo.ts";
 
 export default defineConfig({
@@ -13,12 +14,17 @@ export default defineConfig({
     root: repo,
     // The gate's cases, the kept screen's (spec § Keep), the generator's
     // render pass and the calibration set's.
-    include: [
-      "gates/gate.e2e.ts",
-      "generator/keep.e2e.ts",
-      "generator/render-gates.e2e.ts",
-      "evals/calibration.e2e.ts",
-    ],
+    // A share of the gate's fixtures is in gate.e2e.ts alone, so the `rest`
+    // leg runs every other file (e2e-legs.ts).
+    include:
+      parseLeg(process.env.GATE_E2E_LEG).kind === "share"
+        ? ["gates/gate.e2e.ts"]
+        : [
+            "gates/gate.e2e.ts",
+            "generator/keep.e2e.ts",
+            "generator/render-gates.e2e.ts",
+            "evals/calibration.e2e.ts",
+          ],
     // Every file runs `pnpm gate` or a Storybook build over the one
     // checkout, and the first two plant files in src/ that the others' runs
     // would pick up, so one file at a time.
