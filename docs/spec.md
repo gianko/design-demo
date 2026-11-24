@@ -90,7 +90,7 @@ Gate 2, all three ESLint layers of [ADR 0002](adr/0002-token-only-tailwind-and-e
 
 ### CI gate job
 
-The single job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md) on `ubuntu-24.04-arm`: frozen install, token build + a clean `git status --porcelain`, Vitest, `pnpm gate`. It is the required status check on main, and the Playwright report and contact sheet upload as artifacts. The repo goes public when this lands. The Pages deploy is not in the slice.
+The jobs of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md) on `ubuntu-24.04-arm`: token build + a clean `git status --porcelain`, ESLint, tsc and Vitest; one Storybook build; the Playwright pass in four shards; and `gate`, which merges their reports. `gate` is the required status check on main, and the Playwright report and contact sheet upload as artifacts. The repo goes public when this lands. The Pages deploy is not in the slice.
 
 **Done when:** a PR that breaks a token output, a test or a baseline goes red, and a clean PR goes green.
 
@@ -242,7 +242,7 @@ After a rep's last attempt, gate 5 judges its final screen as `pnpm generate` do
 
 ### Pages deploy
 
-The second CI job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. A run given `pnpm evals --baseline <results file>` names that file in its own, and `/evals/` then serves the comparison against it: the screen briefs both runs cover side by side, the rest on their own. Turning Pages on, with GitHub Actions as its source, is the human's job.
+The Pages job of [ADR 0009](adr/0009-gates-render-in-one-pinned-linux-arm64-image.md): on a push to main, once the gate job passes, it publishes `storybook-static` at the Pages root and the newest committed results file's report at `/evals/`, without screenshots. A run given `pnpm evals --baseline <results file>` names that file in its own, and `/evals/` then serves the comparison against it: the screen briefs both runs cover side by side, the rest on their own. Turning Pages on, with GitHub Actions as its source, is the human's job.
 
 **Done when:** a push to main publishes Storybook at the Pages URL; `/evals/` serves the newest results file's report once one is committed, and Storybook still deploys while there isn't one; and a red gate job publishes nothing.
 
