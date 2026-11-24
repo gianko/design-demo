@@ -8,11 +8,11 @@ Everything here links back to the code, decisions or results. There is also a [9
 
 ## 1. The ask
 
-Deel's [Senior Design Engineer](https://www.deel.com/careers/job/adaa0161-cd93-47d0-aaf3-bd6eabc61a6c/) posting, in Product Design, puts it this way:
+The Senior Design Engineer posting at DILL (a codename), in Product Design, puts it this way:
 
-> Most teams use AI as a faster way for humans to build products. At Deel, we want to go further: build the system that lets AI build the products, with humans defining the taste, the guardrails, and the standards it works within.
+> Most teams use AI as a faster way for humans to build products. At [DILL], we want to go further: build the system that lets AI build the products, with humans defining the taste, the guardrails, and the standards it works within.
 
-I built this around contractor payroll and invoicing. Deel is "the all-in-one payroll and HR platform for global teams", and I'm a contractor myself, so it's a domain I know firsthand.
+I built this around contractor payroll and invoicing. DILL makes payroll and HR software for global teams, and I'm a contractor myself, so it's a domain I know firsthand.
 
 <!-- tailored:end -->
 
