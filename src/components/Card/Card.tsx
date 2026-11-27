@@ -1,4 +1,10 @@
-import { useState, type ReactNode } from "react";
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  useState,
+  type ReactNode,
+} from "react";
 import { tv } from "tailwind-variants/lite";
 import type { PropsOf } from "../../registry/entry.ts";
 import { useStateEntry } from "../Screen/screen-state.tsx";
@@ -49,9 +55,22 @@ export type CardProps = PropsOf<typeof cardEntry> & {
   result?: ReactNode;
 };
 
+// Whether `result` renders anything. A screen that writes one Notice per
+// state hands over a fragment of conditionals, which is truthy even in a
+// state where every conditional is false; without this, that state drew an
+// empty strip whose hairline ran across the Card's rounded corners (#402).
+function rendersSomething(result: ReactNode): boolean {
+  if (
+    isValidElement<{ children?: ReactNode }>(result) &&
+    result.type === Fragment
+  )
+    return Children.toArray(result.props.children).some(rendersSomething);
+  return Children.toArray(result).length > 0;
+}
+
 export function Card({ header, children, footer, result }: CardProps) {
   const slots = card();
-  const hasResult = Boolean(result);
+  const hasResult = rendersSomething(result);
   const entry = useStateEntry();
   // Whether it had a result last render, and the state entry in which it
   // last lost one.
@@ -76,7 +95,7 @@ export function Card({ header, children, footer, result }: CardProps) {
         <div className={slots.body()}>{children}</div>
         {footer && <div className={slots.footer()}>{footer}</div>}
       </div>
-      {result && <div className={slots.result()}>{result}</div>}
+      {hasResult && <div className={slots.result()}>{result}</div>}
     </div>
   );
 }

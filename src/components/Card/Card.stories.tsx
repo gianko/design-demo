@@ -216,6 +216,38 @@ export const Result: Story = {
   },
 };
 
+// A `result` that renders nothing: one conditional Notice per state, as a
+// generated screen writes it, in a state where neither shows. The Card looks
+// as it does with no result, with no strip or hairline along its bottom edge
+// (#402).
+const reminderSent = false as boolean;
+const reminderFailed = false as boolean;
+export const EmptyResult: Story = {
+  args: {
+    ...Result.args,
+    result: (
+      <>
+        {reminderSent && (
+          <Notice
+            tone="success"
+            text="Reminder sent to Northwind. We'll tell you when they pay."
+          />
+        )}
+        {reminderFailed && (
+          <Notice
+            tone="failure"
+            text="We couldn't send your reminder. Check your connection and try again."
+          />
+        )}
+      </>
+    ),
+  },
+  play: async ({ canvasElement, globals }) => {
+    await holdsPaddingAndCeiling(canvasElement, globals.density);
+    await expect(card(canvasElement).children).toHaveLength(1);
+  },
+};
+
 // Full on a phone, a contractor's usual device: the ceiling only caps the
 // width, so the card narrows with the screen.
 export const Phone: Story = {
