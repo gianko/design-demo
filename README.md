@@ -57,26 +57,26 @@ Every change lands as a pull request, every eval run's results file is committed
 
 <!-- eval-table:start: written by `pnpm evals:readme` from the newest results file -->
 
-15 screen briefs, K = 3, Opus 5.5, on a clean tree at `376f289` ([results file](evals/results/2026-10-31-p2-hard.json)). The [report](https://gianko.github.io/design-demo/evals/) compares it against [2026-10-29-p2](evals/results/2026-10-29-p2.json). Gate 5 was soft in 2026-10-29-p2, so its passes don't count brief conformance.
+15 screen briefs, K = 3, Opus 5.5, on a clean tree at `accddad` ([results file](evals/results/2026-11-27-p2-judge-fix.json)). The [report](https://gianko.github.io/design-demo/evals/) compares it against [2026-10-31-p2-hard](evals/results/2026-10-31-p2-hard.json).
 
 | Screen brief | Audience | Passed | First attempt | Cost |
 |---|---|---|---|---|
-| [annual-summary](evals/briefs/annual-summary.md) | contractor | 3 / 3 | 3 / 3 | $0.59, of which gate 5 $0.12 |
-| [bulk-pay](evals/briefs/bulk-pay.md) | admin | 3 / 3 | 3 / 3 | $0.94, of which gate 5 $0.35 |
-| [contractors](evals/briefs/contractors.md) | admin | 3 / 3 | 3 / 3 | $0.66, of which gate 5 $0.19 |
-| [failed-payments](evals/briefs/failed-payments.md) | admin | 3 / 3 | 0 / 3 | $1.08, of which gate 5 $0.37 |
-| [invoice-queue](evals/briefs/invoice-queue.md) | admin | 3 / 3 | 3 / 3 | $0.82, of which gate 5 $0.35 |
-| [invoice-review](evals/briefs/invoice-review.md) | admin | 3 / 3 | 3 / 3 | $0.75, of which gate 5 $0.23 |
-| [my-invoices](evals/briefs/my-invoices.md) | contractor | 3 / 3 | 2 / 3 | $0.64, of which gate 5 $0.20 |
-| [overdue-invoices](evals/briefs/overdue-invoices.md) | admin | 3 / 3 | 3 / 3 | $1.09, of which gate 5 $0.48 |
-| [payment-failed](evals/briefs/payment-failed.md) | contractor | 3 / 3 | 3 / 3 | $0.70, of which gate 5 $0.24 |
-| [payment-overview](evals/briefs/payment-overview.md) | contractor | 3 / 3 | 3 / 3 | $0.56, of which gate 5 $0.13 |
-| [payment-run](evals/briefs/payment-run.md) | admin | 1 / 3 | 1 / 3 | $0.58, of which gate 5 $0.15 |
-| [payment-status](evals/briefs/payment-status.md) | contractor | 3 / 3 | 3 / 3 | $0.82, of which gate 5 $0.26 |
-| [payments-received](evals/briefs/payments-received.md) | contractor | 3 / 3 | 3 / 3 | $0.51, of which gate 5 $0.20 |
-| [run-history](evals/briefs/run-history.md) | admin | 2 / 3 | 2 / 3 | $0.60, of which gate 5 $0.21 |
-| [withdraw-invoice](evals/briefs/withdraw-invoice.md) | contractor | 3 / 3 | 3 / 3 | $0.70, of which gate 5 $0.21 |
-| **All** | | **42 / 45** | **38 / 45** | **$11.03, of which gate 5 $3.67** |
+| [annual-summary](evals/briefs/annual-summary.md) | contractor | 3 / 3 | 3 / 3 | $0.70, of which gate 5 $0.18 |
+| [bulk-pay](evals/briefs/bulk-pay.md) | admin | 3 / 3 | 3 / 3 | $1.37, of which gate 5 $0.37 |
+| [contractors](evals/briefs/contractors.md) | admin | 3 / 3 | 3 / 3 | $0.83, of which gate 5 $0.20 |
+| [failed-payments](evals/briefs/failed-payments.md) | admin | 2 / 3 | 0 / 3 | $1.37, of which gate 5 $0.38 |
+| [invoice-queue](evals/briefs/invoice-queue.md) | admin | 3 / 3 | 3 / 3 | $1.24, of which gate 5 $0.36 |
+| [invoice-review](evals/briefs/invoice-review.md) | admin | 3 / 3 | 3 / 3 | $1.08, of which gate 5 $0.22 |
+| [my-invoices](evals/briefs/my-invoices.md) | contractor | 3 / 3 | 3 / 3 | $0.77, of which gate 5 $0.20 |
+| [overdue-invoices](evals/briefs/overdue-invoices.md) | admin | 3 / 3 | 3 / 3 | $1.52, of which gate 5 $0.47 |
+| [payment-failed](evals/briefs/payment-failed.md) | contractor | 3 / 3 | 3 / 3 | $1.07, of which gate 5 $0.23 |
+| [payment-overview](evals/briefs/payment-overview.md) | contractor | 3 / 3 | 3 / 3 | $0.73, of which gate 5 $0.13 |
+| [payment-run](evals/briefs/payment-run.md) | admin | 3 / 3 | 3 / 3 | $0.76, of which gate 5 $0.14 |
+| [payment-status](evals/briefs/payment-status.md) | contractor | 0 / 3 | 0 / 3 | $1.23, of which gate 5 $0.29 |
+| [payments-received](evals/briefs/payments-received.md) | contractor | 3 / 3 | 3 / 3 | $0.70, of which gate 5 $0.21 |
+| [run-history](evals/briefs/run-history.md) | admin | 3 / 3 | 3 / 3 | $0.76, of which gate 5 $0.21 |
+| [withdraw-invoice](evals/briefs/withdraw-invoice.md) | contractor | 3 / 3 | 3 / 3 | $1.06, of which gate 5 $0.21 |
+| **All** | | **41 / 45** | **39 / 45** | **$15.20, of which gate 5 $3.79** |
 
 <!-- eval-table:end -->
 
