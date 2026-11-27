@@ -26,6 +26,9 @@
     "lint/token/fixtures",
     // Generator output: gate 3 checks each file where it would be kept.
     ".generated",
-    "evals/runs"
+    "evals/runs",
+    // The demo video's project, kept out of git in a local checkout: its own
+    // code, not held to this config.
+    "video"
   ]
 }
